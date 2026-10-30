@@ -1,4 +1,4 @@
-/* MischWerk 0.1.27 - erzeugtes Knuddels UserApps Backend.
+/* MischWerk 0.1.28 - erzeugtes Knuddels UserApps Backend.
  * Quellen: src/backend/*.js. Nicht direkt bearbeiten.
  */
 
@@ -469,7 +469,7 @@ var App = (function (config) {
     return {
         onAppStart: function () {
             runtime.load();
-            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.27: Radioleiste mit Wunschbox-, Radio-Team- und Moderations-Popups gestartet. ' +
+            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.28: Radioleiste mit Wunschbox-, Radio-Team- und Moderations-Popups gestartet. ' +
                 (runtime.station().configured ? 'RadioKing ist konfiguriert.' : 'RadioKing-Hörerstream ist noch nicht konfiguriert.'));
             KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).forEach(function (user) {
                 try { runtime.open(user, true); } catch (error) { runtime.warn(); }

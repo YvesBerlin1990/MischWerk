@@ -1,6 +1,6 @@
 # MischWerk – verbindliche Regeln für weitere Programmierungen
 
-Aktuell: lokale Version 0.1.27 mit RadioKing. Diese Regeln gelten dauerhaft im gesamten MischWerk-Projekt. Die vorherige ausführliche Regelchronik ist im geprüften `../ARCHIV/Historie-2026-10-29.zip` enthalten; für neue Arbeiten gelten die folgenden aktuellen Regeln.
+Aktuell: lokale Version 0.1.28 mit RadioKing. Diese Regeln gelten dauerhaft im gesamten MischWerk-Projekt. Die vorherige ausführliche Regelchronik ist im geprüften `../ARCHIV/Historie-2026-10-29.zip` enthalten; für neue Arbeiten gelten die folgenden aktuellen Regeln.
 
 ## Struktur und Freigabe
 
@@ -53,6 +53,8 @@ Aktuell: lokale Version 0.1.27 mit RadioKing. Diese Regeln gelten dauerhaft im g
 24. Warteschlange seit 0.1.23: beim Push/automatischen oder manuellen Aktualisieren dieselbe Wunsch-ID halten, solange sie existiert. Nur Vor/Zurück setzt ausdrücklich eine andere Seite; bei Wegfall des angezeigten Wunsches nächste passende Position, letzte Seite begrenzen. Gleichbleibenden sichtbaren Wunsch nicht für Empfangsquittungen oder Polling neu aufbauen; Tastaturfokus bewahren. Seitenwechsel während Mutation/fehlender Verbindung sperren. Erledigt/Verwerfen über geprüften outcome-Wert unterscheiden und kurz bestätigen; beide entfernen weiterhin nur den ausgewählten Wunsch, behaupten keine tatsächliche Radiowiedergabe. Verbunden/Verbindung fehlt im Studio sichtbar; Aktualisieren zur Wiederverbindung erreichbar halten. Keine neuen RadioKing-Manager-/Encoder-Funktionen unterstellen. Tests müssen Mehrfachmoderation, verzögerte Änderungen, Rechte, Entwurfserhalt, Speicherfehler und schmale Fenster abdecken.
 
 25. Radio-Team seit 0.1.27: nur der tatsächliche Channelinhaber sieht und öffnet das eigenständige Radio-Team-Popup außerhalb des Moderationsmenüs. Er kann einen existierenden Knuddels-Nick ernennen und einen Radiomoderator entfernen. Nick serverseitig über `KnuddelsServer.getUserAccess().exists/getUserId/getNick` auflösen, nur die numerische ID dauerhaft speichern, maximal 50 eindeutige Einträge. Revision schützt parallele Änderungen. Entfernen, Nutzerlöschung, Channel-Verlassen, Ablauf oder Rechteverlust beenden eine betroffene ON-AIR-Anmeldung; Wünsche und Thema bleiben erhalten. Der Channelinhaber bleibt unabhängig von der Liste verwaltungs- und studioberechtigt. Keine automatische Berechtigung für Channelmoderatoren.
+
+26. Moderationsfenster seit 0.1.28 als zusammenhängende Broadcast-Konsole gestalten: kompakter dunkler Rack-Kopf, klar getrennte Mikrofon-/Wunschbox-Steuerkarten mit eigenen Symbolen, dezentes serverseitig bestimmtes Statuslicht, kompakter Themenstreifen und gefasste Warteschlange. Ausschließlich bestehende neutrale Markenfarben, Gold und Creme; keine neue Bilddatei, Animation oder erfundene Statuslogik. Der frühere Fußtext zu sechs Stunden, Sende-Encoder sowie Erledigt/Verwerfen ist vollständig aus der Oberfläche entfernt. Ablaufzeit bleibt ausschließlich situativ bei einer aktiven Anmeldung sichtbar. Alle Funktionen, Tastaturbedienung, Reiter und Scrollfreiheit bei 320–780 px erhalten.
 
 ## Prüfung und Pflege
 

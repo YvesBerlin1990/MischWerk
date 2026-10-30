@@ -736,17 +736,22 @@ test('Studio sendet erwartete Werte und erhält den Themenentwurf bei paralleler
 
 test('Studio bleibt mit Ablaufanzeige, langen Namen und Wunschtexten in normalen und schmalen Fenstern ohne Scrollen',async t=>{
   const {page,state,errors}=await setup(t,{view:'studio',k3:false,viewport:{width:780,height:800}});
+  assert.equal(await page.locator('#studio-panel .studio-control-card').count(),2);
+  assert.equal(await page.locator('#studio-panel .studio-card-icon').count(),3);
+  assert.equal(await page.locator('#studio-panel .studio-note').count(),0);
+  assert.doesNotMatch(await page.locator('#studio-panel').innerText(),/Sende-Encoder|Studio-Anmeldung: bis zu 6 Stunden/);
+  const folder=path.join(root,'docs/studio-pruefung');
+  if(process.env.MISCHWERK_CAPTURE_STUDIO){fs.mkdirSync(folder,{recursive:true});await fitPopup(page);await page.screenshot({path:path.join(folder,'Studio-Leer-780.png')});}
   const next={...state,revision:2,topic:'80er und 90er',moderator:{nick:'Otterchen',since:Date.now(),expiresAt:Date.now()+3600000,sessionKey:'demo-1'},user:{...state.user,isOnAir:true,canEndModeration:true},queue:[{id:10,text:'a-ha – Take On Me',nick:'Musikfreund',createdAt:Date.now()}],queueTotal:2,pages:2};
   await page.evaluate(s=>window.__emit('mw:state',s),next);await fitPopup(page);
-  const folder=path.join(root,'docs/studio-pruefung');
   if(process.env.MISCHWERK_CAPTURE_STUDIO){fs.mkdirSync(folder,{recursive:true});await page.screenshot({path:path.join(folder,'Studio-780.png')});}
   for(const width of [780,601,600,390,320]){
     await page.setViewportSize({width,height:800});
     await page.evaluate(s=>window.__emit('mw:state',{...s,revision:3,moderator:{...s.moderator,nick:'EinSehrLangerModeratorNameMitZusatz'},user:{...s.user,isOnAir:false,canEndModeration:true},queue:[{...s.queue[0],text:'Langer Wunsch '.repeat(22),nick:'EinSehrLangerHoererNameMitZusatz'}]}),next);
     assert.ok(await fitPopup(page)<1000,'Studio-Inhalt unter 1000 px bei '+width);
     if(width<=600){
-      await page.locator('#studio-controls-tab').click();assert.ok(await fitPopup(page)<740);
-      await page.locator('#studio-queue-tab').click();assert.ok(await fitPopup(page)<740);
+      await page.locator('#studio-controls-tab').click();const controlsHeight=await fitPopup(page);assert.ok(controlsHeight<740,'Studio-Steuerung unter 740 px bei '+width+': '+controlsHeight);
+      await page.locator('#studio-queue-tab').click();const queueHeight=await fitPopup(page);assert.ok(queueHeight<740,'Studio-Wünsche unter 740 px bei '+width+': '+queueHeight);
       if(width===320&&process.env.MISCHWERK_CAPTURE_STUDIO)await page.screenshot({path:path.join(folder,'Studio-Wuensche-320.png')});
     }
     for(const selector of width<=600?['#prev-page','#next-page','[data-outcome="done"]']:['#on-air','#off-air','#toggle-wishes','#save-topic','#next-page']){
@@ -775,7 +780,7 @@ test('Popup passt sich langen Wünschen an und schrumpft nach Rückmeldungen wie
     const populatedHeight=await fitPopup(page);
     assert.ok(populatedHeight>=emptyHeight);
     if(view==='wishes'){assert.equal(populatedHeight,emptyHeight,'Alte Wünsche vergrößern das vereinfachte Fenster nicht');}
-    assert.ok(populatedHeight<760);
+    assert.ok(populatedHeight<760,'Popup unter 760 px: '+populatedHeight);
     if(view==='studio'){
       assert.equal(await page.locator('.queue-item').count(),1);
       for(const selector of ['#next-page','[data-resolve]']) {

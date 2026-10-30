@@ -1,4 +1,4 @@
-MischWerk mit RadioKing – lokaler Stand 0.1.27 vom 30.10.2026
+MischWerk mit RadioKing – lokaler Stand 0.1.28 vom 30.10.2026
 
 BEREITS EINGERICHTET
 Radio: MischWerk
@@ -73,7 +73,7 @@ LIVE bleibt nach zuletzt bestätigtem Stand 0.1.13.
 
 LOKALER UPLOAD
 Ordner: UPLOAD/MischWerk
-ZIP: ANLEITUNGEN/Paket/MischWerk-Knuddels-LIVE-0.1.27.zip
+ZIP: ANLEITUNGEN/Paket/MischWerk-Knuddels-LIVE-0.1.28.zip
 Neu bauen: Installationspaket-erstellen.cmd im MischWerk-Hauptordner.
 Alternativ aus PROJEKT/: node tools/build-install.cjs.
 Diese Werkzeuge bauen nur lokal und laden nichts hoch.
@@ -94,4 +94,4 @@ Beim Wiederanlauf wird Play freigegeben, aber nichts automatisch gestartet.
 API-Fehler oder unbekannte Werte erlauben manuellen Hörversuch und stoppen
 keinen laufenden Ton. Die Knuddels-Studioanmeldung bleibt unabhängig.
 Der gestoppte eigene Sender wurde direkt und im Browser geprüft:
-PROJEKT/docs/radioking-pruefung/anbindung-0.1.25.json
+PROJEKT/docs/radioking-pruefung/anbindung-0.1.28.json

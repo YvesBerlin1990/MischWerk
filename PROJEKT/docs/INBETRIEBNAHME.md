@@ -1,6 +1,6 @@
 # MischWerk – technische Abnahme und Datenhaltung
 
-Lokaler Stand 0.1.27 mit RadioKing, zuletzt bestätigtes LIVE 0.1.13. Weiterhin kein Upload/Update/Neustart ohne erneute ausdrückliche Nutzeranweisung.
+Lokaler Stand 0.1.28 mit RadioKing, zuletzt bestätigtes LIVE 0.1.13. Weiterhin kein Upload/Update/Neustart ohne erneute ausdrückliche Nutzeranweisung.
 
 Die aktuelle Nutzeranleitung steht ausschließlich unter [ANLEITUNGEN/INSTALLIEREN-LIVE.md](../../ANLEITUNGEN/INSTALLIEREN-LIVE.md). Die [RadioKing-Einrichtung](../../ANLEITUNGEN/RADIOKING-EINRICHTUNG.txt) beschreibt die öffentlichen Endpunkte. Backend-Quellmodule liegen unter `PROJEKT/src/backend/`; `PROJEKT/app/main.js` ist das daraus erzeugte Laufzeit-Bundle. Fertiger Upload liegt unter `UPLOAD/MischWerk/`, ZIP und Prüfsummen unter `ANLEITUNGEN/Paket/` (jeweils relativ zum MischWerk-Hauptordner).
 
