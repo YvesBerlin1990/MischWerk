@@ -1,0 +1,19 @@
+{
+  "environment": "live",
+  "serverId": "knuddelsDEV",
+  "appKey": "MischWerk",
+  "channelName": "MischWerk",
+  "developerNick": "Otterchen",
+  "ownerNick": "Otterchen",
+  "developerId": "30807196",
+  "ftp": {
+    "host": "appupload.knuddels.de",
+    "port": 21,
+    "username": "30807196",
+    "security": "explicit-tls",
+    "remoteRoot": "/ftp"
+  },
+  "appId": "knuddelsDEV.30807196.MischWerk",
+  "installId": "30807196.MischWerk",
+  "appleDeveloperId": null
+}

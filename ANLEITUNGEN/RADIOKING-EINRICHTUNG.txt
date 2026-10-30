@@ -1,0 +1,96 @@
+MischWerk mit RadioKing – lokaler Stand 0.1.25 vom 30.10.2026
+
+BEREITS EINGERICHTET
+Radio: MischWerk
+Radio-ID: mischwerk
+Numerische RadioKing-ID: 950821 (öffentlich verifiziert)
+Hörerstream: https://play.radioking.io/mischwerk
+Format: MP3, 128 kbit/s
+Aktueller Titel/Interpret:
+https://api.radioking.io/widget/radio/mischwerk/track/current
+
+Die Konfiguration steht oben in PROJEKT/app/main.js:
+    radioking: { radioId: 'mischwerk' }
+
+Der öffentliche Standard-Hörlink aus deinem Screenshot ist bereits eingebaut.
+Stream- und Titeladresse werden aus der Radio-ID abgeleitet. Die öffentliche
+RadioKing-API hat die Zuordnung MischWerk / mischwerk / 950821 bestätigt.
+RadioKing ist der einzige aktive Radioanbieter; es gibt keinen alternativen Rückfall.
+
+WELCHER LINK WOFÜR?
+- Standardlink (play.radioking.io/mischwerk): Audioquelle der Knuddels-App.
+- M3U-Link: Playlist-Datei für andere Abspielprogramme; nicht im Audioelement.
+- Smartlink (link.radioking.com/mischwerk): öffentliche Link-/Infoseite;
+  keine Audioquelle und keine Voraussetzung für die App.
+- live.radioking.com, Port 80, Mount /mischwerk: Eingang für deine Live-
+  Sendesoftware. Diese Verbindung gehört NICHT in die Hörer-App.
+
+KEINE PASSWÖRTER NÖTIG
+Die App verwendet ausschließlich öffentliche Hör- und Metadatenendpunkte.
+Manager-/Live-Passwort, DJ-Benutzer und API-Schlüssel werden weder benötigt
+noch gespeichert oder an Knuddels-Hörer gesendet.
+
+TITEL UND INTERPRET
+RadioKing liefert title und artist als getrennte JSON-Textfelder. Die App
+übernimmt beide ohne zusätzliche Trennung an Bindestrichen. Fehlende Werte
+werden jeweils einschließlich Beschriftung ausgeblendet. Ein Live-Sendungstitel
+ohne Künstler bleibt allein im Titelfeld. Es werden keine Künstler erfunden.
+Abfrage alle 30 Sekunden, nur in der sichtbaren Radioleiste. Popups erzeugen
+keine weiteren Radio-/Titelverbindungen. Bei vorübergehenden API-Fehlern bleibt
+die letzte gültige Anzeige erhalten; Audio wird dadurch nicht gestoppt.
+
+Die öffentlichen Endpunkte wurden am 29.10.2026 direkt geprüft. Sie sind
+RadioKings Widget-Schnittstellen; ein versionierter öffentlicher API-Vertrag
+oder eine dauerhafte Verfügbarkeitsgarantie wurde nicht gefunden. Änderungen
+des Anbieters können eine spätere Anpassung erfordern. Beim aktuellen Test
+lieferte die API HTTP 200, JSON und Access-Control-Allow-Origin: *.
+
+AUTO-DJ UND LIVE
+Playlists, Musik-Uploads, Jingles, Sendeplan und Encoder werden im RadioKing-
+Manager bzw. in deiner Sendesoftware verwaltet. Die App spielt den gemeinsamen
+Hörerstream ab. Sie braucht dafür keinen getrennten AutoDJ-/Live-Endpunkt.
+Für korrekte Live-Titel die Metadaten deiner Sendesoftware bzw. RadioKings
+Einstellung für Live-Titrierung prüfen. Erzwungene Sendungstitel im Manager
+können einzelne Songangaben ersetzen; die App zeigt die gelieferte Information.
+
+Das rote ON-AIR-Schild und der Moderatorname bleiben an die authentifizierte
+Studio-Anmeldung in Knuddels gebunden. RadioKing is_live/Live-Zugangsdaten
+vergeben keine Knuddels-Rechte. Wünsche samt echtem Knuddels-Nick gehen an
+das App-Studio; sie ändern keine RadioKing-Playlist automatisch.
+
+PRÜFUNG
+99 lokale automatisierte Fälle bestanden (49 Backend/HTTP, 50 Browser).
+Zusätzlich echte MP3-Dekodierung und Cross-Origin-Titelabfrage mit deinem
+MischWerk-Sender im Edge-Browser geprüft. Kein fremder Beispielsender.
+Nachweis: PROJEKT/docs/radioking-pruefung/anbindung-0.1.17.json
+Vorschau: PROJEKT/docs/radioking-pruefung/MischWerk-RadioKing-2124.png
+
+Die Knuddels-Bridge war im Browser simuliert. Eine echte Abnahme im Knuddels-
+Desktop-/K3-Client mit RadioKing ist weiterhin erforderlich, sobald ein Update
+ausdrücklich freigegeben wird. Es wurde NICHT zu Knuddels hochgeladen.
+LIVE bleibt nach zuletzt bestätigtem Stand 0.1.13.
+
+LOKALER UPLOAD
+Ordner: UPLOAD/MischWerk
+ZIP: ANLEITUNGEN/Paket/MischWerk-Knuddels-LIVE-0.1.25.zip
+Neu bauen: Installationspaket-erstellen.cmd im MischWerk-Hauptordner.
+Alternativ aus PROJEKT/: node tools/build-install.cjs.
+Diese Werkzeuge bauen nur lokal und laden nichts hoch.
+
+OFFIZIELLE QUELLEN
+https://help.radioking.com/hc/en-us/articles/4409391813521-Settings-Presentation
+https://help.radioking.com/hc/en-us/articles/4408959440913-Broadcast-live-with-LadioCast
+https://api.radioking.io/widget/radio/mischwerk
+https://api.radioking.io/widget/radio/mischwerk/stream
+https://api.radioking.io/widget/radio/mischwerk/track/current
+
+SENDERSTATUS AB 0.1.25
+Öffentlich: https://api.radioking.io/widget/radio/mischwerk
+Nur stream_status=started/stopped bei passender Radio-ID auswerten.
+Bei stopped zeigt die App Sendepause und sperrt Play grau. Statusprüfung
+etwa alle 30 Sekunden; RadioKing nutzt bis zu 15 Sekunden Cache.
+Beim Wiederanlauf wird Play freigegeben, aber nichts automatisch gestartet.
+API-Fehler oder unbekannte Werte erlauben manuellen Hörversuch und stoppen
+keinen laufenden Ton. Die Knuddels-Studioanmeldung bleibt unabhängig.
+Der gestoppte eigene Sender wurde direkt und im Browser geprüft:
+PROJEKT/docs/radioking-pruefung/anbindung-0.1.25.json

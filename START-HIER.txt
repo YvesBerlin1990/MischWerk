@@ -1,0 +1,28 @@
+MISCHWERK – DIE MISCHUNG MACHT’S.
+Lokale App-Version: 0.1.25 mit RadioKing
+
+DEIN UPLOAD-ORDNER
+  UPLOAD\MischWerk
+  Hier liegen nur die sechs fertigen App-Dateien für Knuddels.
+  Schnell öffnen: Upload-Ordner-oeffnen.cmd doppelklicken.
+
+ANLEITUNGEN
+  ANLEITUNGEN\INSTALLIEREN-LIVE.md       Anleitung für das spätere Update
+  ANLEITUNGEN\RADIOKING-EINRICHTUNG.txt  RadioKing-Verbindung und Einstellungen
+  ANLEITUNGEN\Paket                    Aktuelles ZIP und Prüfsummen
+  ANLEITUNGEN\Lizenzen                 GEMA-/GVL-Referenzunterlagen
+
+PROJEKT
+  Quellcode, Tests, Werkzeuge, API-Referenzen und technische Nachweise.
+  Für die tägliche Nutzung brauchst du diesen Bereich nicht zu öffnen.
+  Vorschau starten: Vorschau-starten.cmd im Hauptordner.
+  Upload-Paket neu bauen: Installationspaket-erstellen.cmd im Hauptordner.
+
+ARCHIV
+  Frühere ZIP-Versionen, alte Anbieter-Unterlagen und ältere Prüfberichte
+  sind in Historie-2026-10-29.zip zusammengefasst. Nicht zum Upload verwenden.
+
+STATUS
+  Dein RadioKing-Stream ist eingerichtet: https://play.radioking.io/mischwerk
+  Nichts auf Knuddels hochgeladen. Zuletzt bestätigtes LIVE bleibt 0.1.13.
+  Ein neues Server-Update erfolgt erst auf deine ausdrückliche Anweisung.
