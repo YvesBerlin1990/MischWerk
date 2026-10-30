@@ -75,7 +75,6 @@ MischWerkModules.attachActions = function (runtime, config) {
                 runtime.state.requests.some(function (item) { return item.userId === user.getUserId() && item.requestId === data.requestId; }))) { return false; }
         if (runtime.shuttingDown || !runtime.state.requestsEnabled) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
         var timestamp = runtime.now();
-        if (runtime.state.requests.length >= config.maxQueueLength) { throw runtime.failure('Die Wunschbox ist voll. Versuche es später erneut.'); }
         var wishText = data.text !== undefined ? runtime.text(data.text, 300, true) :
             runtime.text(data.artist, 80, true) + ' – ' + runtime.text(data.title, 80, true) +
                 (data.message ? ' · ' + runtime.text(data.message, 200, false) : '');
@@ -93,7 +92,7 @@ MischWerkModules.attachActions = function (runtime, config) {
         next.nextId += 1;
         next.requests.push(item);
         next.cooldowns[key] = { at: timestamp, requestId: data.requestId || null };
-        runtime.persist(next);
+        runtime.persist(next, 'Dein Wunsch konnte nicht gespeichert werden. Bitte versuche es erneut.');
         return item;
     };
     runtime.acknowledgeRequest = function (user, data, session) {

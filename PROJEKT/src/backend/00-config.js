@@ -8,7 +8,6 @@ var MischWerkConfig = {
     },
     // Optionale anfängliche Radio-Moderatoren; weitere IDs verwaltet der Channelinhaber persistent.
     radioModeratorUserIds: [],
-    maxQueueLength: 50,
     moderatorSessionHours: 6
 };
 

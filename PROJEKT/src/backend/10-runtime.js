@@ -5,6 +5,8 @@ MischWerkModules.createRuntime = function (config) {
         key: 'mischwerk.state.v1',
         pageSize: 1,
         radioModeratorPageSize: 5,
+        maxReplayEntries: 100,
+        emergencyReplayEntries: 20,
         state: null,
         views: [],
         shuttingDown: false,
@@ -19,10 +21,11 @@ MischWerkModules.createRuntime = function (config) {
         error.publicMessage = message;
         return error;
     };
-    runtime.warn = function () {
+    runtime.warn = function (operation) {
         if (runtime.lastWarningAt && runtime.now() - runtime.lastWarningAt < 60000) { return; }
         runtime.lastWarningAt = runtime.now();
-        try { KnuddelsServer.getDefaultLogger().warn('MischWerk: Eine Speicher- oder UI-Operation konnte nicht abgeschlossen werden.'); }
+        var context = typeof operation === 'string' && /^[A-Z_]{1,30}$/.test(operation) ? ' [' + operation + ']' : '';
+        try { KnuddelsServer.getDefaultLogger().warn('MischWerk: Eine Speicher- oder UI-Operation konnte nicht abgeschlossen werden.' + context); }
         catch (ignored) { /* Fehler beim Loggen darf den App-Zustand nicht ändern. */ }
     };
     runtime.jsonBytes = function (value) {

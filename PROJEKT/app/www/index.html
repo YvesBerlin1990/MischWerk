@@ -49,7 +49,7 @@ if (typeof Client !== 'undefined') {
               <span id="wish-text-count" class="sr-only">0 / 300</span>
               <div class="form-footer"><button class="primary-button" type="submit" id="submit-wish">Wunsch senden</button></div>
             </fieldset>
-            <div id="wish-feedback" class="wish-feedback" role="status" aria-live="polite" hidden></div>
+            <div id="wish-feedback" class="wish-feedback" role="status" aria-live="polite" aria-atomic="true" hidden></div>
             <p class="form-hint" id="wish-hint" role="status" hidden></p>
           </form>
     </section>

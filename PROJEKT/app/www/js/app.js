@@ -115,7 +115,7 @@
         if (lastWish && sameWish(data, lastWish.data)) { requestId = lastWish.requestId; }
         lastWish = { requestId: requestId, data: { text: data.text } };
         feedbackRequest = null;
-        showWishFeedback('Wird gesendet …', false);
+        showWishFeedback('Wird gesendet …', false, true);
       }
       data.requestId = requestId;
       pending = { type: type, requestId: requestId }; renderAvailability();
@@ -161,9 +161,12 @@
       /(^|[\s(<])(?:x\.com|t\.co|(?:[0-9]{1,3}\.){3}[0-9]{1,3})(?=$|[\/:?#\s)>])/i.test(candidate);
   }
   function wishValues() { return { text: el('wish-text').value.trim() }; }
-  function showWishFeedback(message, error) {
+  function showWishFeedback(message, error, pendingFeedback) {
     var box = el('wish-feedback');
-    box.textContent = message; box.hidden = false; box.className = 'wish-feedback' + (error ? ' error' : '');
+    box.className = 'wish-feedback' + (error ? ' error' : pendingFeedback ? ' pending' : ' success');
+    box.setAttribute('role', error ? 'alert' : 'status');
+    box.setAttribute('aria-live', error ? 'assertive' : 'polite');
+    box.textContent = message; box.hidden = false;
     resizeDialog();
   }
   function requestText(item) {
@@ -171,8 +174,9 @@
       [item.artist, item.title].filter(Boolean).join(' – ') + (item.message ? ' · ' + item.message : '');
   }
   function deliveryText(item) {
-    if (item.delivery) { return 'An ' + item.delivery.nick + ' übergeben.'; }
-    return state && state.moderator ? 'Gespeichert – wartet auf ' + state.moderator.nick + '.' : 'Gespeichert – wartet auf Moderation.';
+    if (item.delivery) { return 'Wunsch an ' + item.delivery.nick + ' übergeben.'; }
+    return state && state.moderator ? 'Wunsch erfolgreich gespeichert – wartet auf ' + state.moderator.nick + '.' :
+      'Wunsch erfolgreich gespeichert – wartet auf Moderation.';
   }
   function acknowledgeQueue() {
     if (uiView !== 'studio' || !state || !state.user.canModerate || !connected() || document.hidden) { return; }

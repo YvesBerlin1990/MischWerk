@@ -1,5 +1,5 @@
 MISCHWERK – DIE MISCHUNG MACHT’S.
-Lokale App-Version: 0.1.28 mit RadioKing
+Lokale App-Version: 0.1.29 mit RadioKing
 
 DEIN UPLOAD-ORDNER
   UPLOAD\MischWerk

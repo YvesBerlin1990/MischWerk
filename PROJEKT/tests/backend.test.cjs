@@ -279,18 +279,18 @@ test('Wunsch-Aktionen melden Erledigt und Verwerfen eindeutig; ungültige Aktion
   h.event(listener,ls,'mw:request',{text:'Neuer Song'});
   assert.match(lastResult(h.event(owner,os,'mw:resolveRequest',{id:h.state(owner,os).queue[0].id,outcome:'done'})).message,/erledigt/);
 });
-test('Queue ist begrenzt, paginiert und bleibt unter dem Knuddels-Eventlimit', () => {
+test('Queue hat keine feste Wunschanzahl, bleibt paginiert und unter dem Knuddels-Eventlimit', () => {
   const { h, owner, os } = fixture();
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 60; i++) {
     const user = h.user(100 + i, 'Hörer' + i); const session = h.open(user);
     assert.equal(lastResult(h.event(user, session, 'mw:request', { artist: 'ä'.repeat(80), title: 'T'.repeat(80), message: 'G'.repeat(200) })).ok, true);
   }
   const snapshot = h.state(owner, os, 2);
-  assert.equal(snapshot.queue.length, 1); assert.equal(snapshot.pages, 50); assert.ok(JSON.stringify(snapshot).length < 10000);
-  const extra = h.user(999, 'ZuSpät'); const es = h.open(extra);
-  assert.equal(lastResult(h.event(extra, es, 'mw:request', wish)).ok, false);
+  assert.equal(snapshot.queue.length, 1); assert.equal(snapshot.pages, 60); assert.ok(JSON.stringify(snapshot).length < 10000);
+  const extra = h.user(999, 'WeitererHörer'); const es = h.open(extra);
+  assert.equal(lastResult(h.event(extra, es, 'mw:request', wish)).ok, true);
   const id = snapshot.queue[0].id; h.event(owner, os, 'mw:resolveRequest', { id });
-  assert.equal(h.state(owner, os).queueTotal, 49);
+  assert.equal(h.state(owner, os).queueTotal, 60);
 });
 test('Channel verlassen schließt die UI, Löschung entfernt persönliche Daten', () => {
   const { h, listener, owner, ls, os } = fixture();
@@ -404,6 +404,39 @@ test('Bestehende Daten bleiben gültig; alte UserPersistence-Cooldowns sperren k
   const session = restarted.open(user);
   assert.equal(restarted.state(user, session).myRequests.length, 1);
   assert.equal(lastResult(restarted.event(user, session, 'mw:request', wish)).ok, true);
+});
+test('Übermäßig viele oder beschädigte Wiederholungsmarker blockieren keinen neuen Wunsch', () => {
+  const { h, listener, owner, ls, os } = fixture();
+  h.event(listener, ls, 'mw:request', { text: 'Alter Wunsch', requestId: 'old-request' });
+  h.event(owner, os, 'mw:resolveRequest', { id: h.state(owner, os).queue[0].id });
+  const stored = h.store.data['mischwerk.state.v1'];
+  for (let i = 1; i <= 1500; i += 1) {
+    stored.cooldowns['u' + (10000 + i)] = { at: i, requestId: 'legacy-' + i };
+  }
+  const restarted = createHarness(h.store); const newcomer = restarted.user(9000, 'NeuerHörer');
+  const session = restarted.open(newcomer);
+  assert.equal(lastResult(restarted.event(newcomer, session, 'mw:request', { text: 'City – Fenster', requestId: 'new-request' })).ok, true);
+  assert.ok(Object.keys(h.store.data['mischwerk.state.v1'].cooldowns).length <= 100);
+  assert.equal(restarted.state(newcomer, session).myRequests[0].text, 'City – Fenster');
+
+  h.store.data['mischwerk.state.v1'].cooldowns = 'beschädigter Altbestand';
+  const recovered = createHarness(h.store); const person = recovered.user(9001, 'NochEinHörer'); const recoveredSession = recovered.open(person);
+  assert.equal(lastResult(recovered.event(person, recoveredSession, 'mw:request', { text: 'Neuer Wunsch', requestId: 'recovered-request' })).ok, true);
+});
+test('Knapp gewordene AppPersistence reduziert nur alte Wiederholungsmarker und behält den Wunsch', () => {
+  const { h, listener, ls } = fixture();
+  h.event(listener, ls, 'mw:request', { text: 'Vorbereitung', requestId: 'preparation' });
+  const stored = h.store.data['mischwerk.state.v1'];
+  for (let i = 1; i <= 100; i += 1) { stored.cooldowns['u' + (20000 + i)] = { at: i, requestId: 'recent-' + i }; }
+  const restarted = createHarness(h.store); const person = restarted.user(9002, 'SpeicherTest'); const session = restarted.open(person);
+  const setObject = h.store.setObject;
+  h.store.setObject = (key, value) => {
+    if (Object.keys(value.cooldowns).length > 20) { throw new Error('simulated persistence pressure'); }
+    setObject(key, value);
+  };
+  assert.equal(lastResult(restarted.event(person, session, 'mw:request', { text: 'Bleibt erhalten', requestId: 'pressure-request' })).ok, true);
+  assert.equal(restarted.state(person, session).myRequests[0].text, 'Bleibt erhalten');
+  assert.ok(Object.keys(h.store.data['mischwerk.state.v1'].cooldowns).length <= 20);
 });
 test('Knuddels-Ansicht ist responsiv und schließt den alten JFX-Browser aus', () => {
   const { h, os } = fixture();

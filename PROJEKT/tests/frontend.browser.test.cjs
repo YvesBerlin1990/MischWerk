@@ -828,9 +828,13 @@ test('Ein einziges Wunschfeld sendet nur Text und zeigt Versandfehler dauerhaft 
   assert.equal(sent.data.text,'Mein Song, bitte mit Grüßen an alle!');
   assert.deepEqual(Object.keys(sent.data).sort(),['requestId','text']);
   assert.match(await page.locator('#wish-feedback').textContent(),/Wird gesendet/);
+  assert.equal(await page.locator('#wish-feedback').evaluate(n=>n.classList.contains('pending')),true);
   await page.evaluate(s=>window.__emit('mw:result',{ok:false,action:s.type,requestId:s.data.requestId,message:'Wunschbox geschlossen.'}),sent);
   assert.equal(await page.locator('#wish-text').inputValue(),sent.data.text);
   assert.match(await page.locator('#wish-feedback').textContent(),/geschlossen/);
+  assert.equal(await page.locator('#wish-feedback').getAttribute('role'),'alert');
+  assert.equal(await page.locator('#wish-feedback').getAttribute('aria-live'),'assertive');
+  assert.equal(await page.locator('#wish-feedback').evaluate(n=>n.classList.contains('error')),true);
   assert.deepEqual(errors,[]);
 });
 
@@ -868,10 +872,15 @@ test('Gespeichert und an Moderator zugestellt werden getrennt bestätigt; fremde
   const item={id:9,text:sent.data.text,nick:'Otterchen',createdAt:Date.now(),delivery:null};
   await page.evaluate(({s,item})=>window.__emit('mw:result',{ok:true,action:s.type,requestId:s.data.requestId,message:'Gespeichert',request:item}),{s:sent,item});
   assert.equal(await page.locator('#wish-text').inputValue(),'');
-  assert.match(await page.locator('#wish-feedback').textContent(),/Gespeichert/);
+  assert.match(await page.locator('#wish-feedback').textContent(),/erfolgreich gespeichert/);
   assert.doesNotMatch(await page.locator('#wish-feedback').textContent(),/übergeben/);
+  assert.equal(await page.locator('#wish-feedback').getAttribute('role'),'status');
+  assert.equal(await page.locator('#wish-feedback').getAttribute('aria-live'),'polite');
+  assert.equal(await page.locator('#wish-feedback').evaluate(n=>n.classList.contains('success')),true);
+  assert.equal(await page.locator('#wish-feedback').evaluate(n=>getComputedStyle(n,'::before').content),'"✓"');
+  assert.equal(await page.locator('#wish-feedback').evaluate(n=>parseFloat(getComputedStyle(n).fontSize)>=13),true);
   await page.evaluate(({state,item})=>window.__emit('mw:state',{...state,revision:3,myRequests:[{...item,delivery:{nick:'StudioMod',at:Date.now()}}]}),{state,item});
-  assert.match(await page.locator('#wish-feedback').textContent(),/An StudioMod übergeben/);
+  assert.match(await page.locator('#wish-feedback').textContent(),/Wunsch an StudioMod übergeben/);
   assert.equal(await page.locator('.delivery-status').count(),0);
   await page.evaluate(()=>window.__emit('mw:result',{ok:true,action:'mw:request',requestId:'fremd',message:'An Fake übergeben.'}));
   assert.doesNotMatch(await page.locator('#wish-feedback').textContent(),/Fake/);
@@ -908,7 +917,7 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   const nick=await listener.evaluate(()=>Client.pageData.user.nick);
   await listener.locator('#wish-text').fill('Browser-Roundtrip: Bitte unseren Lieblingssong!');
   await listener.locator('#submit-wish').click();
-  await listener.locator('#wish-feedback').filter({hasText:'Gespeichert'}).waitFor();
+  await listener.locator('#wish-feedback').filter({hasText:'erfolgreich gespeichert'}).waitFor();
   await mod.goto(base+'/preview?role=moderator&view=studio');
   for(let i=0;i<2;i++){
     await mod.locator('#next-page:not([disabled])').waitFor();
@@ -919,7 +928,7 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   assert.match(await mod.locator('.request-sender').textContent(),new RegExp(nick.replace(/[.*+?^$()|[\]\\]/g,'\\$&')));
   await mod.waitForTimeout(150);
   await listener.evaluate(()=>Client.sendEvent('mw:refresh',{page:0}));
-  await listener.locator('#wish-feedback').filter({hasText:'An Otterchen (Demo) übergeben'}).waitFor();
+  await listener.locator('#wish-feedback').filter({hasText:'Wunsch an Otterchen (Demo) übergeben'}).waitFor();
   assert.equal(await listener.locator('.delivery-status').count(),0);
   const radio=await context.newPage();
   await radio.goto(base+'/preview?role=listener&view=radio');

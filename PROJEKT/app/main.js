@@ -1,4 +1,4 @@
-/* MischWerk 0.1.28 - erzeugtes Knuddels UserApps Backend.
+/* MischWerk 0.1.29 - erzeugtes Knuddels UserApps Backend.
  * Quellen: src/backend/*.js. Nicht direkt bearbeiten.
  */
 
@@ -12,7 +12,6 @@ var MischWerkConfig = {
     },
     // Optionale anfängliche Radio-Moderatoren; weitere IDs verwaltet der Channelinhaber persistent.
     radioModeratorUserIds: [],
-    maxQueueLength: 50,
     moderatorSessionHours: 6
 };
 
@@ -25,6 +24,8 @@ MischWerkModules.createRuntime = function (config) {
         key: 'mischwerk.state.v1',
         pageSize: 1,
         radioModeratorPageSize: 5,
+        maxReplayEntries: 100,
+        emergencyReplayEntries: 20,
         state: null,
         views: [],
         shuttingDown: false,
@@ -39,10 +40,11 @@ MischWerkModules.createRuntime = function (config) {
         error.publicMessage = message;
         return error;
     };
-    runtime.warn = function () {
+    runtime.warn = function (operation) {
         if (runtime.lastWarningAt && runtime.now() - runtime.lastWarningAt < 60000) { return; }
         runtime.lastWarningAt = runtime.now();
-        try { KnuddelsServer.getDefaultLogger().warn('MischWerk: Eine Speicher- oder UI-Operation konnte nicht abgeschlossen werden.'); }
+        var context = typeof operation === 'string' && /^[A-Z_]{1,30}$/.test(operation) ? ' [' + operation + ']' : '';
+        try { KnuddelsServer.getDefaultLogger().warn('MischWerk: Eine Speicher- oder UI-Operation konnte nicht abgeschlossen werden.' + context); }
         catch (ignored) { /* Fehler beim Loggen darf den App-Zustand nicht ändern. */ }
     };
     runtime.jsonBytes = function (value) {
@@ -69,12 +71,50 @@ MischWerkModules.attachState = function (runtime, config) {
         return { version: 1, revision: 0, topic: '', requestsEnabled: true, moderator: null, requests: [], cooldowns: {},
             nextId: 1, radioModeratorUserIds: config.radioModeratorUserIds.slice(0, 50), radioModeratorRevision: 0 };
     };
-    runtime.persist = function (next) {
+    runtime.compactCooldowns = function (state, maximum) {
+        var source = state.cooldowns;
+        if (!source || typeof source !== 'object' || Array.isArray(source)) { source = {}; }
+        var entries = Object.keys(source).filter(function (key) {
+            var entry = source[key];
+            return /^u[1-9][0-9]*$/.test(key) && entry && typeof entry === 'object' && !Array.isArray(entry) &&
+                typeof entry.at === 'number' && isFinite(entry.at) && entry.at >= 0 && entry.at <= runtime.now() + 300000 &&
+                typeof entry.requestId === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(entry.requestId);
+        }).map(function (key) {
+            return { key: key, at: source[key].at, requestId: source[key].requestId };
+        }).sort(function (left, right) {
+            return right.at - left.at || (left.key < right.key ? -1 : left.key === right.key ? 0 : 1);
+        }).slice(0, maximum);
+        state.cooldowns = {};
+        entries.forEach(function (entry) {
+            state.cooldowns[entry.key] = { at: entry.at, requestId: entry.requestId };
+        });
+    };
+    runtime.persist = function (next, failureMessage) {
         next.revision = (runtime.state && runtime.state.revision || 0) + 1;
-        if (runtime.jsonBytes(JSON.stringify(next)) > 90000) {
-            throw runtime.failure('Die Wunschbox ist gerade ausgelastet. Bitte versuche es später erneut.');
+        runtime.compactCooldowns(next, runtime.maxReplayEntries);
+        var serialized = JSON.stringify(next);
+        if (runtime.jsonBytes(serialized) > 90000) {
+            var smaller = runtime.copy(next);
+            runtime.compactCooldowns(smaller, runtime.emergencyReplayEntries);
+            if (runtime.jsonBytes(JSON.stringify(smaller)) > 90000) {
+                throw runtime.failure('Die Wunschbox ist gerade ausgelastet. Bitte versuche es später erneut.');
+            }
+            next = smaller;
         }
-        KnuddelsServer.getPersistence().setObject(runtime.key, next);
+        try {
+            KnuddelsServer.getPersistence().setObject(runtime.key, next);
+        } catch (error) {
+            // Bei knapper AppPersistence bleiben Wünsche erhalten; nur alte technische Wiederholungsmarker werden reduziert.
+            var emergency = runtime.copy(next);
+            runtime.compactCooldowns(emergency, runtime.emergencyReplayEntries);
+            try {
+                KnuddelsServer.getPersistence().setObject(runtime.key, emergency);
+                next = emergency;
+            } catch (retryError) {
+                runtime.warn('PERSIST_WRITE');
+                throw runtime.failure(failureMessage || 'MischWerk konnte die Änderung nicht speichern. Bitte versuche es erneut.');
+            }
+        }
         runtime.state = next;
     };
     runtime.load = function () {
@@ -86,7 +126,7 @@ MischWerkModules.attachState = function (runtime, config) {
         }
         runtime.state = saved || runtime.initialState();
         runtime.state.topic = typeof runtime.state.topic === 'string' ? runtime.state.topic : '';
-        runtime.state.cooldowns = runtime.state.cooldowns || {};
+        runtime.compactCooldowns(runtime.state, runtime.maxReplayEntries);
         runtime.state.revision = typeof runtime.state.revision === 'number' ? runtime.state.revision : 0;
         var configuredIds = Array.isArray(runtime.state.radioModeratorUserIds) ? runtime.state.radioModeratorUserIds :
             config.radioModeratorUserIds;
@@ -280,7 +320,6 @@ MischWerkModules.attachActions = function (runtime, config) {
                 runtime.state.requests.some(function (item) { return item.userId === user.getUserId() && item.requestId === data.requestId; }))) { return false; }
         if (runtime.shuttingDown || !runtime.state.requestsEnabled) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
         var timestamp = runtime.now();
-        if (runtime.state.requests.length >= config.maxQueueLength) { throw runtime.failure('Die Wunschbox ist voll. Versuche es später erneut.'); }
         var wishText = data.text !== undefined ? runtime.text(data.text, 300, true) :
             runtime.text(data.artist, 80, true) + ' – ' + runtime.text(data.title, 80, true) +
                 (data.message ? ' · ' + runtime.text(data.message, 200, false) : '');
@@ -298,7 +337,7 @@ MischWerkModules.attachActions = function (runtime, config) {
         next.nextId += 1;
         next.requests.push(item);
         next.cooldowns[key] = { at: timestamp, requestId: data.requestId || null };
-        runtime.persist(next);
+        runtime.persist(next, 'Dein Wunsch konnte nicht gespeichert werden. Bitte versuche es erneut.');
         return item;
     };
     runtime.acknowledgeRequest = function (user, data, session) {
@@ -469,7 +508,7 @@ var App = (function (config) {
     return {
         onAppStart: function () {
             runtime.load();
-            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.28: Radioleiste mit Wunschbox-, Radio-Team- und Moderations-Popups gestartet. ' +
+            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.29: Radioleiste mit Wunschbox-, Radio-Team- und Moderations-Popups gestartet. ' +
                 (runtime.station().configured ? 'RadioKing ist konfiguriert.' : 'RadioKing-Hörerstream ist noch nicht konfiguriert.'));
             KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).forEach(function (user) {
                 try { runtime.open(user, true); } catch (error) { runtime.warn(); }

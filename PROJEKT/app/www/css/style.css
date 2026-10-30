@@ -110,8 +110,12 @@ label { display:block; font-size:12px; font-weight:600; }
 input:not([type=range]),textarea { display:block; width:100%; border:1px solid #686868; border-radius:8px; background:#161616; color:var(--text); padding:9px 10px; margin:5px 0 12px; font-size:13px; font-weight:400; line-height:1.4; }
 textarea { resize:none; min-height:108px; overflow:hidden; }
 #wish-text-count { white-space:nowrap; }
-.wish-feedback { margin-top:12px; border-left:3px solid var(--gold); background:#303030; padding:10px 12px; font-size:12px; line-height:1.45; overflow-wrap:anywhere; }
-.wish-feedback.error { border-color:#e9a78a; }
+.wish-feedback { position:relative; min-height:42px; margin-top:12px; border:1px solid #806b31; border-left:4px solid var(--gold); border-radius:9px; background:#292929; padding:11px 13px 11px 42px; color:var(--text); font-size:13px; font-weight:650; line-height:1.45; overflow-wrap:anywhere; box-shadow:0 5px 16px #00000024; }
+.wish-feedback::before { content:"✓"; position:absolute; left:11px; top:50%; width:20px; height:20px; transform:translateY(-50%); display:grid; place-items:center; border-radius:50%; background:var(--gold); color:#171717; font-size:13px; font-weight:900; }
+.wish-feedback.pending { border-color:#65615a; background:#2c2c2c; color:var(--muted); font-weight:600; }
+.wish-feedback.pending::before { content:"…"; background:#5b5b5b; color:var(--text); }
+.wish-feedback.error { border-color:#a56b58; border-left-color:#e9a78a; background:#352722; }
+.wish-feedback.error::before { content:"!"; background:#e9a78a; color:#21130e; }
 .queue-copy .request-sender { color:var(--gold-ink); font-weight:600; }
 .queue-copy .request-text { white-space:normal; overflow-wrap:anywhere; font-weight:500; }
 input::placeholder,textarea::placeholder { color:#aaa; }
