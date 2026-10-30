@@ -1,4 +1,4 @@
-/* MischWerk 0.1.32 - erzeugtes Knuddels UserApps Backend.
+/* MischWerk 0.1.33 - erzeugtes Knuddels UserApps Backend.
  * Quellen: src/backend/*.js. Nicht direkt bearbeiten.
  */
 
@@ -379,19 +379,23 @@ MischWerkModules.attachWishTransport = function (runtime) {
     'use strict';
 
     var receiptLimit = 100;
-    runtime.wishQueue = { nextId: 1, items: [], receipts: [] };
+    runtime.wishQueue = { nextId: 1, items: [], submissionIds: [] };
 
     function validSubmissionId(value) {
         return typeof value === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(value);
     }
-    function sameUser(left, right) {
-        try { return !!left && !!right && left.equals(right); }
-        catch (error) { return false; }
+    function safeNick(user) {
+        var nick = '';
+        try { nick = String(user.getNick()); }
+        catch (error) { /* Der Wunsch darf nicht an einem Wrapperwert scheitern. */ }
+        nick = nick.replace(/\s+/g, ' ').trim();
+        return nick && nick.length <= 50 ? nick : 'Hörer';
     }
-    function receiptFor(user, submissionId) {
-        return runtime.wishQueue.receipts.filter(function (receipt) {
-            return receipt.submissionId === submissionId && sameUser(receipt.user, user);
-        })[0] || null;
+    function safeUserKey(value) {
+        try {
+            if (value && typeof value.getUserId === 'function') { value = value.getUserId(); }
+            return value === null || value === undefined ? '' : String(value);
+        } catch (error) { return ''; }
     }
 
     // Die Wunschliste ist absichtlich nur Laufzeitzustand. Sie wird weder in den allgemeinen
@@ -403,33 +407,30 @@ MischWerkModules.attachWishTransport = function (runtime) {
             throw runtime.failure('Die Wunschübertragung ist ungültig. Bitte öffne MischWerk erneut.');
         }
         var queued = runtime.wishQueue.items.filter(function (item) {
-            return item.submissionId === data.submissionId && sameUser(item.user, user);
+            return item.submissionId === data.submissionId;
         })[0];
         if (queued) { return { duplicate: true, item: queued }; }
-        var receipt = receiptFor(user, data.submissionId);
-        if (receipt) {
-            return { duplicate: true, item: runtime.wishQueue.items.filter(function (item) {
-                return item.id === receipt.wishId;
-            })[0] || null };
+        if (runtime.wishQueue.submissionIds.indexOf(data.submissionId) !== -1) {
+            return { duplicate: true, item: null };
         }
         if (runtime.shuttingDown || !runtime.state.requestsEnabled) {
             throw runtime.failure('Die Wunschbox ist deaktiviert.');
         }
         var wishText = runtime.text(data.text, 300, true);
         if (runtime.containsWishLink(wishText)) { throw runtime.failure('Nur Interpret + Titel. Keine Links.'); }
-        var item = { id: runtime.wishQueue.nextId, user: user, nick: runtime.nick(user), text: wishText,
+        var item = { id: runtime.wishQueue.nextId, senderKey: safeUserKey(user), nick: safeNick(user), text: wishText,
             submissionId: data.submissionId, createdAt: runtime.now(), delivery: null };
         runtime.wishQueue.nextId += 1;
         runtime.wishQueue.items.push(item);
-        runtime.wishQueue.receipts.push({ user: user, submissionId: data.submissionId, wishId: item.id });
-        runtime.wishQueue.receipts = runtime.wishQueue.receipts.slice(-receiptLimit);
+        runtime.wishQueue.submissionIds.push(data.submissionId);
+        runtime.wishQueue.submissionIds = runtime.wishQueue.submissionIds.slice(-receiptLimit);
         return { duplicate: false, item: item };
     };
     runtime.deliverWish = function (id, moderator) {
         var item = runtime.wishQueue.items.filter(function (candidate) { return candidate.id === id; })[0];
         if (!item) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
         if (item.delivery) { return false; }
-        item.delivery = { nick: runtime.nick(moderator), at: runtime.now() };
+        item.delivery = { nick: safeNick(moderator), at: runtime.now() };
         return true;
     };
     runtime.resolveWish = function (id) {
@@ -439,16 +440,10 @@ MischWerkModules.attachWishTransport = function (runtime) {
         runtime.wishQueue.items = runtime.wishQueue.items.filter(function (item) { return item.id !== id; });
     };
     runtime.removeWishesForUser = function (userId) {
-        var expected = String(userId);
-        function belongsToDeletedUser(entry) {
-            try { return entry.user && String(entry.user.getUserId()) === expected; }
-            catch (error) { return false; }
-        }
+        var expected = safeUserKey(userId);
+        if (!expected) { return; }
         runtime.wishQueue.items = runtime.wishQueue.items.filter(function (item) {
-            return !belongsToDeletedUser(item);
-        });
-        runtime.wishQueue.receipts = runtime.wishQueue.receipts.filter(function (receipt) {
-            return !belongsToDeletedUser(receipt);
+            return item.senderKey !== expected;
         });
     };
     runtime.sendWishReceipt = function (session, accepted, message, submissionId) {
@@ -457,18 +452,19 @@ MischWerkModules.attachWishTransport = function (runtime) {
     };
     runtime.handleWishSubmission = function (user, data, session) {
         var submissionId = data && typeof data.submissionId === 'string' ? data.submissionId : null;
+        var outcome;
         try {
-            runtime.load();
-            var outcome = runtime.submitWish(user, data);
-            runtime.sendWishReceipt(session, true, outcome.item ?
-                'Dein Musikwunsch wurde an die Moderation gesendet.' :
-                'Dein Musikwunsch wurde bereits an die Moderation gesendet.', data.submissionId);
-            runtime.broadcast();
+            outcome = runtime.submitWish(user, data);
         } catch (error) {
-            if (!error.publicMessage) { runtime.warn('WISH_QUEUE'); }
+            if (!error.publicMessage) { runtime.warn('WISH_APPEND'); }
             runtime.sendWishReceipt(session, false, error.publicMessage ||
                 'Die Wunschübertragung konnte nicht abgeschlossen werden. Bitte versuche es erneut.', submissionId);
+            return;
         }
+        runtime.sendWishReceipt(session, true, outcome.item ?
+            'Dein Musikwunsch wurde an die Moderation gesendet.' :
+            'Dein Musikwunsch wurde bereits an die Moderation gesendet.', data.submissionId);
+        runtime.broadcast();
     };
 };
 
@@ -591,7 +587,7 @@ var App = (function (config) {
         onAppStart: function () {
             runtime.load();
             runtime.loadWishes();
-            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.32: Radioleiste mit Wunschbox-, Radio-Team- und Moderations-Popups gestartet. ' +
+            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.33: Radioleiste mit Wunschbox-, Radio-Team- und Moderations-Popups gestartet. ' +
                 (runtime.station().configured ? 'RadioKing ist konfiguriert.' : 'RadioKing-Hörerstream ist noch nicht konfiguriert.'));
             KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).forEach(function (user) {
                 try { runtime.open(user, true); } catch (error) { runtime.warn(); }

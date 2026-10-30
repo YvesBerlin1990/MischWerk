@@ -1,6 +1,6 @@
 # MischWerk – technische Abnahme und Datenhaltung
 
-Lokaler Stand 0.1.32 mit RadioKing, zuletzt im echten App-Log beobachtetes LIVE 0.1.31. Weiterhin kein Upload/Update/Neustart ohne erneute ausdrückliche Nutzeranweisung.
+Lokaler Stand 0.1.33 mit RadioKing, zuletzt im echten App-Log beobachtetes LIVE 0.1.32. Weiterhin kein Upload/Update/Neustart ohne erneute ausdrückliche Nutzeranweisung.
 
 Die aktuelle Nutzeranleitung steht ausschließlich unter [ANLEITUNGEN/INSTALLIEREN-LIVE.md](../../ANLEITUNGEN/INSTALLIEREN-LIVE.md). Die [RadioKing-Einrichtung](../../ANLEITUNGEN/RADIOKING-EINRICHTUNG.txt) beschreibt die öffentlichen Endpunkte. Backend-Quellmodule liegen unter `PROJEKT/src/backend/`; `PROJEKT/app/main.js` ist das daraus erzeugte Laufzeit-Bundle. Fertiger Upload liegt unter `UPLOAD/MischWerk/`, ZIP und Prüfsummen unter `ANLEITUNGEN/Paket/` (jeweils relativ zum MischWerk-Hauptordner).
 
@@ -25,7 +25,7 @@ Es gibt weder eine persönliche noch eine feste Gesamtanzahl-Begrenzung, keine Z
 
 Wünsche werden nicht gespeichert. Die laufende Queue hält nur den authentifizierten Nutzer, dessen Nick, Wunschtext, Zeitpunkt und technische Übertragungs-ID im Arbeitsspeicher der App. Der Hörer erhält nur die direkte Versandbestätigung; Queue, Nick und Bearbeitung erscheinen ausschließlich für berechtigte Moderatoren im Moderationsfenster. Die Liste ernannter Radiomoderatoren speichert weiterhin ausschließlich numerische Knuddels-User-IDs in AppPersistence; sichtbare Nicks werden serverseitig aufgelöst. Die App verwendet keine Analyse- oder Trackingbibliotheken. Beim konfigurierten Sender gehen Stations-/Metadatenanfragen und beim Abspielen der Streamabruf an RadioKing.
 
-Seit 0.1.32 besitzt die Wunschbox einen minimalen Laufzeitweg. Das Frontend sendet `mw:wish.submit` mit `submissionId` und Text; das Backend reiht den Wunsch ohne AppPersistence-Zugriff ein und quittiert ausschließlich über `mw:wish.receipt`. Eine wiederholte `submissionId` erzeugt während der laufenden App keinen zweiten Wunsch. `mischwerk.wishes.v2`, alte Zustandswünsche und Migration sind nicht beteiligt. Backend und Frontend deshalb bei einem später freigegebenen Update gemeinsam vollständig hochladen und die App anschließend kontrolliert neu starten.
+Seit 0.1.33 besitzt die Wunschbox einen minimalen Laufzeitweg aus reinen JavaScript-Werten. Das Frontend sendet `mw:wish.submit` mit `submissionId` und Text; das Backend reiht ID, Nick, Text und Zeitpunkt ohne AppPersistence- oder Java-Objekt ein und quittiert unmittelbar über `mw:wish.receipt`. Eine wiederholte `submissionId` erzeugt während der laufenden App keinen zweiten Wunsch. Nachgelagerte UI-Aktualisierungen können die Annahme nicht mehr in einen Fehler umwandeln. Backend und Frontend deshalb bei einem später freigegebenen Update gemeinsam vollständig hochladen und die App anschließend kontrolliert neu starten.
 
 Eine Studio-Anmeldung läuft nach 6 Stunden aus. Sie weist aus, wer sich in dieser App angemeldet hat; sie erkennt keinen Encoder oder echten Sendebeginn bei RadioKing. Ein Moderatorwechsel in RadioKing muss auch im App-Studio übernommen werden.
 

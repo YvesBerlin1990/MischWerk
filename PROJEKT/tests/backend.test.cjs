@@ -52,6 +52,7 @@ test('Das neue Wunschprotokoll legt den Wunsch nur in die laufende Moderationsqu
   assert.equal(queued.nick, listener.nick); assert.equal(queued.text, 'A-ha – Take On Me');
   assert.equal(h.state(listener, ls).myRequests.length, 0);
   assert.equal(h.store.data['mischwerk.wishes.v2'], undefined);
+  assert.equal(h.logs.some(entry => entry.message.includes('[WISH_APPEND]')), false);
 });
 test('Session muss zum authentifizierten Nutzer gehören; geschlossene Sessions werden ignoriert', () => {
   const { h, listener, owner, ls } = fixture();

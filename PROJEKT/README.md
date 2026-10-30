@@ -1,6 +1,6 @@
 # MischWerk – technische Projektdateien
 
-Lokaler Stand **0.1.32 mit RadioKing**. Lautstärke: Start 40 %, automatische Wiederherstellung höchstens 60 %, darüber rote Hinweiszone mit Warnzeichen. Manuell bleibt 0–100 % frei bedienbar. Prozent ist keine dB-Messung oder Zusage eines sicheren Hörpegels. [Einordnung und Quellen](docs/LAUTSTAERKE.md). Zuletzt im echten App-Log beobachtetes Knuddels-LIVE: 0.1.31; weiterhin kein Upload/Neustart durch diese Bearbeitung.
+Lokaler Stand **0.1.33 mit RadioKing**. Lautstärke: Start 40 %, automatische Wiederherstellung höchstens 60 %, darüber rote Hinweiszone mit Warnzeichen. Manuell bleibt 0–100 % frei bedienbar. Prozent ist keine dB-Messung oder Zusage eines sicheren Hörpegels. [Einordnung und Quellen](docs/LAUTSTAERKE.md). Zuletzt im echten App-Log beobachtetes Knuddels-LIVE: 0.1.32; weiterhin kein Upload/Neustart durch diese Bearbeitung.
 
 | Bereich | Inhalt |
 | --- | --- |
@@ -46,7 +46,7 @@ Wunschversand 0.1.29: Es gibt keine persönliche oder feste Gesamtanzahl-Begrenz
 
 Wunschversand 0.1.30: Knuddels-/Rhino-Werte für Nutzer-ID und Nick werden vor Vergleichen und Persistenz in echte JavaScript-Primitiven umgewandelt. Dadurch kann die JSON-Vorbereitung nicht mehr an Java-Wrappern scheitern. Zusätzlich benennt das private Log bei unerwarteten Fehlern die genaue Phase, etwa `REQUEST_ADD` oder `PERSIST_PREPARE`, statt nur einer allgemeinen Warnung. Die unbegrenzte Wunschannahme und das sichtbare Feedback aus 0.1.29 bleiben unverändert.
 
-Wunschtransport 0.1.32: Ein Wunsch wird über `mw:wish.submit` angenommen, ausschließlich in die laufende serverseitige Moderationsqueue gelegt und über `mw:wish.receipt` sichtbar bestätigt. Es gibt keine Wunschpersistenz, Migration, Hörerhistorie oder Mengenbegrenzung. Der Speicher `mischwerk.wishes.v2`, Nutzer-ID-Konvertierung und der alte Zustandsweg sind an dieser Übertragung nicht mehr beteiligt. Ein App-Neustart beginnt bewusst mit einer leeren Wunschliste.
+Wunschtransport 0.1.33: Ein Wunsch wird über `mw:wish.submit` ausschließlich als einfacher Laufzeiteintrag aus ID, Nick, Text und Zeitpunkt in die Moderationsqueue gelegt. Kein Knuddels-/Java-`User`-Objekt wird mehr in Queue oder Wiederholungsschutz gehalten. Die Erfolgsmeldung wird unmittelbar nach dem Einreihen gesendet; spätere UI-Aktualisierungen können eine erfolgreiche Annahme nicht mehr als Fehler melden. Es gibt weiterhin keine Wunschpersistenz, Hörerhistorie oder Mengenbegrenzung.
 
 Deaktivierte Wunschbox: Button gesperrt mit „Deaktiviert“, auch serverseitig kein neues Wunsch-Popup. Moderationsmenü bleibt zum Reaktivieren zugänglich. Bereits laufende Wünsche bleiben bis zum App-Neustart in der Moderationsqueue.
 
@@ -54,6 +54,6 @@ Wunschbox: kompaktes einzelnes Formular für Interpret + Titel, ohne eigene Wuns
 
 Positionierung 0.1.22: ON AIR und Sender-/Moderatorname bilden ab 901 px eine vertikal zur Wunschbox zentrierte Gruppe ohne künstliche Leerzeile. Schild und Name teilen eine Mittelachse, der Abstand beträgt 10 px. Ab 1500 px steht dafür eine 200–220 px breite Spalte zur Verfügung. Eine feine Trennlinie gliedert den Wunschbutton. Der berechtigte Moderationslink bleibt unten rechts und beeinflusst die übrige Geometrie nicht. Layout bei 320–2560 px mit langen Texten geprüft; Höhen und APIs unverändert.
 
-Das Backend ist seit 0.1.26 modular gepflegt. `app/main.js` wird ausschließlich über `pnpm run build:backend` aus `src/backend/*.js` erzeugt; Tests und Paketbau erkennen ein veraltetes Bundle. Radio-Team, Moderationsmenü, Laufzeit-Warteschlange und RadioKing-Sendepause sind im [aktuellen Prüfbericht](docs/PRUEFUNG-0.1.32.md) zusammengefasst.
+Das Backend ist seit 0.1.26 modular gepflegt. `app/main.js` wird ausschließlich über `pnpm run build:backend` aus `src/backend/*.js` erzeugt; Tests und Paketbau erkennen ein veraltetes Bundle. Radio-Team, Moderationsmenü, Laufzeit-Warteschlange und RadioKing-Sendepause sind im [aktuellen Prüfbericht](docs/PRUEFUNG-0.1.33.md) zusammengefasst.
 
-Senderstatus seit 0.1.25: bestätigte RadioKing-Sendepause deaktiviert Play; automatische Freigabe beim Wiederanlauf ohne Autostart. [Nachweise](docs/PRUEFUNG-0.1.32.md).
+Senderstatus seit 0.1.25: bestätigte RadioKing-Sendepause deaktiviert Play; automatische Freigabe beim Wiederanlauf ohne Autostart. [Nachweise](docs/PRUEFUNG-0.1.33.md).
