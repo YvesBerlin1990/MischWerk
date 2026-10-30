@@ -147,13 +147,8 @@ MischWerkModules.attachState = function (runtime, config) {
         var presenter = runtime.moderatorIsActive() ? runtime.state.moderator : null;
         var radioTeam = runtime.radioModeratorViews(user, radioModeratorPage);
         var currentUserId = runtime.userId(user);
-        var currentSenderKey = runtime.wishSenderKey(user);
         var requests = runtime.wishItems();
-        var own = requests.filter(function (item) { return item.senderKey === currentSenderKey; });
         var totalPages = Math.max(1, Math.ceil(requests.length / runtime.pageSize));
-        var ownPages = Math.max(1, Math.ceil(own.length / runtime.pageSize));
-        myPage = Math.max(0, Math.min(ownPages - 1, Math.floor(Number(myPage) || 0)));
-        var feedback = own.filter(function (item) { return item.id === feedbackId; })[0] || own[own.length - 1];
         page = Math.max(0, Math.min(totalPages - 1, Math.floor(Number(page) || 0)));
         return {
             station: runtime.station(),
@@ -167,11 +162,11 @@ MischWerkModules.attachState = function (runtime, config) {
             requestsEnabled: runtime.state.requestsEnabled && !runtime.shuttingDown,
             moderator: presenter ? { nick: presenter.nick, since: presenter.since,
                 expiresAt: presenter.expiresAt, sessionKey: runtime.moderatorKey() } : null,
-            myRequests: own.slice(myPage * runtime.pageSize, (myPage + 1) * runtime.pageSize).map(runtime.requestView),
-            myTotal: own.length,
-            myPage: myPage,
-            myPages: ownPages,
-            requestFeedback: feedback ? runtime.requestView(feedback) : null,
+            myRequests: [],
+            myTotal: 0,
+            myPage: 0,
+            myPages: 1,
+            requestFeedback: null,
             queue: mod ? requests.slice(page * runtime.pageSize, (page + 1) * runtime.pageSize).map(runtime.requestView) : [],
             queueTotal: mod ? requests.length : 0,
             radioModerators: radioTeam.items,

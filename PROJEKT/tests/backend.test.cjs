@@ -40,19 +40,18 @@ test('Rechte kommen vom User, nicht vom Nick oder den Eventdaten', () => {
   assert.equal(h.state(listener, ls).requestsEnabled, true);
   assert.equal(h.state(listener, ls).user.canModerate, false);
 });
-test('Das neue Wunschprotokoll schreibt ausschließlich eigene String- und JSON-Primitiven', () => {
-  const { h, listener, ls } = fixture();
+test('Das neue Wunschprotokoll legt den Wunsch nur in die laufende Moderationsqueue', () => {
+  const { h, listener, owner, ls, os } = fixture();
   const wrappedId = { toString() { return String(listener.id); } };
   const wrappedNick = { toString() { return listener.nick; } };
   listener.getUserId = () => wrappedId;
   listener.getNick = () => wrappedNick;
   const result = lastResult(h.event(listener, ls, 'mw:wish.submit', { text: 'A-ha – Take On Me', submissionId: 'wrapped-user' }));
   assert.equal(result.ok, true, result.message);
-  const stored = JSON.parse(h.store.data['mischwerk.wishes.v2']).items[0];
-  assert.equal(stored.senderKey, String(listener.id)); assert.equal(typeof stored.senderKey, 'string');
-  assert.equal(stored.nick, listener.nick); assert.equal(typeof stored.nick, 'string');
-  const restarted = createHarness(h.store); const person = restarted.user(listener.id, listener.nick); const session = restarted.open(person);
-  assert.equal(restarted.state(person, session).myRequests[0].text, 'A-ha – Take On Me');
+  const queued = h.state(owner, os).queue[0];
+  assert.equal(queued.nick, listener.nick); assert.equal(queued.text, 'A-ha – Take On Me');
+  assert.equal(h.state(listener, ls).myRequests.length, 0);
+  assert.equal(h.store.data['mischwerk.wishes.v2'], undefined);
 });
 test('Session muss zum authentifizierten Nutzer gehören; geschlossene Sessions werden ignoriert', () => {
   const { h, listener, owner, ls } = fixture();
@@ -61,14 +60,15 @@ test('Session muss zum authentifizierten Nutzer gehören; geschlossene Sessions 
   assert.equal(h.state(listener, ls).myRequests.length, 0);
 });
 test('Der alte Wunschweg ist abgeschaltet und das neue Protokoll quittiert getrennt', () => {
-  const { h, listener, ls } = fixture();
+  const { h, listener, owner, ls, os } = fixture();
   const oldEvents = h.event(listener, ls, 'mw:request', { text: 'Alter Transport', requestId: 'old-path' });
   assert.equal(oldEvents.some(event => event.type === 'mw:wish.receipt'), false);
   assert.equal(h.state(listener, ls).myTotal, 0);
   const events = h.event(listener, ls, 'mw:wish.submit', { text: 'Neuer Transport', submissionId: 'new-path' });
   assert.equal(events.some(event => event.type === 'mw:wish.receipt' && event.data.accepted), true);
   assert.equal(events.some(event => event.type === 'mw:result'), false);
-  assert.equal(h.state(listener, ls).myTotal, 1);
+  assert.equal(h.state(listener, ls).myTotal, 0);
+  assert.equal(h.state(owner, os).queueTotal, 1);
 });
 test('Wunschbox kann geschlossen werden; Backend weist Wünsche dann ab', () => {
   const { h, listener, owner, ls, os } = fixture();
@@ -122,9 +122,10 @@ test('Thema validiert Text und Länge; Speicherfehler und alte Daten bewahren de
 });
 
 test('Mehr als zwei Wünsche dürfen ohne Wartezeit direkt nacheinander gesendet werden', () => {
-  const { h, listener, ls } = fixture();
+  const { h, listener, owner, ls, os } = fixture();
   for(let i=0;i<4;i++){assert.equal(lastResult(h.event(listener,ls,'mw:wish.submit',{text:'Wunsch '+i,submissionId:'direkt-'+i})).ok,true);}
-  assert.equal(h.state(listener,ls).myTotal,4);
+  assert.equal(h.state(listener,ls).myTotal,0);
+  assert.equal(h.state(owner,os).queueTotal,4);
 });
 test('Private Grüße und Nutzer-IDs gehen nicht an andere Hörer; Moderation erhält die Queue', () => {
   const { h, listener, owner, ls, os } = fixture();
@@ -199,12 +200,12 @@ test('Ungültige Texte und nichtboolesche Schalter werden verworfen', () => {
   }
   assert.equal(lastResult(h.event(owner, os, 'mw:setRequests', { enabled: 'false' })).ok, false);
 });
-test('Neustart und Zeitablauf bewahren Wünsche und Wunschbox-Status', () => {
+test('Neustart leert die flüchtige Wunschqueue und bewahrt den Wunschbox-Status', () => {
   const { h, listener, owner, ls, os } = fixture();
   h.event(listener, ls, 'mw:wish.submit', wish); h.event(owner, os, 'mw:setRequests', { enabled: false });
   const restarted = createHarness(h.store); const ro = restarted.user(2, 'Otterchen', 'owner'); const rs = restarted.open(ro);
-  assert.equal(restarted.state(ro, rs).queue.length, 1); assert.equal(restarted.state(ro, rs).requestsEnabled, false);
-  restarted.advance(48 * 3600000 + 1); assert.equal(restarted.state(ro, rs).queue.length, 1);
+  assert.equal(restarted.state(ro, rs).queue.length, 0); assert.equal(restarted.state(ro, rs).requestsEnabled, false);
+  restarted.advance(48 * 3600000 + 1); assert.equal(restarted.state(ro, rs).queue.length, 0);
 });
 test('On-Air nutzt echten Nick; Fremd-Abmeldung nur durch Besitzer; Anmeldung läuft ab', () => {
   const { h, listener, owner, ls, os } = fixture(); listener.role = 'moderator'; appoint(h,owner,os,listener);
@@ -295,7 +296,8 @@ test('Parallele Bearbeitung hält den angezeigten Wunsch und quittiert weiterhin
   assert.equal(pushed.queue[0].id,item.id);assert.equal(pushed.page,0);
   h.event(owner,studio,'mw:refresh',{});assert.equal(studio.events.findLast(e=>e.type==='mw:state').data.queue[0].id,item.id);
   h.event(owner,studio,'mw:ackRequest',{id:item.id});
-  assert.equal(h.state(listener,ls).myRequests[0].delivery.nick,'Otterchen');
+  assert.equal(h.state(owner,studio).queue[0].delivery.nick,'Otterchen');
+  assert.equal(h.state(listener,ls).myRequests.length,0);
   h.event(owner,studio,'mw:resolveRequest',{id:item.id,outcome:'discarded'});
   pushed=studio.events.findLast(e=>e.type==='mw:state').data;assert.equal(pushed.queue[0].text,'C');
   h.state(owner,studio,1);h.event(owner,studio,'mw:resolveRequest',{id:4});
@@ -384,17 +386,19 @@ test('Überzählige RadioKing-Zugangsdaten oder alte Einstellungen werden nie an
 });
 
 test('Alte UserPersistence-Wartezeiten werden nicht mehr gelesen und blockieren keine Wünsche', () => {
-  const { h, listener, ls } = fixture();
+  const { h, listener, owner, ls, os } = fixture();
   listener.persistence.getNumber = () => { throw new Error('obsolete cooldown must not be read'); };
   assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', { ...wish, submissionId: 'atomic-request' })).ok, true);
-  assert.equal(h.state(listener, ls).myRequests.length, 1);
+  assert.equal(h.state(owner, os).queueTotal, 1);
   assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', { ...wish, submissionId: 'another-request' })).ok, true);
 });
 test('Eine defekte andere UI-Sitzung ändert keine erfolgreiche Wunschannahme', () => {
-  const { h, listener, ls, os } = fixture();
+  const { h, listener, owner, ls, os } = fixture();
+  const sendEvent=os.sendEvent;
   os.sendEvent = () => { throw new Error('closed transport'); };
   assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', wish)).ok, true);
-  assert.equal(h.state(listener, ls).myRequests.length, 1);
+  os.sendEvent=sendEvent;
+  assert.equal(h.state(owner, os).queueTotal, 1);
 });
 test('Push-Updates bewahren die ausgewählte Moderationsseite', () => {
   const { h, owner, os } = fixture();
@@ -418,42 +422,46 @@ test('Eine geschlossene nicht-null Sitzung darf keine weiteren Aktionen ausführ
   const { h, listener, ls } = fixture(); ls.remove();
   assert.deepEqual(h.event(listener, ls, 'mw:wish.submit', wish), []);
 });
-test('Wunsch und Wiederholungsschutz werden gemeinsam im neuen String-Speicher geschrieben', () => {
-  const { h, listener, ls } = fixture();
+test('Wunschtransport verwendet keinen String-Speicher', () => {
+  const { h, listener, owner, ls, os } = fixture();
   const original = h.store.setString; h.store.setString = () => { throw new Error('disk failed'); };
-  assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', { ...wish, submissionId: 'retry-after-disk' })).ok, false);
+  assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', { ...wish, submissionId: 'retry-after-disk' })).ok, true);
   assert.equal(h.state(listener, ls).myRequests.length, 0);
+  assert.equal(h.state(owner, os).queueTotal, 1);
   h.store.setString = original;
   assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', { ...wish, submissionId: 'retry-after-disk' })).ok, true);
+  assert.equal(h.state(owner, os).queueTotal, 1);
 });
-test('Übertragungs-IDs werden validiert und interne Speicherfehler nicht an den Nutzer durchgereicht', () => {
-  const { h, listener, ls } = fixture();
+test('Übertragungs-IDs werden validiert und Speicherfehler berühren den Laufzeitweg nicht', () => {
+  const { h, listener, owner, ls, os } = fixture();
   assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', { ...wish, submissionId: 'x'.repeat(81) })).ok, false);
   assert.equal(h.state(listener, ls).myRequests.length, 0);
   h.store.setString = () => { throw new Error('secret internal path'); };
   const response = lastResult(h.event(listener, ls, 'mw:wish.submit', { ...wish, submissionId: 'safe-id' }));
-  assert.equal(response.submissionId, 'safe-id'); assert.equal(response.accepted, false);
-  assert.equal(response.ok, false); assert.ok(!response.message.includes('secret'));
-  assert.ok(h.logs.some(entry => entry.level === 'warn' && entry.message.includes('[WISH_STORE_WRITE]')));
+  assert.equal(response.submissionId, 'safe-id'); assert.equal(response.accepted, true);
+  assert.equal(response.ok, true); assert.ok(!response.message.includes('secret'));
+  assert.equal(h.state(owner,os).queueTotal,1);
   assert.ok(h.logs.every(entry => !entry.message.includes('secret internal path')));
 });
-test('Historische Wünsche werden einmalig in den neuen Wunsch-Speicher übernommen', () => {
+test('Historische Wünsche werden nicht in die neue Laufzeitqueue übernommen', () => {
   const timestamp = Date.now() - 1000;
   const store = legacyStore([{ id: 7, userId: 1, nick: 'Musikfreund', artist: 'Alte Band', title: 'Alter Titel',
     message: 'Alter Gruß', delivery: null, requestId: 'legacy-request', createdAt: timestamp }]);
   const h = createHarness(store); const listener = h.user(1, 'Musikfreund'); const session = h.open(listener);
-  assert.equal(h.state(listener, session).myRequests[0].text, 'Alte Band – Alter Titel · Alter Gruß');
-  const migrated = JSON.parse(store.data['mischwerk.wishes.v2']);
-  assert.equal(migrated.items[0].senderKey, '1'); assert.equal(migrated.items[0].submissionId, 'legacy-request');
+  const owner=h.user(2,'Otterchen','owner'),ownerSession=h.open(owner);
+  assert.equal(h.state(owner, ownerSession).queueTotal,0);
+  assert.equal(store.data['mischwerk.wishes.v2'],undefined);
   assert.equal(lastResult(h.event(listener, session, 'mw:wish.submit', { text: 'Neuer Wunsch', submissionId: 'new-request' })).ok, true);
-  assert.equal(h.state(listener, session).myTotal, 2);
+  assert.equal(h.state(listener, session).myTotal, 0);
+  assert.equal(h.state(owner, ownerSession).queueTotal,1);
 });
-test('Wünsche sind vollständig vom allgemeinen Zustandsobjekt getrennt', () => {
-  const { h, listener, ls } = fixture();
+test('Wünsche sind vollständig von jeder Persistenz getrennt', () => {
+  const { h, listener, owner, ls, os } = fixture();
   h.store.setObject = () => { throw new Error('allgemeiner Zustand gesperrt'); };
   assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', { text: 'Eigener Speicherweg', submissionId: 'separate-store' })).ok, true);
-  assert.equal(h.state(listener, ls).myRequests[0].text, 'Eigener Speicherweg');
-  assert.equal(JSON.parse(h.store.data['mischwerk.wishes.v2']).items.length, 1);
+  assert.equal(h.state(listener, ls).myRequests.length,0);
+  assert.equal(h.state(owner, os).queue[0].text,'Eigener Speicherweg');
+  assert.equal(h.store.data['mischwerk.wishes.v2'],undefined);
 });
 test('Knuddels-Ansicht ist responsiv und schließt den alten JFX-Browser aus', () => {
   const { h, os } = fixture();
@@ -521,7 +529,8 @@ test('Deaktivierte Wunschbox blockiert neue Popups serverseitig für Hörer und 
   assert.equal(lastResult(restarted.event(nextListener,nextSession,'mw:openWishes')).ok,false,'Sperre nach Neustart erhalten');
   assert.equal(lastResult(h.event(owner,studio,'mw:setRequests',{enabled:true})).ok,true);
   assert.equal(lastResult(h.event(listener,ls,'mw:openWishes')).ok,true);
-  assert.equal(h.state(listener,ls).myTotal,1,'Gespeicherte Wünsche erhalten');
+  assert.equal(h.state(listener,ls).myTotal,0,'Hörer erhält keine Wunschhistorie');
+  assert.equal(h.state(owner,studio).queueTotal,1,'Laufende Moderationsqueue bleibt erhalten');
 });
 test('Popup und Radioleiste behalten getrennte Seiten bei Statusmeldungen', () => {
   const {h,owner,os}=fixture();
@@ -535,26 +544,24 @@ test('Popup und Radioleiste behalten getrennte Seiten bei Statusmeldungen', () =
 test('Ein Textfeld übermittelt den vollständigen Wunsch mit echtem Nick und ohne erfundene Zustellung', () => {
   const {h,listener,owner,ls,os}=fixture();
   const response=lastResult(h.event(listener,ls,'mw:wish.submit',{text:'Bitte Lieblingsband – Unser Song. Grüße an den Channel!',nick:'Fälschung',userId:owner.id,delivery:{nick:'Fake'},submissionId:'single-field'}));
-  assert.equal(response.ok,true);assert.match(response.message,/gespeichert/);assert.doesNotMatch(response.message,/angekommen|übergeben/);
+  assert.equal(response.ok,true);assert.match(response.message,/Moderation gesendet/);assert.doesNotMatch(response.message,/angekommen|übergeben/);
   const item=h.state(owner,os).queue[0];
   assert.equal(item.nick,listener.nick);assert.equal(item.text,'Bitte Lieblingsband – Unser Song. Grüße an den Channel!');
-  assert.equal(item.delivery,null);assert.equal(response.request.nick,listener.nick);
+  assert.equal(item.delivery,null);assert.equal('request' in response,false);
   assert.equal('userId' in item,false);
 });
-test('Einzelfeld wird serverseitig validiert; alte gespeicherte Wünsche bleiben lesbar', () => {
+test('Einzelfeld wird serverseitig validiert und nur in die laufende Queue übernommen', () => {
   const {h,listener,owner,ls,os}=fixture();
   for(const text of ['', '  \n ', {}, 'X'.repeat(301)]){
     assert.equal(lastResult(h.event(listener,ls,'mw:wish.submit',{text})).ok,false);
   }
   assert.equal(lastResult(h.event(listener,ls,'mw:wish.submit',{text:'  Wunsch\nmit   Gruß  '})).ok,true);
   assert.equal(h.state(owner,os).queue[0].text,'Wunsch mit Gruß');
-  const store=legacyStore([{id:9,userId:1,nick:'Altbestand',artist:'Alte Band',title:'Alter Titel',message:'Alter Gruß',
-    delivery:null,requestId:'legacy-form',createdAt:Date.now()}]);
-  const restarted=createHarness(store),person=restarted.user(2,'Otterchen','owner');
-  assert.equal(restarted.state(person,restarted.open(person)).queue[0].text,'Alte Band – Alter Titel · Alter Gruß');
+  const restarted=createHarness(h.store),person=restarted.user(2,'Otterchen','owner');
+  assert.equal(restarted.state(person,restarted.open(person)).queueTotal,0);
 });
 
-test('Musikwünsche lehnen Links im Backend ab, erlauben normale Interpret-/Titel-Namen und erhalten alte gespeicherte Wünsche',()=>{
+test('Musikwünsche lehnen Links im Backend ab und erlauben normale Interpret-/Titel-Namen',()=>{
   const {h,listener,owner,ls,os}=fixture();
   for(const link of ['https://youtu.be/123','youtube.com/watch?v=123','www.youtube.com/watch?v=123','http://example.org/song','example.de','open.spotify.com/track/123','spotify:track:123','https%3A%2F%2Fexample.com','example。com','https://exa\u200bmple.com','[Song](example.org)','//example.net/song','ftp://example.com/song','192.168.0.1/song','x.com/song']){
     const result=lastResult(h.event(listener,ls,'mw:wish.submit',{text:'Queen – Song '+link}));
@@ -565,10 +572,7 @@ test('Musikwünsche lehnen Links im Backend ab, erlauben normale Interpret-/Tite
   for(const text of ['a-ha – Take On Me','will.i.am – Scream & Shout','M.I.A. – Paper Planes','t.A.T.u. – All The Things She Said','AC/DC – Thunderstruck','Mr. Big – To Be With You']){
     assert.equal(lastResult(h.event(listener,ls,'mw:wish.submit',{text})).ok,true,text);
   }
-  const saved=JSON.parse(h.store.data['mischwerk.wishes.v2']);saved.items[0].text='Alter Wunsch mit https://example.com';
-  h.store.setString('mischwerk.wishes.v2',JSON.stringify(saved));
-  const restarted=createHarness(h.store),ru=restarted.user(owner.id,owner.nick,'owner');
-  assert.equal(restarted.state(ru,restarted.open(ru)).queue[0].text,'Alter Wunsch mit https://example.com','Bestehenden Inhalt nicht löschen');
+  assert.equal(h.state(owner,os).queueTotal,6);
 });
 test('Zustellung erfordert eine berechtigte Studiositzung und genau den angezeigten Wunsch', () => {
   const {h,listener,owner,ls,os}=fixture();
@@ -580,39 +584,38 @@ test('Zustellung erfordert eine berechtigte Studiositzung und genau den angezeig
   h.event(owner,os,'mw:openStudio');const studio=owner.sessions.find(s=>s.content.viewMode==='Popup');
   const second=h.state(owner,studio,1).queue[0];
   assert.equal(lastResult(h.event(owner,studio,'mw:ackRequest',{id})).ok,false);
-  assert.equal(h.state(listener,ls).myRequests[0].delivery,null);
+  assert.equal(h.state(owner,studio,0).queue[0].delivery,null);
   h.state(owner,studio,0);
   h.event(owner,studio,'mw:ackRequest',{id,nick:'Fake',userId:999});
-  const received=h.state(listener,ls).myRequests[0];
+  const received=h.state(owner,studio).queue[0];
   assert.equal(received.delivery.nick,'Otterchen');assert.ok(received.delivery.at);
   assert.equal('userId' in received.delivery,false);
   const revision=h.state(owner,studio).revision;h.event(owner,studio,'mw:ackRequest',{id});
   assert.equal(h.state(owner,studio).revision,revision);
   owner.role='listener';
   assert.equal(lastResult(h.event(owner,studio,'mw:ackRequest',{id:second.id})).ok,false);
-  const restarted=createHarness(h.store),person=restarted.user(1,listener.nick);
-  assert.equal(restarted.state(person,restarted.open(person)).myRequests[0].delivery.nick,'Otterchen');
+  const restarted=createHarness(h.store),person=restarted.user(2,owner.nick,'owner');
+  assert.equal(restarted.state(person,restarted.open(person)).queueTotal,0);
 });
-test('Viele eigene Wünsche bleiben paginiert unter dem Eventlimit und erhalten ihre Zustellrückmeldung', () => {
+test('Viele Wünsche bleiben nur in der Moderation paginiert und unter dem Eventlimit', () => {
   const {h,listener,owner,ls,os}=fixture();
   for(let i=0;i<50;i++){
     assert.equal(lastResult(h.event(listener,ls,'mw:wish.submit',{text:String(i).padStart(2,'0')+'ä'.repeat(298),submissionId:'full-own-'+i})).ok,true);
   }
   let state=h.state(listener,ls,0,0);
-  assert.equal(state.myTotal,50);assert.equal(state.myPages,50);assert.equal(state.myRequests.length,1);
-  assert.equal(state.myRequests[0].text.slice(0,2),'00');
+  assert.equal(state.myTotal,0);assert.equal(state.myPages,1);assert.equal(state.myRequests.length,0);
   assert.ok(JSON.stringify(state).length<10000);
   h.event(owner,os,'mw:openStudio');const studio=owner.sessions.find(s=>s.content.viewMode==='Popup');
   const item=h.state(owner,studio,49).queue[0];
   h.event(owner,studio,'mw:ackRequest',{id:item.id});
   state=h.state(listener,ls,0,3);
-  assert.equal(state.myPage,3);assert.equal(state.myRequests[0].text.slice(0,2),'03');
-  assert.equal(state.requestFeedback.id,item.id);
-  assert.equal(state.requestFeedback.delivery.nick,'Otterchen');
+  assert.equal(state.myPage,0);assert.equal(state.myRequests.length,0);
+  assert.equal(state.requestFeedback,null);
+  assert.equal(h.state(owner,studio,49).queue[0].delivery.nick,'Otterchen');
   h.event(owner,studio,'mw:setRequests',{enabled:false});
-  assert.equal(ls.events.findLast(e=>e.type==='mw:state').data.myPage,3);
+  assert.equal(ls.events.findLast(e=>e.type==='mw:state').data.myPage,0);
   state=h.state(listener,ls,0,500);
-  assert.equal(state.myPage,49);assert.ok(JSON.stringify(state).length<10000);
+  assert.equal(state.myPage,0);assert.ok(JSON.stringify(state).length<10000);
   h.app.onUserDeleted(listener.id);assert.equal(h.state(owner,studio).queueTotal,0);
 });
 

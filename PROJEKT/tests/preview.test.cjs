@@ -30,7 +30,7 @@ test('Lokaler Vorschau-Server', async t => {
     const send = async () => (await fetch(base + '/api/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: data.sessionId, type: 'mw:wish.submit', data: { text: 'Band – Song', submissionId: 'preview-roundtrip' } }) })).json();
     const first = await send(); assert.equal(first.find(event => event.type === 'mw:wish.receipt').data.submissionId, 'preview-roundtrip');
     const second = await send(); assert.equal(second.find(event => event.type === 'mw:wish.receipt').data.accepted, true);
-    assert.equal(second.find(event => event.type === 'mw:state').data.myRequests.length, 1);
+    assert.equal(second.find(event => event.type === 'mw:state').data.myRequests.length, 0);
   });
   await t.test('Demo-Popup bleibt an den Nutzer gebunden und lässt die Radioleiste aktiv', async () => {
     const html=await(await fetch(base+'/preview?role=listener')).text();

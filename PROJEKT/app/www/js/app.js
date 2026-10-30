@@ -11,7 +11,6 @@
   var topicRequest = null;
   var lastWish = null;
   var wishPending = null;
-  var feedbackRequest = null;
   var receiptAttempts = {};
   var queueKey = null;
   var requestSequence = 0;
@@ -142,7 +141,6 @@
     if (lastWish && sameWish(data, lastWish.data)) { submissionId = lastWish.submissionId; }
     lastWish = { submissionId: submissionId, data: { text: data.text } };
     wishPending = { submissionId: submissionId };
-    feedbackRequest = null;
     showWishFeedback('Wird gesendet …', false, true);
     renderAvailability();
     clearTimeout(wishTimer);
@@ -193,11 +191,6 @@
     return typeof item.text === 'string' ? item.text :
       [item.artist, item.title].filter(Boolean).join(' – ') + (item.message ? ' · ' + item.message : '');
   }
-  function deliveryText(item) {
-    if (item.delivery) { return 'Wunsch an ' + item.delivery.nick + ' übergeben.'; }
-    return state && state.moderator ? 'Wunsch erfolgreich gespeichert – wartet auf ' + state.moderator.nick + '.' :
-      'Wunsch erfolgreich gespeichert – wartet auf Moderation.';
-  }
   function acknowledgeQueue() {
     if (uiView !== 'studio' || !state || !state.user.canModerate || !connected() || document.hidden) { return; }
     requestAnimationFrame(function () {
@@ -215,13 +208,6 @@
     if (text !== undefined) { node.textContent = text; } return node;
   }
   function time(timestamp) { return new Date(timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); }
-  function renderWishFeedback() {
-    if (feedbackRequest) {
-      if (state.requestFeedback && state.requestFeedback.id === feedbackRequest.id) { feedbackRequest = state.requestFeedback; }
-      state.myRequests.forEach(function (item) { if (feedbackRequest.id === item.id) { feedbackRequest = item; } });
-      showWishFeedback(deliveryText(feedbackRequest), false);
-    }
-  }
   function renderQueue() {
     var list = el('request-queue');
     var key = JSON.stringify([!!state.user.canModerate, state.user.canModerate ? state.queue.map(function (item) {
@@ -368,7 +354,7 @@
       setText('metadata-status', 'Sobald der Sender bereit ist, erscheint hier der aktuelle Titel.');
       setText('playback-status', 'Der Sender wird noch eingerichtet.');
     }
-    renderTopic(); renderWishFeedback(); renderQueue(); renderRadioTeam(); renderAvailability(); acknowledgeQueue();
+    renderTopic(); renderQueue(); renderRadioTeam(); renderAvailability(); acknowledgeQueue();
   }
   function getResponse(url) {
     return new Promise(function (resolve, reject) {
@@ -593,7 +579,7 @@
     event.preventDefault();
     if (el('wish-fields').disabled || !this.reportValidity()) { return; }
     var values = wishValues();
-    if (containsWishLink(values.text)) { feedbackRequest = null; showWishFeedback('Nur Interpret + Titel. Keine Links.', true); return; }
+    if (containsWishLink(values.text)) { showWishFeedback('Nur Interpret + Titel. Keine Links.', true); return; }
     submitWish(values);
   });
   el('on-air').addEventListener('click', function () { send('mw:onAir', {}, true); });
@@ -626,10 +612,8 @@
       if (receipt.accepted) {
         if (sameWish(wishValues(), lastWish.data)) { el('wish-form').reset(); fitWishText(); }
         lastWish = null;
-        feedbackRequest = receipt.request || null;
       }
-      showWishFeedback(receipt.accepted && feedbackRequest ? deliveryText(feedbackRequest) : receipt.message,
-        !receipt.accepted);
+      showWishFeedback(receipt.message, !receipt.accepted);
       renderAvailability();
     });
     bridge.addEventListener('mw:result', function (event) {

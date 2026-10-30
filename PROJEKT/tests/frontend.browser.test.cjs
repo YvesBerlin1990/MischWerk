@@ -864,23 +864,22 @@ test('Kompakte Wunschbox zeigt nur das Formular und weist Links ohne Versand ode
   assert.equal(await page.evaluate(()=>window.__sent.find(e=>e.type==='mw:wish.submit').data.text),'will.i.am – Scream & Shout');
   assert.deepEqual(errors,[]);
 });
-test('Gespeichert und an Moderator zugestellt werden getrennt bestätigt; fremde Rückmeldung bleibt wirkungslos', async t=>{
+test('Versand an die Moderation wird gut sichtbar bestätigt; Zustandsupdates zeigen keine Hörerhistorie', async t=>{
   const {page,state}=await setup(t,{view:'wishes'});
   await page.locator('#wish-text').fill('Bitte unseren Lieblingssong.');
   await page.locator('#submit-wish').click();
   const sent=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:wish.submit'));
   const item={id:9,text:sent.data.text,nick:'Otterchen',createdAt:Date.now(),delivery:null};
-  await page.evaluate(({s,item})=>window.__emit('mw:wish.receipt',{accepted:true,submissionId:s.data.submissionId,message:'Gespeichert',request:item}),{s:sent,item});
+  await page.evaluate(({s})=>window.__emit('mw:wish.receipt',{accepted:true,submissionId:s.data.submissionId,message:'Dein Musikwunsch wurde an die Moderation gesendet.'}),{s:sent});
   assert.equal(await page.locator('#wish-text').inputValue(),'');
-  assert.match(await page.locator('#wish-feedback').textContent(),/erfolgreich gespeichert/);
-  assert.doesNotMatch(await page.locator('#wish-feedback').textContent(),/übergeben/);
+  assert.match(await page.locator('#wish-feedback').textContent(),/an die Moderation gesendet/);
   assert.equal(await page.locator('#wish-feedback').getAttribute('role'),'status');
   assert.equal(await page.locator('#wish-feedback').getAttribute('aria-live'),'polite');
   assert.equal(await page.locator('#wish-feedback').evaluate(n=>n.classList.contains('success')),true);
   assert.equal(await page.locator('#wish-feedback').evaluate(n=>getComputedStyle(n,'::before').content),'"✓"');
   assert.equal(await page.locator('#wish-feedback').evaluate(n=>parseFloat(getComputedStyle(n).fontSize)>=13),true);
-  await page.evaluate(({state,item})=>window.__emit('mw:state',{...state,revision:3,myRequests:[{...item,delivery:{nick:'StudioMod',at:Date.now()}}]}),{state,item});
-  assert.match(await page.locator('#wish-feedback').textContent(),/Wunsch an StudioMod übergeben/);
+  await page.evaluate(({state,item})=>window.__emit('mw:state',{...state,revision:3,myRequests:[],requestFeedback:null,queue:[]}),{state,item});
+  assert.match(await page.locator('#wish-feedback').textContent(),/an die Moderation gesendet/);
   assert.equal(await page.locator('.delivery-status').count(),0);
   await page.evaluate(()=>window.__emit('mw:wish.receipt',{accepted:true,submissionId:'fremd',message:'An Fake übergeben.'}));
   assert.doesNotMatch(await page.locator('#wish-feedback').textContent(),/Fake/);
@@ -917,7 +916,7 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   const nick=await listener.evaluate(()=>Client.pageData.user.nick);
   await listener.locator('#wish-text').fill('Browser-Roundtrip: Bitte unseren Lieblingssong!');
   await listener.locator('#submit-wish').click();
-  await listener.locator('#wish-feedback').filter({hasText:'erfolgreich gespeichert'}).waitFor();
+  await listener.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
   await mod.goto(base+'/preview?role=moderator&view=studio');
   for(let i=0;i<2;i++){
     await mod.locator('#next-page:not([disabled])').waitFor();
@@ -928,7 +927,7 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   assert.match(await mod.locator('.request-sender').textContent(),new RegExp(nick.replace(/[.*+?^$()|[\]\\]/g,'\\$&')));
   await mod.waitForTimeout(150);
   await listener.evaluate(()=>Client.sendEvent('mw:refresh',{page:0}));
-  await listener.locator('#wish-feedback').filter({hasText:'Wunsch an Otterchen (Demo) übergeben'}).waitFor();
+  await listener.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
   assert.equal(await listener.locator('.delivery-status').count(),0);
   const radio=await context.newPage();
   await radio.goto(base+'/preview?role=listener&view=radio');
