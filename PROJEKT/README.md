@@ -1,10 +1,11 @@
 # MischWerk – technische Projektdateien
 
-Lokaler Stand **0.1.25 mit RadioKing**. Lautstärke: Start 40 %, automatische Wiederherstellung höchstens 60 %, darüber rote Hinweiszone mit Warnzeichen. Manuell bleibt 0–100 % frei bedienbar. Prozent ist keine dB-Messung oder Zusage eines sicheren Hörpegels. [Einordnung und Quellen](docs/LAUTSTAERKE.md). Zuletzt bestätigtes Knuddels-LIVE: 0.1.13; weiterhin kein Upload/Neustart.
+Lokaler Stand **0.1.26 mit RadioKing**. Lautstärke: Start 40 %, automatische Wiederherstellung höchstens 60 %, darüber rote Hinweiszone mit Warnzeichen. Manuell bleibt 0–100 % frei bedienbar. Prozent ist keine dB-Messung oder Zusage eines sicheren Hörpegels. [Einordnung und Quellen](docs/LAUTSTAERKE.md). Zuletzt bestätigtes Knuddels-LIVE: 0.1.13; weiterhin kein Upload/Neustart.
 
 | Bereich | Inhalt |
 | --- | --- |
-| `app/` | Aktueller ES5/Rhino-/HTMLUI-Quellcode und Original-Logo |
+| `src/backend/` | Gepflegte ES5/Rhino-Module für Konfiguration, Zustand, Aktionen, Ansichten und App-Hooks |
+| `app/` | Erzeugte Knuddels-`main.js`, HTMLUI-Frontend und Original-Logo |
 | `deployment/live.json` | Bestätigtes Knuddels-Ziel ohne Passwort |
 | `tools/` | Vorschau, API-Mock, Checks, lokaler Paketbau und RadioKing-Netzwerkprüfung |
 | `tests/` | Backend-/HTTP-/Browserprüfungen und Audiofixture |
@@ -26,6 +27,7 @@ Die Startdateien für Vorschau, Paketbau und Explorer liegen eine Ebene höher i
 
 ```text
 pnpm install --frozen-lockfile
+pnpm run build:backend
 pnpm test
 pnpm run check
 pnpm run test:browser
@@ -42,6 +44,6 @@ Wunschbox 0.1.21: kompaktes einzelnes Formular für Interpret + Titel, ohne eige
 
 Positionierung 0.1.22: ON AIR und Sender-/Moderatorname bilden ab 901 px eine vertikal zur Wunschbox zentrierte Gruppe ohne künstliche Leerzeile. Schild und Name teilen eine Mittelachse, der Abstand beträgt 10 px. Ab 1500 px steht dafür eine 200–220 px breite Spalte zur Verfügung. Eine feine Trennlinie gliedert den Wunschbutton. Der berechtigte Moderationslink bleibt unten rechts und beeinflusst die übrige Geometrie nicht. Layout bei 320–2560 px mit langen Texten geprüft; Höhen und APIs unverändert.
 
-Moderationsmenü, Warteschlange und RadioKing-Sendepause sind im [aktuellen Prüfbericht](docs/PRUEFUNG-0.1.25.md) zusammengefasst.
+Das Backend ist seit 0.1.26 modular gepflegt. `app/main.js` wird ausschließlich über `pnpm run build:backend` aus `src/backend/*.js` erzeugt; Tests und Paketbau erkennen ein veraltetes Bundle. Moderationsmenü, Warteschlange und RadioKing-Sendepause sind im [aktuellen Prüfbericht](docs/PRUEFUNG-0.1.26.md) zusammengefasst.
 
-Senderstatus 0.1.25: bestätigte RadioKing-Sendepause deaktiviert Play; automatische Freigabe beim Wiederanlauf ohne Autostart. [Nachweise](docs/PRUEFUNG-0.1.25.md).
+Senderstatus seit 0.1.25: bestätigte RadioKing-Sendepause deaktiviert Play; automatische Freigabe beim Wiederanlauf ohne Autostart. [Nachweise](docs/PRUEFUNG-0.1.26.md).

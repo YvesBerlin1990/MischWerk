@@ -1,11 +1,12 @@
 # MischWerk – verbindliche Regeln für weitere Programmierungen
 
-Aktuell: lokale Version 0.1.25 mit RadioKing. Diese Regeln gelten dauerhaft im gesamten MischWerk-Projekt. Die vorherige ausführliche Regelchronik ist im geprüften `../ARCHIV/Historie-2026-10-29.zip` enthalten; für neue Arbeiten gelten die folgenden aktuellen Regeln.
+Aktuell: lokale Version 0.1.26 mit RadioKing. Diese Regeln gelten dauerhaft im gesamten MischWerk-Projekt. Die vorherige ausführliche Regelchronik ist im geprüften `../ARCHIV/Historie-2026-10-29.zip` enthalten; für neue Arbeiten gelten die folgenden aktuellen Regeln.
 
 ## Struktur und Freigabe
 
 - `PROJEKT/` ist die technische Projektwurzel. Die nachfolgenden Quell-/Testpfade sind relativ dazu. Node-Befehle aus diesem Ordner ausführen.
-- Quellcode: `app/`; API-Referenzen: `references/api/`; lokale Tests/Werkzeuge: `tests/`, `tools/`; aktuelle technische Nachweise: `docs/`.
+- Gepflegte Backend-Quellmodule: `src/backend/`; erzeugtes Knuddels-Bundle und Frontend: `app/`; API-Referenzen: `references/api/`; lokale Tests/Werkzeuge: `tests/`, `tools/`; aktuelle technische Nachweise: `docs/`.
+- `app/main.js` ist ein deterministisch erzeugtes Laufzeit-Bundle und wird nicht direkt bearbeitet. Änderungen erfolgen in `src/backend/*.js`; danach `node tools/build-backend.cjs` ausführen. Checks und Paketbau müssen ein veraltetes oder abweichendes Bundle ablehnen.
 - Für den Nutzer sichtbar: `../UPLOAD/MischWerk/`. Ausschließlich `main.js`, `app.config`, `www/index.html`, `www/css/style.css`, `www/js/app.js`, `www/img/mischwerk-logo.png` hineinpacken.
 - Aktuelles ZIP, Manifest und ZIP-Prüfsumme: `../ANLEITUNGEN/Paket/`. Anleitungen liegen direkt unter `../ANLEITUNGEN/`. Frühere Pakete und überholte Anbieter-Unterlagen gehören ausschließlich nach `../ARCHIV/`.
 - Nur lokal ändern und paketieren. KEIN FTP-Upload, Knuddels-Update oder Serverneustart ohne neue ausdrückliche Nutzeranweisung. Zuletzt bestätigtes LIVE bleibt 0.1.13. Ein Build ist keine Uploadfreigabe. Nutzerdaten und bestehende Persistenz erhalten.
@@ -57,7 +58,7 @@ Senderstatus seit 0.1.25: öffentlicher Widget-Endpunkt /widget/radio/{geprüfte
 
 Deaktivierter Wunschbutton seit 0.1.24: neutrale graue Kontur und zurückhaltende dunkle Fläche statt goldener Umrandung. Schlosssymbol statt Musiknote, lesbare Statusmarkierung „Deaktiviert“, kein Richtungspfeil und kein Gold am gesperrten Button. Aktiv weiterhin Gold mit Musiknote. Abmessungen/Position unverändert; Button bleibt nativ und serverseitig gesperrt. Bestehende Wünsche, Moderationszugang und Audiowiedergabe erhalten. Keine zusätzliche Bilddatei oder API-Methode.
 
-Aus `PROJEKT/`: `node --test tests/backend.test.cjs tests/preview.test.cjs` und `node tools/check.cjs`; bei betroffenen UI-/Vorschaupfaden zusätzlich `node --test tests/frontend.browser.test.cjs` (Playwright/Edge). Expliziter RadioKing-Netzwerktest: `node tools/radioking-compatibility-check.cjs`. Paket: `node tools/build-install.cjs`. Der Build prüft und erzeugt ausschließlich lokale Upload-/Paketdateien.
+Aus `PROJEKT/`: zuerst `node tools/build-backend.cjs`, danach `node --test tests/backend.test.cjs tests/preview.test.cjs` und `node tools/check.cjs`; bei betroffenen UI-/Vorschaupfaden zusätzlich `node --test tests/frontend.browser.test.cjs` (Playwright/Edge). Expliziter RadioKing-Netzwerktest: `node tools/radioking-compatibility-check.cjs`. Paket: `node tools/build-install.cjs`. Der Build erzeugt das Backend-Bundle neu, prüft es und schreibt ausschließlich lokale Upload-/Paketdateien.
 
 Vor einem separat autorisierten Upload die echte Abnahme aus `docs/INBETRIEBNAHME.md` prüfen. Projektwurzel übersichtlich halten: UPLOAD, ANLEITUNGEN, PROJEKT, ARCHIV; keine alten ZIPs/Anbieter-Dokumente zwischen aktuellen Dateien. Erst archivieren und Hashes verifizieren, dann entbehrliche Originale entfernen. Aktuelle Hilfe und Paketpfade beim Umordnen anpassen. Die App-Version bleibt bei einer reinen Ordnerbereinigung unverändert.
 

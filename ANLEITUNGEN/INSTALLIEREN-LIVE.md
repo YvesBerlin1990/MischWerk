@@ -1,6 +1,6 @@
 # MischWerk auf Knuddels LIVE installieren
 
-Stand: 30.10.2026 · lokale Paketversion 0.1.25 · Ziel wurde vom Nutzer ausdrücklich als LIVE bestätigt.
+Stand: 30.10.2026 · lokale Paketversion 0.1.26 · Ziel wurde vom Nutzer ausdrücklich als LIVE bestätigt.
 
 Aktuell nur lokal vorbereitet: Uploadordner, ZIP und Manifest enthalten alle neuesten Änderungen. Kein Upload und kein Server-Neustart erfolgt; LIVE bleibt 0.1.13. Die folgenden Übertragungs- und Neustartschritte gelten erst nach einer erneuten ausdrücklichen Freigabe des Nutzers.
 
@@ -21,7 +21,7 @@ Das Passwort wird ausschließlich im FTP-Programm eingegeben. Die Entwickler-ID 
 
 ## 1. Fertiges Paket
 
-`Paket/MischWerk-Knuddels-LIVE-0.1.25.zip` **lokal entpacken**. Nach späterer Freigabe den enthaltenen Ordner `MischWerk` nach `/ftp` hochladen. Alternativ direkt den bereits entpackten Ordner `UPLOAD/MischWerk` verwenden. Die ZIP-Datei selbst wird nicht auf den FTP geladen.
+`Paket/MischWerk-Knuddels-LIVE-0.1.26.zip` **lokal entpacken**. Nach späterer Freigabe den enthaltenen Ordner `MischWerk` nach `/ftp` hochladen. Alternativ direkt den bereits entpackten Ordner `UPLOAD/MischWerk` verwenden. Die ZIP-Datei selbst wird nicht auf den FTP geladen.
 
 ```text
 /ftp/MischWerk/
@@ -48,7 +48,7 @@ Warten, bis die Warteschlange leer ist und alle sechs Dateien erfolgreich übert
 
 In Knuddels als Otterchen den eigenen Channel MischWerk öffnen und `/apps` eingeben. Dort „App installieren“ wählen und MischWerk auswählen beziehungsweise **`30807196.MischWerk`** eintragen. Diese Kurz-ID wurde im tatsächlichen LIVE-Dialog erfolgreich installiert. Die Appverwaltung ergänzt `knuddelsDEV.` selbst. Falls Knuddels einen AppBot verlangt, einen verfügbaren Bot-Nick festlegen; der Nutzer hat **MischWerkBot** bestätigt. Die Oberfläche führt durch diesen Schritt; es wird kein neuer menschlicher Account benötigt. Anschließend die App starten. [Offizielle Installationsschritte](https://github.com/knuddelsgmbh/UserApps/wiki/Erste-Schritte)
 
-Falls bereits installiert: nach Freigabe und vollständigem Upload über `/apps` „update/restart“ ausführen. `autoUpdate = false` verhindert einen Neustart mitten im Dateiupload. Im App-Log muss die Startmeldung `MischWerk 0.1.25: Radioleiste mit Wunschbox-/Moderations-Popups gestartet` erscheinen. Die Leiste wird beim Start und Channelbeitritt angezeigt; `/mischwerk` öffnet sie erneut. Die beiden Buttons öffnen getrennte Knuddels-Popups. [Offizieller Workflow](https://github.com/knuddelsgmbh/UserApps/wiki/Dev-Server)
+Falls bereits installiert: nach Freigabe und vollständigem Upload über `/apps` „update/restart“ ausführen. `autoUpdate = false` verhindert einen Neustart mitten im Dateiupload. Im App-Log muss die Startmeldung `MischWerk 0.1.26: Radioleiste mit Wunschbox-/Moderations-Popups gestartet` erscheinen. Die Leiste wird beim Start und Channelbeitritt angezeigt; `/mischwerk` öffnet sie erneut. Die beiden Buttons öffnen getrennte Knuddels-Popups. [Offizieller Workflow](https://github.com/knuddelsgmbh/UserApps/wiki/Dev-Server)
 
 ## 4. Was jetzt schon funktioniert
 

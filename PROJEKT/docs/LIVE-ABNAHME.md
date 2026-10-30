@@ -1,6 +1,6 @@
 # MischWerk – LIVE-Abnahme
 
-Lokaler Stand **0.1.25 mit RadioKing** ist nicht veröffentlicht. Uploadordner, ZIP und Manifest sind ausschließlich lokal vorbereitet. Zuletzt bestätigter LIVE-Stand bleibt **0.1.13**. Ohne neue ausdrückliche Freigabe erfolgen weder FTP-Upload noch Knuddels-Update oder Serverneustart.
+Lokaler Stand **0.1.26 mit RadioKing** ist nicht veröffentlicht. Uploadordner, ZIP und Manifest sind ausschließlich lokal vorbereitet. Zuletzt bestätigter LIVE-Stand bleibt **0.1.13**. Ohne neue ausdrückliche Freigabe erfolgen weder FTP-Upload noch Knuddels-Update oder Serverneustart.
 
 ## Bestätigtes LIVE-Ziel
 
@@ -21,7 +21,7 @@ Zugangspasswörter gehören weder in dieses Projekt noch in die App. Maßgeblich
 - Alle 99 lokalen Tests und `node tools/check.cjs` erfolgreich ausführen.
 - Erst nach ausdrücklicher Freigabe alle sechs Dateien vollständig übertragen und anschließend kontrolliert aktualisieren beziehungsweise neu starten.
 
-## Offene echte Abnahme für 0.1.25
+## Offene echte Abnahme für 0.1.26
 
 - Besitzer: Studiozugriff, An-/Abmeldung, Verlängerung und Ablauf prüfen.
 - Normaler Hörer: kein Studiozugriff; manipulierte Moderationsereignisse müssen abgewiesen werden.
@@ -32,4 +32,4 @@ Zugangspasswörter gehören weder in dieses Projekt noch in die App. Maßgeblich
 - Desktop-JX sowie K3/Web/Mobil: 320–2560 px, Tastaturbedienung, Popups, Channelwechsel, Hintergrund/Wiederaufnahme und scrollfreie Darstellung prüfen.
 - Mit einem zweiten echten Account Vertraulichkeit, echten Nick und Rechteabgrenzung bestätigen.
 
-Die lokalen Browser-Mocks ersetzen diese Abnahme nicht. Der aktuelle technische Nachweis steht in [PRUEFUNG-0.1.25.md](PRUEFUNG-0.1.25.md). Die ausführliche Historie der früheren LIVE-Versionen und Anbieter liegt ausschließlich im Archiv.
+Die lokalen Browser-Mocks ersetzen diese Abnahme nicht. Der aktuelle technische Nachweis steht in [PRUEFUNG-0.1.26.md](PRUEFUNG-0.1.26.md). Die ausführliche Historie der früheren LIVE-Versionen und Anbieter liegt ausschließlich im Archiv.

@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
+const { writeBundle } = require('./build-backend.cjs');
 const root = path.resolve(__dirname, '..');
 const projectFolder = path.resolve(root, '..');
 const include = ['main.js', 'app.config', 'www/index.html', 'www/css/style.css', 'www/js/app.js', 'www/img/mischwerk-logo.png'];
@@ -20,6 +21,7 @@ function properties(text) {
   return data;
 }
 function build() {
+  writeBundle();
   for (const args of [['--test', 'tests/backend.test.cjs', 'tests/preview.test.cjs'], ['tools/check.cjs']]) {
     const result = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit', windowsHide: true });
     assert.equal(result.status, 0, 'Prüfung fehlgeschlagen; kein Paket erzeugt.');

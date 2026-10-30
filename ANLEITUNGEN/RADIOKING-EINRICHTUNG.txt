@@ -1,4 +1,4 @@
-MischWerk mit RadioKing – lokaler Stand 0.1.25 vom 30.10.2026
+MischWerk mit RadioKing – lokaler Stand 0.1.26 vom 30.10.2026
 
 BEREITS EINGERICHTET
 Radio: MischWerk
@@ -9,7 +9,8 @@ Format: MP3, 128 kbit/s
 Aktueller Titel/Interpret:
 https://api.radioking.io/widget/radio/mischwerk/track/current
 
-Die Konfiguration steht oben in PROJEKT/app/main.js:
+Die gepflegte Konfiguration steht in PROJEKT/src/backend/00-config.js.
+PROJEKT/app/main.js wird daraus automatisch erzeugt und nicht direkt bearbeitet:
     radioking: { radioId: 'mischwerk' }
 
 Der öffentliche Standard-Hörlink aus deinem Screenshot ist bereits eingebaut.
@@ -72,7 +73,7 @@ LIVE bleibt nach zuletzt bestätigtem Stand 0.1.13.
 
 LOKALER UPLOAD
 Ordner: UPLOAD/MischWerk
-ZIP: ANLEITUNGEN/Paket/MischWerk-Knuddels-LIVE-0.1.25.zip
+ZIP: ANLEITUNGEN/Paket/MischWerk-Knuddels-LIVE-0.1.26.zip
 Neu bauen: Installationspaket-erstellen.cmd im MischWerk-Hauptordner.
 Alternativ aus PROJEKT/: node tools/build-install.cjs.
 Diese Werkzeuge bauen nur lokal und laden nichts hoch.

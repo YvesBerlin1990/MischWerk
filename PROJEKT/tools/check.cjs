@@ -2,8 +2,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
+const { checkBundle } = require('./build-backend.cjs');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+checkBundle();
 for (const file of ['app/main.js', 'app/www/js/app.js', 'preview-bridge.js']) {
   new vm.Script(read(file), { filename: file });
   console.log('Syntax OK:', file);
@@ -28,7 +30,7 @@ for (const match of js.matchAll(/(?:el|setText)\('([^']+)'/g)) { assert.ok(ids.i
 assert.ok(!/\b(?:fetch|process|module\.exports|document|window)\b/.test(read('app/main.js')), 'Browser-/Node-Funktion im Backend');
 assert.ok(!js.includes('innerHTML'), 'Fremde Texte mit textContent ausgeben');
 assert.ok(!js.includes('MischWerkDemo'), 'Demo-Code darf nicht im Produktions-Frontend liegen');
-console.log('API-Signaturen, UI-IDs, Laufzeitgrenzen und Trennung der Demo: OK');
+console.log('Backend-Module, API-Signaturen, UI-IDs, Laufzeitgrenzen und Trennung der Demo: OK');
 assert.ok(read('app/main.js').includes('AppContent.headerbarContent'), 'Radio benötigt die Channelleiste.');
 assert.ok(read('app/main.js').includes('AppContent.popupContent'), 'Wunschbox und Moderation benötigen Popups.');
 assert.ok(frontendApi.includes('Client.HostFrame.prototype.setSize'), 'Headerbar-Höhenanpassung fehlt in Referenz.');
