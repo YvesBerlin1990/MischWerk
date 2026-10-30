@@ -147,7 +147,7 @@ test('Radioleiste passt ohne Scrollen; Logo und alle Bedienelemente bleiben voll
     const height=width<=680?264:160; await page.setViewportSize({width,height});
     const overflow=await page.locator('.radio-bar').evaluate(node=>({x:node.scrollWidth>node.clientWidth,y:node.scrollHeight>node.clientHeight}));
     assert.deepEqual(overflow,{x:false,y:false},'Leiste bei '+width+' px');
-    for(const selector of ['.bar-logo','#play-button','#stream-badge','#mute-button','#volume','#volume-value','#open-wishes','#studio-tab','.on-air-sign','#host-name','#track-title','#track-artist']){
+    for(const selector of ['.bar-logo','#play-button','#stream-badge','#mute-button','#volume','#volume-value','#open-wishes','#team-tab','#studio-tab','.on-air-sign','#host-name','#track-title','#track-artist']){
       const box=await page.locator(selector).boundingBox(); assert.ok(box && box.x>=0 && box.y>=0 && box.x+box.width<=width && box.y+box.height<=height,selector+' bei '+width);
     }
     assert.equal((await page.locator('.bar-logo').boundingBox()).width,128);
@@ -166,7 +166,7 @@ test('Radioleiste passt ohne Scrollen; Logo und alle Bedienelemente bleiben voll
       assert.ok(transportLayout.bottom<=height,label+': Status vollständig in der Leiste bei '+width);
     }
     await page.locator('#stream-label').evaluate((node,text)=>{node.textContent=text;},originalStatus);
-    for(const selector of ['#play-button','#mute-button','#volume','#open-wishes','#studio-tab']){
+    for(const selector of ['#play-button','#mute-button','#volume','#open-wishes','#team-tab','#studio-tab']){
       assert.ok(await page.locator(selector).evaluate(node=>{const box=node.getBoundingClientRect();return node.contains(document.elementFromPoint(box.x+box.width/2,box.y+box.height/2));}),'Keine überlagerte Bedienfläche: '+selector+' bei '+width);
     }
     assert.ok((await page.locator('#volume').boundingBox()).width<=180,'Kompakter Lautstärkeregler bei '+width);
@@ -198,7 +198,8 @@ test('Radioleiste passt ohne Scrollen; Logo und alle Bedienelemente bleiben voll
       const sign=await page.locator('#on-air-sign').boundingBox(),name=await page.locator('#host-name').boundingBox();
       assert.ok(Math.abs(sign.x+sign.width/2-name.x-name.width/2)<1,'ON AIR und Moderatorname auf einer gemeinsamen Mittelachse bei '+width);
       assert.ok(name.y-sign.y-sign.height>=9.9,'Lesbarer Abstand zwischen ON AIR und Moderatorname bei '+width);
-      assert.ok(wish.y+wish.height<studio.y,'Wunschbox und Moderationslink mit eigenem Abstand bei '+width);
+      const team=await page.locator('#team-tab').boundingBox();
+      assert.ok(wish.y+wish.height<studio.y&&wish.y+wish.height<team.y,'Wunschbox und Verwaltungslinks mit eigenem Abstand bei '+width);
       assert.ok(Math.abs(wish.y+wish.height/2-height/2)<1,'Wunschbox vertikal mittig bei '+width);
       assert.ok(status.y>=play.y+play.height+5,'Wiedergabestatus beim Play-Knopf bei '+width);
     }
@@ -207,6 +208,7 @@ test('Radioleiste passt ohne Scrollen; Logo und alle Bedienelemente bleiben voll
     assert.equal(await page.locator('#studio-tab').evaluate(n=>!!n.closest('.bar-actions')),false);
     await page.evaluate(revision=>window.__emit('mw:state',{...Client.pageData,revision,user:{nick:'Hoerer',canModerate:false}}),++roleRevision);
     assert.equal(await page.locator('#studio-tab').isVisible(),false);
+    assert.equal(await page.locator('#team-tab').isVisible(),false);
     const wishAfter=await page.locator('#open-wishes').boundingBox();
     for(const key of ['x','y','width','height']){assert.ok(Math.abs(wishBefore[key]-wishAfter[key])<.1,'Wunschbox unverändert ohne Moderationslink: '+key+' bei '+width);}
     await page.evaluate(revision=>window.__emit('mw:state',{...Client.pageData,revision}),++roleRevision);
@@ -256,6 +258,46 @@ test('Fenster-Buttons senden Popup-Anfragen ohne Leistenwechsel oder Audiostopp'
   assert.deepEqual(errors,[]);
 });
 
+test('Radio-Team bleibt vom Moderationsmenü getrennt und verwaltet Ernennungen revisionssicher', async t => {
+  const radio=await setup(t,{viewport:{width:960,height:160}});
+  assert.equal(await radio.page.locator('#team-tab').isVisible(),true);
+  assert.equal(await radio.page.locator('#team-tab').evaluate(node=>!!node.closest('#studio-panel')),false);
+  await radio.page.locator('#team-tab').click();
+  assert.equal(await radio.page.evaluate(()=>window.__sent.some(event=>event.type==='mw:openRadioTeam')),true);
+
+  const {page,state,errors}=await setup(t,{view:'team',k3:false,viewport:{width:560,height:760}});
+  assert.equal(await page.locator('#team-panel').isVisible(),true);
+  assert.equal(await page.locator('#studio-panel').isVisible(),false);
+  assert.match(await page.locator('#team-panel').innerText(),/Channelmoderatoren erhalten diesen Zugriff nicht automatisch/);
+  await page.locator('#radio-moderator-nick').fill('KanalMod');
+  await page.locator('#add-radio-moderator').click();
+  const add=await page.evaluate(()=>window.__sent.findLast(event=>event.type==='mw:addRadioModerator'));
+  assert.equal(add.data.nick,'KanalMod');assert.equal(add.data.expectedRadioModeratorRevision,state.radioModeratorRevision);
+  await page.evaluate(add=>window.__emit('mw:result',{ok:false,action:add.type,requestId:add.data.requestId,message:'Nick unbekannt'}),add);
+  assert.equal(await page.locator('#radio-moderator-nick').inputValue(),'KanalMod','Fehler erhält die Eingabe');
+  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:state.revision+1,radioModeratorRevision:1,
+    radioModeratorTotal:6,radioModeratorPage:0,radioModeratorPages:2,
+    radioModerators:[{userId:7,nick:'<img src=x onerror=alert(1)>'},{userId:8,nick:'Zwei'},{userId:9,nick:'Drei'},{userId:10,nick:'Vier'},{userId:11,nick:'Fünf'}]}),state);
+  assert.equal(await page.locator('#radio-moderator-list img').count(),0);
+  assert.equal(await page.locator('.team-member strong').first().textContent(),'<img src=x onerror=alert(1)>');
+  assert.equal(await page.locator('#radio-moderator-count').textContent(),'6');
+  await page.locator('[data-radio-moderator-id="7"]').click();
+  const remove=await page.evaluate(()=>window.__sent.findLast(event=>event.type==='mw:removeRadioModerator'));
+  assert.equal(remove.data.userId,7);assert.equal(remove.data.expectedRadioModeratorRevision,1);
+  await page.evaluate(remove=>window.__emit('mw:result',{ok:true,action:remove.type,requestId:remove.data.requestId,message:'Entfernt'}),remove);
+  await page.locator('#next-radio-moderator-page').click();
+  const pageRequest=await page.evaluate(()=>window.__sent.findLast(event=>event.type==='mw:refresh'));
+  assert.equal(pageRequest.data.radioModeratorPage,1);
+  for(const width of [320,560]){
+    await page.setViewportSize({width,height:760});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Keine horizontale Überlagerung bei '+width);
+  }
+  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:state.revision+2,user:{...state.user,canManageRadioModerators:false},radioModerators:[]}),state);
+  assert.equal(await page.locator('#team-panel').isVisible(),false);
+  assert.equal(await page.locator('#team-access-denied').isVisible(),true);
+  assert.deepEqual(errors,[]);
+});
+
 test('Deaktivierte Wunschbox ist sichtbar gesperrt, sendet keine Popup-Anfrage und wird nach Aktivierung wieder bedienbar',async t=>{
   const {page,state,errors}=await setup(t,{station:true,realAudio:true,viewport:{width:2124,height:160}});
   await page.locator('#play-button').click();await waitRadioPlaying(page);
@@ -300,7 +342,7 @@ test('Deaktivierte Wunschbox ist sichtbar gesperrt, sendet keine Popup-Anfrage u
 });
 
 test('Popup zeigt nur seinen Bereich und verändert weder Headerbar-Höhe noch Audiowiedergabe', async t => {
-  for(const view of ['wishes','studio']){
+  for(const view of ['wishes','studio','team']){
     const {page,errors}=await setup(t,{view,k3:false,station:true,viewport:{width:820,height:680}});
     assert.equal(await page.locator('#radio-panel').isVisible(),false);
     assert.equal(await page.locator('#'+view+'-panel').isVisible(),true);

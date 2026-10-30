@@ -11,10 +11,11 @@
     getHostFrame: function () { return { setTitle: function () {}, setResizable: function () {} }; },
     addEventListener: function (type, callback) { (handlers[type] || (handlers[type] = [])).push(callback); },
     sendEvent: function (type, data) {
-      if (type === 'mw:openWishes' || type === 'mw:openStudio') {
-        var view = type === 'mw:openStudio' ? 'studio' : 'wishes';
+      if (type === 'mw:openWishes' || type === 'mw:openStudio' || type === 'mw:openRadioTeam') {
+        var view = type === 'mw:openStudio' ? 'studio' : type === 'mw:openRadioTeam' ? 'team' : 'wishes';
         var popup = window.open('/preview?sourceSession=' + encodeURIComponent(boot.sessionId) + '&view=' + view,
-          'MischWerkDemo-' + view, 'popup,width=780,height=' + (view === 'wishes' ? 460 : 420));
+          'MischWerkDemo-' + view, 'popup,width=' + (view === 'team' ? 560 : view === 'wishes' ? 520 : 780) +
+            ',height=' + (view === 'wishes' ? 460 : 420));
         setTimeout(function () {
           (handlers['mw:result'] || []).forEach(function (callback) { callback({ data: { ok: !!popup,
             message: popup ? 'Demo-Fenster geöffnet.' : 'Bitte erlaube Popups für die lokale Demo.', action: type, requestId: data.requestId } }); });

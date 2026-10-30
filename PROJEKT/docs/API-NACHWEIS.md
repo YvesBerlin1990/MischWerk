@@ -1,19 +1,20 @@
-# MischWerk – API-Nachweis 0.1.26
+# MischWerk – API-Nachweis 0.1.27
 
-Stand 30.10.2026. RadioKing ersetzt die frühere Radioanbindung vollständig. Knuddels-/K3-Schnittstellen, Rollen, Wunschbox, Thema und getrennte native Popups bleiben erhalten. Kein Knuddels-Upload, Update oder Neustart.
+Stand 30.10.2026. RadioKing ersetzt die frühere Radioanbindung vollständig. 0.1.27 ergänzt die vom Channelinhaber gepflegte Radiomoderatorenrolle in einem eigenen Popup. Kein Knuddels-Upload, Update oder Neustart.
 
 ## Knuddels und K3
 
-Die betroffenen Signaturen wurden gegen die beiden unveränderten lokalen Referenzen in `references/api/` und die aktuellen offiziellen Seiten für [Client](https://developer.knuddels.de/docs/classes/Client.html), [AppContent](https://developer.knuddels.de/docs/classes/AppContent.html) und [HostFrame](https://developer.knuddels.de/docs/classes/Client.HostFrame.html) abgeglichen. Der Anbieterwechsel führt keine neue Knuddels- oder K3-Methode ein.
+Die betroffenen Signaturen wurden gegen die beiden unveränderten lokalen Referenzen in `references/api/` und die aktuellen offiziellen Seiten für [Client](https://developer.knuddels.de/docs/classes/Client.html), [AppContent](https://developer.knuddels.de/docs/classes/AppContent.html), [HostFrame](https://developer.knuddels.de/docs/classes/Client.HostFrame.html), [User](https://developer.knuddels.de/docs/classes/User.html) und [UserAccess](https://developer.knuddels.de/docs/classes/UserAccess.html) abgeglichen.
 
 | Aufgabe | Verwendeter dokumentierter Weg |
 | --- | --- |
 | Backend | Globales `App`, dokumentierte Start-/Event-/Lebenszyklus-Hooks, ES5/Rhino |
 | Channel-Leiste | `HTMLFile`, `AppContent.headerbarContent`, `setResponsive`, Fähigkeitsprüfung vor `User.sendAppContent` |
-| Wunschbox / Studio | `AppContent.popupContent`, eigene Content-Sitzungen und serverseitige Rechteprüfung |
+| Wunschbox / Studio / Radio-Team | `AppContent.popupContent`, eigene Content-Sitzungen und serverseitige Rechteprüfung |
 | Frontend → Backend | `Client.sendEvent`, `App.onEventReceived` |
 | Backend → Frontend | `AppContentSession.sendEvent`, `Client.addEventListener`, `event.data` |
-| Identität / Rechte | Authentifizierte Session/User-Objekte, `getUserId`, `getNick`, Channelbesitz/CM bzw. explizite DJ-ID-Liste |
+| Identität / Rechte | Authentifizierte Session/User-Objekte, `getUserId`, `getNick`, `isChannelOwner`; Studio nur für Besitzer oder persistiert ernannte numerische Radiomoderator-ID, nie automatisch für Channelmoderatoren |
+| Nick-Auflösung | `KnuddelsServer.getUserAccess()`, `UserAccess.exists`, `getUserId`, `getNick`; der Client liefert keine vertrauenswürdige Rolle oder ID |
 | Speicherung | `KnuddelsServer.getPersistence`, `getObject`, `setObject` |
 | Größe | STAPP: `Client.getHostFrame().setSize(0, height)`; nur außerhalb K3 über `Client.isK3Client()` |
 | Assets | `Client.includeCSS`, `Client.includeJS` |
@@ -41,7 +42,7 @@ Metadatenfehler stoppen kein Audio. Späte Antworten sind an die aktuelle Sender
 
 ## Validierung und Grenzen
 
-99 lokale Fälle bestanden (49 Backend-/HTTP-, 50 Browserfälle), Syntax-/API-/UI-Prüfung erfolgreich. Zusätzlich tatsächliche MischWerk-MP3-Dekodierung und Cross-Origin-Titelabfrage im Edge-Browser mit unverändertem Produktions-Frontend; nur die Knuddels-Brücke simuliert. Original-Logo unverändert. Seit 0.1.17 berücksichtigt der CSS-Abstand zwischen Play und Wiedergabestatus den äußeren Plattenteller-Ring. Keine Knuddels-/K3-API-Änderung. Details: [Prüfbericht](PRUEFUNG-0.1.26.md).
+102 lokale Fälle bestanden (51 Backend-/HTTP-, 51 Browserfälle), Syntax-/API-/UI-Prüfung erfolgreich. Zusätzlich tatsächliche MischWerk-MP3-Dekodierung und Cross-Origin-Titelabfrage im Edge-Browser mit unverändertem Produktions-Frontend; nur die Knuddels-Brücke simuliert. Original-Logo unverändert. Seit 0.1.17 berücksichtigt der CSS-Abstand zwischen Play und Wiedergabestatus den äußeren Plattenteller-Ring. Details: [Prüfbericht](PRUEFUNG-0.1.27.md).
 
 Seit 0.1.26 wird das Backend in sechs eigenständigen ES5-Modulen unter `src/backend/` gepflegt. `tools/build-backend.cjs` fügt sie in fester Reihenfolge ohne Laufzeit-Loader zu `app/main.js` zusammen. Knuddels erhält weiterhin ausschließlich die dokumentierte globale Variable `App` im einzelnen Backend-Bundle; weder `require` noch eine Node-, Browser- oder private K3-Schnittstelle gelangt in die Laufzeitdatei. `tools/check.cjs`, die Tests und der Paketbau lehnen ein vom Modulstand abweichendes Bundle ab.
 
@@ -53,12 +54,14 @@ Wunschbox-Sperre 0.1.18: Der vorhandene mw:openWishes-Event wird bei deaktiviert
 
 Lautstärke 0.1.20: 40 % Standard, automatische Wiederherstellung höchstens 60 %, darüber rote Hinweiszone, manuell weiterhin bis 100 %. Keine dB-Messung oder garantierte Schutzzone. Siehe [Einordnung](LAUTSTAERKE.md). Keine neue Knuddels-/K3-Schnittstelle.
 
-Wunschbox 0.1.21 ersetzt die frühere zweispaltige Wunschansicht: ein Formular mit Interpret + Titel und einem kurzen Link-Hinweis, keine Historie/Nick-Anzeige/Reiter. Initial 520 × 360 px, Logo im Wunschkopf 72 px; Studio unverändert. Links in Frontend und Backend abweisen; authentifizierten Nick und kurze Zustellbestätigung erhalten. Aktuell gilt [PRUEFUNG-0.1.26.md](PRUEFUNG-0.1.26.md).
+Wunschbox 0.1.21 ersetzt die frühere zweispaltige Wunschansicht: ein Formular mit Interpret + Titel und einem kurzen Link-Hinweis, keine Historie/Nick-Anzeige/Reiter. Initial 520 × 360 px, Logo im Wunschkopf 72 px; Studio unverändert. Links in Frontend und Backend abweisen; authentifizierten Nick und kurze Zustellbestätigung erhalten. Aktuell gilt [PRUEFUNG-0.1.27.md](PRUEFUNG-0.1.27.md).
 
 Positionierung 0.1.22: ON AIR und Sender-/Moderatorname bilden ab 901 px eine vertikal zur Wunschbox zentrierte Gruppe ohne künstliche Leerzeile. Schild und Name teilen eine Mittelachse, der Abstand beträgt 10 px. Ab 1500 px steht dafür eine 200–220 px breite Spalte zur Verfügung. Eine feine Trennlinie gliedert den Wunschbutton. Der berechtigte Moderationslink bleibt unten rechts und beeinflusst die übrige Geometrie nicht. Layout bei 320–2560 px mit langen Texten geprüft; Höhen und APIs unverändert.
 
-Studio 0.1.23: sichtbarer Verbindungsstatus, serverseitig bestimmte eigene Anmeldung/Abmelderechte und Ablaufzeit, ausdrückliches Verlängern. ON AIR endet bei Verlassen, Rechteverlust oder Ablauf, auch bei Speicherfehlern keine unbestätigte Anzeige. Fachliche Vergleichswerte schützen parallele Änderungen. Warteschlange hält die Wunsch-ID und den Tastaturfokus; Erledigt/Verwerfen werden eindeutig bestätigt. Scrollfreie Studioansichten bei 320–780 px und vollständiger Backend-Browser-Ablauf geprüft. Keine neue K3-Methode oder RadioKing-Managerfunktion. Siehe [Prüfbericht](PRUEFUNG-0.1.26.md).
+Studio 0.1.23: sichtbarer Verbindungsstatus, serverseitig bestimmte eigene Anmeldung/Abmelderechte und Ablaufzeit, ausdrückliches Verlängern. ON AIR endet bei Verlassen, Rechteverlust oder Ablauf, auch bei Speicherfehlern keine unbestätigte Anzeige. Fachliche Vergleichswerte schützen parallele Änderungen. Warteschlange hält die Wunsch-ID und den Tastaturfokus; Erledigt/Verwerfen werden eindeutig bestätigt. Scrollfreie Studioansichten bei 320–780 px und vollständiger Backend-Browser-Ablauf geprüft. Keine neue K3-Methode oder RadioKing-Managerfunktion. Siehe [Prüfbericht](PRUEFUNG-0.1.27.md).
 
-Gestaltung 0.1.24: deaktivierte Wunschbox mit neutralgrauem Rahmen, Schlosssymbol und kleiner Statusmarkierung „Deaktiviert“. Aktiv weiterhin Gold/Musiknote. Abmessungen, Position, tatsächliche Sperre und API-Wege unverändert. Siehe [Prüfbericht](PRUEFUNG-0.1.26.md).
+Gestaltung 0.1.24: deaktivierte Wunschbox mit neutralgrauem Rahmen, Schlosssymbol und kleiner Statusmarkierung „Deaktiviert“. Aktiv weiterhin Gold/Musiknote. Abmessungen, Position, tatsächliche Sperre und API-Wege unverändert. Siehe [Prüfbericht](PRUEFUNG-0.1.27.md).
 
-RadioKing-Status 0.1.25: /widget/radio/{Radio-ID} zusätzlich lesen, ausschließlich stream_status=started/stopped bei passendem slug auswerten. Sendepause sperrt Play neutralgrau und beendet eine bestehende Audioverbindung; Wiederanlauf gibt frei ohne Autostart. Fehler/unbekannte Werte bleiben manuell bedienbar und stoppen keinen Ton. Status/Titel etwa alle 30 Sekunden nur sichtbar; keine Titelabfrage bei bestätigter Pause. Aktueller echter Status-/CORS-Nachweis: [0.1.25](radioking-pruefung/anbindung-0.1.25.json), [Prüfbericht](PRUEFUNG-0.1.26.md). Frühere MP3-Dekodierung bleibt separat im Bericht 0.1.17 nachgewiesen.
+RadioKing-Status 0.1.25: /widget/radio/{Radio-ID} zusätzlich lesen, ausschließlich stream_status=started/stopped bei passendem slug auswerten. Sendepause sperrt Play neutralgrau und beendet eine bestehende Audioverbindung; Wiederanlauf gibt frei ohne Autostart. Fehler/unbekannte Werte bleiben manuell bedienbar und stoppen keinen Ton. Status/Titel etwa alle 30 Sekunden nur sichtbar; keine Titelabfrage bei bestätigter Pause. Aktueller echter Status-/CORS-Nachweis: [0.1.25](radioking-pruefung/anbindung-0.1.25.json), [Prüfbericht](PRUEFUNG-0.1.27.md). Frühere MP3-Dekodierung bleibt separat im Bericht 0.1.17 nachgewiesen.
+
+Radio-Team 0.1.27: Ein neuer, nur für den tatsächlichen Channelinhaber freigegebener Event-/Popup-Weg verwaltet höchstens 50 Radiomoderatoren außerhalb des Moderationsmenüs; die Liste wird serverseitig in Fünferseiten übertragen. `UserAccess.exists` prüft den Nick; `getUserId` liefert die dauerhaft gespeicherte numerische Identität, `getNick` nur den aktuellen Anzeigewert. Eine Fachrevision verhindert das Überschreiben paralleler Änderungen. Jede Studioaktion und jeder Snapshot prüft Besitzer oder ID-Listenmitglied erneut; `User.isChannelModerator` wird im Produktionsbackend bewusst nicht mehr verwendet. Beim Entfernen oder Löschen einer ID endet deren aktive Studio-Anmeldung. Bestehende AppPersistence ohne Rollenfelder wird kompatibel mit einer leeren Liste ergänzt.

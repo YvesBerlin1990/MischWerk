@@ -12,7 +12,7 @@ for (const file of ['app/main.js', 'app/www/js/app.js', 'preview-bridge.js']) {
 }
 const backendApi = read('references/api/knuddels-userapp-backend-api.js');
 const frontendApi = read('references/api/knuddels-webapp-frontend-api.js');
-for (const name of ['KnuddelsServer.getPersistence', 'KnuddelsServer.getDefaultLogger', 'KnuddelsServer.getChannel', 'Channel.prototype.getOnlineUsers', 'UserType.Human', 'Logger.prototype.warn', 'Logger.prototype.info', 'AppContent.headerbarContent', 'AppContent.prototype.getSessions', 'AppContent.prototype.setAllowJFXBrowser', 'User.prototype.isChannelOwner', 'User.prototype.isChannelModerator', 'User.prototype.sendAppContent', 'AppContentSession.prototype.getAppContent', 'AppContentSession.prototype.sendEvent', 'Persistence.prototype.getObject', 'Persistence.prototype.setObject']) {
+for (const name of ['KnuddelsServer.getPersistence', 'KnuddelsServer.getDefaultLogger', 'KnuddelsServer.getChannel', 'KnuddelsServer.getUserAccess', 'Channel.prototype.getOnlineUsers', 'UserAccess.prototype.exists', 'UserAccess.prototype.getUserId', 'UserAccess.prototype.getNick', 'UserType.Human', 'Logger.prototype.warn', 'Logger.prototype.info', 'AppContent.headerbarContent', 'AppContent.prototype.getSessions', 'AppContent.prototype.setAllowJFXBrowser', 'User.prototype.isChannelOwner', 'User.prototype.sendAppContent', 'AppContentSession.prototype.getAppContent', 'AppContentSession.prototype.sendEvent', 'Persistence.prototype.getObject', 'Persistence.prototype.setObject']) {
   assert.ok(backendApi.includes(name), 'Fehlende Backend-Referenz: ' + name);
 }
 for (const name of ['Client.sendEvent', 'Client.addEventListener', 'Client.includeCSS', 'Client.includeJS', 'Client.isK3Client', 'Client.getHostFrame']) {
@@ -28,6 +28,7 @@ for (const file of ['app/main.js', 'app/www/js/app.js', 'app/www/index.html', 'a
 }
 for (const match of js.matchAll(/(?:el|setText)\('([^']+)'/g)) { assert.ok(ids.includes(match[1]), 'Fehlendes UI-Element: ' + match[1]); }
 assert.ok(!/\b(?:fetch|process|module\.exports|document|window)\b/.test(read('app/main.js')), 'Browser-/Node-Funktion im Backend');
+assert.ok(!read('app/main.js').includes('.isChannelModerator('), 'Channelmoderatoren dürfen nicht automatisch Studiozugriff erhalten');
 assert.ok(!js.includes('innerHTML'), 'Fremde Texte mit textContent ausgeben');
 assert.ok(!js.includes('MischWerkDemo'), 'Demo-Code darf nicht im Produktions-Frontend liegen');
 console.log('Backend-Module, API-Signaturen, UI-IDs, Laufzeitgrenzen und Trennung der Demo: OK');

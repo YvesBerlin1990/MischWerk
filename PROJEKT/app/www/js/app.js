@@ -3,7 +3,7 @@
   var bridge = typeof Client !== 'undefined' ? Client : null;
   var state = null;
   var initialView = bridge && bridge.pageData && bridge.pageData.view;
-  var uiView = initialView === 'wishes' || initialView === 'studio' ? initialView : 'radio';
+  var uiView = initialView === 'wishes' || initialView === 'studio' || initialView === 'team' ? initialView : 'radio';
   document.documentElement.setAttribute('data-view', uiView);
   var page = 0;
   var pending = null;
@@ -73,9 +73,9 @@
   }
   if (uiView !== 'radio') {
     el('dialog-notice-slot').appendChild(el('notice'));
-    setText('dialog-title', uiView === 'wishes' ? 'Wunschbox' : 'Moderation');
+    setText('dialog-title', uiView === 'wishes' ? 'Wunschbox' : uiView === 'team' ? 'Radio-Team' : 'Moderation');
     el('wish-status').hidden = uiView !== 'wishes';
-    el('studio-connection').hidden = uiView !== 'studio';
+    el('studio-connection').hidden = uiView !== 'studio' && uiView !== 'team';
   }
   function connected() { return !!state && Date.now() - lastStateAt < 65000 && !state.shuttingDown; }
   function notify(message, error) {
@@ -87,7 +87,9 @@
   function renderView() {
     el('wishes-panel').hidden = uiView !== 'wishes';
     el('studio-panel').hidden = uiView !== 'studio' || !state || !state.user.canModerate;
+    el('team-panel').hidden = uiView !== 'team' || !state || !state.user.canManageRadioModerators;
     el('access-denied').hidden = uiView !== 'studio' || !state || state.user.canModerate;
+    el('team-access-denied').hidden = uiView !== 'team' || !state || state.user.canManageRadioModerators;
   }
   function resizeBar() {
     var height = window.innerWidth <= 680 ? 264 : 160;
@@ -107,6 +109,7 @@
       if (type === 'mw:onAir' || type === 'mw:offAir') { data.expectedModerator = state.moderator ? state.moderator.sessionKey || String(state.moderator.since) : null; }
       if (type === 'mw:setTopic') { data.previousTopic = state.topic; }
       if (type === 'mw:setRequests') { data.previousEnabled = state.requestsEnabled; }
+      if (type === 'mw:addRadioModerator' || type === 'mw:removeRadioModerator') { data.expectedRadioModeratorRevision = state.radioModeratorRevision; }
       requestId = 'mw-' + Date.now().toString(36) + '-' + (++requestSequence) + '-' + Math.random().toString(36).slice(2, 10);
       if (type === 'mw:request') {
         if (lastWish && sameWish(data, lastWish.data)) { requestId = lastWish.requestId; }
@@ -228,6 +231,31 @@
     });
     if (hadFocus) { el('queue-heading').focus(); }
   }
+  function renderRadioTeam() {
+    var list = el('radio-moderator-list');
+    list.textContent = '';
+    setText('radio-moderator-count', state.radioModeratorTotal);
+    setText('radio-moderator-page-label', 'Seite ' + (state.radioModeratorPage + 1) + ' / ' + state.radioModeratorPages);
+    el('radio-moderator-pagination').hidden = state.radioModeratorPages <= 1;
+    if (!state.user.canManageRadioModerators) { return; }
+    if (!state.radioModerators.length) {
+      list.appendChild(element('p', 'empty-copy', 'Noch keine Radiomoderatoren ernannt.'));
+      return;
+    }
+    state.radioModerators.forEach(function (item) {
+      var row = element('div', 'team-member');
+      row.appendChild(element('strong', '', item.nick));
+      var button = element('button', 'secondary-button', 'Entfernen');
+      button.type = 'button';
+      button.dataset.radioModeratorId = String(item.userId);
+      button.title = item.nick + ' den Studiozugriff entziehen';
+      button.addEventListener('click', function () {
+        send('mw:removeRadioModerator', { userId: item.userId }, true);
+      });
+      row.appendChild(button);
+      list.appendChild(row);
+    });
+  }
   function renderAvailability() {
     if (!state) { return; }
     var live = connected();
@@ -249,6 +277,7 @@
     el('open-wishes').disabled = !enabled || !!pending;
     el('open-wishes').setAttribute('aria-disabled', String(el('open-wishes').disabled));
     el('studio-tab').disabled = !live || !!pending || !state.user.canModerate;
+    el('team-tab').disabled = !live || !!pending || !state.user.canManageRadioModerators;
     el('studio-topic').disabled = !live || !!pending || !state.user.canModerate;
     el('studio-topic').maxLength = limits.maxTopicLength || 80;
     el('save-topic').disabled = el('studio-topic').disabled || !topicDirty;
@@ -267,6 +296,14 @@
     el('prev-page').disabled = !!pending || !live || !state.user.canModerate || page <= 0;
     el('next-page').disabled = !!pending || !live || !state.user.canModerate || page >= state.pages - 1;
     document.querySelectorAll('[data-resolve]').forEach(function (button) { button.disabled = !!pending || !live || !state.user.canModerate; });
+    el('radio-moderator-nick').disabled = !!pending || !live || !state.user.canManageRadioModerators;
+    el('add-radio-moderator').disabled = el('radio-moderator-nick').disabled;
+    el('refresh-radio-team').disabled = !live || !!pending || !state.user.canManageRadioModerators;
+    el('prev-radio-moderator-page').disabled = !live || !!pending || !state.user.canManageRadioModerators || state.radioModeratorPage <= 0;
+    el('next-radio-moderator-page').disabled = !live || !!pending || !state.user.canManageRadioModerators || state.radioModeratorPage >= state.radioModeratorPages - 1;
+    document.querySelectorAll('[data-radio-moderator-id]').forEach(function (button) {
+      button.disabled = !!pending || !live || !state.user.canManageRadioModerators;
+    });
     el('toggle-wishes').setAttribute('aria-checked', String(state.requestsEnabled));
     setText('toggle-label', state.requestsEnabled ? 'Wunschbox deaktivieren' : 'Wunschbox aktivieren');
     setText('studio-wish-state', state.requestsEnabled ? 'Wunschbox aktiviert' : 'Wunschbox deaktiviert');
@@ -278,8 +315,15 @@
     if (!next || !next.user || !next.station || !Array.isArray(next.myRequests) || !Array.isArray(next.queue)) { return; }
     if (state && typeof state.revision === 'number' && typeof next.revision === 'number' && next.revision < state.revision) { return; }
     var oldStation = state && JSON.stringify(state.station);
+    next.radioModerators = Array.isArray(next.radioModerators) ? next.radioModerators : [];
+    next.radioModeratorTotal = typeof next.radioModeratorTotal === 'number' ? next.radioModeratorTotal : next.radioModerators.length;
+    next.radioModeratorPage = typeof next.radioModeratorPage === 'number' ? next.radioModeratorPage : 0;
+    next.radioModeratorPages = typeof next.radioModeratorPages === 'number' ? next.radioModeratorPages : 1;
+    next.radioModeratorRevision = typeof next.radioModeratorRevision === 'number' ? next.radioModeratorRevision : 0;
+    next.user.canManageRadioModerators = next.user.canManageRadioModerators === true;
     state = next; page = next.page; lastStateAt = Date.now();
     el('studio-tab').hidden = !state.user.canModerate;
+    el('team-tab').hidden = !state.user.canManageRadioModerators;
     renderView();
     var host = state.moderator ? state.moderator.nick : 'Radio Mischwerk';
     setText('host-name', host); setText('studio-host', state.moderator ? host + ' ist am Mikrofon' : 'Keine Moderation angemeldet');
@@ -300,7 +344,7 @@
       setText('metadata-status', 'Sobald der Sender bereit ist, erscheint hier der aktuelle Titel.');
       setText('playback-status', 'Der Sender wird noch eingerichtet.');
     }
-    renderTopic(); renderWishFeedback(); renderQueue(); renderAvailability(); acknowledgeQueue();
+    renderTopic(); renderWishFeedback(); renderQueue(); renderRadioTeam(); renderAvailability(); acknowledgeQueue();
   }
   function getResponse(url) {
     return new Promise(function (resolve, reject) {
@@ -517,6 +561,7 @@
     send('mw:openWishes', {}, true);
   });
   el('studio-tab').addEventListener('click', function () { send('mw:openStudio', {}, true); });
+  el('team-tab').addEventListener('click', function () { send('mw:openRadioTeam', {}, true); });
   el('wish-text').addEventListener('input', fitWishText);
   el('studio-controls-tab').addEventListener('click', function () { switchPane('studio-panel', 'show-queue', 'studio-controls-tab', 'studio-queue-tab', false); });
   el('studio-queue-tab').addEventListener('click', function () { switchPane('studio-panel', 'show-queue', 'studio-controls-tab', 'studio-queue-tab', true); });
@@ -536,6 +581,14 @@
     send('mw:setTopic', { topic: el('studio-topic').value }, true);
   });
   el('toggle-wishes').addEventListener('click', function () { send('mw:setRequests', { enabled: !state.requestsEnabled }, true); });
+  el('radio-moderator-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    if (el('add-radio-moderator').disabled || !this.reportValidity()) { return; }
+    send('mw:addRadioModerator', { nick: el('radio-moderator-nick').value }, true);
+  });
+  el('refresh-radio-team').addEventListener('click', function () { send('mw:refresh', {}); });
+  el('prev-radio-moderator-page').addEventListener('click', function () { send('mw:refresh', { radioModeratorPage: state.radioModeratorPage - 1 }); });
+  el('next-radio-moderator-page').addEventListener('click', function () { send('mw:refresh', { radioModeratorPage: state.radioModeratorPage + 1 }); });
   el('prev-page').addEventListener('click', function () { send('mw:refresh', { page: page - 1 }); });
   el('next-page').addEventListener('click', function () { send('mw:refresh', { page: page + 1 }); });
   el('refresh-queue').addEventListener('click', function () { send('mw:refresh', {}); });
@@ -552,6 +605,9 @@
         topicRequest = null;
         topicFeedback(response.message || (response.ok ? 'Thema gespeichert.' : 'Thema konnte nicht gespeichert werden.'), !response.ok);
       }
+      if (current && response.ok && response.action === 'mw:addRadioModerator') {
+        el('radio-moderator-form').reset();
+      }
       if (response.ok && wish) {
         if (sameWish(wishValues(), lastWish.data)) { el('wish-form').reset(); fitWishText(); }
         lastWish = null;
@@ -559,12 +615,16 @@
       }
       if (response.action === 'mw:request') { showWishFeedback(response.ok && feedbackRequest ? deliveryText(feedbackRequest) : response.message, !response.ok); }
       renderAvailability();
-      if (response.action !== 'mw:request' && response.action !== 'mw:setTopic' && (!response.ok || (response.action !== 'mw:openWishes' && response.action !== 'mw:openStudio'))) { notify(response.message, !response.ok); }
+      if (response.action !== 'mw:request' && response.action !== 'mw:setTopic' && (!response.ok ||
+          (response.action !== 'mw:openWishes' && response.action !== 'mw:openStudio' && response.action !== 'mw:openRadioTeam'))) {
+        notify(response.message, !response.ok);
+      }
     });
     if (bridge.pageData && bridge.pageData.user) { receive(bridge.pageData); }
     try {
       var frame = bridge.getHostFrame();
-      frame.setTitle(uiView === 'wishes' ? 'MischWerk · Wunschbox' : uiView === 'studio' ? 'MischWerk · Moderation' : 'MischWerk · Radio');
+      frame.setTitle(uiView === 'wishes' ? 'MischWerk · Wunschbox' : uiView === 'studio' ?
+        'MischWerk · Moderation' : uiView === 'team' ? 'MischWerk · Radio-Team' : 'MischWerk · Radio');
       if (uiView !== 'radio' && !bridge.isK3Client()) { frame.setResizable(false); }
     } catch (error) { /* Optionale Beschriftung darf den Player nicht blockieren. */ }
     resizeBar();

@@ -1,4 +1,4 @@
-MischWerk mit RadioKing – lokaler Stand 0.1.26 vom 30.10.2026
+MischWerk mit RadioKing – lokaler Stand 0.1.27 vom 30.10.2026
 
 BEREITS EINGERICHTET
 Radio: MischWerk
@@ -60,7 +60,7 @@ vergeben keine Knuddels-Rechte. Wünsche samt echtem Knuddels-Nick gehen an
 das App-Studio; sie ändern keine RadioKing-Playlist automatisch.
 
 PRÜFUNG
-99 lokale automatisierte Fälle bestanden (49 Backend/HTTP, 50 Browser).
+102 lokale automatisierte Fälle bestanden (51 Backend/HTTP, 51 Browser).
 Zusätzlich echte MP3-Dekodierung und Cross-Origin-Titelabfrage mit deinem
 MischWerk-Sender im Edge-Browser geprüft. Kein fremder Beispielsender.
 Nachweis: PROJEKT/docs/radioking-pruefung/anbindung-0.1.17.json
@@ -73,7 +73,7 @@ LIVE bleibt nach zuletzt bestätigtem Stand 0.1.13.
 
 LOKALER UPLOAD
 Ordner: UPLOAD/MischWerk
-ZIP: ANLEITUNGEN/Paket/MischWerk-Knuddels-LIVE-0.1.26.zip
+ZIP: ANLEITUNGEN/Paket/MischWerk-Knuddels-LIVE-0.1.27.zip
 Neu bauen: Installationspaket-erstellen.cmd im MischWerk-Hauptordner.
 Alternativ aus PROJEKT/: node tools/build-install.cjs.
 Diese Werkzeuge bauen nur lokal und laden nichts hoch.

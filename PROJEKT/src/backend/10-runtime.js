@@ -4,6 +4,7 @@ MischWerkModules.createRuntime = function (config) {
     var runtime = {
         key: 'mischwerk.state.v1',
         pageSize: 1,
+        radioModeratorPageSize: 5,
         state: null,
         views: [],
         shuttingDown: false,

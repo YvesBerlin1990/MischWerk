@@ -6,4 +6,4 @@ Vor Änderungen immer `PROJEKT/AGENTS.md` lesen. Dort stehen die dauerhaften fac
 - Der für den Nutzer sichtbare Uploadordner ist `UPLOAD/MischWerk/` und enthält ausschließlich die sechs freigegebenen Laufzeitdateien.
 - Das aktuelle ZIP, Manifest und die Prüfsumme liegen unter `ANLEITUNGEN/Paket/`.
 - Frühere Stände sind gesammelt unter `ARCHIV/`; keine alte Anbieter-Konfiguration daraus in die aktuelle App übernehmen.
-- Ausschließlich lokal arbeiten. Ohne neue ausdrückliche Nutzeranweisung kein FTP-Upload, Knuddels-Update oder Serverneustart. Zuletzt bestätigtes LIVE: 0.1.13; lokal: 0.1.26 mit RadioKing.
+- Ausschließlich lokal arbeiten. Ohne neue ausdrückliche Nutzeranweisung kein FTP-Upload, Knuddels-Update oder Serverneustart. Zuletzt bestätigtes LIVE: 0.1.13; lokal: 0.1.27 mit RadioKing.

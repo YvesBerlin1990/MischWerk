@@ -6,7 +6,7 @@ var MischWerkConfig = {
     radioking: {
         radioId: 'mischwerk'
     },
-    // Zusätzliche Radio-Moderatoren nur über echte numerische Knuddels-User-IDs.
+    // Optionale anfängliche Radio-Moderatoren; weitere IDs verwaltet der Channelinhaber persistent.
     radioModeratorUserIds: [],
     maxQueueLength: 50,
     moderatorSessionHours: 6

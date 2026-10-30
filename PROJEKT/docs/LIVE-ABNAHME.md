@@ -1,6 +1,6 @@
 # MischWerk – LIVE-Abnahme
 
-Lokaler Stand **0.1.26 mit RadioKing** ist nicht veröffentlicht. Uploadordner, ZIP und Manifest sind ausschließlich lokal vorbereitet. Zuletzt bestätigter LIVE-Stand bleibt **0.1.13**. Ohne neue ausdrückliche Freigabe erfolgen weder FTP-Upload noch Knuddels-Update oder Serverneustart.
+Lokaler Stand **0.1.27 mit RadioKing** ist nicht veröffentlicht. Uploadordner, ZIP und Manifest sind ausschließlich lokal vorbereitet. Zuletzt bestätigter LIVE-Stand bleibt **0.1.13**. Ohne neue ausdrückliche Freigabe erfolgen weder FTP-Upload noch Knuddels-Update oder Serverneustart.
 
 ## Bestätigtes LIVE-Ziel
 
@@ -18,18 +18,19 @@ Zugangspasswörter gehören weder in dieses Projekt noch in die App. Maßgeblich
 - AppPersistence sichern; offene Wünsche, Wunschbox-Status und Thema müssen erhalten bleiben.
 - Prüfen, dass `UPLOAD/MischWerk/` ausschließlich die sechs freigegebenen Laufzeitdateien enthält.
 - Quellcode, Uploadordner, ZIP, Manifest und SHA-256 gegeneinander prüfen.
-- Alle 99 lokalen Tests und `node tools/check.cjs` erfolgreich ausführen.
+- Alle 102 lokalen Tests und `node tools/check.cjs` erfolgreich ausführen.
 - Erst nach ausdrücklicher Freigabe alle sechs Dateien vollständig übertragen und anschließend kontrolliert aktualisieren beziehungsweise neu starten.
 
-## Offene echte Abnahme für 0.1.26
+## Offene echte Abnahme für 0.1.27
 
 - Besitzer: Studiozugriff, An-/Abmeldung, Verlängerung und Ablauf prüfen.
 - Normaler Hörer: kein Studiozugriff; manipulierte Moderationsereignisse müssen abgewiesen werden.
-- Channel-CM beziehungsweise explizite DJ-ID: Rechte erteilen, verwenden, entziehen und erneut prüfen.
+- Channel-CM: kein automatischer Studiozugriff. Danach denselben Account als Radiomoderator ernennen, Studiozugriff verwenden, wieder entfernen und den sofortigen Entzug prüfen.
+- Radio-Team: nur als Channelinhaber sichtbar/änderbar; unbekannten Nick ablehnen, Liste und Ernennung nach Neustart erhalten.
 - Wunschbox: Link ablehnen, normalen Wunsch speichern, im sichtbaren Studio quittieren, korrekten Moderator-Nick beim Absender anzeigen; bei deaktivierter Wunschbox Frontend und Backend sperren.
 - Thema: speichern, bei anderen Hörern anzeigen, entfernen und nach Neustart auf Persistenz prüfen.
 - RadioKing: `started`, `stopped`, unbekannten Status, Medienfehler, bewussten Play-Klick, Stop und Wiederanlauf ohne Autostart prüfen.
 - Desktop-JX sowie K3/Web/Mobil: 320–2560 px, Tastaturbedienung, Popups, Channelwechsel, Hintergrund/Wiederaufnahme und scrollfreie Darstellung prüfen.
 - Mit einem zweiten echten Account Vertraulichkeit, echten Nick und Rechteabgrenzung bestätigen.
 
-Die lokalen Browser-Mocks ersetzen diese Abnahme nicht. Der aktuelle technische Nachweis steht in [PRUEFUNG-0.1.26.md](PRUEFUNG-0.1.26.md). Die ausführliche Historie der früheren LIVE-Versionen und Anbieter liegt ausschließlich im Archiv.
+Die lokalen Browser-Mocks ersetzen diese Abnahme nicht. Der aktuelle technische Nachweis steht in [PRUEFUNG-0.1.27.md](PRUEFUNG-0.1.27.md). Die ausführliche Historie der früheren LIVE-Versionen und Anbieter liegt ausschließlich im Archiv.

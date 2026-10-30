@@ -41,14 +41,15 @@ const server = http.createServer(async (req, res) => {
     if (req.method !== 'GET') { respond(res, 405, 'text/plain', 'Method not allowed'); return; }
     if (url.pathname === '/preview') {
       const role = url.searchParams.get('role') === 'moderator' ? 'moderator' : 'listener';
-      const view = ['wishes', 'studio'].includes(url.searchParams.get('view')) ? url.searchParams.get('view') : 'radio';
+      const view = ['wishes', 'studio', 'team'].includes(url.searchParams.get('view')) ? url.searchParams.get('view') : 'radio';
       const sourceId = url.searchParams.get('sourceSession');
       const source = sourceId && sessions.get(sourceId);
       if (sourceId && (!source || source.session.removed)) { respond(res, 404, 'text/plain', 'Demo-Sitzung abgelaufen'); return; }
       const user = source ? source.user : h.user(nextUserId++, role === 'moderator' ? 'Otterchen (Demo)' : 'Musikfreund (Demo)', role === 'moderator' ? 'owner' : 'listener');
       let session = source ? source.session : h.open(user);
       if (view !== 'radio') {
-        const events = h.event(user, session, view === 'studio' ? 'mw:openStudio' : 'mw:openWishes');
+        const events = h.event(user, session, view === 'studio' ? 'mw:openStudio' :
+          view === 'team' ? 'mw:openRadioTeam' : 'mw:openWishes');
         const result = events.find(event => event.type === 'mw:result');
         if (!result || !result.data.ok) { respond(res, 403, 'text/plain', result ? result.data.message : 'Fenster nicht verfügbar'); return; }
         session = user.sessions.find(item => item.content.viewMode === 'Popup');

@@ -1,4 +1,4 @@
-/* MischWerk 0.1.26 - erzeugtes Knuddels UserApps Backend.
+/* MischWerk 0.1.27 - erzeugtes Knuddels UserApps Backend.
  * Quellen: src/backend/*.js. Nicht direkt bearbeiten.
  */
 
@@ -10,7 +10,7 @@ var MischWerkConfig = {
     radioking: {
         radioId: 'mischwerk'
     },
-    // Zusätzliche Radio-Moderatoren nur über echte numerische Knuddels-User-IDs.
+    // Optionale anfängliche Radio-Moderatoren; weitere IDs verwaltet der Channelinhaber persistent.
     radioModeratorUserIds: [],
     maxQueueLength: 50,
     moderatorSessionHours: 6
@@ -24,6 +24,7 @@ MischWerkModules.createRuntime = function (config) {
     var runtime = {
         key: 'mischwerk.state.v1',
         pageSize: 1,
+        radioModeratorPageSize: 5,
         state: null,
         views: [],
         shuttingDown: false,
@@ -65,7 +66,8 @@ MischWerkModules.attachState = function (runtime, config) {
     'use strict';
 
     runtime.initialState = function () {
-        return { version: 1, revision: 0, topic: '', requestsEnabled: true, moderator: null, requests: [], cooldowns: {}, nextId: 1 };
+        return { version: 1, revision: 0, topic: '', requestsEnabled: true, moderator: null, requests: [], cooldowns: {},
+            nextId: 1, radioModeratorUserIds: config.radioModeratorUserIds.slice(0, 50), radioModeratorRevision: 0 };
     };
     runtime.persist = function (next) {
         next.revision = (runtime.state && runtime.state.revision || 0) + 1;
@@ -86,15 +88,24 @@ MischWerkModules.attachState = function (runtime, config) {
         runtime.state.topic = typeof runtime.state.topic === 'string' ? runtime.state.topic : '';
         runtime.state.cooldowns = runtime.state.cooldowns || {};
         runtime.state.revision = typeof runtime.state.revision === 'number' ? runtime.state.revision : 0;
+        var configuredIds = Array.isArray(runtime.state.radioModeratorUserIds) ? runtime.state.radioModeratorUserIds :
+            config.radioModeratorUserIds;
+        runtime.state.radioModeratorUserIds = configuredIds.filter(function (userId, index, values) {
+            return typeof userId === 'number' && isFinite(userId) && userId > 0 && Math.floor(userId) === userId &&
+                values.indexOf(userId) === index;
+        }).slice(0, 50);
+        runtime.state.radioModeratorRevision = typeof runtime.state.radioModeratorRevision === 'number' ?
+            runtime.state.radioModeratorRevision : 0;
         runtime.prune();
     };
     runtime.moderatorKey = function () {
         return runtime.state.moderator ? runtime.state.moderator.sessionKey || String(runtime.state.moderator.since) : null;
     };
     runtime.online = function (user) { return !!user && user.isOnlineInChannel(); };
+    runtime.isChannelOwner = function (user) { return runtime.online(user) && user.isChannelOwner(); };
     runtime.isModerator = function (user) {
-        return runtime.online(user) && (user.isChannelOwner() || user.isChannelModerator() ||
-            config.radioModeratorUserIds.indexOf(user.getUserId()) !== -1);
+        return runtime.online(user) && (user.isChannelOwner() ||
+            runtime.state.radioModeratorUserIds.indexOf(user.getUserId()) !== -1);
     };
     runtime.moderatorIsActive = function () {
         if (!runtime.state.moderator || runtime.state.moderator.expiresAt <= runtime.now() ||
@@ -135,9 +146,25 @@ MischWerkModules.attachState = function (runtime, config) {
             message: item.message, text: runtime.requestText(item), createdAt: item.createdAt,
             delivery: item.delivery ? { nick: item.delivery.nick, at: item.delivery.at } : null };
     };
-    runtime.snapshot = function (user, page, myPage, feedbackId) {
+    runtime.radioModeratorViews = function (user, page) {
+        if (!runtime.isChannelOwner(user)) { return { items: [], total: 0, page: 0, pages: 1 }; }
+        var access = KnuddelsServer.getUserAccess();
+        var total = runtime.state.radioModeratorUserIds.length;
+        var pages = Math.max(1, Math.ceil(total / runtime.radioModeratorPageSize));
+        page = Math.max(0, Math.min(pages - 1, Math.floor(Number(page) || 0)));
+        var ids = runtime.state.radioModeratorUserIds.slice(page * runtime.radioModeratorPageSize,
+            (page + 1) * runtime.radioModeratorPageSize);
+        return { items: ids.map(function (userId) {
+            var nick;
+            try { nick = access.getNick(userId); }
+            catch (error) { nick = 'Unbekannter Nutzer #' + userId; }
+            return { userId: userId, nick: nick };
+        }), total: total, page: page, pages: pages };
+    };
+    runtime.snapshot = function (user, page, myPage, feedbackId, radioModeratorPage) {
         var mod = runtime.isModerator(user);
         var presenter = runtime.moderatorIsActive() ? runtime.state.moderator : null;
+        var radioTeam = runtime.radioModeratorViews(user, radioModeratorPage);
         var own = runtime.state.requests.filter(function (item) { return item.userId === user.getUserId(); });
         var totalPages = Math.max(1, Math.ceil(runtime.state.requests.length / runtime.pageSize));
         var ownPages = Math.max(1, Math.ceil(own.length / runtime.pageSize));
@@ -149,6 +176,7 @@ MischWerkModules.attachState = function (runtime, config) {
             topic: runtime.state.topic,
             revision: runtime.state.revision,
             user: { nick: user.getNick(), canModerate: mod,
+                canManageRadioModerators: runtime.isChannelOwner(user),
                 isOnAir: !!(mod && presenter && presenter.userId === user.getUserId()),
                 canEndModeration: !!(mod && presenter && (presenter.userId === user.getUserId() || user.isChannelOwner())) },
             limits: { maxTextLength: 300, maxTopicLength: 80 },
@@ -162,6 +190,11 @@ MischWerkModules.attachState = function (runtime, config) {
             requestFeedback: feedback ? runtime.requestView(feedback) : null,
             queue: mod ? runtime.state.requests.slice(page * runtime.pageSize, (page + 1) * runtime.pageSize).map(runtime.requestView) : [],
             queueTotal: mod ? runtime.state.requests.length : 0,
+            radioModerators: radioTeam.items,
+            radioModeratorTotal: radioTeam.total,
+            radioModeratorPage: radioTeam.page,
+            radioModeratorPages: radioTeam.pages,
+            radioModeratorRevision: runtime.state.radioModeratorRevision,
             page: mod ? page : 0,
             pages: mod ? totalPages : 1,
             serverTime: runtime.now(),
@@ -189,6 +222,55 @@ MischWerkModules.attachActions = function (runtime, config) {
         // Initialen in Namen wie will.i.am oder M.I.A. nicht mit einer Domain verwechseln.
         return /(^|[\s(<\["'|])(?:[a-z0-9\u00c0-\u024f-]+\.)*[a-z0-9\u00c0-\u024f][a-z0-9\u00c0-\u024f-]+\.(?:[a-z\u00c0-\u024f]{2,63}|xn--[a-z0-9-]+)(?=$|[\/:?#\s)>\]"',;!])/i.test(candidate) ||
             /(^|[\s(<])(?:x\.com|t\.co|(?:[0-9]{1,3}\.){3}[0-9]{1,3})(?=$|[\/:?#\s)>])/i.test(candidate);
+    };
+    runtime.manageRadioModerator = function (user, type, data) {
+        if (!runtime.isChannelOwner(user)) {
+            throw runtime.failure('Nur der Channelinhaber darf Radiomoderatoren verwalten.');
+        }
+        if (data.expectedRadioModeratorRevision !== undefined &&
+                data.expectedRadioModeratorRevision !== runtime.state.radioModeratorRevision) {
+            throw runtime.failure('Das Radio-Team wurde inzwischen geändert. Bitte erneut prüfen.');
+        }
+        var next = runtime.copy(runtime.state);
+        var userId;
+        var nick;
+        if (type === 'mw:addRadioModerator') {
+            nick = runtime.text(data.nick, 50, true);
+            var access = KnuddelsServer.getUserAccess();
+            if (!access.exists(nick)) { throw runtime.failure('Dieser Knuddels-Nick existiert nicht.'); }
+            try { userId = access.getUserId(nick); }
+            catch (error) { throw runtime.failure('Dieser Knuddels-Nick konnte nicht aufgelöst werden.'); }
+            if (typeof userId !== 'number' || !isFinite(userId) || userId <= 0 || Math.floor(userId) !== userId) {
+                throw runtime.failure('Dieser Knuddels-Nick konnte nicht aufgelöst werden.');
+            }
+            if (userId === user.getUserId()) {
+                throw runtime.failure('Der Channelinhaber ist bereits dauerhaft für das Studio berechtigt.');
+            }
+            if (next.radioModeratorUserIds.indexOf(userId) !== -1) {
+                throw runtime.failure('Dieser Nutzer ist bereits Radiomoderator.');
+            }
+            if (next.radioModeratorUserIds.length >= 50) {
+                throw runtime.failure('Es können höchstens 50 Radiomoderatoren ernannt werden.');
+            }
+            next.radioModeratorUserIds.push(userId);
+            nick = access.getNick(userId);
+        } else if (type === 'mw:removeRadioModerator') {
+            userId = data.userId;
+            if (typeof userId !== 'number' || !isFinite(userId) || userId <= 0 || Math.floor(userId) !== userId) {
+                throw runtime.failure('Ungültiger Radiomoderator.');
+            }
+            if (next.radioModeratorUserIds.indexOf(userId) === -1) {
+                throw runtime.failure('Dieser Nutzer ist kein Radiomoderator mehr.');
+            }
+            next.radioModeratorUserIds = next.radioModeratorUserIds.filter(function (id) { return id !== userId; });
+            if (next.moderator && next.moderator.userId === userId) {
+                runtime.inactiveModeratorKey = runtime.moderatorKey();
+                next.moderator = null;
+            }
+        } else { throw runtime.failure('Unbekannte Radio-Team-Aktion.'); }
+        next.radioModeratorRevision = runtime.state.radioModeratorRevision + 1;
+        runtime.persist(next);
+        return nick;
     };
     runtime.addRequest = function (user, data) {
         var key = 'u' + user.getUserId();
@@ -281,7 +363,7 @@ MischWerkModules.attachViews = function (runtime) {
         try { if (session) { session.sendEvent(type, data); } }
         catch (error) { runtime.warn(); }
     };
-    runtime.refresh = function (session, user, page, myPage) {
+    runtime.refresh = function (session, user, page, myPage, radioModeratorPage) {
         var view = runtime.views.filter(function (item) {
             return item.userId === user.getUserId() && item.content === session.getAppContent();
         })[0];
@@ -294,10 +376,12 @@ MischWerkModules.attachViews = function (runtime) {
             });
         }
         var next = runtime.snapshot(user, page === undefined && view ? view.page : page,
-            myPage === undefined && view ? view.myPage : myPage, view ? view.feedbackId : null);
+            myPage === undefined && view ? view.myPage : myPage, view ? view.feedbackId : null,
+            radioModeratorPage === undefined && view ? view.radioModeratorPage : radioModeratorPage);
         if (view) {
             view.page = next.page;
             view.myPage = next.myPage;
+            view.radioModeratorPage = next.radioModeratorPage;
             view.queueId = next.queue.length ? next.queue[0].id : null;
         }
         runtime.send(session, 'mw:state', next);
@@ -327,17 +411,21 @@ MischWerkModules.attachViews = function (runtime) {
     };
     runtime.openView = function (user, kind, automatic) {
         if (!runtime.online(user)) { user.sendPrivateMessage('Bitte öffne MischWerk im MyChannel.'); return; }
+        runtime.load();
         if (kind === 'studio' && !runtime.isModerator(user)) {
             throw runtime.failure('Nur die Radio-Moderation darf das Moderationsmenü öffnen.');
         }
-        runtime.load();
+        if (kind === 'team' && !runtime.isChannelOwner(user)) {
+            throw runtime.failure('Nur der Channelinhaber darf das Radio-Team verwalten.');
+        }
         runtime.prune();
         if (kind === 'wishes' && !runtime.state.requestsEnabled) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
         var data = runtime.snapshot(user, 0);
         data.view = kind;
         var htmlFile = new HTMLFile('index.html', data);
         var content = kind === 'radio' ? AppContent.headerbarContent(htmlFile, 264) :
-            AppContent.popupContent(htmlFile, kind === 'wishes' ? 520 : 780, kind === 'wishes' ? 360 : 420);
+            AppContent.popupContent(htmlFile, kind === 'wishes' ? 520 : kind === 'team' ? 560 : 780,
+                kind === 'wishes' ? 360 : kind === 'team' ? 420 : 420);
         content.setResponsive(true);
         content.setAllowJFXBrowser(false);
         if (!user.canSendAppContent(content)) {
@@ -357,7 +445,7 @@ MischWerkModules.attachViews = function (runtime) {
             throw runtime.failure('MischWerk konnte die Ansicht gerade nicht öffnen. Bitte erneut versuchen.');
         }
         runtime.views.push({ content: content, kind: kind, userId: user.getUserId(), page: 0, myPage: 0,
-            feedbackId: null });
+            radioModeratorPage: 0, feedbackId: null });
         return true;
     };
     runtime.open = function (user, automatic) {
@@ -381,7 +469,7 @@ var App = (function (config) {
     return {
         onAppStart: function () {
             runtime.load();
-            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.26: Radioleiste mit Wunschbox-/Moderations-Popups gestartet. ' +
+            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.27: Radioleiste mit Wunschbox-, Radio-Team- und Moderations-Popups gestartet. ' +
                 (runtime.station().configured ? 'RadioKing ist konfiguriert.' : 'RadioKing-Hörerstream ist noch nicht konfiguriert.'));
             KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).forEach(function (user) {
                 try { runtime.open(user, true); } catch (error) { runtime.warn(); }
@@ -420,6 +508,10 @@ var App = (function (config) {
             next.requests = next.requests.filter(function (item) { return item.userId !== userId; });
             delete next.cooldowns['u' + userId];
             if (next.moderator && next.moderator.userId === userId) { next.moderator = null; }
+            if (next.radioModeratorUserIds.indexOf(userId) !== -1) {
+                next.radioModeratorUserIds = next.radioModeratorUserIds.filter(function (id) { return id !== userId; });
+                next.radioModeratorRevision += 1;
+            }
             runtime.persist(next);
             runtime.broadcast();
         },
@@ -439,14 +531,15 @@ var App = (function (config) {
                     requestId = data.requestId;
                 }
                 if (type === 'mw:ready' || type === 'mw:refresh') {
-                    runtime.refresh(session, user, data.page, data.myPage);
+                    runtime.refresh(session, user, data.page, data.myPage, data.radioModeratorPage);
                     return;
                 }
                 if (runtime.shuttingDown) {
                     throw runtime.failure('MischWerk wird gerade neu gestartet. Bitte öffne die App gleich erneut.');
                 }
-                if (type === 'mw:openWishes' || type === 'mw:openStudio') {
-                    runtime.openView(user, type === 'mw:openStudio' ? 'studio' : 'wishes');
+                if (type === 'mw:openWishes' || type === 'mw:openStudio' || type === 'mw:openRadioTeam') {
+                    runtime.openView(user, type === 'mw:openStudio' ? 'studio' :
+                        type === 'mw:openRadioTeam' ? 'team' : 'wishes');
                     runtime.result(session, true, 'Fenster geöffnet.', type, requestId);
                     return;
                 }
@@ -470,6 +563,10 @@ var App = (function (config) {
                         request ? 'Dein Musikwunsch ist mit deinem Nicknamen gespeichert und wartet auf die Übergabe im Moderationsfenster.' :
                         'Dein Musikwunsch wurde bereits gespeichert und inzwischen bearbeitet.';
                     runtime.result(session, true, message, type, requestId, request);
+                } else if (type === 'mw:addRadioModerator' || type === 'mw:removeRadioModerator') {
+                    var changedNick = runtime.manageRadioModerator(user, type, data);
+                    runtime.result(session, true, type === 'mw:addRadioModerator' ?
+                        changedNick + ' ist jetzt Radiomoderator.' : 'Radiomoderator entfernt.', type, requestId);
                 } else {
                     runtime.moderate(user, type, data);
                     runtime.result(session, true, type === 'mw:setTopic' ? (runtime.state.topic ? 'Thema gespeichert.' : 'Thema entfernt.') :

@@ -9,7 +9,7 @@ var App = (function (config) {
     return {
         onAppStart: function () {
             runtime.load();
-            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.26: Radioleiste mit Wunschbox-/Moderations-Popups gestartet. ' +
+            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.27: Radioleiste mit Wunschbox-, Radio-Team- und Moderations-Popups gestartet. ' +
                 (runtime.station().configured ? 'RadioKing ist konfiguriert.' : 'RadioKing-Hörerstream ist noch nicht konfiguriert.'));
             KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).forEach(function (user) {
                 try { runtime.open(user, true); } catch (error) { runtime.warn(); }
@@ -48,6 +48,10 @@ var App = (function (config) {
             next.requests = next.requests.filter(function (item) { return item.userId !== userId; });
             delete next.cooldowns['u' + userId];
             if (next.moderator && next.moderator.userId === userId) { next.moderator = null; }
+            if (next.radioModeratorUserIds.indexOf(userId) !== -1) {
+                next.radioModeratorUserIds = next.radioModeratorUserIds.filter(function (id) { return id !== userId; });
+                next.radioModeratorRevision += 1;
+            }
             runtime.persist(next);
             runtime.broadcast();
         },
@@ -67,14 +71,15 @@ var App = (function (config) {
                     requestId = data.requestId;
                 }
                 if (type === 'mw:ready' || type === 'mw:refresh') {
-                    runtime.refresh(session, user, data.page, data.myPage);
+                    runtime.refresh(session, user, data.page, data.myPage, data.radioModeratorPage);
                     return;
                 }
                 if (runtime.shuttingDown) {
                     throw runtime.failure('MischWerk wird gerade neu gestartet. Bitte öffne die App gleich erneut.');
                 }
-                if (type === 'mw:openWishes' || type === 'mw:openStudio') {
-                    runtime.openView(user, type === 'mw:openStudio' ? 'studio' : 'wishes');
+                if (type === 'mw:openWishes' || type === 'mw:openStudio' || type === 'mw:openRadioTeam') {
+                    runtime.openView(user, type === 'mw:openStudio' ? 'studio' :
+                        type === 'mw:openRadioTeam' ? 'team' : 'wishes');
                     runtime.result(session, true, 'Fenster geöffnet.', type, requestId);
                     return;
                 }
@@ -98,6 +103,10 @@ var App = (function (config) {
                         request ? 'Dein Musikwunsch ist mit deinem Nicknamen gespeichert und wartet auf die Übergabe im Moderationsfenster.' :
                         'Dein Musikwunsch wurde bereits gespeichert und inzwischen bearbeitet.';
                     runtime.result(session, true, message, type, requestId, request);
+                } else if (type === 'mw:addRadioModerator' || type === 'mw:removeRadioModerator') {
+                    var changedNick = runtime.manageRadioModerator(user, type, data);
+                    runtime.result(session, true, type === 'mw:addRadioModerator' ?
+                        changedNick + ' ist jetzt Radiomoderator.' : 'Radiomoderator entfernt.', type, requestId);
                 } else {
                     runtime.moderate(user, type, data);
                     runtime.result(session, true, type === 'mw:setTopic' ? (runtime.state.topic ? 'Thema gespeichert.' : 'Thema entfernt.') :

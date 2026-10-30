@@ -44,7 +44,20 @@ function createHarness(existingPersistence) {
     HTMLFile,
     UserType: { Human: 'human' },
     KnuddelsServer: { getPersistence: () => store, getDefaultLogger: () => ({ warn() {}, info() {} }),
-      getChannel: () => ({ getOnlineUsers: () => [...users.values()].filter(user => user.online) }) },
+      getChannel: () => ({ getOnlineUsers: () => [...users.values()].filter(user => user.online) }),
+      getUserAccess: () => ({
+        exists(nick) { return [...users.values()].some(person => person.nick.toLowerCase() === String(nick).toLowerCase()); },
+        getUserId(nick) {
+          const person = [...users.values()].find(candidate => candidate.nick.toLowerCase() === String(nick).toLowerCase());
+          if (!person) { throw new Error('unknown nick'); }
+          return person.id;
+        },
+        getNick(userId) {
+          const person = users.get(userId);
+          if (!person) { throw new Error('unknown user id'); }
+          return person.nick;
+        }
+      }) },
     AppContent: { headerbarContent: (htmlFile, height) => createContent(htmlFile, 'Headerbar', 0, height),
       popupContent: (htmlFile, width, height) => createContent(htmlFile, 'Popup', width, height) }
   });
@@ -93,8 +106,8 @@ function createHarness(existingPersistence) {
     event(person, session, type, data = {}) {
       session.events = []; app.onEventReceived(person, type, data, session); return session.events;
     },
-    state(person, session, page = 0, myPage) {
-      this.event(person, session, 'mw:refresh', { page, myPage });
+    state(person, session, page = 0, myPage, radioModeratorPage) {
+      this.event(person, session, 'mw:refresh', { page, myPage, radioModeratorPage });
       return session.events.findLast(event => event.type === 'mw:state')?.data;
     }
   };

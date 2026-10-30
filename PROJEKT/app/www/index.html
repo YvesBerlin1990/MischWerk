@@ -6,7 +6,7 @@
 <script>
 if (typeof Client !== 'undefined') {
   var view = Client.pageData && Client.pageData.view;
-  document.documentElement.setAttribute('data-view', view === 'wishes' || view === 'studio' ? view : 'radio');
+  document.documentElement.setAttribute('data-view', view === 'wishes' || view === 'studio' || view === 'team' ? view : 'radio');
   Client.includeCSS('css/style.css');
 } else {
   var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'css/style.css'; document.head.appendChild(css);
@@ -29,7 +29,10 @@ if (typeof Client !== 'undefined') {
   <div class="bar-actions" aria-label="Musikwünsche">
     <button id="open-wishes" class="wish-button" type="button" aria-haspopup="dialog" disabled aria-disabled="true"><span class="wish-button-icon" aria-hidden="true"><svg class="wish-icon-music" viewBox="0 0 24 24"><path d="M10 17V6l9-2v11M10 9l9-2"/><ellipse cx="7" cy="17" rx="3" ry="2.5"/><ellipse cx="16" cy="15" rx="3" ry="2.5"/></svg><svg class="wish-icon-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg></span><span class="wish-button-copy"><strong>Wunschbox</strong><span id="wish-button-caption">Dein Musikwunsch</span></span><svg class="wish-button-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>
   </div>
-  <button id="studio-tab" class="studio-link" type="button" aria-haspopup="dialog" title="Moderationsfenster öffnen" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg>Moderation</button>
+  <div class="bar-utility-links">
+    <button id="team-tab" class="studio-link" type="button" aria-haspopup="dialog" title="Radiomoderatoren verwalten" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8-1a2.5 2.5 0 1 0 0-5M3 19c0-3 2-5 5-5s5 2 5 5m1-5c3 0 5 2 5 5"/></svg>Radio-Team</button>
+    <button id="studio-tab" class="studio-link" type="button" aria-haspopup="dialog" title="Moderationsfenster öffnen" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg>Moderation</button>
+  </div>
   <div class="sr-only"><span id="playback-status" role="status"></span><span id="metadata-status" role="status"></span><a id="station-link" target="_blank" rel="noopener noreferrer" hidden>Öffentlichen Radiostream öffnen</a></div>
 </main>
 <div class="dialog-shell">
@@ -68,7 +71,25 @@ if (typeof Client !== 'undefined') {
       </section>
       <p class="fine-print studio-note">Studio-Anmeldung: bis zu 6 Stunden. Sie steuert keinen Sende-Encoder. „Erledigt“ und „Verwerfen“ entfernen den Wunsch.</p>
     </section>
+    <section id="team-panel" aria-label="Radiomoderatoren verwalten" hidden>
+      <section class="card team-intro-card">
+        <span class="eyebrow">CHANNELINHABER</span>
+        <h2>Radio-Team</h2>
+        <p class="form-hint">Ernannte Radiomoderatoren erhalten Zugriff auf das Moderationsmenü. Channelmoderatoren erhalten diesen Zugriff nicht automatisch.</p>
+        <form id="radio-moderator-form" class="team-add-form">
+          <label for="radio-moderator-nick">Knuddels-Nick</label>
+          <div class="topic-edit-row"><input id="radio-moderator-nick" name="nick" type="text" maxlength="50" required autocomplete="off" placeholder="Nickname"><button id="add-radio-moderator" class="primary-button" type="submit">Ernennen</button></div>
+        </form>
+      </section>
+      <section class="card team-list-card">
+        <div class="list-heading"><h2>Radiomoderatoren <span class="count-badge" id="radio-moderator-count">0</span></h2><button class="text-button" id="refresh-radio-team" type="button">Aktualisieren</button></div>
+        <div id="radio-moderator-list" class="team-list"></div>
+        <div class="pagination" id="radio-moderator-pagination" hidden><button class="secondary-button" id="prev-radio-moderator-page" type="button">← Zurück</button><span id="radio-moderator-page-label">Seite 1 / 1</span><button class="secondary-button" id="next-radio-moderator-page" type="button">Weiter →</button></div>
+      </section>
+      <p class="fine-print">Nur der tatsächliche Channelinhaber kann diese Liste ändern. Der Channelinhaber bleibt unabhängig von der Liste für Verwaltung und Studio berechtigt.</p>
+    </section>
     <section id="access-denied" class="card" hidden><h2>Kein Studiozugriff</h2><p>Das Moderationsmenü ist nur für berechtigte Moderatoren verfügbar.</p></section>
+    <section id="team-access-denied" class="card" hidden><h2>Keine Berechtigung</h2><p>Nur der Channelinhaber kann Radiomoderatoren verwalten.</p></section>
   </main>
   <div id="dialog-notice-slot"></div>
 </div>

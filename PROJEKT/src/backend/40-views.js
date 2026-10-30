@@ -6,7 +6,7 @@ MischWerkModules.attachViews = function (runtime) {
         try { if (session) { session.sendEvent(type, data); } }
         catch (error) { runtime.warn(); }
     };
-    runtime.refresh = function (session, user, page, myPage) {
+    runtime.refresh = function (session, user, page, myPage, radioModeratorPage) {
         var view = runtime.views.filter(function (item) {
             return item.userId === user.getUserId() && item.content === session.getAppContent();
         })[0];
@@ -19,10 +19,12 @@ MischWerkModules.attachViews = function (runtime) {
             });
         }
         var next = runtime.snapshot(user, page === undefined && view ? view.page : page,
-            myPage === undefined && view ? view.myPage : myPage, view ? view.feedbackId : null);
+            myPage === undefined && view ? view.myPage : myPage, view ? view.feedbackId : null,
+            radioModeratorPage === undefined && view ? view.radioModeratorPage : radioModeratorPage);
         if (view) {
             view.page = next.page;
             view.myPage = next.myPage;
+            view.radioModeratorPage = next.radioModeratorPage;
             view.queueId = next.queue.length ? next.queue[0].id : null;
         }
         runtime.send(session, 'mw:state', next);
@@ -52,17 +54,21 @@ MischWerkModules.attachViews = function (runtime) {
     };
     runtime.openView = function (user, kind, automatic) {
         if (!runtime.online(user)) { user.sendPrivateMessage('Bitte öffne MischWerk im MyChannel.'); return; }
+        runtime.load();
         if (kind === 'studio' && !runtime.isModerator(user)) {
             throw runtime.failure('Nur die Radio-Moderation darf das Moderationsmenü öffnen.');
         }
-        runtime.load();
+        if (kind === 'team' && !runtime.isChannelOwner(user)) {
+            throw runtime.failure('Nur der Channelinhaber darf das Radio-Team verwalten.');
+        }
         runtime.prune();
         if (kind === 'wishes' && !runtime.state.requestsEnabled) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
         var data = runtime.snapshot(user, 0);
         data.view = kind;
         var htmlFile = new HTMLFile('index.html', data);
         var content = kind === 'radio' ? AppContent.headerbarContent(htmlFile, 264) :
-            AppContent.popupContent(htmlFile, kind === 'wishes' ? 520 : 780, kind === 'wishes' ? 360 : 420);
+            AppContent.popupContent(htmlFile, kind === 'wishes' ? 520 : kind === 'team' ? 560 : 780,
+                kind === 'wishes' ? 360 : kind === 'team' ? 420 : 420);
         content.setResponsive(true);
         content.setAllowJFXBrowser(false);
         if (!user.canSendAppContent(content)) {
@@ -82,7 +88,7 @@ MischWerkModules.attachViews = function (runtime) {
             throw runtime.failure('MischWerk konnte die Ansicht gerade nicht öffnen. Bitte erneut versuchen.');
         }
         runtime.views.push({ content: content, kind: kind, userId: user.getUserId(), page: 0, myPage: 0,
-            feedbackId: null });
+            radioModeratorPage: 0, feedbackId: null });
         return true;
     };
     runtime.open = function (user, automatic) {

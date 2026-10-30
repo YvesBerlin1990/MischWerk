@@ -18,6 +18,55 @@ MischWerkModules.attachActions = function (runtime, config) {
         return /(^|[\s(<\["'|])(?:[a-z0-9\u00c0-\u024f-]+\.)*[a-z0-9\u00c0-\u024f][a-z0-9\u00c0-\u024f-]+\.(?:[a-z\u00c0-\u024f]{2,63}|xn--[a-z0-9-]+)(?=$|[\/:?#\s)>\]"',;!])/i.test(candidate) ||
             /(^|[\s(<])(?:x\.com|t\.co|(?:[0-9]{1,3}\.){3}[0-9]{1,3})(?=$|[\/:?#\s)>])/i.test(candidate);
     };
+    runtime.manageRadioModerator = function (user, type, data) {
+        if (!runtime.isChannelOwner(user)) {
+            throw runtime.failure('Nur der Channelinhaber darf Radiomoderatoren verwalten.');
+        }
+        if (data.expectedRadioModeratorRevision !== undefined &&
+                data.expectedRadioModeratorRevision !== runtime.state.radioModeratorRevision) {
+            throw runtime.failure('Das Radio-Team wurde inzwischen geändert. Bitte erneut prüfen.');
+        }
+        var next = runtime.copy(runtime.state);
+        var userId;
+        var nick;
+        if (type === 'mw:addRadioModerator') {
+            nick = runtime.text(data.nick, 50, true);
+            var access = KnuddelsServer.getUserAccess();
+            if (!access.exists(nick)) { throw runtime.failure('Dieser Knuddels-Nick existiert nicht.'); }
+            try { userId = access.getUserId(nick); }
+            catch (error) { throw runtime.failure('Dieser Knuddels-Nick konnte nicht aufgelöst werden.'); }
+            if (typeof userId !== 'number' || !isFinite(userId) || userId <= 0 || Math.floor(userId) !== userId) {
+                throw runtime.failure('Dieser Knuddels-Nick konnte nicht aufgelöst werden.');
+            }
+            if (userId === user.getUserId()) {
+                throw runtime.failure('Der Channelinhaber ist bereits dauerhaft für das Studio berechtigt.');
+            }
+            if (next.radioModeratorUserIds.indexOf(userId) !== -1) {
+                throw runtime.failure('Dieser Nutzer ist bereits Radiomoderator.');
+            }
+            if (next.radioModeratorUserIds.length >= 50) {
+                throw runtime.failure('Es können höchstens 50 Radiomoderatoren ernannt werden.');
+            }
+            next.radioModeratorUserIds.push(userId);
+            nick = access.getNick(userId);
+        } else if (type === 'mw:removeRadioModerator') {
+            userId = data.userId;
+            if (typeof userId !== 'number' || !isFinite(userId) || userId <= 0 || Math.floor(userId) !== userId) {
+                throw runtime.failure('Ungültiger Radiomoderator.');
+            }
+            if (next.radioModeratorUserIds.indexOf(userId) === -1) {
+                throw runtime.failure('Dieser Nutzer ist kein Radiomoderator mehr.');
+            }
+            next.radioModeratorUserIds = next.radioModeratorUserIds.filter(function (id) { return id !== userId; });
+            if (next.moderator && next.moderator.userId === userId) {
+                runtime.inactiveModeratorKey = runtime.moderatorKey();
+                next.moderator = null;
+            }
+        } else { throw runtime.failure('Unbekannte Radio-Team-Aktion.'); }
+        next.radioModeratorRevision = runtime.state.radioModeratorRevision + 1;
+        runtime.persist(next);
+        return nick;
+    };
     runtime.addRequest = function (user, data) {
         var key = 'u' + user.getUserId();
         // Historischer Feldname: nur Wiederholungs-Erkennung, keine Wartezeit oder Begrenzung.

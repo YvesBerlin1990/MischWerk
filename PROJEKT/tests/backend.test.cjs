@@ -8,6 +8,20 @@ function fixture() {
   const listener = h.user(1, 'Musikfreund'); const owner = h.user(2, 'Otterchen', 'owner');
   return { h, listener, owner, ls: h.open(listener), os: h.open(owner) };
 }
+function appoint(h, owner, ownerSession, person) {
+  const revision = h.state(owner, ownerSession).radioModeratorRevision;
+  const result = lastResult(h.event(owner, ownerSession, 'mw:addRadioModerator', {
+    nick: person.nick, expectedRadioModeratorRevision: revision
+  }));
+  assert.equal(result.ok, true, result.message);
+}
+function removeRadioModerator(h, owner, ownerSession, person) {
+  const revision = h.state(owner, ownerSession).radioModeratorRevision;
+  const result = lastResult(h.event(owner, ownerSession, 'mw:removeRadioModerator', {
+    userId: person.id, expectedRadioModeratorRevision: revision
+  }));
+  assert.equal(result.ok, true, result.message);
+}
 test('Rechte kommen vom User, nicht vom Nick oder den Eventdaten', () => {
   const { h, listener, ls } = fixture(); listener.nick = 'Otterchen';
   for (const type of ['mw:setRequests', 'mw:setTopic', 'mw:onAir', 'mw:offAir', 'mw:resolveRequest']) {
@@ -30,10 +44,12 @@ test('Wunschbox kann geschlossen werden; Backend weist Wünsche dann ab', () => 
   h.event(owner, os, 'mw:setRequests', { enabled: true });
   assert.equal(lastResult(h.event(listener, ls, 'mw:request', wish)).ok, true);
 });
-test('Channel-Moderator steuert Wunschbox und persistentes Sendungsthema für alle Hörer', () => {
+test('Nur ein ernannter Radiomoderator steuert Wunschbox und persistentes Sendungsthema für alle Hörer', () => {
   const {h,listener,owner,ls,os}=fixture();
   const mod=h.user(4,'StudioMod','moderator'),ms=h.open(mod);
   assert.equal(h.state(listener,ls).topic,'');
+  assert.equal(lastResult(h.event(mod,ms,'mw:setTopic',{topic:'Unerlaubt'})).ok,false,'Channelmoderator allein ist nicht berechtigt');
+  appoint(h,owner,os,mod);
   assert.equal(lastResult(h.event(mod,ms,'mw:setTopic',{topic:'  80er\n und 90er  '})).ok,true);
   assert.equal(h.state(listener,ls).topic,'80er und 90er');
   assert.equal(h.state(owner,os).topic,'80er und 90er');
@@ -43,7 +59,9 @@ test('Channel-Moderator steuert Wunschbox und persistentes Sendungsthema für al
   assert.equal(lastResult(h.event(listener,ls,'mw:request',{text:'Mein Wunsch'})).ok,true);
   const restarted=createHarness(h.store),ru=restarted.user(9,'Hoerer'),rs=restarted.open(ru);
   assert.equal(restarted.state(ru,rs).topic,'80er und 90er');
-  mod.role='listener';
+  const persistedMod=restarted.user(mod.id,mod.nick,'listener'),persistedSession=restarted.open(persistedMod);
+  assert.equal(restarted.state(persistedMod,persistedSession).user.canModerate,true,'Ernennung bleibt nach Neustart erhalten');
+  removeRadioModerator(h,owner,os,mod);
   assert.equal(lastResult(h.event(mod,ms,'mw:setTopic',{topic:'Unerlaubt'})).ok,false);
   assert.equal(h.state(listener,ls).topic,'80er und 90er');
   assert.equal(lastResult(h.event(owner,os,'mw:setTopic',{topic:''})).ok,true);
@@ -85,11 +103,61 @@ test('Private Grüße und Nutzer-IDs gehen nicht an andere Hörer; Moderation er
   assert.equal('userId' in queue[0], false);
 });
 test('Moderatorrechte werden bei jeder Aktion und beim Lesen erneut geprüft', () => {
-  const { h, listener, ls } = fixture();
-  listener.role = 'moderator'; assert.equal(h.state(listener, ls).user.canModerate, true);
-  listener.role = 'listener';
+  const { h, listener, owner, ls, os } = fixture();
+  listener.role = 'moderator';
+  assert.equal(h.state(listener, ls).user.canModerate, false,'Channelmoderator hat keinen automatischen Zugriff');
+  appoint(h,owner,os,listener);
+  assert.equal(h.state(listener, ls).user.canModerate, true);
+  removeRadioModerator(h,owner,os,listener);
   assert.equal(lastResult(h.event(listener, ls, 'mw:setRequests', { enabled: false })).ok, false);
   assert.equal(h.state(listener, ls).queue.length, 0);
+});
+test('Channelinhaber verwaltet das Radio-Team über eine eigene persistente Rollenliste', () => {
+  const {h,listener,owner,ls,os}=fixture();
+  const channelModerator=h.user(7,'KanalMod','moderator'),cms=h.open(channelModerator);
+  assert.equal(h.state(channelModerator,cms).user.canModerate,false);
+  assert.equal(lastResult(h.event(channelModerator,cms,'mw:addRadioModerator',{nick:listener.nick})).ok,false,'Nur der Channelinhaber darf ernennen');
+  assert.equal(lastResult(h.event(owner,os,'mw:addRadioModerator',{nick:'NichtVorhanden'})).ok,false);
+  const revision=h.state(owner,os).radioModeratorRevision;
+  assert.equal(lastResult(h.event(owner,os,'mw:addRadioModerator',{nick:'kanalmod',expectedRadioModeratorRevision:revision})).ok,true);
+  let state=h.state(owner,os);
+  assert.deepEqual(state.radioModerators,[{userId:channelModerator.id,nick:'KanalMod'}]);
+  assert.equal(h.state(channelModerator,cms).user.canModerate,true);
+  assert.equal(lastResult(h.event(owner,os,'mw:addRadioModerator',{nick:'KanalMod',expectedRadioModeratorRevision:state.radioModeratorRevision})).ok,false,'Doppelte Ernennung ablehnen');
+  assert.equal(lastResult(h.event(owner,os,'mw:addRadioModerator',{nick:listener.nick,expectedRadioModeratorRevision:revision})).ok,false,'Veraltete Team-Änderung ablehnen');
+  assert.equal(lastResult(h.event(owner,os,'mw:addRadioModerator',{nick:owner.nick,expectedRadioModeratorRevision:state.radioModeratorRevision})).ok,false,'Besitzer ist dauerhaft berechtigt');
+  removeRadioModerator(h,owner,os,channelModerator);
+  state=h.state(owner,os);
+  assert.deepEqual(state.radioModerators,[]);
+  assert.equal(h.state(channelModerator,cms).user.canModerate,false);
+  const members=[];
+  for(let index=0;index<7;index++){
+    const member=h.user(30+index,'RadioTeam'+index);members.push(member);appoint(h,owner,os,member);
+  }
+  state=h.state(owner,os);
+  assert.equal(state.radioModeratorTotal,7);assert.equal(state.radioModerators.length,5);
+  assert.equal(state.radioModeratorPage,0);assert.equal(state.radioModeratorPages,2);
+  const secondPage=h.state(owner,os,0,undefined,1);
+  assert.equal(secondPage.radioModeratorPage,1);assert.equal(secondPage.radioModerators.length,2);
+});
+test('Radio-Team ist ein eigenes Besitzer-Popup; Entzug beendet eine laufende Studio-Anmeldung', () => {
+  const {h,listener,owner,ls,os}=fixture();
+  const radioMod=h.user(8,'RadioMod','moderator'),rms=h.open(radioMod);
+  assert.equal(lastResult(h.event(listener,ls,'mw:openRadioTeam')).ok,false);
+  assert.equal(lastResult(h.event(radioMod,rms,'mw:openStudio')).ok,false,'Channelmoderator kann das Studio nicht öffnen');
+  assert.equal(lastResult(h.event(owner,os,'mw:openRadioTeam')).ok,true);
+  const team=owner.sessions.find(session=>session.content.viewMode==='Popup');
+  assert.equal(team.content.width,560);assert.equal(team.content.height,420);
+  assert.equal(team.content.htmlFile.getPageData().view,'team');assert.equal(os.removed,false);
+  appoint(h,owner,team,radioMod);
+  assert.equal(lastResult(h.event(radioMod,rms,'mw:openStudio')).ok,true);
+  const studio=radioMod.sessions.find(session=>session.content.viewMode==='Popup');
+  h.event(radioMod,studio,'mw:onAir');
+  assert.equal(h.state(owner,os).moderator.nick,'RadioMod');
+  removeRadioModerator(h,owner,team,radioMod);
+  assert.equal(h.state(owner,os).moderator,null);
+  assert.equal(h.state(radioMod,studio).user.canModerate,false);
+  assert.equal(lastResult(h.event(radioMod,studio,'mw:setTopic',{topic:'Nicht mehr erlaubt'})).ok,false);
 });
 test('Ungültige Texte und nichtboolesche Schalter werden verworfen', () => {
   const { h, listener, owner, ls, os } = fixture();
@@ -106,7 +174,7 @@ test('Neustart und Zeitablauf bewahren Wünsche und Wunschbox-Status', () => {
   restarted.advance(48 * 3600000 + 1); assert.equal(restarted.state(ro, rs).queue.length, 1);
 });
 test('On-Air nutzt echten Nick; Fremd-Abmeldung nur durch Besitzer; Anmeldung läuft ab', () => {
-  const { h, listener, owner, ls, os } = fixture(); listener.role = 'moderator';
+  const { h, listener, owner, ls, os } = fixture(); listener.role = 'moderator'; appoint(h,owner,os,listener);
   h.event(listener, ls, 'mw:onAir', { nick: 'Fälschung' });
   assert.equal(h.state(owner, os).moderator.nick, listener.nick);
   const other = h.user(4, 'AndereMod', 'moderator'); const ss = h.open(other);
@@ -119,21 +187,23 @@ test('On-Air nutzt echten Nick; Fremd-Abmeldung nur durch Besitzer; Anmeldung l�
 test('ON AIR endet beim Channel-Verlassen oder Rechteverlust und behält Wünsche und Thema',()=>{
   const {h,listener,owner,ls,os}=fixture();
   const mod=h.user(9,'Sendemod','moderator'),ms=h.open(mod);
+  appoint(h,owner,os,mod);
   h.event(listener,ls,'mw:request',{text:'Band – Song'});h.event(owner,os,'mw:setTopic',{topic:'Rock'});
   h.event(mod,ms,'mw:onAir');
   h.app.onUserLeft(mod);
   assert.equal(os.events.findLast(e=>e.type==='mw:state').data.moderator,null,'Andere Ansichten sofort aktualisieren');
   assert.equal(h.state(owner,os).moderator,null);
-  const again=h.open(mod);h.event(mod,again,'mw:onAir');mod.role='listener';
+  const again=h.open(mod);h.event(mod,again,'mw:onAir');removeRadioModerator(h,owner,os,mod);
   const state=h.state(owner,os);
   assert.equal(state.moderator,null);assert.equal(state.queueTotal,1);assert.equal(state.topic,'Rock');
-  mod.role='moderator';h.event(mod,again,'mw:onAir');mod.online=false;
+  appoint(h,owner,os,mod);h.event(mod,again,'mw:onAir');mod.online=false;
   assert.equal(h.state(owner,os).moderator,null,'Auch verpassten Leave-Hook beim nächsten Lesen erkennen');
 });
 
 test('Studio-Rechte, bewusste Verlängerung und veraltete Abmeldungen folgen der echten Moderationssitzung',()=>{
   const {h,listener,owner,os}=fixture();
   const mod=h.user(9,'Sendemod','moderator'),ms=h.open(mod),other=h.user(10,'ZweiterMod','moderator'),ss=h.open(other);
+  appoint(h,owner,os,mod);appoint(h,owner,os,other);
   assert.equal(h.state(owner,os).user.canEndModeration,false);
   h.event(mod,ms,'mw:onAir',{expectedModerator:null});
   let state=h.state(mod,ms),key=state.moderator.sessionKey,expires=state.moderator.expiresAt;
@@ -156,6 +226,7 @@ test('Studio-Rechte, bewusste Verlängerung und veraltete Abmeldungen folgen der
 
 test('Speicherfehler beim Verlassen lässt keine unbestätigte ON-AIR-Anzeige stehen oder beim Wiederbeitritt aufleben',()=>{
   const {h,owner,os}=fixture();const mod=h.user(9,'Sendemod','moderator'),ms=h.open(mod);
+  appoint(h,owner,os,mod);
   h.event(mod,ms,'mw:onAir');
   const save=h.store.setObject;h.store.setObject=()=>{throw new Error('disk full');};
   h.app.onUserLeft(mod);
@@ -167,6 +238,7 @@ test('Speicherfehler beim Verlassen lässt keine unbestätigte ON-AIR-Anzeige st
 
 test('Gleichzeitige Themen- und Wunschbox-Änderungen überschreiben keinen neueren fachlichen Stand',()=>{
   const {h,owner,os}=fixture();const mod=h.user(9,'Sendemod','moderator'),ms=h.open(mod);
+  appoint(h,owner,os,mod);
   h.event(owner,os,'mw:setTopic',{topic:'Rock',previousTopic:''});
   assert.equal(lastResult(h.event(mod,ms,'mw:setTopic',{topic:'Jazz',previousTopic:''})).ok,false);
   assert.equal(h.state(owner,os).topic,'Rock');
@@ -182,7 +254,7 @@ test('Parallele Bearbeitung hält den angezeigten Wunsch und quittiert weiterhin
   const {h,listener,owner,ls,os}=fixture();
   for(const text of ['A','B','C','D'])h.event(listener,ls,'mw:request',{text});
   h.event(owner,os,'mw:openStudio');const studio=owner.sessions.find(s=>s.content.viewMode==='Popup');
-  const other=h.user(9,'ZweiterMod','moderator'),ss=h.open(other);h.event(other,ss,'mw:openStudio');
+  const other=h.user(9,'ZweiterMod','moderator'),ss=h.open(other);appoint(h,owner,os,other);h.event(other,ss,'mw:openStudio');
   const second=other.sessions.find(s=>s.content.viewMode==='Popup');
   const item=h.state(owner,studio,1).queue[0],first=h.state(other,second).queue[0];
   h.event(other,second,'mw:resolveRequest',{id:first.id,outcome:'done'});
