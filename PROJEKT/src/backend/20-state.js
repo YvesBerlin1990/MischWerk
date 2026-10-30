@@ -25,16 +25,22 @@ MischWerkModules.attachState = function (runtime, config) {
         });
     };
     runtime.persist = function (next, failureMessage) {
-        next.revision = (runtime.state && runtime.state.revision || 0) + 1;
-        runtime.compactCooldowns(next, runtime.maxReplayEntries);
-        var serialized = JSON.stringify(next);
-        if (runtime.jsonBytes(serialized) > 90000) {
-            var smaller = runtime.copy(next);
-            runtime.compactCooldowns(smaller, runtime.emergencyReplayEntries);
-            if (runtime.jsonBytes(JSON.stringify(smaller)) > 90000) {
-                throw runtime.failure('Die Wunschbox ist gerade ausgelastet. Bitte versuche es später erneut.');
+        try {
+            next.revision = (runtime.state && runtime.state.revision || 0) + 1;
+            runtime.compactCooldowns(next, runtime.maxReplayEntries);
+            var serialized = JSON.stringify(next);
+            if (runtime.jsonBytes(serialized) > 90000) {
+                var smaller = runtime.copy(next);
+                runtime.compactCooldowns(smaller, runtime.emergencyReplayEntries);
+                if (runtime.jsonBytes(JSON.stringify(smaller)) > 90000) {
+                    throw runtime.failure('Die Wunschbox ist gerade ausgelastet. Bitte versuche es später erneut.');
+                }
+                next = smaller;
             }
-            next = smaller;
+        } catch (prepareError) {
+            if (prepareError.publicMessage) { throw prepareError; }
+            runtime.warn('PERSIST_PREPARE');
+            throw runtime.failure(failureMessage || 'MischWerk konnte die Änderung nicht vorbereiten. Bitte versuche es erneut.');
         }
         try {
             KnuddelsServer.getPersistence().setObject(runtime.key, next);
@@ -80,13 +86,13 @@ MischWerkModules.attachState = function (runtime, config) {
     runtime.isChannelOwner = function (user) { return runtime.online(user) && user.isChannelOwner(); };
     runtime.isModerator = function (user) {
         return runtime.online(user) && (user.isChannelOwner() ||
-            runtime.state.radioModeratorUserIds.indexOf(user.getUserId()) !== -1);
+            runtime.state.radioModeratorUserIds.indexOf(runtime.userId(user)) !== -1);
     };
     runtime.moderatorIsActive = function () {
         if (!runtime.state.moderator || runtime.state.moderator.expiresAt <= runtime.now() ||
                 runtime.moderatorKey() === runtime.inactiveModeratorKey) { return false; }
         return KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).some(function (user) {
-            return user.getUserId() === runtime.state.moderator.userId && runtime.isModerator(user);
+            return runtime.userId(user) === runtime.state.moderator.userId && runtime.isModerator(user);
         });
     };
     runtime.prune = function () {
@@ -131,7 +137,7 @@ MischWerkModules.attachState = function (runtime, config) {
             (page + 1) * runtime.radioModeratorPageSize);
         return { items: ids.map(function (userId) {
             var nick;
-            try { nick = access.getNick(userId); }
+            try { nick = String(access.getNick(userId)); }
             catch (error) { nick = 'Unbekannter Nutzer #' + userId; }
             return { userId: userId, nick: nick };
         }), total: total, page: page, pages: pages };
@@ -140,7 +146,8 @@ MischWerkModules.attachState = function (runtime, config) {
         var mod = runtime.isModerator(user);
         var presenter = runtime.moderatorIsActive() ? runtime.state.moderator : null;
         var radioTeam = runtime.radioModeratorViews(user, radioModeratorPage);
-        var own = runtime.state.requests.filter(function (item) { return item.userId === user.getUserId(); });
+        var currentUserId = runtime.userId(user);
+        var own = runtime.state.requests.filter(function (item) { return item.userId === currentUserId; });
         var totalPages = Math.max(1, Math.ceil(runtime.state.requests.length / runtime.pageSize));
         var ownPages = Math.max(1, Math.ceil(own.length / runtime.pageSize));
         myPage = Math.max(0, Math.min(ownPages - 1, Math.floor(Number(myPage) || 0)));
@@ -150,10 +157,10 @@ MischWerkModules.attachState = function (runtime, config) {
             station: runtime.station(),
             topic: runtime.state.topic,
             revision: runtime.state.revision,
-            user: { nick: user.getNick(), canModerate: mod,
+            user: { nick: runtime.nick(user), canModerate: mod,
                 canManageRadioModerators: runtime.isChannelOwner(user),
-                isOnAir: !!(mod && presenter && presenter.userId === user.getUserId()),
-                canEndModeration: !!(mod && presenter && (presenter.userId === user.getUserId() || user.isChannelOwner())) },
+                isOnAir: !!(mod && presenter && presenter.userId === currentUserId),
+                canEndModeration: !!(mod && presenter && (presenter.userId === currentUserId || user.isChannelOwner())) },
             limits: { maxTextLength: 300, maxTopicLength: 80 },
             requestsEnabled: runtime.state.requestsEnabled && !runtime.shuttingDown,
             moderator: presenter ? { nick: presenter.nick, since: presenter.since,

@@ -10,7 +10,7 @@ MischWerkModules.createRuntime = function (config) {
         state: null,
         views: [],
         shuttingDown: false,
-        lastWarningAt: 0,
+        warningTimes: {},
         inactiveModeratorKey: null
     };
 
@@ -21,10 +21,20 @@ MischWerkModules.createRuntime = function (config) {
         error.publicMessage = message;
         return error;
     };
+    runtime.numericUserId = function (value) {
+        var userId = Number(value);
+        if (!isFinite(userId) || userId <= 0 || Math.floor(userId) !== userId) {
+            throw runtime.failure('Die Knuddels-Nutzer-ID konnte nicht verarbeitet werden. Bitte öffne MischWerk erneut.');
+        }
+        return userId;
+    };
+    runtime.userId = function (user) { return runtime.numericUserId(user.getUserId()); };
+    runtime.nick = function (user) { return String(user.getNick()); };
     runtime.warn = function (operation) {
-        if (runtime.lastWarningAt && runtime.now() - runtime.lastWarningAt < 60000) { return; }
-        runtime.lastWarningAt = runtime.now();
-        var context = typeof operation === 'string' && /^[A-Z_]{1,30}$/.test(operation) ? ' [' + operation + ']' : '';
+        var tag = typeof operation === 'string' && /^[A-Z_]{1,30}$/.test(operation) ? operation : 'GENERAL';
+        if (runtime.warningTimes[tag] && runtime.now() - runtime.warningTimes[tag] < 60000) { return; }
+        runtime.warningTimes[tag] = runtime.now();
+        var context = tag === 'GENERAL' ? '' : ' [' + tag + ']';
         try { KnuddelsServer.getDefaultLogger().warn('MischWerk: Eine Speicher- oder UI-Operation konnte nicht abgeschlossen werden.' + context); }
         catch (ignored) { /* Fehler beim Loggen darf den App-Zustand nicht ändern. */ }
     };

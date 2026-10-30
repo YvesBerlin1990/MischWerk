@@ -7,8 +7,9 @@ MischWerkModules.attachViews = function (runtime) {
         catch (error) { runtime.warn(); }
     };
     runtime.refresh = function (session, user, page, myPage, radioModeratorPage) {
+        var userId = runtime.userId(user);
         var view = runtime.views.filter(function (item) {
-            return item.userId === user.getUserId() && item.content === session.getAppContent();
+            return item.userId === userId && item.content === session.getAppContent();
         })[0];
         // Bei Push/Bestätigung denselben Wunsch halten, auch wenn davor ein anderer entfernt wurde.
         if (page === undefined && view && view.queueId) {
@@ -79,15 +80,16 @@ MischWerkModules.attachViews = function (runtime) {
         content.addCloseListener(function () {
             runtime.views = runtime.views.filter(function (view) { return view.content !== content; });
         });
+        var userId = runtime.userId(user);
         runtime.views.slice().forEach(function (view) {
-            if (view.userId === user.getUserId() && (view.kind === 'radio') === (kind === 'radio')) {
+            if (view.userId === userId && (view.kind === 'radio') === (kind === 'radio')) {
                 view.content.getSessions().forEach(function (session) { session.remove(); });
             }
         });
         if (!user.sendAppContent(content)) {
             throw runtime.failure('MischWerk konnte die Ansicht gerade nicht öffnen. Bitte erneut versuchen.');
         }
-        runtime.views.push({ content: content, kind: kind, userId: user.getUserId(), page: 0, myPage: 0,
+        runtime.views.push({ content: content, kind: kind, userId: userId, page: 0, myPage: 0,
             radioModeratorPage: 0, feedbackId: null });
         return true;
     };

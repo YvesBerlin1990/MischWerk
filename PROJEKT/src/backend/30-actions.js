@@ -33,12 +33,9 @@ MischWerkModules.attachActions = function (runtime, config) {
             nick = runtime.text(data.nick, 50, true);
             var access = KnuddelsServer.getUserAccess();
             if (!access.exists(nick)) { throw runtime.failure('Dieser Knuddels-Nick existiert nicht.'); }
-            try { userId = access.getUserId(nick); }
+            try { userId = runtime.numericUserId(access.getUserId(nick)); }
             catch (error) { throw runtime.failure('Dieser Knuddels-Nick konnte nicht aufgelöst werden.'); }
-            if (typeof userId !== 'number' || !isFinite(userId) || userId <= 0 || Math.floor(userId) !== userId) {
-                throw runtime.failure('Dieser Knuddels-Nick konnte nicht aufgelöst werden.');
-            }
-            if (userId === user.getUserId()) {
+            if (userId === runtime.userId(user)) {
                 throw runtime.failure('Der Channelinhaber ist bereits dauerhaft für das Studio berechtigt.');
             }
             if (next.radioModeratorUserIds.indexOf(userId) !== -1) {
@@ -48,7 +45,7 @@ MischWerkModules.attachActions = function (runtime, config) {
                 throw runtime.failure('Es können höchstens 50 Radiomoderatoren ernannt werden.');
             }
             next.radioModeratorUserIds.push(userId);
-            nick = access.getNick(userId);
+            nick = String(access.getNick(userId));
         } else if (type === 'mw:removeRadioModerator') {
             userId = data.userId;
             if (typeof userId !== 'number' || !isFinite(userId) || userId <= 0 || Math.floor(userId) !== userId) {
@@ -68,11 +65,12 @@ MischWerkModules.attachActions = function (runtime, config) {
         return nick;
     };
     runtime.addRequest = function (user, data) {
-        var key = 'u' + user.getUserId();
+        var userId = runtime.userId(user);
+        var key = 'u' + userId;
         // Historischer Feldname: nur Wiederholungs-Erkennung, keine Wartezeit oder Begrenzung.
         var previous = runtime.state.cooldowns[key];
         if (data.requestId && ((previous && previous.requestId === data.requestId) ||
-                runtime.state.requests.some(function (item) { return item.userId === user.getUserId() && item.requestId === data.requestId; }))) { return false; }
+                runtime.state.requests.some(function (item) { return item.userId === userId && item.requestId === data.requestId; }))) { return false; }
         if (runtime.shuttingDown || !runtime.state.requestsEnabled) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
         var timestamp = runtime.now();
         var wishText = data.text !== undefined ? runtime.text(data.text, 300, true) :
@@ -81,8 +79,8 @@ MischWerkModules.attachActions = function (runtime, config) {
         if (runtime.containsWishLink(wishText)) { throw runtime.failure('Nur Interpret + Titel. Keine Links.'); }
         var item = {
             id: runtime.state.nextId,
-            userId: user.getUserId(),
-            nick: user.getNick(),
+            userId: userId,
+            nick: runtime.nick(user),
             text: wishText,
             delivery: null,
             requestId: data.requestId || null,
@@ -97,20 +95,22 @@ MischWerkModules.attachActions = function (runtime, config) {
     };
     runtime.acknowledgeRequest = function (user, data, session) {
         if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf den Empfang bestätigen.'); }
+        var userId = runtime.userId(user);
         var view = runtime.views.filter(function (item) {
-            return item.userId === user.getUserId() && item.content === session.getAppContent();
+            return item.userId === userId && item.content === session.getAppContent();
         })[0];
         if (!view || view.kind !== 'studio') { throw runtime.failure('Die Bestätigung benötigt das Moderationsfenster.'); }
         var item = runtime.state.requests[view.page * runtime.pageSize];
         if (!item || item.id !== data.id) { throw runtime.failure('Dieser Wunsch wird hier gerade nicht angezeigt.'); }
         if (item.delivery) { return false; }
         var next = runtime.copy(runtime.state);
-        next.requests[view.page * runtime.pageSize].delivery = { userId: user.getUserId(), nick: user.getNick(), at: runtime.now() };
+        next.requests[view.page * runtime.pageSize].delivery = { userId: userId, nick: runtime.nick(user), at: runtime.now() };
         runtime.persist(next);
         return true;
     };
     runtime.moderate = function (user, type, data) {
         if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf diese Aktion ausführen.'); }
+        var userId = runtime.userId(user);
         // Vergleich fachlicher Werte statt globaler Revision: Empfangsquittungen erzeugen keine falschen Konflikte.
         if ((type === 'mw:onAir' || type === 'mw:offAir') && data.expectedModerator !== undefined &&
                 data.expectedModerator !== runtime.moderatorKey()) {
@@ -129,11 +129,11 @@ MischWerkModules.attachActions = function (runtime, config) {
             }
             next.topic = runtime.text(data.topic, 80, false);
         } else if (type === 'mw:onAir') {
-            next.moderator = { userId: user.getUserId(), nick: user.getNick(), since: runtime.now(),
+            next.moderator = { userId: userId, nick: runtime.nick(user), since: runtime.now(),
                 sessionKey: String(runtime.now()) + '-' + String(runtime.state.revision + 1),
                 expiresAt: runtime.now() + config.moderatorSessionHours * 3600000 };
         } else if (type === 'mw:offAir') {
-            if (next.moderator && next.moderator.userId !== user.getUserId() && !user.isChannelOwner()) {
+            if (next.moderator && next.moderator.userId !== userId && !user.isChannelOwner()) {
                 throw runtime.failure('Nur die aktive Moderation oder der Channel-Besitzer kann die Sendung beenden.');
             }
             next.moderator = null;

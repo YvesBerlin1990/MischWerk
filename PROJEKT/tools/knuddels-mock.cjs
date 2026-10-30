@@ -19,6 +19,7 @@ function createHarness(existingPersistence) {
   const store = existingPersistence || persistence();
   const users = new Map();
   const contents = [];
+  const logs = [];
   let timestamp = Date.now();
   class FakeDate extends Date {
     constructor(...args) { super(...(args.length ? args : [timestamp])); }
@@ -43,7 +44,10 @@ function createHarness(existingPersistence) {
     Date: FakeDate,
     HTMLFile,
     UserType: { Human: 'human' },
-    KnuddelsServer: { getPersistence: () => store, getDefaultLogger: () => ({ warn() {}, info() {} }),
+    KnuddelsServer: { getPersistence: () => store, getDefaultLogger: () => ({
+      warn(message) { logs.push({ level: 'warn', message }); },
+      info(message) { logs.push({ level: 'info', message }); }
+    }),
       getChannel: () => ({ getOnlineUsers: () => [...users.values()].filter(user => user.online) }),
       getUserAccess: () => ({
         exists(nick) { return [...users.values()].some(person => person.nick.toLowerCase() === String(nick).toLowerCase()); },
@@ -100,7 +104,7 @@ function createHarness(existingPersistence) {
   }
   app.onAppStart();
   return {
-    app, config: context.MischWerkConfig, store, user, contents,
+    app, config: context.MischWerkConfig, store, user, contents, logs,
     advance(ms) { timestamp += ms; },
     open(person) { app.chatCommands.mischwerk(person); return person.sessions[0]; },
     event(person, session, type, data = {}) {

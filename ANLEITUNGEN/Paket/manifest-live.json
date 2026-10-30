@@ -3,7 +3,7 @@
   "appId": "knuddelsDEV.30807196.MischWerk",
   "installId": "30807196.MischWerk",
   "channel": "MischWerk",
-  "version": "0.1.29",
+  "version": "0.1.30",
   "remotePath": "/ftp/MischWerk",
   "stationConfigured": true,
   "ftpHost": "appupload.knuddels.de",
@@ -11,13 +11,13 @@
   "files": [
     {
       "path": "MischWerk/main.js",
-      "bytes": 35365,
-      "sha256": "1F583D2B89A829AFD0C41F96D39D68FAF42C65B64DA821A8BAEDE0F5173E6D09"
+      "bytes": 36944,
+      "sha256": "3A5F69CA5F766509815A61F440AD7D9661596C22513A378C732A7885F0F518EC"
     },
     {
       "path": "MischWerk/app.config",
       "bytes": 524,
-      "sha256": "DBD794882E70CB9FE4B55213CA3CCE3CEDA99BC9F69705A8DA4CD53FF709BA1C"
+      "sha256": "60A97939999788F92826D1FA9BF48AAFF0F3FF200CAE9C193EDC2892FAD5C78D"
     },
     {
       "path": "MischWerk/www/index.html",

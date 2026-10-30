@@ -31,6 +31,20 @@ test('Rechte kommen vom User, nicht vom Nick oder den Eventdaten', () => {
   assert.equal(h.state(listener, ls).requestsEnabled, true);
   assert.equal(h.state(listener, ls).user.canModerate, false);
 });
+test('Knuddels-Wrapper für User-ID und Nick werden vor dem Speichern in JSON-Primitiven umgewandelt', () => {
+  const { h, listener, ls } = fixture();
+  const wrappedId = { valueOf() { return listener.id; }, toString() { return '[Knuddels-User-ID]'; } };
+  const wrappedNick = { toString() { return listener.nick; } };
+  listener.getUserId = () => wrappedId;
+  listener.getNick = () => wrappedNick;
+  const result = lastResult(h.event(listener, ls, 'mw:request', { text: 'A-ha – Take On Me', requestId: 'wrapped-user' }));
+  assert.equal(result.ok, true, result.message);
+  const stored = h.store.data['mischwerk.state.v1'].requests[0];
+  assert.equal(stored.userId, listener.id); assert.equal(typeof stored.userId, 'number');
+  assert.equal(stored.nick, listener.nick); assert.equal(typeof stored.nick, 'string');
+  const restarted = createHarness(h.store); const person = restarted.user(listener.id, listener.nick); const session = restarted.open(person);
+  assert.equal(restarted.state(person, session).myRequests[0].text, 'A-ha – Take On Me');
+});
 test('Session muss zum authentifizierten Nutzer gehören; geschlossene Sessions werden ignoriert', () => {
   const { h, listener, owner, ls } = fixture();
   assert.deepEqual(h.event(owner, ls, 'mw:setRequests', { enabled: false }), []);
@@ -394,6 +408,8 @@ test('Anfrage-IDs werden validiert und interne Speicherfehler nicht an den Nutze
   const response = lastResult(h.event(listener, ls, 'mw:request', { ...wish, requestId: 'safe-id' }));
   assert.equal(response.requestId, 'safe-id'); assert.equal(response.action, 'mw:request');
   assert.equal(response.ok, false); assert.ok(!response.message.includes('secret'));
+  assert.ok(h.logs.some(entry => entry.level === 'warn' && entry.message.includes('[PERSIST_WRITE]')));
+  assert.ok(h.logs.every(entry => !entry.message.includes('secret internal path')));
 });
 test('Bestehende Daten bleiben gültig; alte UserPersistence-Cooldowns sperren keinen Versand', () => {
   const { h, listener, ls } = fixture(); h.event(listener, ls, 'mw:request', wish);

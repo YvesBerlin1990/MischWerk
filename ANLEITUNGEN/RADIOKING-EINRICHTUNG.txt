@@ -1,4 +1,4 @@
-MischWerk mit RadioKing – lokaler Stand 0.1.29 vom 30.10.2026
+MischWerk mit RadioKing – lokaler Stand 0.1.30 vom 30.10.2026
 
 BEREITS EINGERICHTET
 Radio: MischWerk
@@ -60,7 +60,7 @@ vergeben keine Knuddels-Rechte. Wünsche samt echtem Knuddels-Nick gehen an
 das App-Studio; sie ändern keine RadioKing-Playlist automatisch.
 
 PRÜFUNG
-104 lokale automatisierte Fälle bestanden (53 Backend/HTTP, 51 Browser).
+105 lokale automatisierte Fälle bestanden (54 Backend/HTTP, 51 Browser).
 Zusätzlich echte MP3-Dekodierung und Cross-Origin-Titelabfrage mit deinem
 MischWerk-Sender im Edge-Browser geprüft. Kein fremder Beispielsender.
 Nachweis: PROJEKT/docs/radioking-pruefung/anbindung-0.1.17.json
@@ -69,11 +69,11 @@ Vorschau: PROJEKT/docs/radioking-pruefung/MischWerk-RadioKing-2124.png
 Die Knuddels-Bridge war im Browser simuliert. Eine echte Abnahme im Knuddels-
 Desktop-/K3-Client mit RadioKing ist weiterhin erforderlich, sobald ein Update
 ausdrücklich freigegeben wird. Es wurde NICHT zu Knuddels hochgeladen.
-LIVE bleibt nach zuletzt bestätigtem Stand 0.1.13.
+Zuletzt wurde im echten App-Log LIVE 0.1.29 beobachtet.
 
 LOKALER UPLOAD
 Ordner: UPLOAD/MischWerk
-ZIP: ANLEITUNGEN/Paket/MischWerk-Knuddels-LIVE-0.1.29.zip
+ZIP: ANLEITUNGEN/Paket/MischWerk-Knuddels-LIVE-0.1.30.zip
 Neu bauen: Installationspaket-erstellen.cmd im MischWerk-Hauptordner.
 Alternativ aus PROJEKT/: node tools/build-install.cjs.
 Diese Werkzeuge bauen nur lokal und laden nichts hoch.
@@ -94,4 +94,4 @@ Beim Wiederanlauf wird Play freigegeben, aber nichts automatisch gestartet.
 API-Fehler oder unbekannte Werte erlauben manuellen Hörversuch und stoppen
 keinen laufenden Ton. Die Knuddels-Studioanmeldung bleibt unabhängig.
 Der gestoppte eigene Sender wurde direkt und im Browser geprüft:
-PROJEKT/docs/radioking-pruefung/anbindung-0.1.29.json
+PROJEKT/docs/radioking-pruefung/anbindung-0.1.30.json

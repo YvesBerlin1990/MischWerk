@@ -1,5 +1,5 @@
 MISCHWERK – DIE MISCHUNG MACHT’S.
-Lokale App-Version: 0.1.29 mit RadioKing
+Lokale App-Version: 0.1.30 mit RadioKing
 
 DEIN UPLOAD-ORDNER
   UPLOAD\MischWerk
@@ -24,5 +24,5 @@ ARCHIV
 
 STATUS
   Dein RadioKing-Stream ist eingerichtet: https://play.radioking.io/mischwerk
-  Nichts auf Knuddels hochgeladen. Zuletzt bestätigtes LIVE bleibt 0.1.13.
+  Nichts auf Knuddels hochgeladen. Zuletzt im echten App-Log beobachtetes LIVE ist 0.1.29.
   Ein neues Server-Update erfolgt erst auf deine ausdrückliche Anweisung.
