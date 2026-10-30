@@ -1,6 +1,6 @@
 # MischWerk – technische Projektdateien
 
-Lokaler Stand **0.1.30 mit RadioKing**. Lautstärke: Start 40 %, automatische Wiederherstellung höchstens 60 %, darüber rote Hinweiszone mit Warnzeichen. Manuell bleibt 0–100 % frei bedienbar. Prozent ist keine dB-Messung oder Zusage eines sicheren Hörpegels. [Einordnung und Quellen](docs/LAUTSTAERKE.md). Zuletzt im echten App-Log beobachtetes Knuddels-LIVE: 0.1.29; weiterhin kein Upload/Neustart durch diese Bearbeitung.
+Lokaler Stand **0.1.31 mit RadioKing**. Lautstärke: Start 40 %, automatische Wiederherstellung höchstens 60 %, darüber rote Hinweiszone mit Warnzeichen. Manuell bleibt 0–100 % frei bedienbar. Prozent ist keine dB-Messung oder Zusage eines sicheren Hörpegels. [Einordnung und Quellen](docs/LAUTSTAERKE.md). Zuletzt im echten App-Log beobachtetes Knuddels-LIVE: 0.1.30; weiterhin kein Upload/Neustart durch diese Bearbeitung.
 
 | Bereich | Inhalt |
 | --- | --- |
@@ -46,12 +46,14 @@ Wunschversand 0.1.29: Es gibt keine persönliche oder feste Gesamtanzahl-Begrenz
 
 Wunschversand 0.1.30: Knuddels-/Rhino-Werte für Nutzer-ID und Nick werden vor Vergleichen und Persistenz in echte JavaScript-Primitiven umgewandelt. Dadurch kann die JSON-Vorbereitung nicht mehr an Java-Wrappern scheitern. Zusätzlich benennt das private Log bei unerwarteten Fehlern die genaue Phase, etwa `REQUEST_ADD` oder `PERSIST_PREPARE`, statt nur einer allgemeinen Warnung. Die unbegrenzte Wunschannahme und das sichtbare Feedback aus 0.1.29 bleiben unverändert.
 
+Wunschtransport 0.1.31: Der frühere Pfad wurde vollständig ersetzt. Das Frontend sendet `mw:wish.submit`, das Backend antwortet ausschließlich mit `mw:wish.receipt`, und die Queue liegt getrennt als JSON-String unter `mischwerk.wishes.v2`. Neue Wünsche verwenden weder `mw:request`, `mw:result` noch das allgemeine Zustandsobjekt. Historische Wünsche werden beim ersten Start einmalig übernommen. Es besteht weiterhin keine Wunschbegrenzung.
+
 Deaktivierte Wunschbox: Button gesperrt mit „Deaktiviert“, auch serverseitig kein neues Wunsch-Popup. Moderationsmenü bleibt zum Reaktivieren zugänglich. Vorhandene Wünsche bleiben gespeichert.
 
 Wunschbox 0.1.21: kompaktes einzelnes Formular für Interpret + Titel, ohne eigene Wunschliste. Keine YouTube-/sonstigen Links; client- und serverseitige Prüfung. Nick-Übermittlung und kurze gespeicherte/zugestellte Rückmeldung bleiben erhalten.
 
 Positionierung 0.1.22: ON AIR und Sender-/Moderatorname bilden ab 901 px eine vertikal zur Wunschbox zentrierte Gruppe ohne künstliche Leerzeile. Schild und Name teilen eine Mittelachse, der Abstand beträgt 10 px. Ab 1500 px steht dafür eine 200–220 px breite Spalte zur Verfügung. Eine feine Trennlinie gliedert den Wunschbutton. Der berechtigte Moderationslink bleibt unten rechts und beeinflusst die übrige Geometrie nicht. Layout bei 320–2560 px mit langen Texten geprüft; Höhen und APIs unverändert.
 
-Das Backend ist seit 0.1.26 modular gepflegt. `app/main.js` wird ausschließlich über `pnpm run build:backend` aus `src/backend/*.js` erzeugt; Tests und Paketbau erkennen ein veraltetes Bundle. Radio-Team, Moderationsmenü, Warteschlange, Wunschpersistenz und RadioKing-Sendepause sind im [aktuellen Prüfbericht](docs/PRUEFUNG-0.1.30.md) zusammengefasst.
+Das Backend ist seit 0.1.26 modular gepflegt. `app/main.js` wird ausschließlich über `pnpm run build:backend` aus `src/backend/*.js` erzeugt; Tests und Paketbau erkennen ein veraltetes Bundle. Radio-Team, Moderationsmenü, Warteschlange, Wunschpersistenz und RadioKing-Sendepause sind im [aktuellen Prüfbericht](docs/PRUEFUNG-0.1.31.md) zusammengefasst.
 
-Senderstatus seit 0.1.25: bestätigte RadioKing-Sendepause deaktiviert Play; automatische Freigabe beim Wiederanlauf ohne Autostart. [Nachweise](docs/PRUEFUNG-0.1.30.md).
+Senderstatus seit 0.1.25: bestätigte RadioKing-Sendepause deaktiviert Play; automatische Freigabe beim Wiederanlauf ohne Autostart. [Nachweise](docs/PRUEFUNG-0.1.31.md).

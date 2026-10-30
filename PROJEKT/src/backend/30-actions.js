@@ -64,52 +64,25 @@ MischWerkModules.attachActions = function (runtime, config) {
         runtime.persist(next);
         return nick;
     };
-    runtime.addRequest = function (user, data) {
-        var userId = runtime.userId(user);
-        var key = 'u' + userId;
-        // Historischer Feldname: nur Wiederholungs-Erkennung, keine Wartezeit oder Begrenzung.
-        var previous = runtime.state.cooldowns[key];
-        if (data.requestId && ((previous && previous.requestId === data.requestId) ||
-                runtime.state.requests.some(function (item) { return item.userId === userId && item.requestId === data.requestId; }))) { return false; }
-        if (runtime.shuttingDown || !runtime.state.requestsEnabled) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
-        var timestamp = runtime.now();
-        var wishText = data.text !== undefined ? runtime.text(data.text, 300, true) :
-            runtime.text(data.artist, 80, true) + ' – ' + runtime.text(data.title, 80, true) +
-                (data.message ? ' · ' + runtime.text(data.message, 200, false) : '');
-        if (runtime.containsWishLink(wishText)) { throw runtime.failure('Nur Interpret + Titel. Keine Links.'); }
-        var item = {
-            id: runtime.state.nextId,
-            userId: userId,
-            nick: runtime.nick(user),
-            text: wishText,
-            delivery: null,
-            requestId: data.requestId || null,
-            createdAt: timestamp
-        };
-        var next = runtime.copy(runtime.state);
-        next.nextId += 1;
-        next.requests.push(item);
-        next.cooldowns[key] = { at: timestamp, requestId: data.requestId || null };
-        runtime.persist(next, 'Dein Wunsch konnte nicht gespeichert werden. Bitte versuche es erneut.');
-        return item;
-    };
     runtime.acknowledgeRequest = function (user, data, session) {
         if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf den Empfang bestätigen.'); }
-        var userId = runtime.userId(user);
         var view = runtime.views.filter(function (item) {
-            return item.userId === userId && item.content === session.getAppContent();
+            return item.content === session.getAppContent();
         })[0];
         if (!view || view.kind !== 'studio') { throw runtime.failure('Die Bestätigung benötigt das Moderationsfenster.'); }
-        var item = runtime.state.requests[view.page * runtime.pageSize];
+        var item = runtime.wishItems()[view.page * runtime.pageSize];
         if (!item || item.id !== data.id) { throw runtime.failure('Dieser Wunsch wird hier gerade nicht angezeigt.'); }
-        if (item.delivery) { return false; }
-        var next = runtime.copy(runtime.state);
-        next.requests[view.page * runtime.pageSize].delivery = { userId: userId, nick: runtime.nick(user), at: runtime.now() };
-        runtime.persist(next);
-        return true;
+        return runtime.deliverWish(item.id, user);
     };
     runtime.moderate = function (user, type, data) {
         if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf diese Aktion ausführen.'); }
+        if (type === 'mw:resolveRequest') {
+            if (data.outcome !== undefined && data.outcome !== 'done' && data.outcome !== 'discarded') {
+                throw runtime.failure('Ungültige Wunsch-Aktion.');
+            }
+            runtime.resolveWish(data.id);
+            return;
+        }
         var userId = runtime.userId(user);
         // Vergleich fachlicher Werte statt globaler Revision: Empfangsquittungen erzeugen keine falschen Konflikte.
         if ((type === 'mw:onAir' || type === 'mw:offAir') && data.expectedModerator !== undefined &&
@@ -137,13 +110,6 @@ MischWerkModules.attachActions = function (runtime, config) {
                 throw runtime.failure('Nur die aktive Moderation oder der Channel-Besitzer kann die Sendung beenden.');
             }
             next.moderator = null;
-        } else if (type === 'mw:resolveRequest') {
-            if (data.outcome !== undefined && data.outcome !== 'done' && data.outcome !== 'discarded') {
-                throw runtime.failure('Ungültige Wunsch-Aktion.');
-            }
-            var found = next.requests.some(function (item) { return item.id === data.id; });
-            if (!found) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
-            next.requests = next.requests.filter(function (item) { return item.id !== data.id; });
         } else { throw runtime.failure('Unbekannte Aktion.'); }
         runtime.persist(next);
     };

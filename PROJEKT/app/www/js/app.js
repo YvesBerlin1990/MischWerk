@@ -10,11 +10,13 @@
   var topicDirty = false;
   var topicRequest = null;
   var lastWish = null;
+  var wishPending = null;
   var feedbackRequest = null;
   var receiptAttempts = {};
   var queueKey = null;
   var requestSequence = 0;
   var pendingTimer;
+  var wishTimer;
   var noticeTimer;
   var lastStateAt = 0;
   var metadataTimer;
@@ -111,12 +113,6 @@
       if (type === 'mw:setRequests') { data.previousEnabled = state.requestsEnabled; }
       if (type === 'mw:addRadioModerator' || type === 'mw:removeRadioModerator') { data.expectedRadioModeratorRevision = state.radioModeratorRevision; }
       requestId = 'mw-' + Date.now().toString(36) + '-' + (++requestSequence) + '-' + Math.random().toString(36).slice(2, 10);
-      if (type === 'mw:request') {
-        if (lastWish && sameWish(data, lastWish.data)) { requestId = lastWish.requestId; }
-        lastWish = { requestId: requestId, data: { text: data.text } };
-        feedbackRequest = null;
-        showWishFeedback('Wird gesendet …', false, true);
-      }
       data.requestId = requestId;
       pending = { type: type, requestId: requestId }; renderAvailability();
       if (type === 'mw:setTopic') {
@@ -125,8 +121,7 @@
       }
       pendingTimer = setTimeout(function () {
         pending = null; renderAvailability();
-        if (type === 'mw:request') { showWishFeedback('Noch keine Bestätigung. Bitte erneut prüfen.', true); }
-        else if (type === 'mw:setTopic') { topicFeedback('Noch keine Bestätigung. Bitte erneut prüfen und speichern.', true); }
+        if (type === 'mw:setTopic') { topicFeedback('Noch keine Bestätigung. Bitte erneut prüfen und speichern.', true); }
         else { notify('Noch keine Bestätigung erhalten. Bitte aktualisiere vor einem erneuten Versuch.', true); }
         send('mw:refresh', {}, false);
       }, 15000);
@@ -135,12 +130,37 @@
     catch (error) {
       if (mutation && pending && pending.requestId === requestId) { pending = null; clearTimeout(pendingTimer); }
       renderAvailability();
-      if (type === 'mw:request') { showWishFeedback('Senden nicht bestätigt. Bitte erneut prüfen.', true); }
-      else if (type === 'mw:setTopic') { topicFeedback('Speichern nicht bestätigt. Bitte erneut versuchen.', true); }
+      if (type === 'mw:setTopic') { topicFeedback('Speichern nicht bestätigt. Bitte erneut versuchen.', true); }
       else { notify('Verbindung unterbrochen. Bitte erneut öffnen.', true); }
     }
   }
   function sameWish(a, b) { return a.text === b.text; }
+  function submitWish(data) {
+    if (!bridge || !connected()) { showWishFeedback('Die Verbindung zum Channel fehlt. Bitte öffne MischWerk erneut.', true); return; }
+    if (wishPending) { return; }
+    var submissionId = 'wish-' + Date.now().toString(36) + '-' + (++requestSequence) + '-' + Math.random().toString(36).slice(2, 10);
+    if (lastWish && sameWish(data, lastWish.data)) { submissionId = lastWish.submissionId; }
+    lastWish = { submissionId: submissionId, data: { text: data.text } };
+    wishPending = { submissionId: submissionId };
+    feedbackRequest = null;
+    showWishFeedback('Wird gesendet …', false, true);
+    renderAvailability();
+    clearTimeout(wishTimer);
+    wishTimer = setTimeout(function () {
+      if (!wishPending || wishPending.submissionId !== submissionId) { return; }
+      wishPending = null;
+      renderAvailability();
+      showWishFeedback('Noch keine Bestätigung. Bitte erneut prüfen.', true);
+      send('mw:refresh', {}, false);
+    }, 15000);
+    try { bridge.sendEvent('mw:wish.submit', { submissionId: submissionId, text: data.text }); }
+    catch (error) {
+      wishPending = null;
+      clearTimeout(wishTimer);
+      renderAvailability();
+      showWishFeedback('Senden nicht bestätigt. Bitte erneut prüfen.', true);
+    }
+  }
   function topicFeedback(message, error) {
     var box = el('topic-feedback');
     box.textContent = message; box.hidden = !message; box.classList.toggle('error', !!error);
@@ -266,7 +286,7 @@
     var limits = state.limits || { maxTextLength: 300 };
     var enabled = live && state.requestsEnabled;
     el('wish-text').maxLength = limits.maxTextLength || 300;
-    el('wish-fields').disabled = !enabled || !!pending;
+    el('wish-fields').disabled = !enabled || !!pending || !!wishPending;
     el('open-wishes').classList.toggle('wishes-closed', !state.requestsEnabled);
     setText('wish-button-caption', !state.requestsEnabled ? 'Deaktiviert' : !live ? 'Verbindung fehlt' : 'Dein Musikwunsch');
     el('open-wishes').title = !state.requestsEnabled ? 'Die Wunschbox ist deaktiviert.' : !live ? 'Verbindung zum Channel fehlt' : 'Wunschbox öffnen und einen Musikwunsch senden';
@@ -278,7 +298,7 @@
     else if (!enabled) { hint = 'Wunschbox deaktiviert.'; }
     setText('wish-hint', hint);
     el('wish-hint').hidden = !hint;
-    el('open-wishes').disabled = !enabled || !!pending;
+    el('open-wishes').disabled = !enabled || !!pending || !!wishPending;
     el('open-wishes').setAttribute('aria-disabled', String(el('open-wishes').disabled));
     el('studio-tab').disabled = !live || !!pending || !state.user.canModerate;
     el('team-tab').disabled = !live || !!pending || !state.user.canManageRadioModerators;
@@ -574,7 +594,7 @@
     if (el('wish-fields').disabled || !this.reportValidity()) { return; }
     var values = wishValues();
     if (containsWishLink(values.text)) { feedbackRequest = null; showWishFeedback('Nur Interpret + Titel. Keine Links.', true); return; }
-    send('mw:request', values, true);
+    submitWish(values);
   });
   el('on-air').addEventListener('click', function () { send('mw:onAir', {}, true); });
   el('off-air').addEventListener('click', function () { send('mw:offAir', {}, true); });
@@ -598,11 +618,24 @@
   el('refresh-queue').addEventListener('click', function () { send('mw:refresh', {}); });
   if (bridge) {
     bridge.addEventListener('mw:state', function (event) { receive(event.data); });
+    bridge.addEventListener('mw:wish.receipt', function (event) {
+      var receipt = event.data || {};
+      if (!lastWish || receipt.submissionId !== lastWish.submissionId) { return; }
+      if (wishPending && wishPending.submissionId === receipt.submissionId) { wishPending = null; }
+      clearTimeout(wishTimer);
+      if (receipt.accepted) {
+        if (sameWish(wishValues(), lastWish.data)) { el('wish-form').reset(); fitWishText(); }
+        lastWish = null;
+        feedbackRequest = receipt.request || null;
+      }
+      showWishFeedback(receipt.accepted && feedbackRequest ? deliveryText(feedbackRequest) : receipt.message,
+        !receipt.accepted);
+      renderAvailability();
+    });
     bridge.addEventListener('mw:result', function (event) {
       var response = event.data || {};
       var current = pending && response.requestId === pending.requestId && response.action === pending.type;
-      var wish = lastWish && response.requestId === lastWish.requestId && response.action === 'mw:request';
-      if (!current && !wish) { return; }
+      if (!current) { return; }
       if (current) { pending = null; clearTimeout(pendingTimer); }
       if (current && response.action === 'mw:setTopic') {
         if (response.ok && topicRequest && topicRequest.value === el('studio-topic').value) { topicDirty = false; }
@@ -612,14 +645,8 @@
       if (current && response.ok && response.action === 'mw:addRadioModerator') {
         el('radio-moderator-form').reset();
       }
-      if (response.ok && wish) {
-        if (sameWish(wishValues(), lastWish.data)) { el('wish-form').reset(); fitWishText(); }
-        lastWish = null;
-        feedbackRequest = response.request || null;
-      }
-      if (response.action === 'mw:request') { showWishFeedback(response.ok && feedbackRequest ? deliveryText(feedbackRequest) : response.message, !response.ok); }
       renderAvailability();
-      if (response.action !== 'mw:request' && response.action !== 'mw:setTopic' && (!response.ok ||
+      if (response.action !== 'mw:setTopic' && (!response.ok ||
           (response.action !== 'mw:openWishes' && response.action !== 'mw:openStudio' && response.action !== 'mw:openRadioTeam'))) {
         notify(response.message, !response.ok);
       }

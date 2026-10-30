@@ -13,7 +13,7 @@ MischWerkModules.attachViews = function (runtime) {
         })[0];
         // Bei Push/Bestätigung denselben Wunsch halten, auch wenn davor ein anderer entfernt wurde.
         if (page === undefined && view && view.queueId) {
-            runtime.state.requests.some(function (item, index) {
+            runtime.wishItems().some(function (item, index) {
                 if (item.id !== view.queueId) { return false; }
                 page = Math.floor(index / runtime.pageSize);
                 return true;
@@ -56,6 +56,7 @@ MischWerkModules.attachViews = function (runtime) {
     runtime.openView = function (user, kind, automatic) {
         if (!runtime.online(user)) { user.sendPrivateMessage('Bitte öffne MischWerk im MyChannel.'); return; }
         runtime.load();
+        runtime.loadWishes();
         if (kind === 'studio' && !runtime.isModerator(user)) {
             throw runtime.failure('Nur die Radio-Moderation darf das Moderationsmenü öffnen.');
         }

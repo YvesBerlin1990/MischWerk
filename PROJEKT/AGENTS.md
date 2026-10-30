@@ -1,6 +1,6 @@
 # MischWerk – verbindliche Regeln für weitere Programmierungen
 
-Aktuell: lokale Version 0.1.30 mit RadioKing. Diese Regeln gelten dauerhaft im gesamten MischWerk-Projekt. Die vorherige ausführliche Regelchronik ist im geprüften `../ARCHIV/Historie-2026-10-29.zip` enthalten; für neue Arbeiten gelten die folgenden aktuellen Regeln.
+Aktuell: lokale Version 0.1.31 mit RadioKing. Diese Regeln gelten dauerhaft im gesamten MischWerk-Projekt. Die vorherige ausführliche Regelchronik ist im geprüften `../ARCHIV/Historie-2026-10-29.zip` enthalten; für neue Arbeiten gelten die folgenden aktuellen Regeln.
 
 ## Struktur und Freigabe
 
@@ -9,7 +9,7 @@ Aktuell: lokale Version 0.1.30 mit RadioKing. Diese Regeln gelten dauerhaft im g
 - `app/main.js` ist ein deterministisch erzeugtes Laufzeit-Bundle und wird nicht direkt bearbeitet. Änderungen erfolgen in `src/backend/*.js`; danach `node tools/build-backend.cjs` ausführen. Checks und Paketbau müssen ein veraltetes oder abweichendes Bundle ablehnen.
 - Für den Nutzer sichtbar: `../UPLOAD/MischWerk/`. Ausschließlich `main.js`, `app.config`, `www/index.html`, `www/css/style.css`, `www/js/app.js`, `www/img/mischwerk-logo.png` hineinpacken.
 - Aktuelles ZIP, Manifest und ZIP-Prüfsumme: `../ANLEITUNGEN/Paket/`. Anleitungen liegen direkt unter `../ANLEITUNGEN/`. Frühere Pakete und überholte Anbieter-Unterlagen gehören ausschließlich nach `../ARCHIV/`.
-- Nur lokal ändern und paketieren. KEIN FTP-Upload, Knuddels-Update oder Serverneustart ohne neue ausdrückliche Nutzeranweisung. Zuletzt im echten App-Log beobachtetes LIVE ist 0.1.29. Ein Build ist keine Uploadfreigabe. Nutzerdaten und bestehende Persistenz erhalten.
+- Nur lokal ändern und paketieren. KEIN FTP-Upload, Knuddels-Update oder Serverneustart ohne neue ausdrückliche Nutzeranweisung. Zuletzt im echten App-Log beobachtetes LIVE ist 0.1.30. Ein Build ist keine Uploadfreigabe. Nutzerdaten und bestehende Persistenz erhalten.
 
 ## Knuddels und K3
 
@@ -57,7 +57,8 @@ Aktuell: lokale Version 0.1.30 mit RadioKing. Diese Regeln gelten dauerhaft im g
 26. Moderationsfenster seit 0.1.28 als zusammenhängende Broadcast-Konsole gestalten: kompakter dunkler Rack-Kopf, klar getrennte Mikrofon-/Wunschbox-Steuerkarten mit eigenen Symbolen, dezentes serverseitig bestimmtes Statuslicht, kompakter Themenstreifen und gefasste Warteschlange. Ausschließlich bestehende neutrale Markenfarben, Gold und Creme; keine neue Bilddatei, Animation oder erfundene Statuslogik. Der frühere Fußtext zu sechs Stunden, Sende-Encoder sowie Erledigt/Verwerfen ist vollständig aus der Oberfläche entfernt. Ablaufzeit bleibt ausschließlich situativ bei einer aktiven Anmeldung sichtbar. Alle Funktionen, Tastaturbedienung, Reiter und Scrollfreiheit bei 320–780 px erhalten.
 
 27. AppPersistence seit 0.1.29 vor ungebremst wachsenden Wiederholungsmarkern schützen: nur gültige, zeitlich neueste technische Anfrage-IDs in einer festen Obergrenze halten. Offene Wünsche, Wunschtexte, Zustellungen, Thema, Wunschbox-Status und Radiomoderatoren niemals für diese Bereinigung entfernen. Bei knappem Speicher zuerst ausschließlich ältere Wiederholungsmarker weiter reduzieren; ein endgültiger Speicherfehler muss den Wunsch unverändert im Formular lassen und darf keine erfolgreiche Annahme vortäuschen. Der historische Feldname `cooldowns` bleibt ohne Wartezeitfunktion und vorhandene gültige Zustände müssen kompatibel geladen werden.
-28. Von Knuddels gelieferte Nutzer-IDs und Nicks vor Vergleichen, Zustandsobjekten und JSON-Persistenz immer über die zentralen Laufzeithelfer in echte JavaScript-Primitiven umwandeln. Unerwartete Fehler mit einer kurzen Phasenkennung wie `REQUEST_ADD` oder `PERSIST_PREPARE` protokollieren; keine internen Fehlermeldungen oder Nutzerdaten in öffentliche Antworten oder Logs schreiben.
+28. Von Knuddels gelieferte Nutzer-IDs und Nicks im allgemeinen App-Zustand vor Vergleichen und Persistenz über die zentralen Laufzeithelfer in echte JavaScript-Primitiven umwandeln. Der eigenständige Wunschtransport folgt stattdessen der spezielleren Regel 29 und verwendet einen kanonischen Ziffernstring. Unerwartete Fehler mit einer kurzen Phasenkennung protokollieren; keine internen Fehlermeldungen oder Nutzerdaten in öffentliche Antworten oder Logs schreiben.
+29. Wunschübertragung seit 0.1.31 ausschließlich über das eigenständige Protokoll `mw:wish.submit` / `mw:wish.receipt` und die eigene String-Persistenz `mischwerk.wishes.v2`. `mw:request`, die allgemeine `mw:result`-Quittung und `mischwerk.state.v1.requests` niemals wieder für neue Wünsche verwenden. Absender serverseitig aus dem authentifizierten User ableiten und als kanonischen Ziffernstring speichern; keine Java-/Rhino-Objekte in den Wunschdatensatz übernehmen. Historische Wünsche beim ersten Start einmalig in den neuen Speicher migrieren. Technische Quittungsmarker dürfen begrenzt werden, offene Wünsche nicht.
 
 ## Prüfung und Pflege
 

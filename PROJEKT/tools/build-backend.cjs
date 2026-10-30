@@ -12,6 +12,7 @@ const modules = [
   '10-runtime.js',
   '20-state.js',
   '30-actions.js',
+  '35-wish-transport.js',
   '40-views.js',
   '50-app.js'
 ];

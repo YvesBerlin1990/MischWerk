@@ -25,7 +25,15 @@
       fetch('/api/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: boot.sessionId, type: type, data: data }) })
         .then(function (response) { if (!response.ok) { throw new Error('demo'); } return response.json(); })
         .then(function (events) { events.forEach(function (event) { (handlers[event.type] || []).forEach(function (callback) { callback(event); }); }); })
-        .catch(function () { (handlers['mw:result'] || []).forEach(function (callback) { callback({ data: { ok: false, message: 'Der lokale Vorschau-Server ist nicht erreichbar.', action: type, requestId: data && data.requestId } }); }); });
+        .catch(function () {
+          if (type === 'mw:wish.submit') {
+            (handlers['mw:wish.receipt'] || []).forEach(function (callback) { callback({ data: { accepted: false,
+              message: 'Der lokale Vorschau-Server ist nicht erreichbar.', submissionId: data && data.submissionId } }); });
+          } else {
+            (handlers['mw:result'] || []).forEach(function (callback) { callback({ data: { ok: false,
+              message: 'Der lokale Vorschau-Server ist nicht erreichbar.', action: type, requestId: data && data.requestId } }); });
+          }
+        });
     }
   };
   document.addEventListener('DOMContentLoaded', function () { document.getElementById('demo-banner').hidden = false; });

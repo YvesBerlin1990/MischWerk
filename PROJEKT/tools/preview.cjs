@@ -15,7 +15,8 @@ const host = h.user(1, 'Otterchen', 'owner'); const hostSession = h.open(host);
 h.event(host, hostSession, 'mw:onAir');
 [['Mixfreund', 'Lieblingsband', 'Dieser eine Song', 'Liebe Grüße an den ganzen Channel!'], ['Klangwelle', 'Wunschinterpret', 'Gute Zeit', 'Für einen entspannten Abend.']].forEach((sample, index) => {
   const user = h.user(index + 2, sample[0]); const session = h.open(user);
-  h.event(user, session, 'mw:request', { artist: sample[1], title: sample[2], message: sample[3] });
+  h.event(user, session, 'mw:wish.submit', { submissionId: 'preview-' + index,
+    text: sample[1] + ' – ' + sample[2] + ' · ' + sample[3] });
 });
 function respond(res, status, contentType, body) {
   res.writeHead(status, { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); res.end(body);

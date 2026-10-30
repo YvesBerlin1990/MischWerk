@@ -4,12 +4,14 @@ var App = (function (config) {
     var runtime = MischWerkModules.createRuntime(config);
     MischWerkModules.attachState(runtime, config);
     MischWerkModules.attachActions(runtime, config);
+    MischWerkModules.attachWishTransport(runtime);
     MischWerkModules.attachViews(runtime);
 
     return {
         onAppStart: function () {
             runtime.load();
-            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.30: Radioleiste mit Wunschbox-, Radio-Team- und Moderations-Popups gestartet. ' +
+            runtime.loadWishes();
+            KnuddelsServer.getDefaultLogger().info('MischWerk 0.1.31: Radioleiste mit Wunschbox-, Radio-Team- und Moderations-Popups gestartet. ' +
                 (runtime.station().configured ? 'RadioKing ist konfiguriert.' : 'RadioKing-Hörerstream ist noch nicht konfiguriert.'));
             KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).forEach(function (user) {
                 try { runtime.open(user, true); } catch (error) { runtime.warn(); }
@@ -45,10 +47,10 @@ var App = (function (config) {
         },
         onUserDeleted: function (userId) {
             runtime.load();
+            runtime.loadWishes();
+            runtime.removeWishesForUser(userId);
             userId = runtime.numericUserId(userId);
             var next = runtime.copy(runtime.state);
-            next.requests = next.requests.filter(function (item) { return item.userId !== userId; });
-            delete next.cooldowns['u' + userId];
             if (next.moderator && next.moderator.userId === userId) { next.moderator = null; }
             if (next.radioModeratorUserIds.indexOf(userId) !== -1) {
                 next.radioModeratorUserIds = next.radioModeratorUserIds.filter(function (id) { return id !== userId; });
@@ -61,11 +63,16 @@ var App = (function (config) {
         onEventReceived: function (user, type, data, session) {
             if (!runtime.activeSession(user, session)) { return; }
             if (typeof type !== 'string' || type.indexOf('mw:') !== 0) { return; }
+            if (type === 'mw:wish.submit') {
+                runtime.handleWishSubmission(user, data, session);
+                return;
+            }
             var requestId = null;
             var operation = 'EVENT_PREPARE';
             try {
                 operation = 'STATE_LOAD';
                 runtime.load();
+                runtime.loadWishes();
                 operation = 'STATE_PRUNE';
                 if (runtime.prune()) { runtime.broadcast(); }
                 operation = 'EVENT_VALIDATE';
@@ -96,26 +103,7 @@ var App = (function (config) {
                     if (runtime.acknowledgeRequest(user, data, session)) { runtime.broadcast(); }
                     return;
                 }
-                if (type === 'mw:request') {
-                    operation = 'REQUEST_ADD';
-                    var added = runtime.addRequest(user, data);
-                    var userId = runtime.userId(user);
-                    var request = added || runtime.state.requests.filter(function (item) {
-                        return item.userId === userId && item.requestId === requestId;
-                    })[0];
-                    if (request) {
-                        runtime.views.forEach(function (view) {
-                            if (view.userId === userId && view.content === session.getAppContent()) {
-                                view.feedbackId = request.id;
-                            }
-                        });
-                    }
-                    var message = request && request.delivery ? 'An ' + request.delivery.nick + ' übergeben.' :
-                        request ? 'Dein Musikwunsch ist mit deinem Nicknamen gespeichert und wartet auf die Übergabe im Moderationsfenster.' :
-                        'Dein Musikwunsch wurde bereits gespeichert und inzwischen bearbeitet.';
-                    operation = 'REQUEST_RESULT';
-                    runtime.result(session, true, message, type, requestId, request);
-                } else if (type === 'mw:addRadioModerator' || type === 'mw:removeRadioModerator') {
+                if (type === 'mw:addRadioModerator' || type === 'mw:removeRadioModerator') {
                     operation = 'RADIO_TEAM';
                     var changedNick = runtime.manageRadioModerator(user, type, data);
                     runtime.result(session, true, type === 'mw:addRadioModerator' ?

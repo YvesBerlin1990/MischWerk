@@ -11,6 +11,13 @@ function persistence(data = {}) {
       if (Buffer.byteLength(JSON.stringify(value), 'utf8') > 100000) { throw new Error('Persistence object exceeds 100 kB'); }
       data[key] = clone(value);
     },
+    hasString: key => typeof data[key] === 'string',
+    getString: (key, fallback = '') => typeof data[key] === 'string' ? data[key] : fallback,
+    setString: (key, value) => {
+      if (typeof value !== 'string') { throw new Error('Persistence string required'); }
+      data[key] = value;
+    },
+    deleteString: key => { if (typeof data[key] === 'string') { delete data[key]; } },
     getNumber: (key, fallback = 0) => key in data ? data[key] : fallback,
     setNumber: (key, value) => { data[key] = value; }
   };
@@ -20,6 +27,7 @@ function createHarness(existingPersistence) {
   const users = new Map();
   const contents = [];
   const logs = [];
+  let submissionSequence = 0;
   let timestamp = Date.now();
   class FakeDate extends Date {
     constructor(...args) { super(...(args.length ? args : [timestamp])); }
@@ -108,6 +116,9 @@ function createHarness(existingPersistence) {
     advance(ms) { timestamp += ms; },
     open(person) { app.chatCommands.mischwerk(person); return person.sessions[0]; },
     event(person, session, type, data = {}) {
+      if (type === 'mw:wish.submit' && data.submissionId === undefined) {
+        data = { ...data, submissionId: 'test-wish-' + (++submissionSequence) };
+      }
       session.events = []; app.onEventReceived(person, type, data, session); return session.events;
     },
     state(person, session, page = 0, myPage, radioModeratorPage) {

@@ -81,12 +81,12 @@ test('Fremde Bestätigungen entsperren keinen Wunsch und löschen keinen neuen E
   const { page, errors } = await setup(t, {view:'wishes'});
   await page.locator('#wish-text').fill('Band – Song');
   await page.locator('#submit-wish').click();
-  const sent=await page.evaluate(()=>window.__sent.findLast(event=>event.type==='mw:request'));
+  const sent=await page.evaluate(()=>window.__sent.findLast(event=>event.type==='mw:wish.submit'));
   await page.evaluate(()=>window.__emit('mw:result',{ok:true,action:'mw:setRequests',requestId:'fremd',message:'Alt'}));
   assert.equal(await page.locator('#wish-fields').evaluate(node=>node.disabled),true);
   assert.equal(await page.locator('#wish-text').inputValue(),'Band – Song');
   await page.evaluate(()=>{document.getElementById('wish-text').value='Neuer Entwurf';});
-  await page.evaluate(sent=>window.__emit('mw:result',{ok:true,action:sent.type,requestId:sent.data.requestId,message:'Gespeichert'}),sent);
+  await page.evaluate(sent=>window.__emit('mw:wish.receipt',{accepted:true,submissionId:sent.data.submissionId,message:'Gespeichert'}),sent);
   assert.equal(await page.locator('#wish-text').inputValue(),'Neuer Entwurf'); assert.deepEqual(errors,[]);
 });
 
@@ -119,14 +119,14 @@ test('Alte Songantwort darf eine entfernte Senderkonfiguration nicht überschrei
   assert.equal(await page.locator('#track-title').isVisible(), false);
   assert.equal(await page.locator('#play-button').isDisabled(), true);
 });
-test('Erneuter identischer Wunsch nach Bestätigungs-Timeout behält seine Anfrage-ID', async t => {
+test('Erneuter identischer Wunsch nach Bestätigungs-Timeout behält seine Übertragungs-ID', async t => {
   const { page } = await setup(t, { clock: true, view:'wishes' });
   await page.locator('#wish-text').fill('Band – Song');
   await page.locator('#submit-wish').click(); await page.clock.runFor(15010);
   await page.locator('#submit-wish').click();
-  const requests = await page.evaluate(() => window.__sent.filter(event => event.type === 'mw:request'));
-  assert.equal(requests.length, 2); assert.ok(requests[0].data.requestId);
-  assert.equal(requests[0].data.requestId, requests[1].data.requestId);
+  const requests = await page.evaluate(() => window.__sent.filter(event => event.type === 'mw:wish.submit'));
+  assert.equal(requests.length, 2); assert.ok(requests[0].data.submissionId);
+  assert.equal(requests[0].data.submissionId, requests[1].data.submissionId);
 });
 test('Veralteter Zustand setzt keine neuere Wunschbox-Entscheidung zurück', async t => {
   const {page,state}=await setup(t,{view:'wishes'});
@@ -824,12 +824,12 @@ test('Ein einziges Wunschfeld sendet nur Text und zeigt Versandfehler dauerhaft 
   assert.equal(await page.locator('#wish-form textarea,#wish-form input').count(),1);
   await page.locator('#wish-text').fill('Mein Song, bitte mit Grüßen an alle!');
   await page.locator('#submit-wish').click();
-  const sent=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:request'));
+  const sent=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:wish.submit'));
   assert.equal(sent.data.text,'Mein Song, bitte mit Grüßen an alle!');
-  assert.deepEqual(Object.keys(sent.data).sort(),['requestId','text']);
+  assert.deepEqual(Object.keys(sent.data).sort(),['submissionId','text']);
   assert.match(await page.locator('#wish-feedback').textContent(),/Wird gesendet/);
   assert.equal(await page.locator('#wish-feedback').evaluate(n=>n.classList.contains('pending')),true);
-  await page.evaluate(s=>window.__emit('mw:result',{ok:false,action:s.type,requestId:s.data.requestId,message:'Wunschbox geschlossen.'}),sent);
+  await page.evaluate(s=>window.__emit('mw:wish.receipt',{accepted:false,submissionId:s.data.submissionId,message:'Wunschbox geschlossen.'}),sent);
   assert.equal(await page.locator('#wish-text').inputValue(),sent.data.text);
   assert.match(await page.locator('#wish-feedback').textContent(),/geschlossen/);
   assert.equal(await page.locator('#wish-feedback').getAttribute('role'),'alert');
@@ -857,20 +857,20 @@ test('Kompakte Wunschbox zeigt nur das Formular und weist Links ohne Versand ode
     await page.locator('#wish-text').fill(text);await page.locator('#submit-wish').click();
     assert.match(await page.locator('#wish-feedback').textContent(),/Keine Links/);
     assert.equal(await page.locator('#wish-text').inputValue(),text);
-    assert.equal(await page.evaluate(()=>window.__sent.some(e=>e.type==='mw:request')),false);
+    assert.equal(await page.evaluate(()=>window.__sent.some(e=>e.type==='mw:wish.submit')),false);
     assert.ok(await fitPopup(page)<480,'Fehlerrückmeldung bleibt kompakt');
   }
   await page.locator('#wish-text').fill('will.i.am – Scream & Shout');await page.locator('#submit-wish').click();
-  assert.equal(await page.evaluate(()=>window.__sent.find(e=>e.type==='mw:request').data.text),'will.i.am – Scream & Shout');
+  assert.equal(await page.evaluate(()=>window.__sent.find(e=>e.type==='mw:wish.submit').data.text),'will.i.am – Scream & Shout');
   assert.deepEqual(errors,[]);
 });
 test('Gespeichert und an Moderator zugestellt werden getrennt bestätigt; fremde Rückmeldung bleibt wirkungslos', async t=>{
   const {page,state}=await setup(t,{view:'wishes'});
   await page.locator('#wish-text').fill('Bitte unseren Lieblingssong.');
   await page.locator('#submit-wish').click();
-  const sent=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:request'));
+  const sent=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:wish.submit'));
   const item={id:9,text:sent.data.text,nick:'Otterchen',createdAt:Date.now(),delivery:null};
-  await page.evaluate(({s,item})=>window.__emit('mw:result',{ok:true,action:s.type,requestId:s.data.requestId,message:'Gespeichert',request:item}),{s:sent,item});
+  await page.evaluate(({s,item})=>window.__emit('mw:wish.receipt',{accepted:true,submissionId:s.data.submissionId,message:'Gespeichert',request:item}),{s:sent,item});
   assert.equal(await page.locator('#wish-text').inputValue(),'');
   assert.match(await page.locator('#wish-feedback').textContent(),/erfolgreich gespeichert/);
   assert.doesNotMatch(await page.locator('#wish-feedback').textContent(),/übergeben/);
@@ -882,7 +882,7 @@ test('Gespeichert und an Moderator zugestellt werden getrennt bestätigt; fremde
   await page.evaluate(({state,item})=>window.__emit('mw:state',{...state,revision:3,myRequests:[{...item,delivery:{nick:'StudioMod',at:Date.now()}}]}),{state,item});
   assert.match(await page.locator('#wish-feedback').textContent(),/Wunsch an StudioMod übergeben/);
   assert.equal(await page.locator('.delivery-status').count(),0);
-  await page.evaluate(()=>window.__emit('mw:result',{ok:true,action:'mw:request',requestId:'fremd',message:'An Fake übergeben.'}));
+  await page.evaluate(()=>window.__emit('mw:wish.receipt',{accepted:true,submissionId:'fremd',message:'An Fake übergeben.'}));
   assert.doesNotMatch(await page.locator('#wish-feedback').textContent(),/Fake/);
   assert.ok(await fitPopup(page)<760);
 });

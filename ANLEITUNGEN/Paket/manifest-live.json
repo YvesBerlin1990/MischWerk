@@ -3,7 +3,7 @@
   "appId": "knuddelsDEV.30807196.MischWerk",
   "installId": "30807196.MischWerk",
   "channel": "MischWerk",
-  "version": "0.1.30",
+  "version": "0.1.31",
   "remotePath": "/ftp/MischWerk",
   "stationConfigured": true,
   "ftpHost": "appupload.knuddels.de",
@@ -11,13 +11,13 @@
   "files": [
     {
       "path": "MischWerk/main.js",
-      "bytes": 36944,
-      "sha256": "3A5F69CA5F766509815A61F440AD7D9661596C22513A378C732A7885F0F518EC"
+      "bytes": 45916,
+      "sha256": "5C8D282BC2CEE1C1CE74B8C0F58217F9F43A04DA789BB64C6847677CF152DC5B"
     },
     {
       "path": "MischWerk/app.config",
       "bytes": 524,
-      "sha256": "60A97939999788F92826D1FA9BF48AAFF0F3FF200CAE9C193EDC2892FAD5C78D"
+      "sha256": "A3FBAD5C8C2E95E0292FD8CD2554EF032795B820B327C676E936B89760E425BA"
     },
     {
       "path": "MischWerk/www/index.html",
@@ -31,8 +31,8 @@
     },
     {
       "path": "MischWerk/www/js/app.js",
-      "bytes": 41018,
-      "sha256": "0159EB78FA537D796AB3DE29DBB3CE6B872B09ACCA2D6E2147A512C21E258BE2"
+      "bytes": 42011,
+      "sha256": "AA1F7C918D3452C86C32CC49397A5A513ECD4A6CA2BB4285AFC6D32872886C5D"
     },
     {
       "path": "MischWerk/www/img/mischwerk-logo.png",
