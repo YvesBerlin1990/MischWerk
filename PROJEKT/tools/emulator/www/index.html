@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MischWerk · Testlabor</title><link rel="stylesheet" href="/ui/lab.css"><!--BOOT--></head>
+<body>
+<header class="lab-header"><div><span class="eyebrow">LOKALE ENTWICKLUNG</span><h1>MischWerk <span>Testlabor</span></h1></div>
+<div class="connection"><span id="connection">Verbinde …</span><span id="version"></span></div>
+<a href="/ui/help.html" target="_blank" rel="noopener">Bedienung & Grenzen</a>
+<button id="export">Bericht exportieren</button></header>
+<main class="workspace">
+<aside class="controls">
+<section><h2>Testnutzer</h2><label for="persona">Nutzer</label><select id="persona"></select>
+<label for="client">Clientprofil</label><select id="client"><option value="k3">K3 · Chromium</option><option value="stapp">STAPP · Größenanpassung</option><option value="android">Android · Browsermodell</option><option value="ios">iOS · Browsermodell</option><option value="jfx">JFX · nicht unterstützt</option></select>
+<div class="button-row"><button id="join" class="primary">Channel betreten</button><button id="new-window">Weiteres Fenster</button></div>
+<label for="role">Plattformrolle</label><select id="role"><option value="owner">Channelinhaber</option><option value="listener">Hörer</option><option value="manager">AppManager</option><option value="developer">AppDeveloper</option><option value="cm">Channelmoderator</option></select>
+<button id="apply-role">Rolle übernehmen</button>
+<button id="delete-user">Diesen Testnutzer löschen</button>
+<details><summary>Weiteren Testnutzer anlegen</summary><label for="new-nick">Nickname</label><input id="new-nick" maxlength="40" placeholder="Weiterer Hörer"><button id="register">Testnutzer hinzufügen</button></details>
+<p class="hint">Radiomoderatoren ernennst du über das echte Radio-Team der App.</p><div id="users" class="users"></div></section>
+<section><h2>Channel & Fenster</h2>
+<label for="width">Channelbreite in Pixeln</label><div class="width-row"><input id="width" type="number" min="320" max="3840" value="1280"><select id="width-preset" aria-label="Breitenvorlage"><option value="1280">Desktop</option><option value="320">320</option><option value="390">390</option><option value="700">700</option><option value="1100">1100</option><option value="2290">2290</option><option value="3840">3840</option></select></div>
+<label for="hostSizing">Größenantwort des Hosts</label><select id="hostSizing" data-fault><option value="normal">Sofort annehmen</option><option value="delayed">Verzögert annehmen</option><option value="stepped">In Zwischenschritten melden</option><option value="ignored">Größenwünsche ignorieren</option></select>
+<label><input type="checkbox" id="no-overlay">Overlayfähigkeit sperren</label>
+<div class="button-row"><button id="inspect">Layout prüfen</button><button id="visibility">App verbergen</button></div>
+</section>
+<section><h2>Fehler gezielt auslösen</h2>
+<label for="loader">Ressourceneinbindung · neue Frames</label><select id="loader" data-fault><option value="parser">Knuddels-Parsermodus</option><option value="async">Zusätzlicher asynchroner Stresstest</option></select>
+<label for="resourceDelayMs">JS/CSS/Bild verzögern · ms</label><input id="resourceDelayMs" data-fault type="number" min="0" max="10000" value="0">
+<label for="resourceFailure">Datei ausfallen lassen · Teilpfad</label><input id="resourceFailure" data-fault placeholder="z. B. js/radio/player.js" maxlength="160">
+<label for="clientDelayMs">Client → Server · ms</label><input id="clientDelayMs" data-fault type="number" min="0" max="10000" value="0">
+<label for="serverDelayMs">Server → Client · ms</label><input id="serverDelayMs" data-fault type="number" min="0" max="10000" value="0">
+<label for="clientEventType">Clientereignisfilter für Verlust, Dopplung und Wiederholung</label><input id="clientEventType" data-fault value="mw:wish.submit" maxlength="100">
+<label for="dropServerType">Serverereignisfilter für Paketverlust</label><input id="dropServerType" data-fault placeholder="mw:wish.receipt" maxlength="100">
+<div class="button-row"><button id="drop-client">Nächstes Senden verlieren</button><button id="drop-server">Nächste Antwort verlieren</button></div>
+<div class="button-row"><button id="duplicate">Nächstes Senden doppeln</button><button id="replay">Letztes Senden wiederholen</button></div>
+<label><input type="checkbox" id="failPersistence" data-fault> Speicherfehler erzwingen</label>
+<button id="disconnect">Verbindung abbrechen</button>
+<label for="provider">Synthetischer Anbieter · startet App neu</label><select id="provider" data-fault><option value="unconfigured">Unkonfiguriert · Originalzustand</option><option value="online">Online · lokales Testsignal</option><option value="stopped">Bestätigt gestoppt</option><option value="http-error">HTTP 503</option><option value="invalid">Ungültiges JSON</option><option value="slow">Antwort nach 11 Sekunden</option></select>
+<p class="hint">Alle Anbieterfälle bleiben lokal. Audio startet ausschließlich über den Playbutton der App.</p>
+</section>
+<section><h2>Zeit & Laufzeit</h2><div class="button-row"><button data-advance="3600000">+ 1 Stunde</button><button data-advance="25200000">+ 7 Stunden</button><button data-advance="86400000">+ 1 Tag</button></div>
+<p id="clock" class="hint"></p><button id="restart">App mit Testdaten neu starten</button><button id="reset">Testdaten zurücksetzen</button><button id="rhino">Echte Rhino-Prüfung starten</button><pre id="rhino-result"></pre></section>
+</aside>
+<div class="lab">
+<div class="stage-toolbar"><span id="stage-label">1280 px · echte Framebreite, keine Skalierung</span><span>Node-VM · lokale Plattformsimulation</span></div>
+<div class="stage-scroll"><div id="stage" style="width:1280px">
+<div id="headerbars"></div><div id="channel"><div class="channel-watermark">MischWerk · lokaler Testchannel</div><div id="chat"></div><div id="overlays"></div></div><div id="popups"></div>
+</div></div>
+<form id="chat-form"><input id="chat-input" aria-label="Chatnachricht oder Appbefehl" placeholder="Nachricht oder /mischwerk"><button>Senden</button></form>
+<section class="diagnostics"><div class="diagnostic-heading"><h2>Ereignisse & Befunde</h2><select id="trace-filter" aria-label="Ereignisfilter"><option value="">Alle Ereignisse</option><option value="error">Fehler & Ablehnungen</option><option value="sessionEvent">Server → Client</option><option value="clientEvent">Client → Server</option><option value="layout">Layout</option></select><button id="clear-trace">Leeren</button></div>
+<div id="notice" role="status" aria-live="polite"></div><ol id="trace"></ol></section>
+</div></main>
+<script type="module" src="/ui/lab.js"></script>
+</body></html>

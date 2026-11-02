@@ -1,9 +1,13 @@
-/* Minimaler Wunschweg: genau eine flüchtige Queue für die Moderationsansicht. */
+/* Eine flüchtige Wunschqueue; private Positionen werden ausschließlich daraus abgeleitet. */
 MischWerkModules.attachWishQueue = function (runtime) {
     'use strict';
 
     runtime.wishPhase = 'WISH_VALIDATE';
-    var wishQueue = { nextId: 1, items: [], submissionIds: {} };
+    function emptyQueue() {
+        return { nextId: 1, items: [], submissionIds: {}, revision: 0,
+            generation: String(runtime.now()) + '-' + String(Math.random()).slice(2) };
+    }
+    var wishQueue = emptyQueue();
 
     function validSubmissionId(value) {
         return typeof value === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(value);
@@ -12,7 +16,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
         var queue = wishQueue;
         if (!queue || typeof queue !== 'object' || typeof queue.nextId !== 'number' ||
                 !Array.isArray(queue.items) || !queue.submissionIds || typeof queue.submissionIds !== 'object') {
-            queue = { nextId: 1, items: [], submissionIds: {} };
+            queue = emptyQueue();
             wishQueue = queue;
         }
         return queue;
@@ -46,6 +50,23 @@ MischWerkModules.attachWishQueue = function (runtime) {
 
     runtime.loadWishes = function () { return queueState(); };
     runtime.wishItems = function () { return queueState().items; };
+    runtime.wishPositions = function (user, page) {
+        var queue = queueState();
+        var senderKey = safeUserKey(user);
+        var own = [];
+        if (senderKey) {
+            queue.items.forEach(function (item, index) {
+                if (item.senderKey === senderKey) {
+                    own.push({ id: item.id, text: item.text, position: index + 1 });
+                }
+            });
+        }
+        var pages = Math.max(1, Math.ceil(own.length / 3));
+        page = Math.max(0, Math.min(pages - 1, Math.floor(Number(page) || 0)));
+        return { available: !!senderKey, generation: queue.generation, revision: queue.revision,
+            nextPosition: own.length ? own[0].position : null,
+            items: own.slice(page * 3, (page + 1) * 3), total: own.length, page: page, pages: pages };
+    };
     runtime.submitWish = function (user, data) {
         runtime.wishPhase = 'WISH_VALIDATE';
         if (!data || typeof data !== 'object' || Array.isArray(data) || !validSubmissionId(data.submissionId)) {
@@ -71,6 +92,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
         queue.nextId += 1;
         queue.submissionIds[submissionKey] = item.id;
         queue.items[queue.items.length] = item;
+        queue.revision += 1;
         return { duplicate: false, item: item };
     };
     runtime.deliverWish = function (id, moderator) {
@@ -90,6 +112,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
         }
         if (!found) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
         queue.items = remaining;
+        queue.revision += 1;
     };
     runtime.removeWishesForUser = function (userId) {
         var expected = safeUserKey(userId);
@@ -99,7 +122,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
         for (var index = 0; index < queue.items.length; index += 1) {
             if (queue.items[index].senderKey !== expected) { remaining[remaining.length] = queue.items[index]; }
         }
-        queue.items = remaining;
+        if (remaining.length !== queue.items.length) { queue.items = remaining; queue.revision += 1; }
     };
     runtime.resolveRequest = function (user, data) {
         if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf diese Aktion ausführen.'); }

@@ -8,8 +8,8 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         runtime.loadWishes();
         try { runtime.refreshUiCache(); }
         catch (error) { runtime.warn('APP_UI_CACHE', error); }
-        KnuddelsServer.getDefaultLogger().info('MischWerk ' + config.version + ': Radioleiste mit Wunschbox-, Radio-Team- und Moderations-Popups gestartet. ' +
-            (runtime.station().configured ? 'RadioKing ist konfiguriert.' : 'RadioKing-Hörerstream ist noch nicht konfiguriert.'));
+        KnuddelsServer.getDefaultLogger().info('MischWerk ' + config.version + ': Radioleiste mit integrierter Wunschbox sowie Radio-Team- und Moderations-Popups gestartet. ' +
+            (runtime.station().configured ? 'STREAMPANEL ist konfiguriert.' : 'STREAMPANEL-Hörerstream ist noch nicht konfiguriert.'));
         KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).forEach(function (user) {
             try { runtime.open(user, true); } catch (error) { runtime.warn(); }
         });

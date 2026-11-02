@@ -1,38 +1,43 @@
-/* Kompakte Übersicht; vollständige Erklärungen und Prüfzeiten nativ aufklappbar. */
-.team-tabs { display:flex; gap:4px; margin-bottom:14px; padding:4px; border:1px solid #625b4e; border-radius:12px; background:#20202099; }
-.team-tabs button { flex:1; min-height:44px; padding:8px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--muted); font-size:14px; font-weight:600; }
-.team-tabs button[aria-pressed=true] { border-color:#b98d32; color:var(--surface); background-color:var(--gold); background-image:var(--button-gold); box-shadow:inset 0 1px 0 #fff3bd99; }
-html.status-central-open .dialog-shell { padding:8px; }
-html[data-view=team].status-central-open { --dialog-logo:56px; }
-html.status-central-open .dialog-header { gap:10px; padding:6px 8px; margin-bottom:8px; }
-html.status-central-open .dialog-heading { grid-template-columns:minmax(0,1fr) auto; column-gap:8px; }
-html.status-central-open .dialog-heading > .eyebrow { letter-spacing:0; text-transform:none; font-weight:400; }
-html.status-central-open .dialog-heading h1 { font-size:24px; }
-html.status-central-open .dialog-heading > .pill { grid-column:2; grid-row:1 / 3; margin-top:0; }
+/* Statuspult: Sendemodus als Leitwert, App- und Anbieterwerte im gemeinsamen Raster. */
+.team-tabs { display:flex; gap:0; margin:0 0 16px; padding:0; border:0; border-bottom:1px solid #6d6654; background:transparent; }
+.team-tabs button { flex:1; min-height:48px; padding:10px 8px; border:0; border-bottom:3px solid transparent; background:transparent; color:var(--muted); font-size:14px; font-weight:600; }
+.team-tabs button[aria-pressed=true] { color:var(--surface); border-bottom-color:#b98d32; border-radius:8px; background-color:var(--gold); background-image:var(--button-gold); }
+html[data-view=team].status-central-open .dialog-shell { padding:10px; }
+html[data-view=team].status-central-open { --dialog-logo:48px; --dialog-title:24px; --dialog-gap:10px; }
+html[data-view=team].status-central-open .dialog-header { gap:10px; padding:0 0 8px; margin-bottom:6px; }
+html[data-view=team].status-central-open .dialog-heading { grid-template-columns:minmax(0,1fr) auto; column-gap:8px; }
+html[data-view=team].status-central-open .dialog-heading > .pill { grid-column:2; grid-row:1 / 3; margin-top:0; }
 .status-central-open .team-tabs { margin-bottom:8px; }
-.status-heading { margin-bottom:4px; }
-#refresh-status { min-width:102px; }
+.status-heading { margin-bottom:6px; }
+.status-heading h2 { font-size:18px; font-weight:600; }
+#refresh-status { min-width:102px; border-color:#6d6654; background:linear-gradient(180deg,#ffffff08,transparent),var(--raised); }
 .status-refresh-note { margin:0 0 8px; color:var(--muted); font-size:12px; line-height:1.4; }
-.status-mode { --status-dot:#99958a; padding:8px 10px; margin-bottom:8px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
+.status-mode { --status-dot:#99958a; padding:10px 12px; margin-bottom:8px; border:1px solid var(--line); border-radius:10px; background:var(--management-card); }
 .status-mode-main { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:4px 12px; }
-.status-mode-main > strong { min-width:0; font-size:22px; line-height:1.2; overflow-wrap:anywhere; }
-.status-mode .status-warning { margin:6px 0 0; font-size:13px; line-height:1.4; overflow-wrap:anywhere; }
+.status-mode-main .eyebrow { font-size:12px; letter-spacing:.02em; color:var(--gold-ink); }
+.status-mode-main > strong { min-width:0; font-size:24px; line-height:1.2; font-weight:650; overflow-wrap:anywhere; }
+.status-mode .status-warning { margin:8px 0 0; padding-top:8px; border-top:1px solid #6c5044; color:var(--error); font-size:13px; line-height:1.4; overflow-wrap:anywhere; }
 .status-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
-.status-item { --status-dot:#99958a; min-width:0; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
-.status-item h3 { margin:0 0 3px; color:var(--muted); font-size:12px; font-weight:500; line-height:1.2; }
-.status-item > strong { display:block; font-size:16px; line-height:1.2; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.status-item { --status-dot:#99958a; min-width:0; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
+.status-item h3 { margin:0 0 4px; color:var(--muted); font-size:12px; font-weight:400; line-height:1.2; }
+.status-item > strong { display:block; color:var(--text); font-size:16px; line-height:1.2; font-weight:600; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
 #status-listeners-value { font-size:20px; }
 .status-item > strong::before,.status-mode-main > strong::before { content:""; display:inline-block; width:9px; height:9px; margin-right:6px; border-radius:50%; background:var(--status-dot); vertical-align:1px; }
 .status-item[data-tone=ok],.status-mode[data-tone=ok],.status-item[data-tone=gold],.status-mode[data-tone=gold] { --status-dot:#9ccda2; }
 .status-item[data-tone=error],.status-mode[data-tone=error] { --status-dot:#ff6b5f; }
-.status-mode .status-warning { color:var(--error); }
-.status-details { margin-top:6px; border-top:1px solid var(--line); }
+.status-details { margin-top:8px; border-top:1px solid var(--line); }
 .status-details > summary { min-height:44px; padding:12px 4px; color:var(--text); font-size:13px; line-height:1.4; cursor:pointer; }
 .status-details > summary:hover { color:var(--gold); }
 .status-details > summary:focus-visible { outline:3px solid var(--gold); outline-offset:2px; }
 .status-detail-list { margin:0; }
-.status-detail-list > div { padding:8px 0; border-top:1px solid var(--line); }
+.status-detail-list > div { padding:10px 0; border-top:1px solid var(--line); }
 .status-detail-list dt { margin-bottom:3px; font-size:13px; font-weight:600; }
-.status-detail-list dd { margin:0; color:var(--muted); font-size:13px; line-height:1.4; overflow-wrap:anywhere; }
-.status-provider-link { display:inline-block; min-height:44px; padding:12px 0; color:var(--gold); font-size:13px; overflow-wrap:anywhere; }
-@media (max-width:480px) { .status-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.status-detail-list dd { margin:0; color:var(--muted); font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
+.status-provider-link { display:inline-block; min-height:44px; padding:12px 0; color:var(--gold-ink); font-size:13px; overflow-wrap:anywhere; }
+@media (max-width:480px) {
+  .status-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .status-item { padding:6px 8px; }
+}
+
+/* Details ersetzen das Übersichtsraster; einzelne Erläuterungen bleiben ohne Scrollstapel erreichbar. */
+.status-details-open .status-grid { display:none; }

@@ -27,6 +27,7 @@ var styles = [
   'css/feedback.css',
   'css/radio-responsive.css',
   'css/dialogs-responsive.css',
+  'css/wishbox.css',
   'css/radio-surface.css',
   'css/metadata-layout.css',
   'css/schedule.css',
@@ -35,13 +36,14 @@ var styles = [
 var initialView = typeof Client !== 'undefined' && Client.pageData && Client.pageData.view;
 var view = ['wishes', 'studio', 'team', 'schedule'].indexOf(initialView) !== -1 ? initialView : 'radio';
 document.documentElement.setAttribute('data-view', view);
+if (typeof Client !== 'undefined' && Client.pageData && Client.pageData.wishSurface) { document.documentElement.setAttribute('data-wish-surface', 'true'); }
 var initialCurtain = typeof Client !== 'undefined' && Client.pageData && Client.pageData.curtain;
 document.documentElement.setAttribute('data-curtain', view === 'radio' && initialCurtain && initialCurtain.closed === true && initialCurtain.exempt !== true ? 'closed' : 'open');
 var styleViews = {
   'css/radio.css':'radio', 'css/radio-actions.css':'radio', 'css/radio-responsive.css':'radio',
   'css/radio-surface.css':'radio', 'css/metadata-layout.css':'radio',
-  'css/dialogs.css':'wishes studio team schedule', 'css/dialogs-responsive.css':'wishes studio team schedule',
-  'css/studio.css':'studio', 'css/handover.css':'studio',
+  'css/dialogs.css':'radio wishes studio team schedule', 'css/dialogs-responsive.css':'wishes studio team schedule',
+  'css/studio.css':'studio', 'css/handover.css':'studio', 'css/wishbox.css':'radio wishes',
   'css/team.css':'team', 'css/team-status.css':'team', 'css/schedule.css':'schedule', 'css/curtain.css':'radio'
 };
 styles.filter(function (file) { return !styleViews[file] || styleViews[file].split(' ').indexOf(view) !== -1; }).forEach(function (file) {

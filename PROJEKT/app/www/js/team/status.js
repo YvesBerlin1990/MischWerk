@@ -9,12 +9,22 @@ MischWerkUI.define('statusCentral', function (dependencies) {
   var view = dependencies.view;
   var selected = false, ended = false, stationKey = null, generation = 0;
   var remote = {}, pending = null, timer;
+  var detailPage = 0;
+  function details() {
+    var items = document.querySelectorAll('.status-detail-list > div');
+    Array.prototype.forEach.call(items, function (row, index) { row.hidden = index !== detailPage; });
+    dom.setText('status-detail-page', 'Detail ' + (detailPage + 1) + ' / ' + items.length);
+    dom.el('prev-status-detail').disabled = detailPage === 0;
+    dom.el('next-status-detail').disabled = detailPage >= items.length - 1;
+    document.documentElement.classList.toggle('status-details-open', selected && dom.el('status-details').open);
+    signals.emit('team-layout');
+  }
   function authorized() {
     return model.view === 'team' && model.current() && model.current().user.canManageRadioModerators;
   }
   function visible() { return !ended && authorized() && selected && !document.hidden; }
   function render() {
-    if (visible()) { view.render(remote, !!pending, !!api.radioKingUrls(model.current().station)); }
+    if (visible()) { view.render(remote, !!pending, !!api.streamUrls(model.current().station)); }
   }
   function stop() {
     clearTimeout(timer); generation += 1; pending = null; stationKey = null; remote = {};
@@ -24,7 +34,8 @@ MischWerkUI.define('statusCentral', function (dependencies) {
     if (!visible() || !model.connected()) { render(); return; }
     if (pending) { return pending; }
     var station = model.current().station;
-    if (!api.radioKingUrls(station)) { render(); return; }
+    var urls = api.streamUrls(station);
+    if (!urls || (!urls.status && !urls.metadata && !urls.listeners)) { render(); return; }
     var currentGeneration = generation, failed = false;
     function current() { return currentGeneration === generation && visible(); }
     function save(name, value, kind) {
@@ -37,12 +48,12 @@ MischWerkUI.define('statusCentral', function (dependencies) {
       });
     }
     var task = Promise.all([
-      read('transmission', api.fetchStationStatus(station)).then(function (status) {
+      (urls.status ? read('transmission', api.fetchStationStatus(station)) : Promise.resolve('unknown')).then(function (status) {
         if (!current()) { return; }
         if (status === 'stopped') { save('metadata', null, 'paused'); return; }
-        return read('metadata', api.fetchMetadata(station));
+        if (urls.metadata) { return read('metadata', api.fetchMetadata(station)); }
       }),
-      read('listeners', api.fetchListeners(station))
+      urls.listeners ? read('listeners', api.fetchListeners(station)) : Promise.resolve()
     ]).then(function () {
       if (!current() || pending !== task) { return; }
       pending = null; render(); timer = setTimeout(poll, failed ? 60000 : 30000);
@@ -65,9 +76,18 @@ MischWerkUI.define('statusCentral', function (dependencies) {
     dom.el('team-status').hidden = !status; dom.el('team-members').hidden = status;
     dom.el('team-status-tab').setAttribute('aria-pressed', String(status));
     dom.el('team-members-tab').setAttribute('aria-pressed', String(!status));
-    synchronize();
+    synchronize(); details();
   }
   function start() {
+    dom.el('status-details').addEventListener('toggle', details);
+    [['prev-status-detail', -1], ['next-status-detail', 1]].forEach(function (entry) {
+      dom.el(entry[0]).addEventListener('click', function () {
+        if (this.disabled) { return; }
+        detailPage += entry[1]; details();
+        if (this.disabled) { dom.el(entry[1] > 0 ? 'prev-status-detail' : 'next-status-detail').focus(); }
+      });
+    });
+    details();
     dom.el('team-status-tab').addEventListener('click', function () { select(true); });
     dom.el('team-members-tab').addEventListener('click', function () { select(false); });
     dom.el('refresh-status').addEventListener('click', function () {

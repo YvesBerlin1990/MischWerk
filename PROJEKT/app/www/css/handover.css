@@ -1,9 +1,15 @@
-/* Übergabe ist eine eigene, klar beschriftete Ansicht innerhalb des Studiofensters. */
+/* Übergabe als fokussierter Arbeitsschritt im unveränderten nativen Fenster. */
 #studio-panel.show-handover > .studio-workspace { display:none; }
-#handover-open { display:flex; align-items:center; justify-content:center; gap:8px; flex:1 0 100%; width:100%; margin:0; min-height:44px; border-color:var(--line); }
+#studio-panel.show-handover > .compact-tabs { display:none; }
+#handover-open { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin:0; min-height:44px; border-color:#a58c52; background:#8c79500a; }
 #handover-open svg { width:18px; height:18px; }
-.handover-panel { padding:16px; }
-.handover-panel h2 { font-size:22px; margin:4px 0 12px; }
-.handover-description { margin:0 0 16px; color:var(--muted); font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
+.handover-panel { padding:24px; border:1px solid var(--line); border-radius:14px; background:var(--management-card); }
+.handover-heading { display:flex; align-items:center; gap:14px; margin-bottom:20px; }
+.handover-symbol { display:grid; place-items:center; width:44px; height:44px; border:1px solid #8c7950; border-radius:10px; color:var(--gold-ink); font-size:26px; flex-shrink:0; }
+.handover-panel h2 { font-size:22px; margin:4px 0 0; overflow-wrap:anywhere; }
+.handover-description { margin:0 0 20px; color:var(--muted); font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
 .handover-panel select { width:100%; }
+#handover-topic { margin-bottom:6px; }
+#handover-topic-help { margin:0; font-size:12px; }
 #handover-back { margin-top:16px; }
+@media (max-width:600px) { .handover-panel { padding:16px; } }

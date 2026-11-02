@@ -4,7 +4,7 @@ MischWerkModules.createRuntime = function (config) {
     var runtime = {
         key: 'mischwerk.state.v1',
         pageSize: 1,
-        radioModeratorPageSize: 5,
+        radioModeratorPageSize: 3,
         maxReplayEntries: 100,
         emergencyReplayEntries: 20
     };

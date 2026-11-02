@@ -6,6 +6,41 @@ MischWerkUI.define('team', function (dependencies) {
   var commands = dependencies.commands;
   var signals = dependencies.signals;
   var rendered = null;
+  var removal = null;
+  function closeRemoval() {
+    if (!removal || commands.pending()) { return; }
+    var button = removal.button;
+    removal.box.remove(); removal = null;
+    button.setAttribute('aria-expanded', 'false');
+    button.removeAttribute('aria-controls');
+    if (button.isConnected) { button.focus(); }
+  }
+  function confirmRemoval(item, row, button) {
+    if (button.disabled) { return; }
+    if (removal && removal.button === button) { closeRemoval(); return; }
+    closeRemoval();
+    var box = dom.element('div', 'team-member-confirm');
+    box.id = 'team-removal-confirm';
+    box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Studiozugriff entziehen');
+    box.appendChild(dom.element('p', '', item.nick + ' den Studiozugriff entziehen? Eine aktive Moderation dieser Person wird beendet.'));
+    var actions = dom.element('div', 'button-row');
+    var feedback = dom.element('p', 'team-removal-feedback');
+    feedback.setAttribute('role', 'status'); feedback.hidden = true;
+    var confirm = dom.element('button', 'primary-button', 'Zugriff entziehen');
+    var cancel = dom.element('button', 'secondary-button', 'Abbrechen');
+    confirm.type = cancel.type = 'button';
+    confirm.dataset.confirmRemoval = String(item.userId);
+    confirm.addEventListener('click', function () {
+      if (this.disabled) { return; }
+      commands.send('mw:removeRadioModerator', { userId: item.userId }, true);
+    });
+    cancel.addEventListener('click', closeRemoval);
+    box.addEventListener('keydown', function (event) { if (event.key === 'Escape') { event.preventDefault(); closeRemoval(); } });
+    actions.appendChild(confirm); actions.appendChild(cancel); box.appendChild(actions); box.appendChild(feedback); row.appendChild(box);
+    button.setAttribute('aria-expanded', 'true');
+    button.setAttribute('aria-controls', box.id);
+    removal = { box: box, button: button }; cancel.focus();
+  }
   function renderRadioTeam() {
     var list = dom.el('radio-moderator-list');
     dom.setText('radio-moderator-count', model.current().radioModeratorTotal);
@@ -14,43 +49,65 @@ MischWerkUI.define('team', function (dependencies) {
     var key = JSON.stringify([model.current().user.canManageRadioModerators, model.current().radioModerators]);
     if (key === rendered) { return; }
     rendered = key;
-    var hadFocus = list.contains(document.activeElement);
+    var focusLostDuringRemoval = removal && document.activeElement === document.body;
+    var focusedRow = (focusLostDuringRemoval ? removal.button : document.activeElement).closest('.team-member');
+    var focusedId = focusedRow && focusedRow.dataset.memberId;
+    var hadFocus = list.contains(document.activeElement) || focusLostDuringRemoval;
+    removal = null;
     list.textContent = '';
-    if (hadFocus && model.current().user.canManageRadioModerators) { dom.el('radio-moderator-nick').focus(); }
     if (!model.current().user.canManageRadioModerators) { return; }
     if (!model.current().radioModerators.length) {
       list.appendChild(dom.element('p', 'empty-copy', 'Noch keine Radiomoderatoren ernannt.'));
+      if (hadFocus) { dom.el('team-list-heading').focus(); }
       return;
     }
     model.current().radioModerators.forEach(function (item) {
       var row = dom.element('div', 'team-member');
-      row.appendChild(dom.element('strong', '', item.nick));
+      row.dataset.memberId = String(item.userId);
+      var copy = dom.element('div', 'team-member-copy');
+      copy.appendChild(dom.element('strong', '', item.nick));
+      copy.appendChild(dom.element('span', 'team-member-role', 'Radiomoderation'));
+      row.appendChild(copy);
       var button = dom.element('button', 'secondary-button', 'Entfernen');
       button.type = 'button';
       button.dataset.radioModeratorId = String(item.userId);
       button.title = item.nick + ' den Studiozugriff entziehen';
+      button.setAttribute('aria-label', item.nick + ' entfernen');
+      button.setAttribute('aria-expanded', 'false');
       button.addEventListener('click', function () {
-        commands.send('mw:removeRadioModerator', { userId: item.userId }, true);
+        confirmRemoval(item, row, button);
       });
       row.appendChild(button);
       list.appendChild(row);
     });
+    if (hadFocus) {
+      var replacement = Array.prototype.find.call(list.querySelectorAll('[data-radio-moderator-id]'), function (button) {
+        return button.dataset.radioModeratorId === focusedId;
+      });
+      (replacement || dom.el('team-list-heading')).focus();
+    }
   }
   
   function availability() {
     if (!model.current()) { return; }
     var live = model.connected();
     dom.el('radio-moderator-nick').disabled = !!commands.pending() || !live || !model.current().user.canManageRadioModerators;
-    dom.el('add-radio-moderator').disabled = dom.el('radio-moderator-nick').disabled;
+    dom.el('add-radio-moderator').disabled = dom.el('radio-moderator-nick').disabled || !dom.el('radio-moderator-nick').value.trim();
     dom.el('refresh-radio-team').disabled = !!commands.pending() || !model.current().user.canManageRadioModerators;
     dom.el('prev-radio-moderator-page').disabled = !live || !!commands.pending() || !model.current().user.canManageRadioModerators || model.current().radioModeratorPage <= 0;
     dom.el('next-radio-moderator-page').disabled = !live || !!commands.pending() || !model.current().user.canManageRadioModerators || model.current().radioModeratorPage >= model.current().radioModeratorPages - 1;
     document.querySelectorAll('[data-radio-moderator-id]').forEach(function (button) {
       button.disabled = !!commands.pending() || !live || !model.current().user.canManageRadioModerators;
     });
+    if (removal) {
+      removal.box.querySelectorAll('button').forEach(function (button) {
+        button.disabled = !!commands.pending() || !live || !model.current().user.canManageRadioModerators;
+      });
+    }
   
   }
   function start() {
+    dom.el('radio-moderator-nick').addEventListener('input', availability);
     dom.el('radio-moderator-form').addEventListener('submit', function (event) {
       event.preventDefault();
       if (dom.el('add-radio-moderator').disabled || !this.reportValidity()) { return; }
@@ -62,6 +119,12 @@ MischWerkUI.define('team', function (dependencies) {
   
     signals.on('command-result', function (response) {
       if (response.ok && response.action === 'mw:addRadioModerator') { dom.el('radio-moderator-form').reset(); }
+      if (!response.ok && response.action === 'mw:removeRadioModerator' && removal) {
+        var feedback = removal.box.querySelector('.team-removal-feedback');
+        feedback.textContent = response.message || 'Studiozugriff konnte nicht entzogen werden.'; feedback.hidden = false;
+        availability();
+        if (document.activeElement === document.body) { removal.box.querySelector('[data-confirm-removal]').focus(); }
+      }
     });
   }
   return { start: start, render: renderRadioTeam, availability: availability };

@@ -42,6 +42,7 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
             myPage: 0,
             myPages: 1,
             requestFeedback: null,
+            wishPositions: runtime.wishPositions(user, myPage),
             queue: mod ? requests.slice(page * runtime.pageSize, (page + 1) * runtime.pageSize).map(runtime.requestView) : [],
             queueTotal: mod ? requests.length : 0,
             radioModerators: radioTeam.items,

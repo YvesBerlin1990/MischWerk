@@ -18,7 +18,8 @@ MischWerkUI.define('provider', function (dependencies) {
   var providerStatus = 'unknown';
   var lastSong = null;
   function canReadMetadata() {
-    return metadataStation && !document.hidden && providerStatus !== 'checking' && providerStatus !== 'stopped';
+    var urls = api.streamUrls(metadataStation);
+    return urls && !!urls.metadata && !document.hidden && providerStatus !== 'checking' && providerStatus !== 'stopped';
   }
   function pollMetadata() {
     clearTimeout(metadataTimer);
@@ -29,7 +30,7 @@ MischWerkUI.define('provider', function (dependencies) {
     var pending = api.fetchMetadata(metadataStation).then(function (song) {
       if (!current()) { return; }
       presentation.renderSong(song); lastSong = song;
-      dom.setText('metadata-status', 'Titelanzeige von RadioKing · zuletzt aktualisiert um ' + dom.time(Date.now()) + '. Titel und Audio können zeitversetzt sein.');
+      dom.setText('metadata-status', 'Titelanzeige von STREAMPANEL · zuletzt aktualisiert um ' + dom.time(Date.now()) + '. Titel und Audio können zeitversetzt sein.');
     }).catch(function () {
       if (!current()) { return; }
       retry = STATUS_INTERVAL;
@@ -50,12 +51,14 @@ MischWerkUI.define('provider', function (dependencies) {
     if (status === 'stopped') {
       clearTimeout(metadataTimer); metadataRevision += 1; metadataRequest = null;
       lastSong = null; presentation.renderSong(null);
-      dom.setText('metadata-status', 'Sender bei RadioKing gestoppt. Automatische Prüfung alle 30 Sekunden.');
+      dom.setText('metadata-status', 'Sender bei STREAMPANEL gestoppt. Automatische Prüfung alle 30 Sekunden.');
     } else if (previous === 'checking' || previous === 'stopped') { pollMetadata(); }
   }
   function pollStatus() {
     clearTimeout(statusTimer);
     if (!metadataStation || document.hidden) { return Promise.resolve(); }
+    var urls = api.streamUrls(metadataStation);
+    if (!urls || !urls.status) { applyProviderStatus('unknown'); return Promise.resolve(); }
     if (statusRequest) { return statusRequest; }
     var selected = generation;
     var pending = api.fetchProviderStatus(metadataStation).then(function (status) {
@@ -81,7 +84,7 @@ MischWerkUI.define('provider', function (dependencies) {
     metadataRequest = null; statusRequest = null;
   }
   function selectStation(oldStation) {
-    var radioUrls = api.radioKingUrls(model.current().station);
+    var radioUrls = api.streamUrls(model.current().station);
     dom.el('play-button').disabled = !radioUrls;
     if (radioUrls && model.view === 'radio') {
       dom.el('station-link').hidden = false; dom.el('station-link').href = radioUrls.stream;

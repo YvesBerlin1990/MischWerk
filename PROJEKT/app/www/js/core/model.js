@@ -5,6 +5,7 @@ MischWerkUI.define('model', function (dependencies) {
   var signals = dependencies.signals;
   var state = null;
   var lastStateAt = 0;
+  var retiredWishGenerations = [];
   var initialView = bridge && bridge.pageData && bridge.pageData.view;
   var view = initialView === 'wishes' || initialView === 'studio' || initialView === 'team' || initialView === 'schedule' ? initialView : 'radio';
   document.documentElement.setAttribute('data-view', view);
@@ -15,6 +16,17 @@ MischWerkUI.define('model', function (dependencies) {
     if (state && typeof state.revision === 'number' && typeof next.revision === 'number' && next.revision < state.revision) { return; }
     if (state && state.handover && next.handover && next.handover.revision < state.handover.revision) { return; }
     var oldStation = state && JSON.stringify(state.station);
+    var previousPositions = state && state.wishPositions;
+    var nextPositions = next.wishPositions;
+    if (previousPositions && nextPositions) {
+      if (retiredWishGenerations.indexOf(nextPositions.generation) !== -1 ||
+          (previousPositions.generation === nextPositions.generation && nextPositions.revision < previousPositions.revision)) {
+        next.wishPositions = previousPositions;
+      } else if (previousPositions.generation !== nextPositions.generation) {
+        retiredWishGenerations.push(previousPositions.generation);
+        if (retiredWishGenerations.length > 8) { retiredWishGenerations.shift(); }
+      }
+    }
     next.radioModerators = Array.isArray(next.radioModerators) ? next.radioModerators : [];
     next.radioModeratorTotal = typeof next.radioModeratorTotal === 'number' ? next.radioModeratorTotal : next.radioModerators.length;
     next.radioModeratorPage = typeof next.radioModeratorPage === 'number' ? next.radioModeratorPage : 0;

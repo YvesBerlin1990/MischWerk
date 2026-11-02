@@ -10,7 +10,7 @@
     ['curtainMarkup', 'radio/curtain-markup.js', 'radio'],
     ['curtain', 'radio/curtain.js', 'radio'],
     ['viewport', 'radio/viewport.js', 'radio'],
-    ['wishesMarkup', 'wishes/markup.js', 'wishes'],
+    ['wishesMarkup', 'wishes/markup.js', 'wishes radio'],
     ['studioMarkup', 'studio/markup.js', 'studio'],
     ['handoverMarkup', 'studio/handover-markup.js', 'studio'],
     ['teamMarkup', 'team/markup.js', 'team'],
@@ -23,7 +23,9 @@
     ['listeners', 'radio/listeners.js', 'radio'],
     ['volume', 'radio/volume.js', 'radio'],
     ['player', 'radio/player.js', 'radio'],
-    ['wishes', 'wishes/wishbox.js', 'wishes'],
+    ['wishes', 'wishes/wishbox.js', 'wishes radio'],
+    ['wishPositions', 'wishes/positions.js', 'wishes radio'],
+    ['wishDrawer', 'wishes/drawer.js', 'radio wishes'],
     ['studio', 'studio/controls.js', 'studio'],
     ['handover', 'studio/handover.js', 'studio'],
     ['queue', 'studio/queue.js', 'studio'],
@@ -84,7 +86,11 @@
     var curtain = null;
     if (factories.curtain) { curtain = factories.curtain({ model:model, dom:dom, commands:commands, signals:signals, player:player, audio:audio }); }
     var wishes = null;
-    if (factories.wishes) { wishes = factories.wishes({ bridge: bridge, model: model, dom: dom, layout: layout, commands: commands, signals: signals }); }
+    if (factories.wishes && !(bridge && bridge.pageData && bridge.pageData.wishSurface)) { wishes = factories.wishes({ bridge: bridge, model: model, dom: dom, layout: layout, commands: commands, signals: signals }); }
+    var wishPositions = null;
+    if (factories.wishPositions) { wishPositions = factories.wishPositions({ model: model, dom: dom, layout: layout, commands: commands, signals: signals }); }
+    var wishDrawer = null;
+    if (factories.wishDrawer) { wishDrawer = factories.wishDrawer({ bridge:bridge, model:model, dom:dom, commands:commands, signals:signals }); }
     var studio = null;
     if (factories.studio) { studio = factories.studio({ model: model, dom: dom, layout: layout, commands: commands, signals: signals }); }
     var queue = null;
@@ -124,6 +130,8 @@
     if (player) { player.start(); }
     if (curtain) { curtain.start(); }
     if (wishes) { wishes.start(); }
+    if (wishPositions) { wishPositions.start(); }
+    if (wishDrawer) { wishDrawer.start(); }
     if (studio) { studio.start(); }
     if (handover) { handover.start(); }
     if (queue) { queue.start(); }

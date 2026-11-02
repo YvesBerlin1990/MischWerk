@@ -1,0 +1,15 @@
+{
+  "version": "0.1.117",
+  "files": [
+    {
+      "path": "MischWerk/www/img/mischwerk-logo.png",
+      "bytes": 1343064,
+      "sha256": "52460B961DBD63A6DAC985CC3D031019C2425878C6AC7962E19B6086BC050D0A"
+    },
+    {
+      "path": "MischWerk/www/audio/werbung.mp3",
+      "bytes": 685677,
+      "sha256": "2F28DEBD9E454D332A93FB55B18ED8105EA132AB800221177EFA6EF6FB9D9495"
+    }
+  ]
+}

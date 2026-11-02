@@ -9,10 +9,11 @@ MischWerkUI.define('scheduleWindow', function (dependencies) {
   var timer;
   var lastKey = null;
   var requestedHeight = 0;
+  var popupLimit = null;
   var revealKey = null;
-  function fitWindow() {
+  function fitWindow(initial) {
     if (document.hidden) { return; }
-    if (!document.documentElement.classList.contains('mw-ready')) { return; }
+    if (!document.documentElement.classList.contains('mw-ready') && initial !== true) { return; }
     if (!pages.revision()) { return; }
     var form = dom.el('schedule-form');
     var feedback = dom.el('schedule-feedback');
@@ -29,10 +30,12 @@ MischWerkUI.define('scheduleWindow', function (dependencies) {
     var natural = Math.ceil(shell.getBoundingClientRect().height + bannerHeight);
     var target = natural;
     if (bridge && !bridge.isK3Client()) {
-      var available = window.screen && window.screen.availHeight;
-      // Reserve für native Titelleiste/Taskleiste, innerhalb der dokumentierten Popupmaße.
-      var limit = Math.min(1000, available > 0 ? Math.max(260, available - 80) : window.innerHeight);
-      target = Math.max(50, Math.min(natural, limit));
+      if (popupLimit === null) {
+        var available = window.screen && window.screen.availHeight;
+        // Vor dem ersten Resize festhalten; ein Host-Resize darf seine Grenze nicht verkleinern.
+        popupLimit = Math.max(260, Math.min(1000, available > window.innerHeight ? available - 80 : window.innerHeight));
+      }
+      target = Math.max(50, Math.min(natural, popupLimit));
       if (target !== requestedHeight) {
         try { bridge.getHostFrame().setSize(0, target); requestedHeight = target; }
         catch (error) { /* Der aktuelle Viewport bleibt die verlässliche Platzgrenze. */ }
@@ -59,11 +62,11 @@ MischWerkUI.define('scheduleWindow', function (dependencies) {
     if (model.view !== 'schedule') { return; }
     pages.start();
     signals.on('schedule-content', function (data) { pages.capture(data.week); lastKey = null; request(); });
-    signals.on('schedule-layout', request);
+    signals.on('schedule-layout', function (initial) { if (initial === true) { clearTimeout(timer); fitWindow(true); } else { request(); } });
     signals.on('schedule-reveal', function (key) { revealKey = key; request(); });
     window.addEventListener('resize', request);
     document.addEventListener('visibilitychange', request);
-    window.addEventListener('load', function () { lastKey = null; request(); });
+    window.addEventListener('load', request);
     window.addEventListener('pagehide', function () { clearTimeout(timer); });
     request();
   }

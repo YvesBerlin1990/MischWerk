@@ -1,0 +1,95 @@
+*{box-sizing:border-box}
+ :root{color-scheme:dark;font:14px/1.45 "Segoe UI",Arial,sans-serif;color:#e9e5db;background:#16191c}
+body{margin:0}
+button,input,select,summary{font:inherit}
+button,input,select{min-height:38px;border-radius:7px;border:1px solid #50565c;background:#282d32;color:inherit;padding:7px 10px;max-width:100%}
+button{cursor:pointer;background:linear-gradient(#3d4348,#2d3236);font-weight:600}
+button:hover{border-color:#d7b76a}
+button:disabled{cursor:default;opacity:.5}
+button.primary{background:linear-gradient(#d8b76a,#b99444);color:#17191b;border-color:#ebd9ad}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid #f7d68f;outline-offset:2px}
+a{color:#e7c980}
+h1,h2,p{margin:0}
+h1{font-size:23px;line-height:1.15}
+h1 span{font-weight:400;color:#b8bfc4}
+h2{font-size:15px;font-weight:650;margin-bottom:10px}
+.eyebrow{font-size:10px;letter-spacing:.16em;color:#d3b366}
+.lab-header{min-height:84px;display:flex;align-items:center;gap:22px;padding:16px 24px;border-bottom:1px solid #4a4232;background:#1c2024}
+.connection{margin-left:auto;display:flex;flex-direction:column;min-width:180px;font-size:12px;color:#bfc8ce}
+#connection[data-connected=true]{color:#b2dcae}
+.workspace{display:grid;grid-template-columns:300px minmax(0,1fr);height:calc(100vh - 84px)}
+.controls{overflow:auto;border-right:1px solid #41464b;padding:14px;display:flex;flex-direction:column;gap:12px;background:#1b1f23}
+.controls section{padding:14px 12px;border:1px solid #3c4146;border-radius:10px;background:#21262b}
+.controls label{display:block;font-size:12px;color:#c5cbd0;margin:10px 0 4px}
+.controls input:not([type=checkbox]),.controls select{width:100%;min-width:0}
+.controls input[type=checkbox]{vertical-align:middle;min-height:0;margin:0 5px 0 0}
+.controls button{margin-top:8px;width:100%;font-size:12px}
+.button-row{display:flex;gap:6px}
+.button-row>*{flex:1;min-width:0}
+.width-row{display:grid;grid-template-columns:1fr 95px;gap:6px}
+.hint{font-size:11px;color:#adb6bd;margin-top:10px}
+details{margin-top:12px}
+summary{cursor:pointer;font-size:12px}
+.users{display:grid;gap:5px;margin-top:12px}
+.user-row{font-size:11px;display:flex;gap:6px;align-items:center}
+.user-row::before{content:"";width:7px;height:7px;background:#717980;border-radius:50%}
+.user-row.online::before{background:#a3d598}
+.user-row span:last-child{margin-left:auto;color:#a5b0b8}
+.lab{display:flex;flex-direction:column;min-width:0;min-height:0}
+.stage-toolbar{display:flex;gap:20px;justify-content:space-between;color:#adb7c0;padding:9px 15px;font-size:11px;border-bottom:1px solid #3c4146}
+.stage-scroll{overflow:auto;flex:1;min-height:260px;background:#101315;padding:12px}
+#stage{position:relative;min-height:620px;background:#1a1c20;border:1px solid #47494c;border-radius:6px;overflow:hidden}
+#headerbars iframe{display:block;border:0;width:100%;background:#242424}
+#channel{position:relative;min-height:460px;background:#191c20 url("/media/background.png") center/cover;isolation:isolate}
+#channel::before{content:"";position:absolute;inset:0;background:#11151970;z-index:-1}
+.channel-watermark{padding:12px 18px;letter-spacing:.03em;color:#ada99f;font-size:12px}
+#chat{padding:0 18px 20px;color:#d4d8dc;font-size:13px;max-width:100%;overflow-wrap:anywhere}
+#chat p{padding:5px 0}
+#overlays{position:absolute;top:0;right:0;pointer-events:none}
+#overlays .app-window{pointer-events:auto}
+.app-window{border:1px solid #66665e;background:#242424;overflow:hidden;position:relative}
+.app-window iframe{display:block;border:0;width:100%;height:calc(100% - 30px);background:#242424}
+.app-window.overlay{border-radius:0 0 0 8px}
+.app-window.overlay iframe{height:100%}
+.app-window.popup{position:absolute;top:30px;left:22px;z-index:10;border-radius:9px;resize:both;min-width:200px;min-height:110px;max-width:100%;box-shadow:0 16px 40px #0008}
+.window-title{height:30px;display:flex;align-items:center;gap:10px;padding-left:12px;background:#363a3e;color:#ddd7c9;font-size:12px;cursor:move;touch-action:none}
+.window-title span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.window-title button{min-height:28px;min-width:32px;padding:0;border:0;border-radius:0;background:transparent}
+.window-title button:hover{background:#765044}
+#popups{position:absolute;inset:160px 0 0;pointer-events:none}
+#popups .app-window{pointer-events:auto}
+#chat-form{display:flex;gap:8px;padding:9px 12px;background:#23282d;border-top:1px solid #424950}
+#chat-input{flex:1;min-width:0}
+.diagnostics{flex:0 0 250px;display:flex;flex-direction:column;border-top:1px solid #4c4940;background:#1a1e22;min-height:150px}
+.diagnostic-heading{display:flex;align-items:center;gap:10px;padding:9px 14px}
+.diagnostic-heading h2{margin:0;flex:1}
+.diagnostic-heading select,.diagnostic-heading button{min-height:30px;font-size:12px;padding:3px 8px}
+#notice{color:#efc875;font-size:12px;padding:0 14px;min-height:20px}
+#trace{list-style:none;padding:0 14px 10px;margin:0;overflow:auto;flex:1;font:11px/1.5 Consolas,monospace}
+#trace li{padding:4px 0;border-bottom:1px solid #2d343a;overflow-wrap:anywhere}
+#trace li.error{color:#ff9d90}
+#trace details{margin:2px 0}
+#trace summary{color:#a1b2bf}
+#trace pre{white-space:pre-wrap;max-height:180px;overflow:auto;margin:4px 0;font:inherit}
+#rhino-result{white-space:pre-wrap;max-height:160px;overflow:auto;font-size:10px}
+#clock{font-variant-numeric:tabular-nums}
+@media(max-width:850px){.lab-header{padding:12px;gap:10px;flex-wrap:wrap}
+.lab-header h1{font-size:20px}
+.connection{margin-left:auto;min-width:0}
+.lab-header a{display:none}
+.workspace{grid-template-columns:240px minmax(0,1fr);height:calc(100vh - 84px)}
+.controls{padding:8px}
+.stage-toolbar span:last-child{display:none}
+}
+@media(max-width:580px){.workspace{display:flex;flex-direction:column;height:auto}
+.controls{max-height:300px;flex-direction:row;overflow:auto;border-bottom:1px solid #555}
+.controls section{min-width:245px}
+.lab{min-height:900px}
+.stage-scroll{min-height:600px}
+.lab-header>button{display:none}
+.diagnostic-heading{flex-wrap:wrap}
+}
+
+
+#stage{box-sizing:content-box}
+.app-window{border:0;outline:1px solid #66665e}

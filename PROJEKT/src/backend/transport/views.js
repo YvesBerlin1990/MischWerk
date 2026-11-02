@@ -26,9 +26,13 @@ MischWerkModules.attachViewTransport = function (runtime, config) {
             radioModeratorPage === undefined && view ? view.radioModeratorPage : radioModeratorPage);
         if (view) {
             view.page = next.page;
-            view.myPage = next.myPage;
+            view.myPage = next.wishPositions.page;
             view.radioModeratorPage = next.radioModeratorPage;
             view.queueId = next.queue.length ? next.queue[0].id : null;
+            if (view.kind === 'wishes') {
+                var radio = runtime.getViews().filter(function (item) { return item.content === view.radioContent; })[0];
+                next.wishPresentation = radio ? radio.wishPresentation || null : null;
+            }
         }
         runtime.send(session, 'mw:state', next);
     };

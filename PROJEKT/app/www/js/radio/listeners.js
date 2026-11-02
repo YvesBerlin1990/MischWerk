@@ -1,4 +1,4 @@
-/* Öffentliche RadioKing-Hörerzahl: eigener Abfragetakt ohne Einfluss auf Ton oder Rechte. */
+/* Öffentliche STREAMPANEL-Hörerzahl: eigener Abfragetakt ohne Einfluss auf Ton oder Rechte. */
 MischWerkUI.define('listeners', function (dependencies) {
   'use strict';
   var model = dependencies.model;
@@ -17,15 +17,17 @@ MischWerkUI.define('listeners', function (dependencies) {
     dom.setText('listener-value', value);
     dom.el('listener-count').setAttribute('aria-label', 'Hörer: ' + value);
     dom.el('listener-count').classList.toggle('is-unavailable', count === null && !loading);
-    dom.el('listener-count').title = count === null ? loading ? 'Hörerzahl wird von RadioKing abgerufen.' :
-      'Die RadioKing-Hörerzahl ist gerade nicht verfügbar. Sie wird automatisch erneut geprüft.' :
-      'Hörer: ' + value + '. Aktuelle Hörer des gesamten RadioKing-Senders, nicht nur im Channel. Zuletzt abgerufen um ' +
+    dom.el('listener-count').title = count === null ? loading ? 'Hörerzahl wird von STREAMPANEL abgerufen.' :
+      'Die STREAMPANEL-Hörerzahl ist gerade nicht verfügbar. Sie wird automatisch erneut geprüft.' :
+      'Hörer: ' + value + '. Aktuelle Hörer des gesamten STREAMPANEL-Senders, nicht nur im Channel. Zuletzt abgerufen um ' +
         dom.time(lastCountAt) + '. Automatische Abfrage alle 20 Sekunden; Anbieterwerte können zeitversetzt sein.';
     signals.emit('radio-layout');
   }
   function poll() {
     clearTimeout(timer);
     if (!visible()) { return Promise.resolve(); }
+    var urls = api.streamUrls(station);
+    if (!urls || !urls.listeners) { render(null, false); return Promise.resolve(); }
     if (request) { return request; }
     if (lastCountAt && Date.now() - lastCountAt >= 60000) { render(null, true); }
     var selected = generation, interval = 20000;
@@ -57,7 +59,7 @@ MischWerkUI.define('listeners', function (dependencies) {
     if (key === stationKey) { return; }
     dispose();
     stationKey = key;
-    station = api.radioKingUrls(next) ? next : null;
+    station = api.streamUrls(next) ? next : null;
     lastCountAt = 0;
     render(null, !!station);
     poll();

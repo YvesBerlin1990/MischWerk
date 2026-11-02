@@ -25,7 +25,7 @@
   .bar-logo { width:80px; height:80px; }
   .radio-brand > span { display:block; font-size:20px; font-weight:600; }
   .transport { grid-column:1; grid-row:2; align-self:start; gap:6px; }
-  .listener-count { max-width:calc(100% + 16px); padding:3px 4px; }
+  .listener-count { max-width:calc(100% + 16px); padding:0; }
   .listener-caption { display:none; }
   .listener-icon { display:block; width:14px; height:14px; }
   .play-button { --play-symbol-size:32px; width:72px; height:72px; }

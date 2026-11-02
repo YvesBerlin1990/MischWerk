@@ -1,12 +1,31 @@
-/* Ernennung und Mitgliederliste, ohne wiederholten Fenstertitel. */
-.team-intro-card { border-color:#70654d; }
-.team-intro-card > .eyebrow { display:none; }
-.team-intro-card .form-hint { margin:12px 0 0; }
-.team-add-form { margin:0; }
+/* Ernennung, übersichtliche Mitgliederzeilen und Bestätigung am betroffenen Mitglied. */
+.team-intro-card,.team-list-card { padding:20px; border:1px solid var(--line); border-radius:14px; background:var(--management-card); }
+.team-section-heading .eyebrow { color:var(--gold-ink); font-size:12px; font-weight:600; letter-spacing:.1em; }
+.team-section-heading h2 { margin:4px 0 0; font-size:21px; font-weight:650; letter-spacing:-.02em; overflow-wrap:anywhere; }
+.team-add-form { margin-top:18px; }
 .team-add-form > label { margin-bottom:8px; }
-.team-list-card { margin-top:14px; }
-.team-list { display:grid; grid-template-columns:1fr; gap:8px; }
-.team-member { display:flex; justify-content:space-between; align-items:center; gap:12px; min-width:0; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#292929; }
-.team-member strong { min-width:0; overflow-wrap:anywhere; font-size:16px; font-weight:600; }
-.team-member button { flex-shrink:0; }
-.team-list > .empty-copy { padding:16px; border-radius:10px; background:var(--surface); }
+.team-add-row { display:flex; align-items:stretch; gap:8px; }
+.team-add-row input { flex:1; margin:0; background:var(--input); border-color:#6d6657; }
+.team-add-row button { flex-shrink:0; }
+.team-intro-card .form-hint { margin-top:10px; font-size:13px; }
+.team-list-card { margin-top:16px; background:var(--management-card); }
+.team-list-card .list-heading { flex-wrap:nowrap; align-items:center; margin-bottom:16px; }
+.team-list-card .list-heading > div { min-width:0; }
+.team-list-card .count-badge { display:inline-block; margin-left:4px; padding:2px 7px; border-radius:6px; background:#1b1b17; color:var(--gold-ink); font-variant-numeric:tabular-nums; font-size:14px; }
+.team-list-card .icon-button { border-color:#6d6654; }
+.team-list { display:grid; grid-template-columns:minmax(0,1fr); }
+.team-member { display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; gap:10px 12px; min-width:0; padding:14px 0; border-top:1px solid var(--line); }
+.team-member:first-child { padding-top:0; border-top:0; }
+.team-member:last-child { padding-bottom:0; }
+.team-member-copy { flex:1; min-width:100px; }
+.team-member strong { display:block; overflow-wrap:anywhere; font-size:16px; font-weight:600; }
+.team-member-role { display:block; color:var(--muted); font-size:12px; margin-top:3px; }
+.team-member > button { flex-shrink:0; background:transparent; font-size:13px; }
+.team-member-confirm { flex:1 0 100%; min-width:0; padding:12px; border:1px solid #b96e65; border-radius:8px; background:#392a28; }
+.team-member-confirm p { margin:0 0 10px; font-size:13px; overflow-wrap:anywhere; }
+.team-member-confirm .button-row { margin:0; }
+.team-member-confirm .team-removal-feedback { margin:10px 0 0; color:var(--error); }
+.team-list > .empty-copy { padding:24px 12px; border:1px dashed #59554c; border-radius:10px; text-align:center; font-size:14px; }
+.team-owner-note { margin:14px 4px 0; color:var(--muted); font-size:12px; line-height:1.5; }
+@media (max-width:600px) { .team-intro-card,.team-list-card { padding:16px; } }
+@media (max-width:380px) { .team-add-row { flex-direction:column; } .team-add-row button { align-self:stretch; } }

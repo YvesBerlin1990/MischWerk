@@ -14,18 +14,18 @@ MischWerkUI.define('player', function (dependencies) {
   var playbackAttempt = 0;
   var streamPhase = 'ready';
   function renderStreamStatus() {
-    var urls = model.current() && api.radioKingUrls(model.current().station);
+    var urls = model.current() && api.streamUrls(model.current().station);
     var offline = provider.status() === 'stopped';
     var checking = provider.status() === 'checking';
     var label = !model.current() ? 'Verbinde …' : !urls ? 'In Vorbereitung' : offline ? 'Sendepause' : streamPhase === 'playing' ? 'LIVE' : streamPhase === 'connecting' ? 'Verbinden' : checking ? 'Prüfe …' : streamPhase === 'error' ? 'Streamfehler' : !model.connected() ? 'Getrennt' : provider.status() === 'unknown' ? 'Status unbekannt' : streamPhase === 'stopped' ? 'Gestoppt' : 'Bereit';
     dom.setText('stream-label', label);
-    var description = !urls ? 'Der RadioKing-Hörerstream ist noch nicht eingerichtet.' : offline ? 'Der Sender ist bei RadioKing gestoppt. Automatische Prüfung alle 30 Sekunden.' : checking ? 'Der Senderstatus bei RadioKing wird geprüft.' : provider.status() === 'unknown' && streamPhase !== 'playing' ? 'Senderstatus momentan nicht prüfbar. Du kannst die Wiedergabe versuchen.' : 'Status deiner Radio-Wiedergabe: ' + label;
+    var description = !urls ? 'Der STREAMPANEL-Hörerstream ist noch nicht eingerichtet.' : offline ? 'Der Sender ist bei STREAMPANEL gestoppt. Automatische Prüfung alle 30 Sekunden.' : checking ? 'Der Senderstatus bei STREAMPANEL wird geprüft.' : provider.status() === 'unknown' && streamPhase !== 'playing' ? 'Senderstatus momentan nicht prüfbar. Du kannst die Wiedergabe versuchen.' : 'Status deiner Radio-Wiedergabe: ' + label;
     dom.el('stream-badge').title = description;
     dom.el('play-button').disabled = model.view !== 'radio' || !urls || offline || (checking && !wantedPlayback);
     dom.el('play-button').setAttribute('aria-disabled', String(dom.el('play-button').disabled));
     dom.el('play-button').classList.toggle('is-offline', !!urls && offline);
     dom.el('play-button').title = description;
-    dom.el('play-button').setAttribute('aria-label', offline ? 'Radio pausiert: Sender bei RadioKing gestoppt' : checking ? 'Senderstatus wird geprüft' : wantedPlayback ? 'Radio stoppen' : 'Radio abspielen');
+    dom.el('play-button').setAttribute('aria-label', offline ? 'Radio pausiert: Sender bei STREAMPANEL gestoppt' : checking ? 'Senderstatus wird geprüft' : wantedPlayback ? 'Radio stoppen' : 'Radio abspielen');
     dom.el('stream-badge').classList.toggle('is-idle', label !== 'LIVE');
     document.body.classList.toggle('playing', streamPhase === 'playing');
   }
@@ -58,7 +58,7 @@ MischWerkUI.define('player', function (dependencies) {
     clearTimeout(playbackTimer); playbackTimer = setTimeout(playbackFailed, 20000);
     function playResolvedStream() {
       if (!wantedPlayback || attempt !== playbackAttempt) { return; }
-      var source = api.radioKingUrls(model.current() && model.current().station);
+      var source = api.streamUrls(model.current() && model.current().station);
       if (!source) { playbackFailed(); return; }
       audio.src = source.stream;
       try {
@@ -88,7 +88,7 @@ MischWerkUI.define('player', function (dependencies) {
   
   function start() {
     dom.el('play-button').addEventListener('click', function () {
-      if (!model.current() || !api.radioKingUrls(model.current().station) || dom.el('play-button').disabled || provider.status() === 'stopped') { return; }
+      if (!model.current() || !api.streamUrls(model.current().station) || dom.el('play-button').disabled || provider.status() === 'stopped') { return; }
       if (wantedPlayback) { stopPlayback(); dom.setText('playback-status', 'Gestoppt. Dein Mix wartet auf dich.'); return; }
       startPlayback();
     });
@@ -101,7 +101,7 @@ MischWerkUI.define('player', function (dependencies) {
     signals.on('provider-status', function (change) {
       if (change.status === 'stopped') {
         if (change.previous !== 'stopped' || wantedPlayback) { stopPlayback(); }
-        dom.setText('playback-status', 'RadioKing meldet den Sender als gestoppt. Der Status wird automatisch erneut geprüft.');
+        dom.setText('playback-status', 'STREAMPANEL meldet den Sender als gestoppt. Der Status wird automatisch erneut geprüft.');
       } else if (change.previous === 'stopped') {
         streamPhase = 'ready';
         dom.setText('playback-status', change.status === 'started' ? 'Der Sender ist wieder bereit. Drücke Play zum Zuhören.' : 'Senderstatus nicht prüfbar. Du kannst die Wiedergabe versuchen.');

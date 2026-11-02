@@ -12,9 +12,13 @@ MischWerkUI.define('statusView', function (dependencies) {
   function current(item) { return item && item.kind === 'ready' && Date.now() - item.at < 90000; }
   function stamp(item) { return 'Geprüft um ' + new Date(item.at).toLocaleTimeString('de-DE') + ' Uhr.'; }
   function remoteCard(name, item, configured) {
-    if (!configured) { card(name, 'Nicht eingerichtet', 'Es fehlt eine gültige RadioKing-Senderkonfiguration.'); return false; }
+    if (!configured) { card(name, 'Nicht eingerichtet', 'Es fehlt eine gültige STREAMPANEL-Senderkonfiguration.'); return false; }
+    var station = model.current().station;
+    var source = name === 'transmission' ? station.statusUrl && station.fields.status :
+      name === 'metadata' ? station.metadataUrl && (station.fields.title || station.fields.artist) : station.listenersUrl && station.fields.listeners;
+    if (!source) { card(name, 'Noch nicht angebunden', 'Die öffentliche Datenquelle ist noch nicht eingerichtet.'); return false; }
     if (!model.connected()) { card(name, 'Nicht aktuell', 'Anbieterprüfung pausiert, bis die App-Verbindung bestätigt ist.', 'error'); return false; }
-    if (!item) { card(name, 'Prüfe …', 'Öffentliche RadioKing-Daten werden abgerufen.'); return false; }
+    if (!item) { card(name, 'Prüfe …', 'Öffentliche STREAMPANEL-Daten werden abgerufen.'); return false; }
     if (item.kind === 'paused') { card(name, 'Sendepause', 'Kein Titelabruf bei bestätigtem Senderstopp. ' + stamp(item)); return false; }
     if (!current(item)) {
       card(name, item.kind === 'error' ? 'Nicht erreichbar' : 'Nicht aktuell',
@@ -49,30 +53,30 @@ MischWerkUI.define('statusView', function (dependencies) {
         'Öffentlicher Senderstatus; kein Audio-Test. ' + stamp(transmission), transmission.value === 'started' ? 'ok' : transmission.value === 'stopped' ? 'error' : 'neutral');
     }
     if (remoteCard('listeners', remote.listeners, configured)) {
-      card('listeners', remote.listeners.value.toLocaleString('de-DE'), 'Öffentliche RadioKing-Hörerzahl. ' + stamp(remote.listeners), 'ok');
+      card('listeners', remote.listeners.value.toLocaleString('de-DE'), 'Öffentliche STREAMPANEL-Hörerzahl. ' + stamp(remote.listeners), 'ok');
     }
     if (remoteCard('metadata', song, configured)) {
       var text = [song.value.title, song.value.artist.name].filter(Boolean).join(' · ');
-      card('metadata', text ? 'Erreichbar' : 'Keine Titelangaben', (text ? text + '. ' : 'RadioKing liefert derzeit keinen Titel. ') + stamp(song), text ? 'ok' : 'neutral');
+      card('metadata', text ? 'Erreichbar' : 'Keine Titelangaben', (text ? text + '. ' : 'STREAMPANEL liefert derzeit keinen Titel. ') + stamp(song), text ? 'ok' : 'neutral');
     }
     var mode = 'Status unbekannt', detail = 'LIVE/AutoDJ ist derzeit nicht bestätigt.', tone = 'neutral', warning = '';
-    if (!configured) { mode = 'Nicht eingerichtet'; detail = 'RadioKing-Senderkonfiguration fehlt.'; }
+    if (!configured) { mode = 'Nicht eingerichtet'; detail = 'STREAMPANEL-Senderkonfiguration fehlt.'; }
     else if (current(transmission) && transmission.value === 'stopped') {
-      mode = 'Sendepause'; detail = 'RadioKing meldet den Sender als gestoppt.'; tone = 'error';
+      mode = 'Sendepause'; detail = 'STREAMPANEL meldet den Sender als gestoppt.'; tone = 'error';
       if (connected && state.moderator) { warning = 'Im Studio ist noch eine Moderation ON AIR angemeldet.'; }
     } else if (current(transmission) && transmission.value === 'started' && current(song) && typeof song.value.isLive === 'boolean') {
       mode = song.value.isLive ? 'LIVE' : 'AutoDJ'; tone = song.value.isLive ? 'gold' : 'ok';
-      detail = 'Laut aktueller RadioKing-Titelkennzeichnung. ' + stamp(song);
+      detail = 'Laut aktueller STREAMPANEL-Titelkennzeichnung. ' + stamp(song);
       if (connected && song.value.isLive !== !!state.moderator) {
-        warning = song.value.isLive ? 'RadioKing meldet LIVE; im Studio ist niemand ON AIR angemeldet.' :
-          'RadioKing meldet AutoDJ laut Titelstatus; im Studio ist eine Moderation ON AIR angemeldet. Encoderverbindung prüfen.';
+        warning = song.value.isLive ? 'STREAMPANEL meldet LIVE; im Studio ist niemand ON AIR angemeldet.' :
+          'STREAMPANEL meldet AutoDJ laut Titelstatus; im Studio ist eine Moderation ON AIR angemeldet. Encoderverbindung prüfen.';
       }
     }
     card('mode', mode, detail, tone);
     dom.setText('status-mode-warning', warning); dom.el('status-mode-warning').hidden = !warning;
     dom.el('refresh-status').disabled = running;
     dom.setText('refresh-status', running ? 'Prüfe …' : 'Jetzt prüfen');
-    dom.setText('status-refresh-note', !configured ? 'Für die automatische Prüfung muss RadioKing eingerichtet sein.' :
+    dom.setText('status-refresh-note', !configured ? 'Für die automatische Prüfung muss STREAMPANEL eingerichtet sein.' :
       !connected ? 'Die automatische Prüfung pausiert, bis die App-Verbindung wiederhergestellt ist.' :
       'Automatische Aktualisierung: 30 Sekunden nach der letzten abgeschlossenen Prüfung, bei Abruffehlern nach 60 Sekunden.');
   }

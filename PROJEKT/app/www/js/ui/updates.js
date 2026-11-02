@@ -52,7 +52,6 @@ MischWerkUI.define('updates', function (dependencies) {
     if (listeners) { listeners.selectStation(); }
     if (presentation) { presentation.renderTopic(); }
     if (studio) {
-      dom.setText('studio-host', state.moderator ? state.moderator.nick + ' ist am Mikrofon' : 'Keine Moderation angemeldet');
       studio.renderTopic();
     }
     if (queue) { queue.render(); }

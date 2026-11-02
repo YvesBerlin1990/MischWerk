@@ -1,9 +1,33 @@
+/* Verwaltungsfenster im Material- und Farbstil der Radioleiste; Geometrie unverändert. */
+html:is([data-view=studio],[data-view=team]) { --dialog-logo:64px; --dialog-title:28px; --dialog-gap:14px; --management-material:repeating-radial-gradient(circle at -20px 50%,transparent 0 13px,#ead7ac12 14px 15px,transparent 16px 25px),radial-gradient(ellipse at 0% 80%,#d3a44440,transparent 48%),radial-gradient(ellipse at 100% 10%,#acbbc32e,transparent 46%),repeating-linear-gradient(115deg,#ffffff06 0 1px,transparent 1px 9px),linear-gradient(110deg,#39352d,#262929 52%,#343b3e); --management-card:radial-gradient(ellipse at 0% 0%,#d3a44414,transparent 55%),radial-gradient(ellipse at 100% 0%,#acbbc310,transparent 50%),repeating-linear-gradient(115deg,#ffffff03 0 1px,transparent 1px 9px),linear-gradient(120deg,#ffffff06,transparent 60%),#202020; }
+html:is([data-view=studio],[data-view=team]) .dialog-shell { padding:20px; }
+html:is([data-view=studio],[data-view=team]) .dialog-header { position:relative; isolation:isolate; padding:0 0 14px; margin-bottom:14px; border:0; border-bottom:1px solid #6d6654; border-radius:0; background:transparent; }
+html:is([data-view=studio],[data-view=team]) .dialog-header::before { content:""; position:absolute; z-index:-1; inset:-6px -6px 6px; pointer-events:none; border:1px solid #73664f; border-radius:12px; background-color:#272828; background-image:var(--management-material); }
+html:is([data-view=studio],[data-view=team]) .dialog-heading > .eyebrow { font-size:12px; font-weight:400; letter-spacing:.03em; text-transform:none; }
+html:is([data-view=studio],[data-view=team]) .dialog-heading h1 { letter-spacing:-.03em; }
+html:is([data-view=studio],[data-view=team]) .pill { border-color:#625d52; background:#202020a6; color:var(--muted); }
+html:is([data-view=studio],[data-view=team]) .pill.connection-lost { border-color:#b96e65; background:#392a28; color:var(--error); }
+html:is([data-view=studio],[data-view=team]) :is(.primary-button,.secondary-button,.icon-button) { border-radius:10px; }
+html:is([data-view=studio],[data-view=team]) .primary-button { --nav-light:#ffda72; --nav-shade:#dba022; border-color:#b98d32; background-color:var(--gold); background-image:linear-gradient(115deg,#fff1c426,transparent 50%),repeating-linear-gradient(115deg,#fff1c414 0 1px,transparent 1px 9px),linear-gradient(180deg,var(--nav-light),var(--gold) 58%,var(--nav-shade)); color:var(--surface); }
+html:is([data-view=studio],[data-view=team]) .primary-button:hover:enabled { --nav-light:#ffe798; --nav-shade:#e6ae30; border-color:#fff3bd #d9b15a #a87714; }
+/* Derselbe Rotverlauf wie Moderation/Radio-Team in radio-actions.css. */
+html:is([data-view=studio],[data-view=team]) :is(#off-air,[data-confirm-removal],.team-member > button) { --studio-light:#b83e43; --studio-shade:#8f272e; border-color:#d85a5f; background-color:#bf3d40; background-image:repeating-linear-gradient(115deg,#621e290f 0 1px,transparent 1px 9px),linear-gradient(180deg,var(--studio-light),#bf3d40 58%,var(--studio-shade)); color:var(--text); }
+html:is([data-view=studio],[data-view=team]) :is(#off-air,[data-confirm-removal],.team-member > button):hover:enabled { --studio-light:#bd4145; --studio-shade:#a33239; border-color:#ffd6cc #e58c90 #8f272e; }
+/* Plastische Tasten ausschließlich durch Verlauf und Lichtkante, ohne Schatten. */
+html:is([data-view=studio],[data-view=team]) :is(body,.dialog-header,.card,button:enabled,button:disabled,button:active:enabled) { box-shadow:none; text-shadow:none; }
+html:is([data-view=studio],[data-view=team]) body { outline:1px solid #8c795099; outline-offset:-1px; }
+html:is([data-view=studio],[data-view=team]) .primary-button { border-color:#fff3bd #b98d32 #96650f #d9b15a; }
+html:is([data-view=studio],[data-view=team]) .primary-button:active:enabled { --nav-light:#e4a524; --nav-shade:#ffd774; border-color:#96650f #b98d32 #fff3bd; }
+html:is([data-view=studio],[data-view=team]) .secondary-button:not(#off-air):not(.team-member > button) { border-color:#8c7950 #6a6254 #39352d; background-image:linear-gradient(180deg,#42413b,#292929 58%,#22221f); }
+html:is([data-view=studio],[data-view=team]) .secondary-button:not(#off-air):not(.team-member > button):hover:enabled { border-color:#b4a078 #a58c52 #4b4438; background-image:linear-gradient(180deg,#4a463c,#37342d 58%,#29261f); }
+html:is([data-view=studio],[data-view=team]) :is(#off-air,[data-confirm-removal],.team-member > button) { border-color:#ffd6cc99 #d85a5f #681c28; }
+html:is([data-view=studio],[data-view=team]) :is(#off-air,[data-confirm-removal],.team-member > button):active:enabled { --studio-light:#922b32; --studio-shade:#c7474b; border-color:#681c28 #d85a5f #ffd6cc99; }
 /* Tabs bei knapper Höhe; verbleibende Inhalte bleiben sichtbar scrollbar. */
 .compact-tabs { display:none; }
 #studio-panel.fit-tabs .compact-tabs { display:flex; }
-.compact-tabs { gap:4px; margin-bottom:14px; padding:4px; border:1px solid #625b4e; border-radius:12px; background:#20202099; }
+.compact-tabs { gap:0; margin-bottom:16px; padding:0; border:0; border-bottom:1px solid #6d6654; border-radius:0; background:transparent; }
 .compact-tabs button { flex:1; min-height:44px; padding:8px 12px; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--muted); font-size:14px; }
-.compact-tabs button[aria-pressed=true] { border-color:#b98d32; color:var(--surface); background-color:var(--gold); background-image:var(--button-gold); box-shadow:inset 0 1px 0 #fff3bd99; }
+.compact-tabs button[aria-pressed=true] { border-color:#b98d32; color:var(--surface); background-color:var(--gold); background-image:var(--button-gold); }
 #studio-panel.fit-tabs:not(.show-queue) .studio-queue,#studio-panel.fit-tabs.show-queue .studio-setup { display:none; }
 @media (max-width:600px) {
   html[data-view=wishes],html[data-view=studio],html[data-view=team] { --dialog-logo:80px; --dialog-title:28px; --dialog-gap:14px; }
@@ -15,6 +39,9 @@
   .dialog-heading { grid-template-columns:minmax(0,1fr); }
   .dialog-heading h1 { font-size:var(--dialog-title,24px); }
   .dialog-heading > .pill { grid-column:1; grid-row:auto; margin-top:4px; }
+  html:is([data-view=studio],[data-view=team]) { --dialog-logo:56px; --dialog-title:26px; --dialog-gap:12px; }
+  html:is([data-view=studio],[data-view=team]) .dialog-shell { padding:12px; }
+  html:is([data-view=studio],[data-view=team]) .dialog-header { padding-bottom:12px; margin-bottom:14px; }
   .compact-tabs { display:flex; }
   #studio-panel:not(.show-queue) .studio-queue,#studio-panel.show-queue .studio-setup { display:none; }
   .studio-controls { grid-template-columns:1fr; gap:12px; }
@@ -25,8 +52,6 @@
   .dialog-shell { padding:12px; }
   .card,.queue-item { padding:14px; }
   .dialog-heading h1 { font-size:var(--dialog-title,22px); }
-  .topic-edit-row { align-items:stretch; flex-direction:column; gap:8px; }
-  .topic-edit-row button { align-self:flex-end; }
   .form-row { grid-template-columns:1fr; }
   .pagination { gap:8px; }
   .pagination .secondary-button { padding:8px; }

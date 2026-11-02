@@ -1,0 +1,67 @@
+/* Ausschließlich Wunschbox: neue Darstellung, unveränderter Formular- und Versandvertrag. */
+html[data-view=wishes] { --dialog-logo:64px; --dialog-title:30px; --dialog-gap:14px; }
+html[data-view=wishes] body { outline:1px solid #8c795099; outline-offset:-1px; }
+html[data-view=wishes] .dialog-shell { padding:20px; }
+html[data-view=wishes] .dialog-header { padding:10px 12px; margin-bottom:16px; border-color:#73664f; background-color:#272828; background-image:repeating-radial-gradient(circle at -20px 50%,transparent 0 13px,#ead7ac12 14px 15px,transparent 16px 25px),radial-gradient(ellipse at 0% 80%,#d3a44440,transparent 48%),radial-gradient(ellipse at 100% 10%,#acbbc32e,transparent 46%),repeating-linear-gradient(115deg,#ffffff06 0 1px,transparent 1px 9px),linear-gradient(110deg,#39352d,#262929 52%,#343b3e); }
+html[data-view=wishes] .dialog-heading > .eyebrow { font-size:12px; font-weight:400; letter-spacing:.02em; text-transform:none; }
+html[data-view=wishes] h1 { letter-spacing:-.02em; }
+html[data-view=wishes] :is(body,.dialog-header,.card,.wish-compose,button:enabled,button:disabled,button:active:enabled) { box-shadow:none; text-shadow:none; }
+.wish-positions { margin-top:16px; padding:14px 16px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+.wish-positions h2 { font-size:18px; margin:0; }
+.wish-positions .list-heading { flex-wrap:nowrap; }
+.wish-positions :is(.icon-button,.secondary-button) { border-color:#8c7950 #6a6254 #39352d; background:linear-gradient(180deg,#42413b,#292929 58%,#22221f); }
+.wish-positions :is(.icon-button,.secondary-button):hover:enabled { border-color:#b4a078 #a58c52 #4b4438; background:linear-gradient(180deg,#4a463c,#37342d 58%,#29261f); }
+.wish-positions :is(.icon-button,.secondary-button):active:enabled { border-color:#39352d #6a6254 #b4a078; background:linear-gradient(180deg,#22221f,#37342d 58%,#42413b); }
+.wish-positions-list { list-style:none; margin:0; padding:0; }
+.wish-position-item { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; gap:12px; padding:12px 0; border-top:1px solid var(--line); }
+.wish-position-item:first-child { border-top:0; padding-top:0; }
+.wish-position-value { padding:5px 8px; border:1px solid #8c7950; border-radius:8px; background:#1b1b17; color:var(--gold-ink); font-size:18px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.wish-position-text { min-width:0; margin:5px 0; color:var(--text); font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
+.wish-position-note { margin:10px 0 0; color:var(--muted); font-size:12px; line-height:1.5; }
+#wish-positions-status { margin:0 0 12px; color:var(--error); font-size:13px; }
+.wish-compose { margin:0; padding:18px; border:1px solid var(--line); border-radius:14px; background:radial-gradient(ellipse at 0% 0%,#d3a44414,transparent 60%),repeating-linear-gradient(115deg,#ffffff03 0 1px,transparent 1px 9px),var(--surface); }
+.wish-label-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.wish-label-row label { color:var(--text); font-size:17px; font-weight:600; }
+.wish-note { width:22px; height:22px; color:var(--gold-ink); }
+.wish-editor { border:1px solid #6d6657; border-radius:10px; background:var(--input); }
+.wish-editor:focus-within { border-color:var(--gold); }
+html:is([data-view=wishes],[data-view=radio]) #wish-text { margin:0; padding:12px 14px; min-height:96px; border:0; border-radius:9px 9px 0 0; background:transparent; color:var(--text); font-size:16px; line-height:1.5; letter-spacing:normal; text-transform:none; }
+.wish-editor-footer { display:flex; justify-content:flex-end; padding:0 12px 9px; }
+html:is([data-view=wishes],[data-view=radio]) #wish-text-count { margin:0; padding:0; border:0; border-radius:0; background:transparent; color:var(--muted); font-size:12px; line-height:1.4; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.wish-rules { margin:10px 0 16px; color:var(--muted); font-size:13px; line-height:1.5; }
+html:is([data-view=wishes],[data-view=radio]) .wish-send { --wish-light:#ffda72; --wish-shade:#dba022; display:flex; justify-content:center; gap:10px; width:100%; min-height:48px; border-radius:10px; border-color:#fff3bd #b98d32 #96650f #d9b15a; background-color:var(--gold); background-image:linear-gradient(115deg,#fff1c426,transparent 50%),repeating-linear-gradient(115deg,#fff1c414 0 1px,transparent 1px 9px),linear-gradient(180deg,var(--wish-light),var(--gold) 58%,var(--wish-shade)); color:var(--surface); font-size:15px; font-weight:600; }
+.wish-send svg { width:19px; height:19px; }
+html:is([data-view=wishes],[data-view=radio]) .wish-send:hover:enabled { --wish-light:#ffe798; --wish-shade:#e6ae30; border-color:#fff3bd #d9b15a #a87714; }
+html:is([data-view=wishes],[data-view=radio]) .wish-send:active:enabled { --wish-light:#e4a524; --wish-shade:#ffd774; border-color:#96650f #b98d32 #fff3bd; }
+.wish-feedback { position:relative; margin-top:16px; padding:12px 14px 12px 44px; border:1px solid #847046; border-radius:10px; background:#302a20; color:var(--text); font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
+.wish-feedback::before { content:"✓"; position:absolute; left:14px; top:14px; width:20px; height:20px; display:grid; place-items:center; border-radius:50%; background:var(--gold); color:var(--surface); font-size:14px; font-weight:600; }
+.wish-feedback.pending { border-color:var(--line); background:var(--raised); }
+.wish-feedback.pending::before { content:"…"; background:#666; color:var(--text); }
+.wish-feedback.error { background:#392a28; color:var(--error); border-color:#b96e65; }
+.wish-feedback.error::before { content:"!"; background:var(--error); }
+html[data-view=wishes] #wish-hint { padding:12px; margin-top:14px; border:1px solid #6d6657; border-radius:10px; color:var(--muted); font-size:13px; }
+@media (max-width:600px) {
+  html[data-view=wishes] { --dialog-logo:56px; --dialog-title:28px; --dialog-gap:12px; }
+  html[data-view=wishes] .dialog-shell { padding:12px; }
+  html[data-view=wishes] .dialog-header { padding:8px 10px; margin-bottom:14px; }
+  .wish-compose { padding:14px; }
+}
+
+/* Der aufklappbare Bereich gehört unmittelbar zur Radioleiste, ohne eigenes Fenster. */
+.wish-drawer { width:100%; height:100%; margin:0; padding:12px; border:1px solid #796b44; border-radius:12px; background:linear-gradient(150deg,#35362f,#242727 65%); color:var(--text); overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:#92928a #292929; }
+.wish-drawer-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 8px; }
+.wish-drawer-heading h2 { margin:0; font-size:22px; }
+.wish-drawer-heading button { border-color:#9e8b55 #796b44 #504b35; background:linear-gradient(180deg,#35362f,#292d2e); color:#e7bd55; }
+.wish-drawer :is(button,.wish-compose,.wish-feedback,.wish-positions) { box-shadow:none; text-shadow:none; }
+.wish-drawer .wish-compose { padding:10px; }
+.wish-drawer .wish-label-row { margin-bottom:8px; }
+.wish-drawer .wish-label-row label { font-size:16px; }
+html[data-wish-surface] .wish-drawer #wish-text { min-height:80px; }
+.wish-drawer .wish-rules { margin:4px 0 10px; }
+.wish-drawer .wish-editor-footer { padding-bottom:6px; }
+html[data-wish-surface],html[data-wish-surface] body { height:100%; min-height:0; overflow:hidden; background:transparent; }
+html[data-wish-surface] body { outline:0; }
+html[data-wish-surface] .dialog-shell,html[data-wish-surface] .dialog-content { display:contents; }
+html[data-wish-surface] .dialog-header { display:none; }
+html[data-wish-surface] .wish-editor:focus-within { outline:2px solid var(--gold); outline-offset:2px; }
+html[data-wish-surface] #wish-text:focus-visible { outline:none; }

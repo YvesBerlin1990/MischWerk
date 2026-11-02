@@ -11,9 +11,16 @@ MischWerkUI.define('lifecycle', function (dependencies) {
   var listeners = dependencies.listeners;
   var player = dependencies.player;
   var signals = dependencies.signals;
+  var initialLayoutTimer;
+  var initialLayoutFinished = false;
   function finishInitialLayout() {
+    if (initialLayoutFinished || !Array.from(document.querySelectorAll('link[rel=stylesheet]')).every(function (link) { return !!link.sheet; })) { return; }
+    initialLayoutFinished = true;
+    clearInterval(initialLayoutTimer);
     if (wishes) { wishes.fitText(); }
-    layout.resizeBar();
+    signals.emit('initial-layout');
+    layout.resizeBar(true);
+    layout.resizeDialog(true);
     document.documentElement.classList.add('mw-ready');
     signals.emit('queue-visible');
   }
@@ -32,7 +39,7 @@ MischWerkUI.define('lifecycle', function (dependencies) {
         var frame = bridge.getHostFrame();
         frame.setTitle(model.view === 'wishes' ? 'MischWerk · Wunschbox' : model.view === 'studio' ?
           'MischWerk · Moderation' : model.view === 'team' ? 'MischWerk · Radio-Team' : model.view === 'schedule' ? 'MischWerk · Sendeplan' : 'MischWerk · Radio');
-        if (model.view !== 'radio' && !bridge.isK3Client()) { frame.setResizable(false); }
+        if (model.view !== 'radio' && !bridge.isK3Client() && !document.documentElement.hasAttribute('data-wish-surface')) { frame.setResizable(false); }
       } catch (error) { /* Optionale Beschriftung darf den Player nicht blockieren. */ }
       layout.resizeBar();
       commands.send('mw:ready');
@@ -51,8 +58,9 @@ MischWerkUI.define('lifecycle', function (dependencies) {
       if (provider) { provider.dispose(); }
       if (listeners) { listeners.dispose(); }
     });
-    if (document.readyState === 'complete') { finishInitialLayout(); }
-    else { window.addEventListener('load', finishInitialLayout); }
+    initialLayoutTimer = setInterval(finishInitialLayout, 40);
+    finishInitialLayout();
+    window.addEventListener('load', finishInitialLayout, { once:true });
     window.addEventListener('resize', function () { layout.resizeBar(); if (wishes) { wishes.fitText(); } });
     layout.resizeDialog();
     window.addEventListener('pageshow', function (event) { if (event.persisted && bridge) { refreshVisible(); } });

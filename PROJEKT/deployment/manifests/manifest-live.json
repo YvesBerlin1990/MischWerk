@@ -1,0 +1,34 @@
+{
+  "environment": "live",
+  "appId": "knuddelsDEV.30807196.MischWerk",
+  "installId": "30807196.MischWerk",
+  "channel": "MischWerk",
+  "version": "0.1.117",
+  "remotePath": "/ftp/MischWerk",
+  "stationConfigured": false,
+  "ftpHost": "appupload.knuddels.de",
+  "ftpUser": "30807196",
+  "delivery": "upload-directory",
+  "localUploadRoot": "C:\\Users\\Yves\\Desktop\\MischWerk\\UPLOAD",
+  "fileCount": 88,
+  "fileManifests": [
+    {
+      "path": "manifest-server.json",
+      "fileCount": 30,
+      "bytes": 5070,
+      "sha256": "B733245C485070067F238C6322FE5DFAF095385CB85EE1563BE939AABF873DD0"
+    },
+    {
+      "path": "manifest-www.json",
+      "fileCount": 56,
+      "bytes": 9456,
+      "sha256": "D70CC84AF6D867B8564FBD36A9FF82CB28241D74534BCAC567D8DF384C45A70D"
+    },
+    {
+      "path": "manifest-media.json",
+      "fileCount": 2,
+      "bytes": 386,
+      "sha256": "038ADB233C6FE53E5496D933ABC835C689AEE64BC6DF4B1ACCFF52B869447DAF"
+    }
+  ]
+}

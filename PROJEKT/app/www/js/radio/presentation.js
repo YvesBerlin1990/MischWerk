@@ -46,6 +46,12 @@ MischWerkUI.define('presentation', function (dependencies) {
     var label = active ? 'Live-Moderation' : model.current() && model.current().moderator ? 'Moderation unbestätigt' : 'DJ Mischwerk legt auf';
     dom.setText('on-air-sign', label);
     dom.el('host-name').hidden = !active;
+    var positions = model.current() && model.current().wishPositions;
+    dom.el('own-wish-position').hidden = !positions || !positions.available || !positions.total;
+    document.body.classList.toggle('has-own-wish', !dom.el('own-wish-position').hidden);
+    var validPosition = positions && Number.isInteger(positions.nextPosition) && positions.nextPosition > 0;
+    dom.setText('own-wish-position', positions && positions.total ? !model.connected() || !validPosition ? 'Wunschposition unbestätigt' :
+      (positions.total > 1 ? 'Dein nächster Wunsch: Platz ' : 'Dein Wunsch: Platz ') + positions.nextPosition : '');
   }
   
   return { renderTopic: renderTopic, updateMetadataLayout: updateMetadataLayout, renderSong: renderSong, renderOnAirStatus: renderOnAirStatus };

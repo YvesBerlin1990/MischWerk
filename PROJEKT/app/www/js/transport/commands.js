@@ -56,7 +56,7 @@ MischWerkUI.define('commands', function (dependencies) {
   }
   function start() {
     if (model.view !== 'radio') { return; }
-    [['open-wishes','mw:openWishes'], ['open-schedule','mw:openSchedule'],
+    [['open-schedule','mw:openSchedule'],
       ['studio-tab','mw:openStudio'], ['team-tab','mw:openRadioTeam']].forEach(function (action) {
       document.getElementById(action[0]).addEventListener('click', function () {
         if (!this.disabled && !this.hidden && model.connected()) { send(action[1], {}, true); }

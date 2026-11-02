@@ -17,6 +17,7 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
         <div class="radio-context">
           <div id="radio-topic" class="topic-display" aria-live="polite" hidden><span class="topic-label">Thema</span><strong id="show-topic"></strong></div>
           <section class="presenter" aria-label="Aktuelle Moderation"><span id="on-air-sign" class="on-air-sign" role="status">DJ Mischwerk legt auf</span><strong id="host-name" hidden></strong></section>
+          <p id="own-wish-position" class="own-wish-position" role="status" hidden></p>
         </div>
         <div class="volume-control"><button id="mute-button" class="icon-button" type="button" aria-label="Ton ausschalten" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3Z" fill="currentColor" stroke="none"/><path class="sound-waves" d="M16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="mute-cross" d="m17 9 5 6m0-6-5 6"/></svg></button><label for="volume">Lautstärke</label><input id="volume" type="range" min="0" max="100" value="10" aria-label="Lautstärke in Prozent" aria-describedby="volume-help"><output for="volume" id="volume-value">10 %</output><span id="volume-help" class="sr-only">Über 60 Prozent ist der Regler rot markiert. Dies ist keine Dezibel-Messung und kein garantierter Schutzbereich: Der Hörpegel hängt von Kopfhörern und Systemlautstärke ab. Auch niedrigere Werte können zu laut sein. Bis 100 Prozent bleibt frei einstellbar.</span></div>
       </section>
@@ -31,7 +32,7 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
           <button id="curtain-toggle" class="icon-button curtain-toggle" type="button" hidden disabled aria-label="Vorhang für alle Hörer öffnen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 3h20M3 4v17h8V4m2 0v17h8V4M3 15l8-5m2 0 8 5M6 4v17m12-17v17"/></svg><span id="curtain-toggle-label">Vorhang öffnen</span></button>
         </div>
       </nav>
-      <div class="sr-only"><span id="stream-badge" role="status"><span id="stream-label">Verbinde …</span></span><span id="playback-status" role="status"></span><span id="metadata-status" role="status"></span><a id="station-link" target="_blank" rel="noopener noreferrer" hidden>Öffentlichen Radiostream öffnen</a></div>
+      <div class="sr-only"><span id="stream-badge" role="status"><span id="stream-label">Verbinde …</span></span><span id="playback-status" role="status"></span><span id="metadata-status" role="status"></span><a id="station-link" tabindex="-1" target="_blank" rel="noopener noreferrer" hidden>Öffentlichen Radiostream öffnen</a></div>
     </main>
   `);
 });

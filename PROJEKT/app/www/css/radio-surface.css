@@ -8,12 +8,12 @@ html[data-view=radio],html[data-view=radio] body { background:#242424; }
 .radio-program-face::after { right:0; width:clamp(180px,45%,560px); aspect-ratio:1; transform:translate(45%,-50%); opacity:.65; background:repeating-radial-gradient(circle,transparent 0 29px,#dbe7eb29 30px 31px,transparent 32px 58px); }
 .radio-metadata { z-index:1; }
 .playing .radio-program-face { border-color:#f5f5f5; box-shadow:0 0 3px #ffffff99,inset 0 0 3px #ffffff66,0 0 7px #ffffff66,inset 0 0 7px #ffffff4d; }
-.play-button { --play-light:#ffdc78; --play-shade:#d79b1b; border-color:#a7802f; background-color:var(--gold); background-image:radial-gradient(circle at 32% 20%,#fff6cb99,transparent 48%),linear-gradient(165deg,var(--play-light),var(--gold) 58%,var(--play-shade)); box-shadow:0 3px 0 #24221e,0 6px 10px #0007,inset 0 2px 1px #fff2c3d9,inset 0 -4px 3px #99620766,0 0 0 2px #292720; }
-.play-button:hover:enabled { --play-light:#ffe89d; --play-shade:#e5aa28; border-color:#d7b15b; }
-.playing .play-button { --play-light:#ffdf83; --play-shade:#cb9014; border-color:var(--gold-ink); }
-.play-button:active:enabled { box-shadow:0 1px 0 #24221e,0 3px 6px #0006,inset 0 3px 5px #87601b80,inset 0 -1px 1px #fff2c380,0 0 0 2px #292720; }
-.play-button.is-offline:disabled { opacity:1; background-color:#666; background-image:linear-gradient(160deg,#797971,#595a54); color:var(--muted); border-color:var(--line); box-shadow:0 2px 0 #24221e,0 4px 7px #0004,inset 0 1px 0 #ffffff33,inset 0 -2px 3px #0003; transition:none; }
-#play-icon { filter:drop-shadow(0 1px 0 #fff0b866); }
+.play-button { --play-light:#efd082; --play-shade:#d0a63f; border-color:#f2d994 #c6a052 #9d7a31; background-color:#dfb956; background-image:linear-gradient(165deg,var(--play-light),#dfbc61 58%,var(--play-shade)); box-shadow:none; color:#252820; }
+.play-button:hover:enabled { --play-light:#f4db9b; --play-shade:#dcb651; border-color:#fff0c0 #d2b46c #a68b49; }
+.playing .play-button { border-color:#f2d994 #c6a052 #9d7a31; }
+.play-button:active:enabled { --play-light:#cda64d; --play-shade:#eed38e; border-color:#9d7a31 #c6a052 #f2d994; }
+.play-button.is-offline:disabled { opacity:1; background-color:#666; background-image:linear-gradient(160deg,#797971,#595a54); color:var(--muted); border-color:var(--line); box-shadow:none; transition:none; }
+#play-icon { filter:none; }
 .volume-control.is-high { --volume-thumb:#f16f65; }
 .volume-control #mute-button { border-color:#6d6654; border-radius:10px; background:#2d2d28; color:var(--gold-ink); box-shadow:inset 0 1px 0 #ffffff0d; }
 .volume-control #mute-button:hover:enabled { background:#3a372e; border-color:#a58c52; }

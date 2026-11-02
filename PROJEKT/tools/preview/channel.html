@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MischWerk – lokale Channel-Vorschau</title>
+<style>
+* { box-sizing:border-box; }
+body { margin:0; background:#1b2830; color:#f6f0df; font:16px/1.5 "Segoe UI",Arial,sans-serif; }
+#radio-frame { display:block; width:100%; height:160px; border:0; }
+#channel { position:relative; min-height:calc(100vh - 160px); padding:20px; background:repeating-linear-gradient(0deg,#ffffff03 0 1px,transparent 1px 48px),#1b2830; }
+#channel p { max-width:700px; margin:0 0 20px; }
+#wish-frame { position:absolute; top:0; right:0; width:min(560px,100%); height:min(360px,100%); border:0; border-radius:12px; background:transparent; }
+#wish-frame[hidden] { display:none; }
+</style>
+</head>
+<body>
+<iframe id="radio-frame" title="MischWerk Radio"></iframe>
+<main id="channel">
+<p>Lokale Channel-Vorschau · Ersatzdaten · keine Knuddels-Verbindung</p>
+<p>Der Channel beginnt direkt unter der Radioleiste. Die Wunschbox liegt beim Öffnen rechts über diesem Bereich.</p>
+<p>Musikfreund: Einen schönen Abend zusammen!</p>
+<p>Klangwelle: Ich freue mich auf die nächste Sendung.</p>
+<iframe id="wish-frame" title="MischWerk Wunschbox" hidden></iframe>
+</main>
+<script>
+var radio = document.getElementById('radio-frame'), wish = document.getElementById('wish-frame');
+radio.src = '/preview?embedded=1&role=' + (new URLSearchParams(location.search).get('role') === 'moderator' ? 'moderator' : 'listener');
+window.addEventListener('message', function (event) {
+  if (event.origin !== location.origin || event.source !== radio.contentWindow || !event.data || event.data.type !== 'preview-wishes') { return; }
+  if (event.data.open) {
+    wish.src = '/preview?view=wishes&sourceSession=' + encodeURIComponent(event.data.sessionId);
+    wish.hidden = false;
+  } else { wish.hidden = true; wish.removeAttribute('src'); }
+});
+</script>
+</body>
+</html>

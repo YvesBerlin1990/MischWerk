@@ -1,100 +1,92 @@
-# MischWerk – Projektübersicht
+# MischWerk – technische Übersicht
 
-Lokaler Stand **0.1.106 mit RadioKing**. Zuletzt im echten Knuddels-App-Log beobachtet: **0.1.103**, Backend gestartet, Radioleiste leer. Upload, Knuddels-Update und Serverneustart benötigen weiterhin eine neue ausdrückliche Freigabe.
+Lokaler Appstand **0.1.117**, STREAMPANEL-Anschluss noch ausstehend. Moderation und Radio-Team passen ihre Höhe an den Inhalt an. Die Wunschbox liegt als natives Overlay über dem Channel. Verbindliche Regeln stehen ausschließlich in [AGENTS.md](AGENTS.md).
 
-Version 0.1.106 entfernt die senkrechte Mittelnaht aus dem Vorhang. Das Logo fügt sich ohne dunkles Rechteck in die deckende Kartenfläche ein. Gestaltung ausschließlich per CSS geändert; Logo-Datei, Werbung, Vorhangsteuerung und Funktionen bleiben erhalten.
+## Zuständigkeiten der Ordner
 
-Version 0.1.105 zeigt Rückmeldungen in der Radioleiste kompakt unten rechts, passend zur Textbreite und höchstens 420 px breit. Lange Meldungen umbrechen auch bei 320 px Fensterbreite. Texte, Fehlerzustände, Ausblendzeit und Rückmeldungen in Popupfenstern bleiben erhalten.
-
-Version 0.1.104 korrigiert den leeren Start: Die echte Knuddels-Dateieinbindung arbeitet mit document.write. Der frühere Aufruf nach DOMContentLoaded konnte die HTML-Oberfläche löschen. js/start.js und sein Fensterplan werden jetzt während des Parsens eingebunden; erst die Zusammensetzung wartet auf fertiges HTML und alle Module. Ein zusätzlicher Test bildet diese Einbindung für alle fünf Fenster nach. Falls die Oberfläche nicht fertig wird, erscheint nach 15 Sekunden ein verständlicher Hinweis statt einer dauerhaft leeren Fläche. Vorhang, Werbe-MP3 und bisherige Funktionen bleiben erhalten.
-
-Seit 0.1.103 verhüllt ein Vorhang die Radioleiste. Otterchen und Polaroid sehen die Leiste direkt. Nur Otterchen als tatsächlicher Channelinhaber erhält den eigenen Button zum globalen Öffnen/Schließen; dieser Zustand bleibt bei Neustarts erhalten. Der getrennte Button Werbung starten spielt die eigene MP3 lokal beim jeweiligen Hörer. Weder Klick noch Audioende öffnen den Vorhang. Die MP3 lädt erst auf Klick, Startlautstärke höchstens 10 %. Die Radioleiste lädt nun 18 JavaScript-Dateien und acht Stylesheets; andere Fensterpläne bleiben unverändert.
-
-Historische Messung mit 0.1.102: Kontrollierter lokaler Erststart mit 120 ms zusätzlicher Antwortzeit je Textdatei: Median 827 → 674 ms; mit Cache 26 → 34 ms bei je drei Durchläufen. Der damals verwendete DOMContentLoaded-Ladeweg war mit der echten Knuddels-Einbindung nicht kompatibel und wurde in 0.1.104 korrigiert. Diese früheren Mockmessungen sind kein Nachweis für die aktuelle Knuddels-Ladezeit. Die reine Weiterleitungsdatei bleibt entfernt; Fensterpläne und Freigabe erst nach fertigem Layout bleiben erhalten.
-
-Seit 0.1.101 lädt jedes Fenster seine eigenen Module und Styles. Beim Channelbeitritt benötigt die Radioleiste 17 statt 36 JavaScript-Dateien und sieben statt 14 Stylesheets. Die Textressourcen sinken von 176.752 auf 80.934 Bytes, jeweils ohne HTML und Logo. Das Original-Logo behält seine Maße und lädt unabhängig von der Bedienbereitschaft. Popupfunktionen, Rechte, Audiostart und Cacheaktualisierung bleiben erhalten. Gemessene lokale Ressourcenmengen sind keine zugesagte Knuddels-Ladezeit.
-
-Seit 0.1.100 bündelt eine gemeinsame Sendeplan-Karte die Wochenwahl und Aktionen. Pfeile flankieren den mittigen Zeitraum, darunter stehen Diese Woche, Aktualisieren und für den Besitzer Sendung eintragen. Der sichtbare Zusatz „Deutsche Ortszeit“ entfällt. Kalenderberechnung und Sommer-/Winterzeit bleiben unverändert; die Leiste passt auch bei 320 px Breite.
-
-Seit 0.1.99 verwenden alle Popupfenster das Design der Radioleiste. Die Moderation bündelt Studio-Steuerung und Musikwünsche in zwei Arbeitsbereichen; das Themenfeld hat die volle Spaltenbreite. Radio-Team, Statuszentrale und Sendeplan haben passende Karten und Goldbuttons. Prüfzeiten stehen unter Details; die neun Statuswerte bleiben direkt sichtbar.
-
-Seit 0.1.98 sind Logo und Titel in Wunschbox, Moderation und Radio-Team größer. „Wunschbox offen“ entfällt; Hinweise bei deaktivierter Wunschbox oder fehlender Verbindung bleiben erhalten. Die kompakte Statuszentrale zeigt weiterhin alle neun Statuswerte bei 320 px Breite ohne Scrollen.
-
-Seit 0.1.97 besitzt die äußere Radioleiste einen ruhigen anthrazitfarbenen Hintergrund mit sanftem Goldlicht, feiner Materialstruktur und warmer Außenkontur. Die Fläche ist abgerundet; Größen, Bedienung und Wiedergaberahmen bleiben erhalten. Die neue Grundfarbe gilt bereits beim Laden ausschließlich für die Radioansicht.
-
-Seit 0.1.96 stehen Live-Beschriftung und Moderatorname in einer gemeinsamen dezenten Anzeige mit gleicher Schriftgröße und Zeilenhöhe. Beide Texte sind mittig ausgerichtet; lange Namen umbrechen vollständig. Der Text „DJ Mischwerk legt auf“ und die bestätigten Moderationszustände bleiben erhalten.
-
-Seit 0.1.95 steht ohne angemeldete Live-Moderation auf Nutzerwunsch „DJ Mischwerk legt auf“ in der Radioleiste. Startvorlage, Tooltip und zugängliche Beschriftung verwenden denselben Text. Bestätigte Live-Moderation und Verbindungswarnung bleiben erhalten.
-
-Version 0.1.94 erneuert beim Appstart und nach dem Dateiabruf im Updatebefehl den dokumentierten Oberflächen-Cache. Dies gilt auch dann, wenn Dateien schon übernommen wurden und die nächste Dateiliste leer ist. Ohne neue Dateien erfolgt weiterhin kein Neustart. Die private Rückmeldung nennt die laufende Codeversion und erklärt das erneute Öffnen der Statuszentrale sowie das notwendige vollständige Uploadziel.
-
-## Ablage im MischWerk-Hauptordner
-
-| Ordner | Zweck |
+| Ablage | Aufgabe |
 | --- | --- |
-| [UPLOAD/MischWerk](../UPLOAD/MischWerk/) | 84 fertige Laufzeitdateien einschließlich `server/` und `www/` |
-| [ANLEITUNGEN](../ANLEITUNGEN/) | Installation, RadioKing-Einrichtung und aktuelles Paket |
-| PROJEKT | Gepflegte Quellen, lokale Vorschau, Tests, Werkzeuge und technische Dokumentation |
+| app/www/ | Gepflegte Browseroberfläche, Original-Logo und eigene Werbe-MP3 |
+| medien/logos/ und medien/mychannel/ | Zusätzliche Original-Logos und Hintergrundbild für den Knuddels-MyChannel |
+| src/backend/ | 28 gepflegte ES5/Rhino-Backendmodule |
+| app/server/ und app/main.js | Vom Backendbuild erzeugte Laufzeitkopien und kurzer Einstieg |
+| C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/ | Ausschließlich die 88 fertig geprüften Laufzeitdateien für Knuddels |
+| deployment/live.json | Bestätigtes Ziel und absoluter lokaler Uploadpfad; keine Passwörter |
+| deployment/manifests/ | Vier Dateinachweise mit Inventar, Bytezahlen und SHA-256 |
+| tools/build/ | backend.cjs erzeugt Laufzeitmodule; prepare-upload.cjs prüft und aktualisiert den Desktop-Upload |
+| tools/checks/ | project, architecture, lengths, upload, rhino und streampanel prüfen ihre jeweiligen Bereiche |
+| tools/lib/ | Gemeinsames Browserinventar mit ansichtsabhängigen Ladeplänen |
+| tools/preview/ | server.cjs, Vorschauseite und Bridge ausschließlich für die lokale Entwicklung |
+| tools/emulator/ | Strenges lokales Testlabor mit echtem Appcode, getrennten Plattformmodellen und Fehlerkonsole |
+| tests/node/ | Backend, Providerfeldzuordnung, HTTP-Vorschau, Kalender, Übergabe und Uploadintegrität |
+| tests/browser/ | Playwright-/Edge-Abläufe für Oberfläche, Sendeplan und Übergabe |
+| tests/fixtures/ | Lokaler Testton und synthetische öffentliche Anbieterantworten |
+| tests/support/ | Knuddels-Ersatzobjekte; werden nicht ausgeliefert |
+| tests/rhino/ | Wunsch-/Kalender-/Studioabläufe für die echten Rhino-Engines |
+| docs/architektur/ | Architektur, Frontend und Gestaltung |
+| docs/api/ | Schnittstellennachweise; nachweise/radioking enthält ausschließlich datierte ehemalige Anbieterbefunde |
+| docs/betrieb/ | Gemeinsame Installation und STREAMPANEL-Einrichtung, echte LIVE-Abnahme, Sendeplan und Lautstärke |
+| docs/pruefung/ | Ein aktueller Prüfbericht und die darin verwendeten aktuellen Appbilder unter oberflaeche/ |
+| references/api/ | Zwei unveränderte offizielle Dokumentationsstubs, niemals als Appcode laden |
 
-Unter [ANLEITUNGEN/Paket](../ANLEITUNGEN/Paket/) liegen ausschließlich das aktuelle ZIP, drei Manifeste und die Prüfsumme. Das ist die einzige ZIP-Ablage; unter UPLOAD liegt nur der fertige Appordner. Frühere Pakete und zweite ZIP-Kopien werden nicht aufbewahrt.
+Die 28 gleichen Backenddateien sind beabsichtigt: src/backend ist die Quelle, app/server die geprüfte Laufzeit und der Desktop-UPLOAD die Auslieferung. Keine dieser notwendigen Kopien ist ein Archiv. app/www besitzt keinen zweiten Frontendquellordner. Git-Metadaten, package.json, pnpm-lock.yaml und node_modules gehören zur Entwicklungsumgebung und bleiben erhalten.
 
-## Technische Dateien
+## Logos und MyChannel-Hintergrund
 
-| Bereich | Inhalt |
+Die drei vom Desktop übernommenen Bilddateien liegen gemeinsam unter [medien/](medien/). Bildinhalt, Dateiformate und Auflösungen sind unverändert; die PNG-Logodatei mit dem bisherigen generierten exec-Dateinamen hat einen verständlichen Namen erhalten.
+
+| Datei | Auflösung |
 | --- | --- |
-| `src/backend/` | Gepflegte Backendmodule nach Fachzuständigkeit |
-| `app/server/` | Erzeugte, bytegleiche Laufzeitkopien der Backendmodule |
-| `app/www/` | Gepflegte Browseroberfläche; kein zweiter Frontend-Quellordner |
-| `app/main.js` | Kurzer Laufzeiteinstieg über das Kompositionsmodul |
-| `deployment/` | Bestätigtes Knuddels-Ziel ohne Passwort |
-| `tests/` | Backend-, HTTP-, Browser- und Rhino-Prüfungen |
-| `tools/` | Paketbau, Prüfungen und Vorschau-Server |
-| `tools/preview/` | Startseite und Bridge ausschließlich für die lokale Vorschau |
-| `references/api/` | Unveränderte Knuddels-/K3-API-Dateien; Dokumentation, niemals ausführen |
-| `node_modules/` | Installierte Entwicklungsabhängigkeiten für lokale Browserprüfungen |
-| `package.json`, `pnpm-lock.yaml` | Befehle und reproduzierbar festgelegte Abhängigkeiten |
-| `AGENTS.md` | Verbindliche fachliche Regeln und Prüfabläufe |
+| [Logo als JPG](medien/logos/MischWerk-RadioKing-Logo.jpg) | 1254 × 1254 px |
+| [Logo als PNG](medien/logos/MischWerk-Logo-1254x1254.png) | 1254 × 1254 px |
+| [Knuddels-MyChannel-Hintergrund](medien/mychannel/Hintergrund_MischWerk_Knuddels.png) | 1610 × 977 px |
 
-`src/backend/`, `app/server/` und `UPLOAD/MischWerk/server/` haben unterschiedliche Aufgaben: Quelle, geprüfte Laufzeitfassung und fertige Auslieferung. Diese Kopien werden vom Build benötigt.
+Diese Medienablage gehört zum Projekt. Das bereits verwendete App-Logo bleibt unter app/www/img/; die zusätzlichen Bilder werden nicht automatisch mit der UserApp ausgeliefert.
 
-## Dokumentation nach Thema
+## Befehle aus PROJEKT/
 
-- [Architektur und Zustandsbesitz](docs/architektur/ARCHITEKTUR.md), [Frontendmodule](docs/architektur/ARCHITEKTUR-FRONTEND.md), [Design](docs/architektur/DESIGN.md).
-- [API-Nachweis](docs/api/API-NACHWEIS.md), [API-/Wiki-Abgleich und Rhino-Wunschfehler](docs/api/API-WIKI-ABGLEICH.md).
-- [Betrieb und Datenhaltung](docs/betrieb/INBETRIEBNAHME.md), [echte LIVE-Abnahme](docs/betrieb/LIVE-ABNAHME.md), [Sendeplan](docs/betrieb/SENDEPLAN.md), [Lautstärke](docs/betrieb/LAUTSTAERKE.md).
-- [Aktueller Prüfbericht](docs/pruefung/PRUEFBERICHT.md). Die datierten technischen Anbieterprüfungen bleiben unter `docs/pruefung/radioking/`; alte Oberflächenbilder und Designreferenzen wurden auf Nutzerwunsch entfernt.
+| Befehl | Zweck |
+| --- | --- |
+| pnpm run preview | Lokale Vorschau auf http://127.0.0.1:8765; keine echte Sender-/Knuddels-Verbindung |
+| pnpm run emulator | Interaktives Testlabor auf http://127.0.0.1:8776 |
+| pnpm run test:emulator | Echte Rhino-Projektprüfungen sowie automatische Emulator- und Browserfälle |
+| pnpm run build:backend | Quellen nach app/server kopieren und main.js erzeugen |
+| pnpm run check:backend | Quell-/Laufzeitgleichheit prüfen |
+| pnpm test | Alle Node-Prüfungen |
+| pnpm run test:browser | Alle Browserprüfungen mit Edge |
+| pnpm run check | Syntax, Plattformsignaturen, Komponenten, UI-IDs und Laufzeitinventar |
+| pnpm run check:rhino | Rhino 1.7.7.2 und 1.9.1 |
+| pnpm run check:lengths | Alle Laufzeittexte strikt unter 9500 Zeichen |
+| pnpm run prepare:upload | Vollständige Prüfungen und ausschließliche Desktop-Bereitstellung ohne ZIP |
+| pnpm run check:upload | Quellen, tatsächlichen Desktop-Upload und Dateimanifeste abgleichen |
+| node tools/checks/streampanel.cjs | Lesende Anbieterprüfung; ohne öffentliche Produktdaten ausstehend bei null Netzabrufen |
 
-Prüfbericht und technische Nachweise werden an festen Pfaden aktualisiert. Die RadioKing-Wiedergabeprüfung und der Rhino-Fehlernachweis dokumentieren eigenständige Ergebnisse mit Datum und damaliger Version. Screenshots nur bei Bedarf erzeugen und keine alten Bildsammlungen ansammeln.
+Der bisherige npm-Befehl build:live bleibt als Alias für dieselbe Uploadbereitstellung erhalten. Direkte Einstiegspunkte liegen unter tools/build/, tools/checks/ und tools/preview/server.cjs. Die alten flachen Werkzeugpfade entfallen vollständig.
 
-## Lokale Befehle
+Voraussetzungen: Node.js ab 20, pnpm 11.25.0, Edge und Java 11+. Abhängigkeiten mit pnpm install --frozen-lockfile einrichten. Einmalig geprüfte Rhino-JARs mit node tools/checks/rhino.cjs --download im Temp-Cache bereitstellen. MISCHWERK_JAVA kann auf Java zeigen; MISCHWERK_PLAYWRIGHT auf eine externe Playwright-Installation und MISCHWERK_PREVIEW_PORT auf einen anderen lokalen Port.
 
-Alle Befehle aus `PROJEKT/` ausführen. Benötigt werden Node.js ab Version 20, pnpm 11 und Microsoft Edge.
+Optionale Bildaufnahmen aus Browserprüfungen landen unter dem System-Tempordner/MischWerk-Pruefbilder und erzeugen keine weiteren Bildsammlungen im Projekt. Dauerhaft behalten werden nur tatsächlich verwendete aktuelle Berichtsbilder.
 
-```text
-pnpm install --frozen-lockfile
-node tools/preview.cjs
-```
+## App im Testlabor prüfen
 
-Vorschau im Browser: `http://127.0.0.1:8765`. Sie verwendet lokale Knuddels-Ersatzobjekte und verbindet sich nicht mit dem echten Radiosender.
+Das Testlabor ist vollständig in diesem Projekt eingebaut. Für künftige Codex-Arbeiten genügt der MischWerk-Hauptordner; der Zugang ist über die dortige AGENTS.md und den zentralen Abschnitt „Codex-Zugriff auf den integrierten Emulator“ festgehalten. Vom Hauptordner startet **pnpm --dir PROJEKT run emulator** ohne weiteren App-/Emulatorpfad. Die ursprüngliche Desktop-ZIP und frühere Entpackordner werden dafür nicht benötigt.
 
-```text
-node tools/build-backend.cjs
-pnpm test
-pnpm run check
-pnpm run test:browser
-pnpm run check:rhino
-node tools/build-install.cjs
-node tools/check-package.cjs
-```
+Aus PROJEKT/ mit **pnpm run emulator** starten und **http://127.0.0.1:8776** öffnen. Alternativ [Start-Testlabor.ps1](tools/emulator/Start-Testlabor.ps1) ausführen; -Port bzw. MISCHWERK_EMULATOR_PORT wählt einen anderen lokalen Port. Strg+C beendet den Server.
 
-Rhino benötigt Java 11+; bei Bedarf über `MISCHWERK_JAVA` konfigurieren und die geprüften JARs einmal mit `node tools/check-rhino.cjs --download` im Temp-Cache bereitstellen. Eine externe Playwright-Installation kann über `MISCHWERK_PLAYWRIGHT` verwendet werden.
+Otterchen ist im Testprofil Channelinhaber. Weitere Fenster mit anderen Testnutzern teilen dasselbe echte Appbackend. AppManager, AppDeveloper, Channelmoderator und Hörer bleiben getrennte Rollen; DJ-Test erst über das echte Radio-Team ernennen. Der eigene MyChannel-Hintergrund wird im getrennten Channelbereich gezeigt.
 
-Der Paketbau schreibt nur nach `../UPLOAD/MischWerk/` und `../ANLEITUNGEN/Paket/`. Er lädt nichts hoch. Der ausdrückliche Netzwerktest `node tools/radioking-compatibility-check.cjs` prüft den eigenen RadioKing-Sender und ersetzt den letzten Anbieterbericht unter `docs/pruefung/radioking/anbindung-aktuell.json`. Version und Zeitpunkt stehen im Bericht.
+Die Konsole bietet tatsächliche Framebreiten von 320 bis 3840 px, normale/ignorierte/verzögerte/schrittweise Größenantworten, Knuddels-Parsermodus und einen zusätzlichen Async-Stresstest. JS/CSS/Bilder lassen sich verzögern oder gezielt ausfallen lassen. Client- und Serverereignisse getrennt verzögern; mit Filtern etwa nur mw:wish.submit doppeln oder mw:wish.receipt verlieren. Speicherfehler, Rollenentzug, fehlende Overlayfähigkeit, Nutzerlöschung, Verbindungsabbruch, Appneustart und serverseitige Zeitsprünge ergänzen die Prüfung.
 
-Radio-Team → Statuszentrale: Übertragung, Live-/AutoDJ-Titelstatus, getrennte ON-AIR-Anmeldung, Hörerzahl, Titelabruf, App-Verbindung, Wunschbox, offene Musikwünsche und Thema. Nur für den Channelinhaber; sichtbare Zentrale aktualisiert nach Abschluss alle 30 s, nach Fehlern nach 60 s. Live-/AutoDJ folgt der RadioKing-Titelmeldung und ist kein separater Encoder-Verbindungstest.
+Synthetische Anbieterfälle liefern ausschließlich lokale JSON-Antworten und einen generierten Testton. Der Ton startet nur über Play in der App. Der Originalzustand ohne freigeschalteten Anbieter bleibt als eigenes Profil erhalten. Die Appdateien und der Upload werden nicht bearbeitet.
 
-Seit 0.1.90: kompakte Statusübersicht in drei beziehungsweise zwei Spalten. Alle Statuswerte sofort sichtbar; vollständige Erklärungen, Titel-/Themenangaben und Prüfzeiten unter „Details & Prüfzeiten“. Funktionen und automatische Aktualisierung unverändert.
+Ein laufender Test hält seinen Appstand im Speicher fest und meldet externe Quelländerungen. Ein ausdrücklicher lokaler Appneustart übernimmt sie; das verhindert gemischte Backend-/Browserstände. Dauerhafte Testzustände liegen unter dem System-Tempordner/MischWerk-Emulator/testdaten; „Testdaten zurücksetzen“ löscht ausschließlich diese lokalen Zustände. Ein normaler Appneustart erhält sie und leert die flüchtige Wunschqueue.
 
-Seit 0.1.91: Statuspunkte direkt vor den Werten statt farbiger Kartenränder. Grün für bestätigte nutzbare/aktive Zustände, Rot für Fehler/gestoppte Übertragung, neutral für unbekannt/inaktiv.
+„Layout prüfen“ erfasst Framebreite, horizontale Überbreite, zu kleine Buttons und Fokus. Ereignisse, Fehlerprofile, Quellhash, Appversion und echte Rhino-Ergebnisse können als JSON exportiert werden. Die [integrierte Bedienhilfe](tools/emulator/www/help.html) beschreibt typische Prüfschritte und Grenzen. **pnpm run test:emulator** führt die vorhandenen Backendprüfungen in Rhino 1.7.7.2/1.9.1 sowie die eigenen Laufzeit-, Protokoll- und Browserfälle aus. Benötigt werden installierte Entwicklungsabhängigkeiten, Edge und die bereits beschriebenen Java-/Rhino-Voraussetzungen.
 
-Seit 0.1.93 stehen Aktualisierungsintervalle unter Details & Prüfzeiten. Der Button zeigt beim Abruf „Prüfe …“. Die Hauptübersicht bleibt auf Statuswerte konzentriert.
+Die Node-VM simuliert die benötigte Knuddels-API. Fehlende API-Funktionen werden gemeldet. Mobile Profile bleiben Browsermodelle; native Clientgeometrie, Betriebssysteme und der echte STREAMPANEL-Anschluss benötigen weiterhin ihre eigene Abnahme.
+
+## Bereitstellung und Dokumentation
+
+Auch aus einem Codex-Worktree wird ausschließlich C:/Users/Yves/Desktop/MischWerk/UPLOAD aktualisiert. Die vier Manifeste unter deployment/manifests werden im Arbeits- und Desktopprojekt identisch gehalten. Keine zweite Uploadkopie, ZIP oder Sicherungssammlung. Ein Build veröffentlicht und startet nichts neu.
+
+[Installation, Betrieb und STREAMPANEL](docs/betrieb/INBETRIEBNAHME.md) · [LIVE-Abnahme](docs/betrieb/LIVE-ABNAHME.md) · [Architektur](docs/architektur/ARCHITEKTUR.md) · [Frontend](docs/architektur/ARCHITEKTUR-FRONTEND.md) · [API-Nachweis](docs/api/API-NACHWEIS.md) · [Prüfbericht](docs/pruefung/PRUEFBERICHT.md).

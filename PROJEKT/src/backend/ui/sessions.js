@@ -20,7 +20,8 @@ MischWerkModules.attachSessions = function (runtime, config) {
         } catch (error) { return false; }
     };
 
-    runtime.openView = function (user, kind, automatic) {
+    runtime.openView = function (user, kind, automatic, opening) {
+        if (kind === 'wishes' && (!opening || !opening.radioContent)) { throw runtime.failure('Bitte öffne die Wunschbox in der Radioleiste.'); }
         if (!runtime.online(user)) { user.sendPrivateMessage('Bitte öffne MischWerk im MyChannel.'); return; }
         runtime.load();
         runtime.loadWishes();
@@ -47,10 +48,15 @@ MischWerkModules.attachSessions = function (runtime, config) {
         if (kind === 'wishes' && !runtime.state.requestsEnabled) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
         var data = runtime.snapshot(user, 0);
         data.view = kind;
+        if (kind === 'wishes') {
+            data.wishSurface = true; data.wishSurfaceId = opening.surfaceId;
+            data.wishPresentation = opening.presentation;
+        }
         var htmlFile = new HTMLFile('index.html', data);
         var content = kind === 'radio' ? AppContent.headerbarContent(htmlFile, 160) :
-            AppContent.popupContent(htmlFile, kind === 'schedule' ? 820 : kind === 'wishes' ? 520 : kind === 'team' ? 560 : 780,
-                kind === 'schedule' ? 560 : kind === 'wishes' ? 360 : kind === 'team' ? 560 : 680);
+            kind === 'wishes' ? AppContent.overlayContent(htmlFile, 560, 360) :
+            AppContent.popupContent(htmlFile, kind === 'schedule' ? 820 : kind === 'team' ? 560 : 780,
+                kind === 'schedule' ? 560 : kind === 'team' ? 560 : 600);
         content.setResponsive(true);
         content.setAllowJFXBrowser(false);
         if (!user.canSendAppContent(content)) {
@@ -60,10 +66,22 @@ MischWerkModules.attachSessions = function (runtime, config) {
         }
         content.addCloseListener(function () {
             views = views.filter(function (view) { return view.content !== content; });
+            if (kind === 'wishes') {
+                opening.radioContent.getSessions().forEach(function (radioSession) {
+                    try { radioSession.sendEvent('mw:wishes.closed', { surfaceId: opening.surfaceId }); }
+                    catch (ignored) { /* Eine geschlossene Radioleiste benötigt keinen Fokus mehr. */ }
+                });
+            }
+            if (kind === 'radio') {
+                views.slice().forEach(function (view) {
+                    if (view.radioContent === content) { view.content.getSessions().forEach(function (active) { active.remove(); }); }
+                });
+            }
         });
         var userId = runtime.userId(user);
         views.slice().forEach(function (view) {
-            if (view.userId === userId && (view.kind === 'radio') === (kind === 'radio')) {
+            var group = function (name) { return name === 'radio' ? 'radio' : name === 'wishes' ? 'wishes' : 'popup'; };
+            if (view.userId === userId && group(view.kind) === group(kind)) {
                 view.content.getSessions().forEach(function (session) { session.remove(); });
             }
         });
@@ -71,7 +89,8 @@ MischWerkModules.attachSessions = function (runtime, config) {
             throw runtime.failure('MischWerk konnte die Ansicht gerade nicht öffnen. Bitte erneut versuchen.');
         }
         views.push({ content: content, kind: kind, userId: userId, page: 0, myPage: 0,
-            radioModeratorPage: 0, feedbackId: null });
+            radioModeratorPage: 0, feedbackId: null, radioContent: opening && opening.radioContent,
+            surfaceId: opening && opening.surfaceId });
         return true;
     };
 

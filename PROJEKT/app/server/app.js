@@ -23,6 +23,7 @@ KnuddelsServer.execute('server/schedule/transport.js');
 KnuddelsServer.execute('server/ui/snapshot.js');
 KnuddelsServer.execute('server/transport/views.js');
 KnuddelsServer.execute('server/ui/sessions.js');
+KnuddelsServer.execute('server/ui/wish-surface.js');
 KnuddelsServer.execute('server/maintenance.js');
 KnuddelsServer.execute('server/lifecycle.js');
 KnuddelsServer.execute('server/transport/events.js');
@@ -52,6 +53,7 @@ MischWerkModules.createApp = function (config) {
     MischWerkModules.attachSnapshot(runtime, config);
     MischWerkModules.attachViewTransport(runtime, config);
     MischWerkModules.attachSessions(runtime, config);
+    MischWerkModules.attachWishSurface(runtime);
     MischWerkModules.attachMaintenance(runtime, config);
     MischWerkModules.attachLifecycle(runtime, config);
     MischWerkModules.attachEvents(runtime, config);

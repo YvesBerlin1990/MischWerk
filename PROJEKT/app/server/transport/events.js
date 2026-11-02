@@ -9,6 +9,10 @@ MischWerkModules.attachEvents = function (runtime, config) {
             runtime.handleWishSubmission(user, data, session);
             return;
         }
+        if (type.indexOf('mw:wishes.') === 0) {
+            runtime.handleWishSurfaceEvent(user, type, data, session);
+            return;
+        }
         if (type.indexOf('mw:schedule.') === 0) {
             runtime.handleScheduleEvent(user, type, data, session);
             return;
@@ -37,10 +41,15 @@ MischWerkModules.attachEvents = function (runtime, config) {
             if (runtime.shuttingDown) {
                 throw runtime.failure('MischWerk wird gerade neu gestartet. Bitte öffne die App gleich erneut.');
             }
-            if (type === 'mw:openWishes' || type === 'mw:openStudio' || type === 'mw:openRadioTeam' || type === 'mw:openSchedule') {
+            if (type === 'mw:openWishes') {
+                runtime.toggleWishSurface(user, session);
+                runtime.result(session, true, 'Wunschbox geöffnet.', type, requestId);
+                return;
+            }
+            if (type === 'mw:openStudio' || type === 'mw:openRadioTeam' || type === 'mw:openSchedule') {
                 operation = 'OPEN_VIEW';
                 runtime.openView(user, type === 'mw:openStudio' ? 'studio' :
-                    type === 'mw:openRadioTeam' ? 'team' : type === 'mw:openSchedule' ? 'schedule' : 'wishes');
+                    type === 'mw:openRadioTeam' ? 'team' : type === 'mw:openSchedule' ? 'schedule' : 'schedule');
                 runtime.result(session, true, 'Fenster geöffnet.', type, requestId);
                 return;
             }

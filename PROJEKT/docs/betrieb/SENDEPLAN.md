@@ -19,7 +19,7 @@ Alle Nutzer können lesen. Ausschließlich der tatsächliche Channelinhaber sieh
 3. **Speichern** wählen. Der Moderator muss der Channelinhaber oder ein bereits im Radio-Team ernannter Radiomoderator sein.
 4. Zum Ändern **Bearbeiten** an der Sendung wählen. Dort kann die Sendung auch gelöscht werden. Für einen Wechsel in eine andere Kalenderwoche den Eintrag in der alten Woche entfernen und in der Zielwoche neu anlegen.
 
-Die Planung meldet niemanden automatisch im Studio an und steuert keinen RadioKing-Encoder. Die tatsächliche ON-AIR-Anmeldung bleibt unabhängig.
+Die Planung meldet niemanden automatisch im Studio an und steuert keinen Anbieter-Encoder. Die tatsächliche ON-AIR-Anmeldung bleibt unabhängig.
 
 ## Verlässliche Änderungen
 
@@ -29,6 +29,6 @@ Wochenpläne liegen getrennt vom allgemeinen Appzustand unter `mischwerk.schedul
 
 Die Client-/Server-Kommunikation verwendet `mw:schedule.get`, `.data`, `.save`, `.delete`, `.result` und `.changed`. Je Paket höchstens 20 Einträge; der Client setzt die vollständige Woche zusammen und prüft Anfrage-ID sowie Revision der aktuellen und vorherigen Woche. Die übrigen Ansichten erhalten keine zusätzlichen Planlisten im allgemeinen Statuspaket.
 
-Architektur: vier Backendmodule unter `src/backend/schedule/`, sieben Frontendkomponenten unter `app/www/js/schedule/` und das zuständige Stylesheet `app/www/css/schedule.css`. Tests: `tests/schedule.test.cjs` und `tests/schedule.browser.test.cjs`. Einzelheiten zum lokalen Paket und verbleibender echter Knuddels-Abnahme: [PRUEFBERICHT.md](../pruefung/PRUEFBERICHT.md).
+Architektur: vier Backendmodule unter `src/backend/schedule/`, sieben Frontendkomponenten unter `app/www/js/schedule/` und das zuständige Stylesheet `app/www/css/schedule.css`. Tests: `tests/node/schedule.test.cjs` und `tests/browser/schedule.browser.test.cjs`. Einzelheiten zum lokalen Paket und verbleibender echter Knuddels-Abnahme: [PRUEFBERICHT.md](../pruefung/PRUEFBERICHT.md).
 
 Seit 0.1.46 entfällt die Verbindungsplakette im Kopf des Sendeplans. Lade-, Speicher- und Fehlerrückmeldungen erscheinen weiterhin direkt im Plan.
