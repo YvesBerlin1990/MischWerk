@@ -1,12 +1,14 @@
+# Entwicklungsabhängigkeiten und erzeugte Prüfergebnisse
 node_modules/
 dist/
 coverage/
 *.log
+
+# Lokale Konfiguration; Beispieldateien bleiben sichtbar
 .env
 .env.*
 !*.example
 
-# Lokal erzeugte Auslieferungen und historische Sicherungen
-UPLOAD/
-ANLEITUNGEN/Paket/*.zip
-ARCHIV/
+# Lokal erzeugte Auslieferungen
+/UPLOAD/
+/ANLEITUNGEN/Paket/*.zip

@@ -1,5 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 const { createHarness, persistence } = require('../tools/knuddels-mock.cjs');
 const wish = { text: 'Lieblingsband – Unser Song · Für den Channel' };
 const lastResult = events => {
@@ -17,6 +20,49 @@ function legacyStore(requests, extra = {}) {
     moderator: null, requests, cooldowns: {}, nextId: highest + 1, radioModeratorUserIds: [],
     radioModeratorRevision: 0, ...extra } });
 }
+test('Vorhang startet geschlossen, Ausnahmen und Bedienrecht stammen ausschließlich vom Server',()=>{
+  const {h,listener,owner,ls,os}=fixture();
+  assert.deepEqual(h.state(listener,ls).curtain,{closed:true,audioVersion:h.config.version,exempt:false,canManage:false});
+  assert.equal(h.state(owner,os).curtain.exempt,true);
+  assert.equal(h.state(owner,os).curtain.canManage,true);
+  for(const [id,nick,role] of [[3,'Polaroid','listener'],[4,'ChannelMod','moderator'],[5,'AppManager','manager'],[6,'AndererInhaber','owner'],[7,'RadioMod','listener']]){
+    const person=h.user(id,nick,role),session=h.open(person);
+    if(id===7){appoint(h,owner,os,person);}
+    const curtain=h.state(person,session).curtain;
+    assert.equal(curtain.exempt,nick==='Polaroid'); assert.equal(curtain.canManage,false);
+    assert.equal(lastResult(h.event(person,session,'mw:setCurtain',{closed:false,previousClosed:true,nick:'Otterchen',canManage:true})).ok,false);
+  }
+  assert.equal(h.state(listener,ls).curtain.closed,true);
+  owner.role='listener';
+  assert.equal(h.state(owner,os).curtain.canManage,false);
+  assert.equal(lastResult(h.event(owner,os,'mw:setCurtain',{closed:false,previousClosed:true})).ok,false);
+});
+test('Vorhang öffnet und schließt global, veraltete und ungültige Änderungen werden verworfen',()=>{
+  const {h,listener,owner,ls,os}=fixture();
+  assert.equal(lastResult(h.event(owner,os,'mw:setCurtain',{closed:false,previousClosed:true})).ok,true);
+  assert.equal(ls.events.findLast(e=>e.type==='mw:state').data.curtain.closed,false);
+  for(const data of [{closed:true,previousClosed:true},{closed:'true',previousClosed:false},{closed:true},{closed:true,previousClosed:0}]){
+    assert.equal(lastResult(h.event(owner,os,'mw:setCurtain',data)).ok,false);
+    assert.equal(h.state(listener,ls).curtain.closed,false);
+  }
+  assert.equal(lastResult(h.event(owner,os,'mw:setCurtain',{closed:true,previousClosed:false})).ok,true);
+  assert.equal(ls.events.findLast(e=>e.type==='mw:state').data.curtain.closed,true);
+});
+test('Vorhangzustand überlebt Neustart und ergänzt alte Zustände ohne andere Einstellungen zu ändern',()=>{
+  const store=legacyStore([],{topic:'Meine Sendung',requestsEnabled:false});
+  const h=createHarness(store),owner=h.user(1,'Otterchen','owner'),session=h.open(owner);
+  assert.equal(h.state(owner,session).curtain.closed,true);
+  h.event(owner,session,'mw:setCurtain',{closed:false,previousClosed:true});
+  const restarted=createHarness(store),person=restarted.user(2,'Musikfreund'),fresh=restarted.open(person);
+  const state=restarted.state(person,fresh);
+  assert.equal(state.curtain.closed,false);assert.equal(state.topic,'Meine Sendung');assert.equal(state.requestsEnabled,false);
+});
+test('Fehlgeschlagene Vorhangspeicherung lässt den bestätigten Zustand erhalten',()=>{
+  const {h,owner,os}=fixture();
+  h.store.setObject=()=>{throw new Error('Speicher nicht verfügbar');};
+  assert.equal(lastResult(h.event(owner,os,'mw:setCurtain',{closed:false,previousClosed:true})).ok,false);
+  assert.equal(h.state(owner,os).curtain.closed,true);
+});
 function appoint(h, owner, ownerSession, person) {
   const revision = h.state(owner, ownerSession).radioModeratorRevision;
   const result = lastResult(h.event(owner, ownerSession, 'mw:addRadioModerator', {
@@ -31,6 +77,39 @@ function removeRadioModerator(h, owner, ownerSession, person) {
   }));
   assert.equal(result.ok, true, result.message);
 }
+test('main.js laedt fachlich getrennte Serverdateien statt eines Sammelbundles', () => {
+  const h = createHarness();
+  const { modules, checkBackend } = require('../tools/build-backend.cjs');
+  checkBackend();
+  assert.deepEqual(h.loadedFiles, ['main.js', 'server/app.js', ...modules.filter(file => file !== 'app.js').map(file => 'server/' + file)]);
+  const entry = fs.readFileSync(path.join(__dirname, '../app/main.js'), 'utf8');
+  assert.equal((entry.match(/KnuddelsServer.execute\(/g) || []).length, 1);
+  assert.ok(entry.split('\n').length < 6);
+  assert.doesNotMatch(entry, /onEventReceived\s*[:=]|\bpersist\s*\(|function\s*\(/);
+});
+test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
+  const result = require('../tools/check-architecture.cjs').checkArchitecture();
+  assert.equal(result.backendModules, 27);
+  assert.equal(result.frontendComponents, 36);
+});
+
+test('Laufzeitprüfung verweigert fremde und fehlende Dateien vor der Paketfreigabe', t => {
+  const os = require('node:os');
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'MischWerk-Pakettest-'));
+  t.after(() => {
+    assert.ok(directory.startsWith(path.join(os.tmpdir(), 'MischWerk-Pakettest-')));
+    fs.rmSync(directory, { recursive: true, force: true });
+  });
+  fs.cpSync(path.join(__dirname, '../app'), directory, { recursive: true });
+  const { checkRuntime } = require('../tools/check-file-lengths.cjs');
+  assert.doesNotThrow(() => checkRuntime(directory));
+  const unexpected = path.join(directory, 'www/versehentliche-quelldaten.json');
+  fs.writeFileSync(unexpected, '{}');
+  assert.throws(() => checkRuntime(directory), /Laufzeitdateien/);
+  fs.unlinkSync(unexpected);
+  fs.unlinkSync(path.join(directory, 'www/js/start.js'));
+  assert.throws(() => checkRuntime(directory), /Laufzeitdateien/);
+});
 test('Rechte kommen vom User, nicht vom Nick oder den Eventdaten', () => {
   const { h, listener, ls } = fixture(); listener.nick = 'Otterchen';
   for (const type of ['mw:setRequests', 'mw:setTopic', 'mw:onAir', 'mw:offAir', 'mw:resolveRequest']) {
@@ -39,6 +118,152 @@ test('Rechte kommen vom User, nicht vom Nick oder den Eventdaten', () => {
   }
   assert.equal(h.state(listener, ls).requestsEnabled, true);
   assert.equal(h.state(listener, ls).user.canModerate, false);
+});
+test('/update erlaubt nur echte Appmanager und Channelinhaber, keine CM- oder Radiomoderatorrolle', () => {
+  const { h, listener, owner, ls, os } = fixture();
+  const initialInvalidations = h.cacheInvalidations.length;
+  const cm = h.user(3, 'ChannelCM', 'moderator');
+  appoint(h, owner, os, listener);
+  for (const person of [listener, cm, h.user(4, 'Otterchen', 'listener')]) {
+    h.app.chatCommands.update(person, '');
+    assert.match(person.messages.at(-1), /Nur Appmanager/);
+  }
+  assert.equal(h.updateCalls.length, 0);
+  assert.equal(h.cacheInvalidations.length, initialInvalidations, 'Keine Cache-Aktion ohne Appmanagerrecht');
+  const manager = h.user(5, 'AppManager', 'manager'), ms = h.open(manager);
+  assert.equal(h.state(manager, ms).user.canModerate, false, 'Appmanager erhalten kein Studiorecht');
+  h.app.chatCommands.update(manager, '');
+  assert.equal(h.updateCalls.length, 1);
+  assert.match(manager.messages.at(-1), /1 neue Datei.*angefordert.*30 Sekunden.*offene Wünsche/);
+  const other = createHarness();
+  other.app.chatCommands.update(other.user(6, 'Besitzer', 'owner'), '');
+  assert.equal(other.updateCalls.length, 1, 'Channelinhaber sind laut API Appmanager');
+});
+test('/update reiht nur einmal ein und verändert laufende Wünsche und Einstellungen nicht', () => {
+  const { h, listener, owner, ls, os } = fixture();
+  h.event(listener, ls, 'mw:wish.submit', { text: 'Bleibt bis zum Neustart' });
+  h.event(owner, os, 'mw:setTopic', { topic: 'Rock' });
+  const saved = JSON.stringify(h.store.data);
+  h.app.chatCommands.update(owner, '');
+  h.app.chatCommands.update(h.user(9, 'ZweiterManager', 'manager'), '');
+  assert.equal(h.updateCalls.length, 1);
+  const state = h.state(owner, os);
+  assert.equal(state.queueTotal, 1); assert.equal(state.topic, 'Rock');
+  assert.equal(state.shuttingDown, false, 'Erst der echte Knuddels-Hook beendet die Annahme');
+  assert.equal(JSON.stringify(h.store.data), saved);
+});
+test('/update bleibt nach API-Fehler erneut möglich und gibt keine internen Details aus', () => {
+  const { h, owner } = fixture();
+  const updateFiles = h.rootInstance.updateAppFiles;
+  h.rootInstance.updateAppFiles = () => { throw new Error('Private interne Dateiangaben'); };
+  h.app.chatCommands.update(owner, '');
+  assert.match(owner.messages.at(-1), /konnte nicht angefordert/);
+  h.rootInstance.updateAppFiles = updateFiles;
+  const update = h.rootInstance.updateApp;
+  h.rootInstance.updateApp = () => { throw new Error('Private interne Angaben'); };
+  h.app.chatCommands.update(owner, '');
+  assert.match(owner.messages.at(-1), /konnte nicht angefordert/);
+  assert.ok(h.logs.some(entry => entry.message.includes('[APP_UPDATE]')));
+  assert.doesNotMatch(JSON.stringify(h.logs) + JSON.stringify(owner.messages), /Private interne/);
+  h.rootInstance.updateApp = update;
+  h.app.chatCommands.update(owner, '');
+  assert.equal(h.updateCalls.length, 1);
+  assert.match(owner.messages.at(-1), /angefordert/);
+});
+test('/update prüft FTP-Dateien und startet ohne neue Daten nicht neu', () => {
+  const h = createHarness(); const owner = h.user(2, 'Otterchen', 'owner');
+  h.rootInstance.availableFiles = [];
+  h.app.chatCommands.update(owner, '');
+  assert.equal(h.updateFileCalls.length, 1); assert.equal(h.updateCalls.length, 0);
+  assert.match(owner.messages.at(-1), /Keine neuen.*kein Neustart/);
+  h.rootInstance.availableFiles = ['server/maintenance.js', 'www/js/start.js'];
+  h.app.chatCommands.update(owner, '');
+  assert.equal(h.updateFileCalls.length, 2); assert.equal(h.updateCalls.length, 1);
+  assert.match(owner.messages.at(-1), /2 neue Dateien.*angefordert/);
+});
+test('Appstart erneuert den Oberflaechen-Cache vor der ersten Ansicht, ohne Dateien zu uebernehmen', () => {
+  const h = createHarness(undefined, { users: [{ id: 2, nick: 'Besitzer', role: 'owner' }] });
+  assert.equal(h.cacheInvalidations.length, 1);
+  assert.equal(h.updateFileCalls.length, 0);
+  assert.equal(h.updateCalls.length, 0);
+  assert.ok(h.contents.length > 0, 'Appansichten werden weiterhin gestartet');
+});
+test('/update erneuert auch bei bereits uebernommenen Dateien den Cache und nennt die laufende Version', () => {
+  const h = createHarness(); const owner = h.user(2, 'Otterchen', 'owner');
+  const order = [], readFiles = h.rootInstance.updateAppFiles, invalidate = h.rootInstance.invalidateClientCache;
+  h.rootInstance.availableFiles = [];
+  h.rootInstance.updateAppFiles = function () { order.push('files'); return readFiles.call(this); };
+  h.rootInstance.invalidateClientCache = function () { order.push('cache'); return invalidate.call(this); };
+  h.app.chatCommands.update(owner, '');
+  assert.deepEqual(order, ['files', 'cache']);
+  assert.equal(h.updateCalls.length, 0, 'Leere Dateiliste erzwingt keinen Neustart');
+  assert.equal(h.cacheInvalidations.length, 2, 'Start und ausdrueckliche Aktualisierung');
+  assert.ok(owner.messages.at(-1).includes(h.config.version));
+  assert.match(owner.messages.at(-1), /Statuszentrale.*erneut öffnen.*\/ftp\/MischWerk/);
+});
+test('/update invalidiert nach reinen Statuszentrale-Dateien den Cache vor dem Neustartauftrag', () => {
+  const h = createHarness(); const owner = h.user(2, 'Otterchen', 'owner');
+  const order = [], invalidate = h.rootInstance.invalidateClientCache, update = h.rootInstance.updateApp;
+  h.rootInstance.availableFiles = ['www/js/team/status-markup.js', 'www/css/team-status.css'];
+  h.rootInstance.invalidateClientCache = function () { order.push('cache'); return invalidate.call(this); };
+  h.rootInstance.updateApp = function (message, logMessage) { order.push('update'); return update.call(this, message, logMessage); };
+  const saved = JSON.stringify(h.store.data);
+  h.app.chatCommands.update(owner, '');
+  assert.deepEqual(order, ['cache', 'update']);
+  assert.equal(h.updateCalls.length, 1);
+  assert.equal(JSON.stringify(h.store.data), saved);
+  assert.match(owner.messages.at(-1), /2 neue Dateien.*angefordert/);
+});
+test('/update behaelt erkannte Dateien bei Cachefehlern fuer den naechsten Versuch', () => {
+  const h = createHarness(); const owner = h.user(2, 'Otterchen', 'owner');
+  const invalidate = h.rootInstance.invalidateClientCache;
+  h.rootInstance.availableFiles = ['www/js/team/status-view.js'];
+  h.rootInstance.invalidateClientCache = () => { throw new Error('Private interne Cachedetails'); };
+  h.app.chatCommands.update(owner, '');
+  assert.equal(h.updateCalls.length, 0);
+  assert.match(owner.messages.at(-1), /konnte nicht angefordert/);
+  h.rootInstance.invalidateClientCache = invalidate;
+  h.app.chatCommands.update(owner, '');
+  assert.equal(h.updateCalls.length, 1);
+  assert.match(owner.messages.at(-1), /1 neue Datei.*angefordert/);
+  assert.doesNotMatch(JSON.stringify(h.logs) + JSON.stringify(owner.messages), /Private interne Cachedetails/);
+});
+test('Cachefehler beim Start verhindert weder Ansichten noch Datenladen', () => {
+  const h = createHarness(undefined, { failClientCache: true, users: [{ id: 2, nick: 'Besitzer', role: 'owner' }] });
+  assert.ok(h.contents.length > 0);
+  assert.ok(h.logs.some(entry => entry.message.includes('[APP_UI_CACHE]')));
+  assert.doesNotMatch(JSON.stringify(h.logs), /Private interne Cachedetails/);
+  assert.equal(h.updateCalls.length, 0);
+});
+test('/update lehnt Zusätze, abwesende Nutzer und einen laufenden Shutdown ab', () => {
+  const { h, owner } = fixture();
+  h.app.chatCommands.update(owner, 'fremde-app');
+  assert.match(owner.messages.at(-1), /ohne weitere Angaben/);
+  owner.online = false; h.app.chatCommands.update(owner, '');
+  assert.match(owner.messages.at(-1), /MischWerk-Channel/);
+  owner.online = true; h.app.onPrepareShutdown(); h.app.chatCommands.update(owner, '');
+  assert.match(owner.messages.at(-1), /bereits angefordert/);
+  assert.equal(h.updateCalls.length, 0);
+});
+test('Ernannte Radiomoderation entfernt gespielte und nicht verfügbare Wünsche einzeln', () => {
+  const { h, listener, owner, ls, os } = fixture();
+  const mod = h.user(10, 'Radiomoderator'), ms = h.open(mod);
+  appoint(h, owner, os, mod);
+  for (const text of ['Gespielt', 'Nicht verfügbar', 'Noch offen']) {
+    h.event(listener, ls, 'mw:wish.submit', { text });
+  }
+  h.event(mod, ms, 'mw:openStudio');
+  const studio = mod.sessions.find(session => session.content.viewMode === 'Popup');
+  for (const outcome of ['done', 'discarded']) {
+    const id = h.state(mod, studio).queue[0].id;
+    const response = lastResult(h.event(mod, studio, 'mw:resolveRequest', { id, outcome }));
+    assert.equal(response.ok, true); assert.match(response.message, /entfernt|verworfen/);
+  }
+  const remaining = h.state(mod, studio);
+  assert.equal(remaining.queueTotal, 1); assert.equal(remaining.queue[0].text, 'Noch offen');
+  const manager = h.user(11, 'NurAppmanager', 'manager'), managerSession = h.open(manager);
+  assert.equal(lastResult(h.event(manager, managerSession, 'mw:resolveRequest', { id: remaining.queue[0].id })).ok, false);
+  assert.equal(h.state(owner, os).queueTotal, 1);
 });
 test('Das neue Wunschprotokoll legt den Wunsch nur in die laufende Moderationsqueue', () => {
   const { h, listener, owner, ls, os } = fixture();
@@ -53,6 +278,27 @@ test('Das neue Wunschprotokoll legt den Wunsch nur in die laufende Moderationsqu
   assert.equal(h.state(listener, ls).myRequests.length, 0);
   assert.equal(h.store.data['mischwerk.wishes.v2'], undefined);
   assert.equal(h.logs.some(entry => entry.message.includes('[WISH_APPEND]')), false);
+});
+test('Unerwartete Wunschfehler nennen Phase, Fehlertyp und Zeile ohne Text oder Nutzerdaten', () => {
+  const logs = [], receipts = [];
+  const context = vm.createContext({ MischWerkModules: {}, KnuddelsServer: { getDefaultLogger: () => ({ warn: message => logs.push(message) }) } });
+  for (const name of ['config.js', 'core/runtime.js', 'core/diagnostics.js', 'core/validation.js', 'wishes/queue.js', 'wishes/transport.js']) {
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/backend', name), 'utf8'), context);
+  }
+  const runtime = context.MischWerkModules.createRuntime(context.MischWerkConfig);
+  context.MischWerkModules.attachDiagnostics(runtime, context.MischWerkConfig);
+  context.MischWerkModules.attachValidation(runtime, context.MischWerkConfig);
+  context.MischWerkModules.attachWishQueue(runtime, context.MischWerkConfig);
+  context.MischWerkModules.attachWishTransport(runtime);
+  runtime.state = { requestsEnabled: true };
+  runtime.send = (session, type, data) => receipts.push(data);
+  const error = new SyntaxError('Interne Details und privater Wunsch'); error.lineNumber = 123;
+  runtime.containsWishLink = () => { throw error; };
+  runtime.handleWishSubmission({ getNick: () => 'Privater Nick' }, { text: 'Privater Song', submissionId: 'private-id' }, {});
+  assert.equal(receipts[0].accepted, false);
+  assert.match(logs[0], /\[WISH_LINK_CHECK\].*\[SyntaxError\].*\[Backend-Zeile:123\]/);
+  assert.equal(runtime.wishItems().length, 0);
+  assert.doesNotMatch(JSON.stringify(logs) + JSON.stringify(receipts), /Interne Details|Privater Song|Privater Nick/);
 });
 test('Session muss zum authentifizierten Nutzer gehören; geschlossene Sessions werden ignoriert', () => {
   const { h, listener, owner, ls } = fixture();
@@ -182,7 +428,7 @@ test('Radio-Team ist ein eigenes Besitzer-Popup; Entzug beendet eine laufende St
   assert.equal(lastResult(h.event(radioMod,rms,'mw:openStudio')).ok,false,'Channelmoderator kann das Studio nicht öffnen');
   assert.equal(lastResult(h.event(owner,os,'mw:openRadioTeam')).ok,true);
   const team=owner.sessions.find(session=>session.content.viewMode==='Popup');
-  assert.equal(team.content.width,560);assert.equal(team.content.height,420);
+  assert.equal(team.content.width,560);assert.equal(team.content.height,560);
   assert.equal(team.content.htmlFile.getPageData().view,'team');assert.equal(os.removed,false);
   appoint(h,owner,team,radioMod);
   assert.equal(lastResult(h.event(radioMod,rms,'mw:openStudio')).ok,true);
@@ -201,6 +447,28 @@ test('Ungültige Texte und nichtboolesche Schalter werden verworfen', () => {
   }
   assert.equal(lastResult(h.event(owner, os, 'mw:setRequests', { enabled: 'false' })).ok, false);
 });
+
+test('Fehlgeschlagener Rechteentzug erhält Moderation, Thema und offene Übergabe', () => {
+  const { h, listener, owner, ls, os } = fixture();
+  appoint(h, owner, os, listener);
+  h.event(listener, ls, 'mw:onAir');
+  h.event(listener, ls, 'mw:setTopic', { topic: 'Laufende Sendung' });
+  const before = h.state(listener, ls);
+  h.event(listener, ls, 'mw:handover.request', { nick: owner.nick, expectedModerator: before.moderator.sessionKey });
+  const handover = h.state(listener, ls).handover;
+  const write = h.store.setObject;
+  h.store.setObject = () => { throw new Error('Privater Speicherfehler'); };
+  const result = lastResult(h.event(owner, os, 'mw:removeRadioModerator', {
+    userId: listener.id, expectedRadioModeratorRevision: before.radioModeratorRevision
+  }));
+  h.store.setObject = write;
+  assert.equal(result.ok, false);
+  const after = h.state(listener, ls);
+  assert.deepEqual(after.moderator, before.moderator);
+  assert.equal(after.topic, before.topic);
+  assert.equal(after.user.canModerate, true);
+  assert.deepEqual(after.handover, handover);
+});
 test('Neustart leert die flüchtige Wunschqueue und bewahrt den Wunschbox-Status', () => {
   const { h, listener, owner, ls, os } = fixture();
   h.event(listener, ls, 'mw:wish.submit', wish); h.event(owner, os, 'mw:setRequests', { enabled: false });
@@ -208,15 +476,22 @@ test('Neustart leert die flüchtige Wunschqueue und bewahrt den Wunschbox-Status
   assert.equal(restarted.state(ro, rs).queue.length, 0); assert.equal(restarted.state(ro, rs).requestsEnabled, false);
   restarted.advance(48 * 3600000 + 1); assert.equal(restarted.state(ro, rs).queue.length, 0);
 });
-test('On-Air nutzt echten Nick; Fremd-Abmeldung nur durch Besitzer; Anmeldung läuft ab', () => {
+test('On-Air nutzt echten Nick; erfolgreiche Abmeldung löscht das Thema; Anmeldung läuft ab', () => {
   const { h, listener, owner, ls, os } = fixture(); listener.role = 'moderator'; appoint(h,owner,os,listener);
+  h.event(owner,os,'mw:setTopic',{topic:'Rock'});
   h.event(listener, ls, 'mw:onAir', { nick: 'Fälschung' });
   assert.equal(h.state(owner, os).moderator.nick, listener.nick);
   const other = h.user(4, 'AndereMod', 'moderator'); const ss = h.open(other);
   assert.equal(lastResult(h.event(other, ss, 'mw:offAir')).ok, false);
+  assert.equal(h.state(owner,os).topic,'Rock','Abgewiesene Fremd-Abmeldung verändert das Thema nicht');
   assert.equal(lastResult(h.event(owner, os, 'mw:offAir')).ok, true);
+  assert.equal(h.state(owner,os).topic,'','Erfolgreiches Beenden durch den Besitzer entfernt das Thema');
+  h.event(owner,os,'mw:setTopic',{topic:'Jazz'});
+  assert.equal(lastResult(h.event(owner,os,'mw:offAir')).ok,false,'Ohne aktive Moderation gibt es keine erfolgreiche Abmeldung');
+  assert.equal(h.state(owner,os).topic,'Jazz','Abmeldung ohne aktive Moderation entfernt kein Thema');
   h.event(listener, ls, 'mw:onAir'); h.advance(6 * 3600000 + 1);
   assert.equal(h.state(owner, os).moderator, null);
+  assert.equal(h.state(owner,os).topic,'Jazz','Automatischer Ablauf behält das Thema');
 });
 
 test('ON AIR endet beim Channel-Verlassen oder Rechteverlust und behält Wünsche und Thema',()=>{
@@ -250,13 +525,16 @@ test('Studio-Rechte, bewusste Verlängerung und veraltete Abmeldungen folgen der
   state=h.state(mod,ms);assert.ok(state.moderator.expiresAt>expires);assert.notEqual(state.moderator.sessionKey,key);
   assert.equal(lastResult(h.event(owner,os,'mw:offAir',{expectedModerator:key})).ok,false);
   key=state.moderator.sessionKey;
-  h.event(other,ss,'mw:onAir',{expectedModerator:key});
+  h.event(mod,ms,'mw:handover.request',{expectedModerator:key,nick:other.nick});
+  h.event(other,ss,'mw:handover.accept',{id:h.state(other,ss).handover.incoming.id,topic:''});
   assert.equal(lastResult(h.event(mod,ms,'mw:onAir',{expectedModerator:key})).ok,false,'Veraltete Übernahme nicht anwenden');
   assert.equal(lastResult(h.event(owner,os,'mw:offAir',{expectedModerator:key})).ok,false,'Alte Abmeldung beendet keine neue Sendung');
   assert.equal(h.state(owner,os).moderator.nick,'ZweiterMod');
+  h.event(owner,os,'mw:setTopic',{topic:'Rock'});
   const store=h.store.setObject;h.store.setObject=()=>{throw new Error('disk full');};
   assert.equal(lastResult(h.event(owner,os,'mw:offAir',{expectedModerator:h.state(owner,os).moderator.sessionKey})).ok,false);
   h.store.setObject=store;assert.equal(h.state(owner,os).moderator.nick,'ZweiterMod');
+  assert.equal(h.state(owner,os).topic,'Rock','Fehlgeschlagene Abmeldung entfernt das Thema nicht halbseitig');
 });
 
 test('Speicherfehler beim Verlassen lässt keine unbestätigte ON-AIR-Anzeige stehen oder beim Wiederbeitritt aufleben',()=>{
@@ -419,6 +697,20 @@ test('Erneut übertragener Wunsch mit derselben ID wird nicht doppelt angelegt',
   assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', data)).ok, true);
   assert.equal(h.state(owner, os).queueTotal, 0);
 });
+test('Wiederholungsschutz bleibt ohne Wunschbegrenzung für die ganze App-Sitzung erhalten', () => {
+  const { h, listener, owner, ls, os } = fixture();
+  const first = { text: 'Erster Wunsch', submissionId: 'session-first' };
+  assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', first)).ok, true);
+  const firstId = h.state(owner, os).queue[0].id;
+  h.event(owner, os, 'mw:resolveRequest', { id: firstId, outcome: 'done' });
+  for (let index = 0; index < 120; index++) {
+    assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', {
+      text: 'Wunsch ' + index, submissionId: 'session-' + index
+    })).ok, true);
+  }
+  assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', first)).ok, true);
+  assert.equal(h.state(owner, os).queueTotal, 120, 'Alte Übertragungs-ID darf keinen zweiten Wunsch anlegen');
+});
 test('Eine geschlossene nicht-null Sitzung darf keine weiteren Aktionen ausführen', () => {
   const { h, listener, ls } = fixture(); ls.remove();
   assert.deepEqual(h.event(listener, ls, 'mw:wish.submit', wish), []);
@@ -468,16 +760,28 @@ test('Knuddels-Ansicht ist responsiv und schließt den alten JFX-Browser aus', (
   const { h, os } = fixture();
   assert.equal(os.content.responsive, true); assert.equal(os.content.allowJFXBrowser, false);
   assert.equal(os.content.htmlFile.getAssetPath(), 'index.html');
-  assert.equal(os.content.viewMode, 'Headerbar'); assert.equal(os.content.height, 264);
+  assert.equal(os.content.viewMode, 'Headerbar'); assert.equal(os.content.height, 160);
 });
 test('Channelbeitritt und Appstart öffnen die Leiste; Wiederöffnen hinterlässt keine doppelte Sitzung', () => {
   const h = createHarness(); const user = h.user(9, 'Hörer');
+  assert.deepEqual(Object.keys(h.app.chatCommands).sort(), ['mischwerk', 'update']);
   h.app.onUserJoined(user); const first = user.sessions[0];
   assert.equal(first.content.viewMode, 'Headerbar');
   h.app.chatCommands.mischwerk(user);
   assert.equal(first.removed, true); assert.equal(user.sessions.length, 1);
   h.app.onAppStart(); assert.equal(user.sessions.length, 1);
   h.app.onUserLeft(user); assert.equal(user.sessions.length, 0);
+});
+test('Doppelte automatische Start-/Beitrittsereignisse erhalten dieselbe Radioleiste', () => {
+  const h = createHarness(); const user = h.user(9, 'Hörer');
+  h.app.onUserJoined(user);
+  const first = user.sessions[0], contentCount = h.contents.length;
+  h.app.onAppStart(); h.app.onUserJoined(user); h.app.onUserJoined(user);
+  assert.equal(user.sessions[0], first);
+  assert.equal(first.removed, false);
+  assert.equal(h.contents.length, contentCount, 'Kein zweites HTMLFile/AppContent erzeugen');
+  first.remove(); h.app.onUserJoined(user);
+  assert.equal(user.sessions.length, 1); assert.notEqual(user.sessions[0], first, 'Geschlossene Leiste wird neu geoeffnet');
 });
 test('Nicht unterstützte Headerbar öffnet kein Popup und erzeugt beim Beitritt keine Fehlermeldung', () => {
   const h = createHarness(); const user = h.user(9, 'Hörer'); user.capable = false;
@@ -492,7 +796,7 @@ test('Wunschbox und Moderation öffnen als Popup, während die Radioleiste beste
   assert.equal(wishes.content.htmlFile.getPageData().view,'wishes'); assert.equal(os.removed,false);
   h.event(owner,os,'mw:openStudio');
   const studio=owner.sessions.find(session=>session.content.viewMode==='Popup');
-  assert.equal(studio.content.width,780);assert.equal(studio.content.height,420);
+  assert.equal(studio.content.width,780);assert.equal(studio.content.height,680);
   assert.equal(wishes.removed,true); assert.equal(os.removed,false);
   assert.equal(studio.content.htmlFile.getPageData().view,'studio');
   h.event(owner,studio,'mw:setRequests',{enabled:false});
@@ -564,7 +868,7 @@ test('Einzelfeld wird serverseitig validiert und nur in die laufende Queue über
 
 test('Musikwünsche lehnen Links im Backend ab und erlauben normale Interpret-/Titel-Namen',()=>{
   const {h,listener,owner,ls,os}=fixture();
-  for(const link of ['https://youtu.be/123','youtube.com/watch?v=123','www.youtube.com/watch?v=123','http://example.org/song','example.de','open.spotify.com/track/123','spotify:track:123','https%3A%2F%2Fexample.com','example。com','https://exa\u200bmple.com','[Song](example.org)','//example.net/song','ftp://example.com/song','192.168.0.1/song','x.com/song']){
+  for(const link of ['https://youtu.be/123','youtube.com/watch?v=123','www.youtube.com/watch?v=123','http://example.org/song','example.de','open.spotify.com/track/123','spotify:track:123','https%3A%2F%2Fexample.com','example。com','https://exa\u200bmple.com','[Song](example.org)','//example.net/song','ftp://example.com/song','192.168.0.1/song','x.com/song','EXAMPLE.DE','HTTPS%3A%2F%2FEXAMPLE.COM','ÄRZTE.DE']){
     const result=lastResult(h.event(listener,ls,'mw:wish.submit',{text:'Queen – Song '+link}));
     assert.equal(result.ok,false,link);assert.match(result.message,/Keine Links/);
     assert.equal(h.state(owner,os).queueTotal,0);

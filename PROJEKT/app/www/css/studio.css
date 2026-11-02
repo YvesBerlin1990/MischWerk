@@ -1,0 +1,57 @@
+/* Studio: kleine, klar getrennte Bediengruppen und eine ruhige Wunschliste. */
+.studio-workspace { display:grid; grid-template-columns:minmax(0,1fr); align-items:stretch; gap:14px; }
+.studio-setup { min-width:0; }
+.studio-controls { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; }
+.studio-setup .studio-control-card { padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.studio-setup .wishes-control-card { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; padding-top:14px; border-top:1px solid var(--line); }
+.wishes-control-card .switch-button { width:auto; gap:8px; margin:0; }
+.studio-control-card { display:flex; flex-direction:column; min-width:0; }
+.studio-card-heading { display:flex; align-items:center; gap:12px; min-width:0; }
+.studio-card-heading > div { min-width:0; }
+.studio-card-heading h2 { margin:4px 0 0; font-size:18px; overflow-wrap:anywhere; }
+.studio-card-icon { display:grid; place-items:center; width:32px; height:32px; border:1px solid #6a6254; border-radius:9px; background:#2d2d28; color:var(--gold-ink); flex-shrink:0; }
+.studio-card-icon svg { width:18px; height:18px; }
+.studio-status-light { display:inline-block; width:6px; height:6px; margin-right:6px; vertical-align:1px; border-radius:50%; background:var(--muted); flex-shrink:0; }
+.moderator-on-air .studio-status-light { background:var(--live); }
+.studio-control-card .button-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; margin-top:0; padding-top:12px; }
+#handover-open { grid-column:1 / -1; }
+.studio-session { margin-top:8px; }
+.switch-button { display:flex; align-items:center; gap:12px; width:100%; min-height:44px; border:0; border-radius:8px; background:transparent; padding:0; margin-top:16px; text-align:left; font-size:14px; }
+.switch-track { display:block; width:44px; height:26px; border-radius:16px; background:#777; padding:3px; flex-shrink:0; }
+.switch-track i { display:block; width:20px; height:20px; border-radius:50%; background:var(--text); }
+.switch-button[aria-checked=true] .switch-track { background:var(--gold); }
+.switch-button[aria-checked=true] .switch-track i { transform:translateX(18px); background:var(--surface); }
+#toggle-label { margin-left:auto; color:var(--muted); }
+.studio-setup .topic-form { display:block; margin-top:14px; padding:14px 0 0; border:0; border-top:1px solid var(--line); border-radius:0; background:transparent; box-shadow:none; }
+.studio-setup .topic-edit-row { flex-direction:column; align-items:stretch; gap:8px; }
+.studio-setup .topic-edit-row button { min-width:110px; align-self:flex-end; }
+.topic-form-heading { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+.topic-title .eyebrow { display:none; }
+.topic-title { display:flex; align-items:center; gap:10px; }
+.topic-title label { font-size:14px; }
+.topic-edit-row { display:flex; gap:12px; align-items:center; min-width:0; }
+.topic-edit-row input { flex:1; margin:0; }
+.topic-edit-row button { flex-shrink:0; }
+#topic-feedback { font-size:13px; color:var(--muted); }
+#topic-feedback.error { color:var(--error); }
+.studio-queue { display:flex; flex-direction:column; min-width:0; margin:0; }
+.studio-queue-heading { padding-bottom:10px; margin-bottom:12px; border-bottom:1px solid var(--line); }
+.studio-queue-heading .count-badge { display:inline-flex; align-items:center; justify-content:center; min-width:24px; padding:2px 6px; border:1px solid #796943; border-radius:7px; background:#29261d; color:var(--gold-ink); font-variant-numeric:tabular-nums; }
+.studio-queue .queue-item { padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.studio-queue .queue-item + .queue-item { padding-top:14px; margin-top:14px; border-top:1px solid var(--line); }
+.studio-queue #queue-pagination { margin-top:auto; padding-top:14px; }
+.studio-queue-heading .eyebrow { display:none; }
+.studio-queue-heading .text-button svg { width:18px; height:18px; }
+.queue-item { padding:14px; border:1px solid #59554c; border-radius:12px; background:linear-gradient(120deg,#ffffff06,transparent 60%),var(--surface); box-shadow:inset 0 1px 0 #ffffff06,0 3px 8px #0002; overflow-wrap:anywhere; }
+.queue-copy h3 { font-size:18px; line-height:1.4; margin:0; font-weight:600; }
+.queue-copy .request-sender { color:var(--muted); font-size:13px; line-height:1.45; margin:8px 0 0; }
+.queue-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; margin-top:16px; }
+.queue > .empty-copy { padding:16px; background:var(--surface); border-radius:12px; }
+.pagination.single-page { justify-content:center; min-height:28px; }
+.pagination.single-page button { display:none; }
+
+
+/* Bei ausreichendem Platz bleiben Steuerung und Wünsche gleichzeitig sichtbar. */
+@media (min-width:740px) {
+  #studio-panel:not(.fit-tabs) .studio-workspace { grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); }
+}

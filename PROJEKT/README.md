@@ -1,59 +1,100 @@
-# MischWerk – technische Projektdateien
+# MischWerk – Projektübersicht
 
-Lokaler Stand **0.1.33 mit RadioKing**. Lautstärke: Start 40 %, automatische Wiederherstellung höchstens 60 %, darüber rote Hinweiszone mit Warnzeichen. Manuell bleibt 0–100 % frei bedienbar. Prozent ist keine dB-Messung oder Zusage eines sicheren Hörpegels. [Einordnung und Quellen](docs/LAUTSTAERKE.md). Zuletzt im echten App-Log beobachtetes Knuddels-LIVE: 0.1.32; weiterhin kein Upload/Neustart durch diese Bearbeitung.
+Lokaler Stand **0.1.106 mit RadioKing**. Zuletzt im echten Knuddels-App-Log beobachtet: **0.1.103**, Backend gestartet, Radioleiste leer. Upload, Knuddels-Update und Serverneustart benötigen weiterhin eine neue ausdrückliche Freigabe.
+
+Version 0.1.106 entfernt die senkrechte Mittelnaht aus dem Vorhang. Das Logo fügt sich ohne dunkles Rechteck in die deckende Kartenfläche ein. Gestaltung ausschließlich per CSS geändert; Logo-Datei, Werbung, Vorhangsteuerung und Funktionen bleiben erhalten.
+
+Version 0.1.105 zeigt Rückmeldungen in der Radioleiste kompakt unten rechts, passend zur Textbreite und höchstens 420 px breit. Lange Meldungen umbrechen auch bei 320 px Fensterbreite. Texte, Fehlerzustände, Ausblendzeit und Rückmeldungen in Popupfenstern bleiben erhalten.
+
+Version 0.1.104 korrigiert den leeren Start: Die echte Knuddels-Dateieinbindung arbeitet mit document.write. Der frühere Aufruf nach DOMContentLoaded konnte die HTML-Oberfläche löschen. js/start.js und sein Fensterplan werden jetzt während des Parsens eingebunden; erst die Zusammensetzung wartet auf fertiges HTML und alle Module. Ein zusätzlicher Test bildet diese Einbindung für alle fünf Fenster nach. Falls die Oberfläche nicht fertig wird, erscheint nach 15 Sekunden ein verständlicher Hinweis statt einer dauerhaft leeren Fläche. Vorhang, Werbe-MP3 und bisherige Funktionen bleiben erhalten.
+
+Seit 0.1.103 verhüllt ein Vorhang die Radioleiste. Otterchen und Polaroid sehen die Leiste direkt. Nur Otterchen als tatsächlicher Channelinhaber erhält den eigenen Button zum globalen Öffnen/Schließen; dieser Zustand bleibt bei Neustarts erhalten. Der getrennte Button Werbung starten spielt die eigene MP3 lokal beim jeweiligen Hörer. Weder Klick noch Audioende öffnen den Vorhang. Die MP3 lädt erst auf Klick, Startlautstärke höchstens 10 %. Die Radioleiste lädt nun 18 JavaScript-Dateien und acht Stylesheets; andere Fensterpläne bleiben unverändert.
+
+Historische Messung mit 0.1.102: Kontrollierter lokaler Erststart mit 120 ms zusätzlicher Antwortzeit je Textdatei: Median 827 → 674 ms; mit Cache 26 → 34 ms bei je drei Durchläufen. Der damals verwendete DOMContentLoaded-Ladeweg war mit der echten Knuddels-Einbindung nicht kompatibel und wurde in 0.1.104 korrigiert. Diese früheren Mockmessungen sind kein Nachweis für die aktuelle Knuddels-Ladezeit. Die reine Weiterleitungsdatei bleibt entfernt; Fensterpläne und Freigabe erst nach fertigem Layout bleiben erhalten.
+
+Seit 0.1.101 lädt jedes Fenster seine eigenen Module und Styles. Beim Channelbeitritt benötigt die Radioleiste 17 statt 36 JavaScript-Dateien und sieben statt 14 Stylesheets. Die Textressourcen sinken von 176.752 auf 80.934 Bytes, jeweils ohne HTML und Logo. Das Original-Logo behält seine Maße und lädt unabhängig von der Bedienbereitschaft. Popupfunktionen, Rechte, Audiostart und Cacheaktualisierung bleiben erhalten. Gemessene lokale Ressourcenmengen sind keine zugesagte Knuddels-Ladezeit.
+
+Seit 0.1.100 bündelt eine gemeinsame Sendeplan-Karte die Wochenwahl und Aktionen. Pfeile flankieren den mittigen Zeitraum, darunter stehen Diese Woche, Aktualisieren und für den Besitzer Sendung eintragen. Der sichtbare Zusatz „Deutsche Ortszeit“ entfällt. Kalenderberechnung und Sommer-/Winterzeit bleiben unverändert; die Leiste passt auch bei 320 px Breite.
+
+Seit 0.1.99 verwenden alle Popupfenster das Design der Radioleiste. Die Moderation bündelt Studio-Steuerung und Musikwünsche in zwei Arbeitsbereichen; das Themenfeld hat die volle Spaltenbreite. Radio-Team, Statuszentrale und Sendeplan haben passende Karten und Goldbuttons. Prüfzeiten stehen unter Details; die neun Statuswerte bleiben direkt sichtbar.
+
+Seit 0.1.98 sind Logo und Titel in Wunschbox, Moderation und Radio-Team größer. „Wunschbox offen“ entfällt; Hinweise bei deaktivierter Wunschbox oder fehlender Verbindung bleiben erhalten. Die kompakte Statuszentrale zeigt weiterhin alle neun Statuswerte bei 320 px Breite ohne Scrollen.
+
+Seit 0.1.97 besitzt die äußere Radioleiste einen ruhigen anthrazitfarbenen Hintergrund mit sanftem Goldlicht, feiner Materialstruktur und warmer Außenkontur. Die Fläche ist abgerundet; Größen, Bedienung und Wiedergaberahmen bleiben erhalten. Die neue Grundfarbe gilt bereits beim Laden ausschließlich für die Radioansicht.
+
+Seit 0.1.96 stehen Live-Beschriftung und Moderatorname in einer gemeinsamen dezenten Anzeige mit gleicher Schriftgröße und Zeilenhöhe. Beide Texte sind mittig ausgerichtet; lange Namen umbrechen vollständig. Der Text „DJ Mischwerk legt auf“ und die bestätigten Moderationszustände bleiben erhalten.
+
+Seit 0.1.95 steht ohne angemeldete Live-Moderation auf Nutzerwunsch „DJ Mischwerk legt auf“ in der Radioleiste. Startvorlage, Tooltip und zugängliche Beschriftung verwenden denselben Text. Bestätigte Live-Moderation und Verbindungswarnung bleiben erhalten.
+
+Version 0.1.94 erneuert beim Appstart und nach dem Dateiabruf im Updatebefehl den dokumentierten Oberflächen-Cache. Dies gilt auch dann, wenn Dateien schon übernommen wurden und die nächste Dateiliste leer ist. Ohne neue Dateien erfolgt weiterhin kein Neustart. Die private Rückmeldung nennt die laufende Codeversion und erklärt das erneute Öffnen der Statuszentrale sowie das notwendige vollständige Uploadziel.
+
+## Ablage im MischWerk-Hauptordner
+
+| Ordner | Zweck |
+| --- | --- |
+| [UPLOAD/MischWerk](../UPLOAD/MischWerk/) | 84 fertige Laufzeitdateien einschließlich `server/` und `www/` |
+| [ANLEITUNGEN](../ANLEITUNGEN/) | Installation, RadioKing-Einrichtung und aktuelles Paket |
+| PROJEKT | Gepflegte Quellen, lokale Vorschau, Tests, Werkzeuge und technische Dokumentation |
+
+Unter [ANLEITUNGEN/Paket](../ANLEITUNGEN/Paket/) liegen ausschließlich das aktuelle ZIP, drei Manifeste und die Prüfsumme. Das ist die einzige ZIP-Ablage; unter UPLOAD liegt nur der fertige Appordner. Frühere Pakete und zweite ZIP-Kopien werden nicht aufbewahrt.
+
+## Technische Dateien
 
 | Bereich | Inhalt |
 | --- | --- |
-| `src/backend/` | Gepflegte ES5/Rhino-Module für Konfiguration, Zustand, Aktionen, Ansichten und App-Hooks |
-| `app/` | Erzeugte Knuddels-`main.js`, HTMLUI-Frontend und Original-Logo |
-| `deployment/live.json` | Bestätigtes Knuddels-Ziel ohne Passwort |
-| `tools/` | Vorschau, API-Mock, Checks, lokaler Paketbau und RadioKing-Netzwerkprüfung |
-| `tests/` | Backend-/HTTP-/Browserprüfungen und Audiofixture |
-| `references/api/` | Unveränderte Knuddels-/K3-Referenzdateien, nicht ausführen |
-| `references/design/` | Gestaltungsreferenz des Nutzers |
-| `docs/` | Aktuelle API-, Design-, Test- und LIVE-Nachweise |
-| `AGENTS.md` | Dauerhafte fachliche Regeln und Prüfabläufe |
+| `src/backend/` | Gepflegte Backendmodule nach Fachzuständigkeit |
+| `app/server/` | Erzeugte, bytegleiche Laufzeitkopien der Backendmodule |
+| `app/www/` | Gepflegte Browseroberfläche; kein zweiter Frontend-Quellordner |
+| `app/main.js` | Kurzer Laufzeiteinstieg über das Kompositionsmodul |
+| `deployment/` | Bestätigtes Knuddels-Ziel ohne Passwort |
+| `tests/` | Backend-, HTTP-, Browser- und Rhino-Prüfungen |
+| `tools/` | Paketbau, Prüfungen und Vorschau-Server |
+| `tools/preview/` | Startseite und Bridge ausschließlich für die lokale Vorschau |
+| `references/api/` | Unveränderte Knuddels-/K3-API-Dateien; Dokumentation, niemals ausführen |
+| `node_modules/` | Installierte Entwicklungsabhängigkeiten für lokale Browserprüfungen |
+| `package.json`, `pnpm-lock.yaml` | Befehle und reproduzierbar festgelegte Abhängigkeiten |
+| `AGENTS.md` | Verbindliche fachliche Regeln und Prüfabläufe |
 
-## Aktuelle Nutzerordner
+`src/backend/`, `app/server/` und `UPLOAD/MischWerk/server/` haben unterschiedliche Aufgaben: Quelle, geprüfte Laufzeitfassung und fertige Auslieferung. Diese Kopien werden vom Build benötigt.
 
-- [Upload](../UPLOAD/MischWerk/): ausschließlich sechs fertige Laufzeitdateien.
-- [Installation](../ANLEITUNGEN/INSTALLIEREN-LIVE.md) und [RadioKing](../ANLEITUNGEN/RADIOKING-EINRICHTUNG.txt): aktuelle Anleitungen.
-- [Paket](../ANLEITUNGEN/Paket/): aktuelles ZIP, Manifest, Prüfsumme.
-- [Archiv](../ARCHIV/): historische Pakete, Anbieter-Unterlagen und ältere Prüfungen als geprüftes Sammelarchiv.
+## Dokumentation nach Thema
 
-Die Startdateien für Vorschau, Paketbau und Explorer liegen eine Ebene höher im MischWerk-Hauptordner. Dort hilft `START-HIER.txt` bei der Orientierung.
+- [Architektur und Zustandsbesitz](docs/architektur/ARCHITEKTUR.md), [Frontendmodule](docs/architektur/ARCHITEKTUR-FRONTEND.md), [Design](docs/architektur/DESIGN.md).
+- [API-Nachweis](docs/api/API-NACHWEIS.md), [API-/Wiki-Abgleich und Rhino-Wunschfehler](docs/api/API-WIKI-ABGLEICH.md).
+- [Betrieb und Datenhaltung](docs/betrieb/INBETRIEBNAHME.md), [echte LIVE-Abnahme](docs/betrieb/LIVE-ABNAHME.md), [Sendeplan](docs/betrieb/SENDEPLAN.md), [Lautstärke](docs/betrieb/LAUTSTAERKE.md).
+- [Aktueller Prüfbericht](docs/pruefung/PRUEFBERICHT.md). Die datierten technischen Anbieterprüfungen bleiben unter `docs/pruefung/radioking/`; alte Oberflächenbilder und Designreferenzen wurden auf Nutzerwunsch entfernt.
 
-## Aus diesem Ordner prüfen
+Prüfbericht und technische Nachweise werden an festen Pfaden aktualisiert. Die RadioKing-Wiedergabeprüfung und der Rhino-Fehlernachweis dokumentieren eigenständige Ergebnisse mit Datum und damaliger Version. Screenshots nur bei Bedarf erzeugen und keine alten Bildsammlungen ansammeln.
+
+## Lokale Befehle
+
+Alle Befehle aus `PROJEKT/` ausführen. Benötigt werden Node.js ab Version 20, pnpm 11 und Microsoft Edge.
 
 ```text
 pnpm install --frozen-lockfile
-pnpm run build:backend
+node tools/preview.cjs
+```
+
+Vorschau im Browser: `http://127.0.0.1:8765`. Sie verwendet lokale Knuddels-Ersatzobjekte und verbindet sich nicht mit dem echten Radiosender.
+
+```text
+node tools/build-backend.cjs
 pnpm test
 pnpm run check
 pnpm run test:browser
-pnpm run build:live
+pnpm run check:rhino
+node tools/build-install.cjs
+node tools/check-package.cjs
 ```
 
-Benötigt werden Node.js ab Version 20, pnpm 11 und Microsoft Edge. Playwright ist versionsgenau im Lockfile hinterlegt; eine vorhandene externe Installation kann weiterhin über `MISCHWERK_PLAYWRIGHT` verwendet werden. Der Paketbau schreibt nach `../UPLOAD/MischWerk/` und `../ANLEITUNGEN/Paket/`; er lädt nichts hoch. Der bewusste Netzwerktest `node tools/radioking-compatibility-check.cjs` ruft den echten RadioKing-Stream ab und speichert Nachweise unter `docs/radioking-pruefung/`.
+Rhino benötigt Java 11+; bei Bedarf über `MISCHWERK_JAVA` konfigurieren und die geprüften JARs einmal mit `node tools/check-rhino.cjs --download` im Temp-Cache bereitstellen. Eine externe Playwright-Installation kann über `MISCHWERK_PLAYWRIGHT` verwendet werden.
 
-RadioKing ist über `MischWerkConfig.radioking.radioId = 'mischwerk'` eingerichtet. Hörlink `https://play.radioking.io/mischwerk`, getrennte Titel-/Interpretenfelder aus der öffentlichen Widget-API. Die lokale Funktionsdemo bleibt ohne echte Senderverbindung. App-Leiste, Wunschbox-/Studio-/Radio-Team-Popups, Rollen, Nick-/Zustellprüfung, Thema, ON AIR, Original-Logo, #404040 und Scrollfreiheit bleiben erhalten.
+Der Paketbau schreibt nur nach `../UPLOAD/MischWerk/` und `../ANLEITUNGEN/Paket/`. Er lädt nichts hoch. Der ausdrückliche Netzwerktest `node tools/radioking-compatibility-check.cjs` prüft den eigenen RadioKing-Sender und ersetzt den letzten Anbieterbericht unter `docs/pruefung/radioking/anbindung-aktuell.json`. Version und Zeitpunkt stehen im Bericht.
 
-Radio-Team 0.1.27: Nur der tatsächliche Channelinhaber verwaltet Radiomoderatoren in einem eigenen Popup außerhalb des Moderationsmenüs. Ernennungen werden serverseitig auf existierende Knuddels-Nicks geprüft und als numerische User-IDs gespeichert. Nur der Channelinhaber und ernannte Radiomoderatoren erhalten Studiozugriff; Channelmoderatoren nicht mehr automatisch. Entzug beendet eine betroffene ON-AIR-Anmeldung sofort.
+Radio-Team → Statuszentrale: Übertragung, Live-/AutoDJ-Titelstatus, getrennte ON-AIR-Anmeldung, Hörerzahl, Titelabruf, App-Verbindung, Wunschbox, offene Musikwünsche und Thema. Nur für den Channelinhaber; sichtbare Zentrale aktualisiert nach Abschluss alle 30 s, nach Fehlern nach 60 s. Live-/AutoDJ folgt der RadioKing-Titelmeldung und ist kein separater Encoder-Verbindungstest.
 
-Moderationsfenster 0.1.28: vollständig als kompakte Broadcast-Konsole neu gestaltet. Rack-Kopf, Mikrofon- und Wunschbox-Steuerung, Sendungsthema und Warteschlange bilden eine klar gegliederte Oberfläche. Der frühere allgemeine Fußtext wurde entfernt; die tatsächliche Ablaufzeit erscheint weiterhin nur bei einer aktiven Studio-Anmeldung.
+Seit 0.1.90: kompakte Statusübersicht in drei beziehungsweise zwei Spalten. Alle Statuswerte sofort sichtbar; vollständige Erklärungen, Titel-/Themenangaben und Prüfzeiten unter „Details & Prüfzeiten“. Funktionen und automatische Aktualisierung unverändert.
 
-Wunschversand 0.1.29: Es gibt keine persönliche oder feste Gesamtanzahl-Begrenzung. Technische Wiederholungsmarker werden unabhängig von den Wünschen validiert und begrenzt, damit alter oder beschädigter Bestand die 100-KB-Grenze eines AppPersistence-Objekts nicht mehr blockiert. Bei Speicherknappheit bleiben alle offenen Wünsche und fachlichen Einstellungen erhalten; ausschließlich ältere Wiederholungsmarker werden reduziert. Der Hörer erhält nach bestätigtem Speichern eine deutlich eingefasste Erfolgsmeldung mit Häkchen; Versand läuft und Fehler sind optisch sowie für Screenreader getrennt.
+Seit 0.1.91: Statuspunkte direkt vor den Werten statt farbiger Kartenränder. Grün für bestätigte nutzbare/aktive Zustände, Rot für Fehler/gestoppte Übertragung, neutral für unbekannt/inaktiv.
 
-Wunschversand 0.1.30: Knuddels-/Rhino-Werte für Nutzer-ID und Nick werden vor Vergleichen und Persistenz in echte JavaScript-Primitiven umgewandelt. Dadurch kann die JSON-Vorbereitung nicht mehr an Java-Wrappern scheitern. Zusätzlich benennt das private Log bei unerwarteten Fehlern die genaue Phase, etwa `REQUEST_ADD` oder `PERSIST_PREPARE`, statt nur einer allgemeinen Warnung. Die unbegrenzte Wunschannahme und das sichtbare Feedback aus 0.1.29 bleiben unverändert.
-
-Wunschtransport 0.1.33: Ein Wunsch wird über `mw:wish.submit` ausschließlich als einfacher Laufzeiteintrag aus ID, Nick, Text und Zeitpunkt in die Moderationsqueue gelegt. Kein Knuddels-/Java-`User`-Objekt wird mehr in Queue oder Wiederholungsschutz gehalten. Die Erfolgsmeldung wird unmittelbar nach dem Einreihen gesendet; spätere UI-Aktualisierungen können eine erfolgreiche Annahme nicht mehr als Fehler melden. Es gibt weiterhin keine Wunschpersistenz, Hörerhistorie oder Mengenbegrenzung.
-
-Deaktivierte Wunschbox: Button gesperrt mit „Deaktiviert“, auch serverseitig kein neues Wunsch-Popup. Moderationsmenü bleibt zum Reaktivieren zugänglich. Bereits laufende Wünsche bleiben bis zum App-Neustart in der Moderationsqueue.
-
-Wunschbox: kompaktes einzelnes Formular für Interpret + Titel, ohne eigene Wunschliste. Keine YouTube-/sonstigen Links; client- und serverseitige Prüfung. Nach Annahme erscheint gut sichtbar „Dein Musikwunsch wurde an die Moderation gesendet.“
-
-Positionierung 0.1.22: ON AIR und Sender-/Moderatorname bilden ab 901 px eine vertikal zur Wunschbox zentrierte Gruppe ohne künstliche Leerzeile. Schild und Name teilen eine Mittelachse, der Abstand beträgt 10 px. Ab 1500 px steht dafür eine 200–220 px breite Spalte zur Verfügung. Eine feine Trennlinie gliedert den Wunschbutton. Der berechtigte Moderationslink bleibt unten rechts und beeinflusst die übrige Geometrie nicht. Layout bei 320–2560 px mit langen Texten geprüft; Höhen und APIs unverändert.
-
-Das Backend ist seit 0.1.26 modular gepflegt. `app/main.js` wird ausschließlich über `pnpm run build:backend` aus `src/backend/*.js` erzeugt; Tests und Paketbau erkennen ein veraltetes Bundle. Radio-Team, Moderationsmenü, Laufzeit-Warteschlange und RadioKing-Sendepause sind im [aktuellen Prüfbericht](docs/PRUEFUNG-0.1.33.md) zusammengefasst.
-
-Senderstatus seit 0.1.25: bestätigte RadioKing-Sendepause deaktiviert Play; automatische Freigabe beim Wiederanlauf ohne Autostart. [Nachweise](docs/PRUEFUNG-0.1.33.md).
+Seit 0.1.93 stehen Aktualisierungsintervalle unter Details & Prüfzeiten. Der Button zeigt beim Abruf „Prüfe …“. Die Hauptübersicht bleibt auf Statuswerte konzentriert.

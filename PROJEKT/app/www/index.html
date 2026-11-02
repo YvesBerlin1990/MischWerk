@@ -3,97 +3,80 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark light">
 <title>MischWerk</title>
+<style>
+/* Sofortiger Grundzustand vor dem asynchron geladenen App-Stylesheet. */
+html,body { margin:0; padding:0; background:#242424; }
+html[data-view=radio],html[data-view=radio] body { background:#242424; }
+:root { --radio-height:160px; }
+body > * { visibility:hidden; }
+html[data-curtain=closed] #radio-panel { visibility:hidden; pointer-events:none; }
+#startup-error { display:none; margin:12px; padding:12px 16px; border:1px solid #8c7950; border-radius:10px; background:#202020; color:#f6f0df; font:14px/1.5 "Segoe UI",Arial,sans-serif; }
+html.mw-start-failed:not(.mw-ready) #startup-error { display:block; visibility:visible; }
+</style>
 <script>
-if (typeof Client !== 'undefined') {
-  var view = Client.pageData && Client.pageData.view;
-  document.documentElement.setAttribute('data-view', view === 'wishes' || view === 'studio' || view === 'team' ? view : 'radio');
-  Client.includeCSS('css/style.css');
-} else {
-  var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'css/style.css'; document.head.appendChild(css);
+// Jede Datei über die Knuddels-API laden, damit auch Teilstyles nach Updates aktuell sind.
+var styles = [
+  'css/foundation.css',
+  'css/radio.css',
+  'css/radio-actions.css',
+  'css/dialogs.css',
+  'css/studio.css',
+  'css/handover.css',
+  'css/team.css',
+  'css/team-status.css',
+  'css/feedback.css',
+  'css/radio-responsive.css',
+  'css/dialogs-responsive.css',
+  'css/radio-surface.css',
+  'css/metadata-layout.css',
+  'css/schedule.css',
+  'css/curtain.css'
+];
+var initialView = typeof Client !== 'undefined' && Client.pageData && Client.pageData.view;
+var view = ['wishes', 'studio', 'team', 'schedule'].indexOf(initialView) !== -1 ? initialView : 'radio';
+document.documentElement.setAttribute('data-view', view);
+var initialCurtain = typeof Client !== 'undefined' && Client.pageData && Client.pageData.curtain;
+document.documentElement.setAttribute('data-curtain', view === 'radio' && initialCurtain && initialCurtain.closed === true && initialCurtain.exempt !== true ? 'closed' : 'open');
+var styleViews = {
+  'css/radio.css':'radio', 'css/radio-actions.css':'radio', 'css/radio-responsive.css':'radio',
+  'css/radio-surface.css':'radio', 'css/metadata-layout.css':'radio',
+  'css/dialogs.css':'wishes studio team schedule', 'css/dialogs-responsive.css':'wishes studio team schedule',
+  'css/studio.css':'studio', 'css/handover.css':'studio',
+  'css/team.css':'team', 'css/team-status.css':'team', 'css/schedule.css':'schedule', 'css/curtain.css':'radio'
+};
+styles.filter(function (file) { return !styleViews[file] || styleViews[file].split(' ').indexOf(view) !== -1; }).forEach(function (file) {
+  if (typeof Client !== 'undefined') { Client.includeCSS(file); }
+  else {
+    var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = file; document.head.appendChild(css);
+  }
+});
+function startFrontend() {
+  if (typeof Client !== 'undefined') { Client.includeJS('js/start.js'); }
+  else { var script = document.createElement('script'); script.src = 'js/start.js'; document.body.appendChild(script); }
 }
+// Knuddels bindet mit document.write ein: ausschließlich während des HTML-Parsens aufrufen.
+// Der Einstieg wartet mit der Zusammensetzung auf DOMContentLoaded.
+setTimeout(function () {
+  if (!document.documentElement.classList.contains('mw-ready')) { document.documentElement.classList.add('mw-start-failed'); }
+}, 15000);
+startFrontend();
 </script>
 </head>
 <body>
+<p id="startup-error" role="alert">MischWerk konnte nicht geladen werden. Bitte öffne die App erneut mit /mischwerk. Falls das Problem bleibt, muss der vollständige App-Upload geprüft werden.</p>
 <div id="demo-banner" class="demo-banner" hidden>Lokale Demo · Beispieldaten · <a href="../../preview.html">Ansicht wechseln</a></div>
-<main id="radio-panel" class="radio-bar" aria-label="MischWerk Radio">
-  <img class="bar-logo" src="img/mischwerk-logo.png" width="128" height="128" alt="MischWerk">
-  <div class="transport"><button id="play-button" class="play-button" type="button" aria-label="Radio abspielen" aria-pressed="false" disabled><span id="play-icon" aria-hidden="true">▶</span></button><span id="stream-badge" class="live-badge" role="status"><i aria-hidden="true"></i><span id="stream-label">Verbinde …</span></span></div>
-  <section class="now-playing" aria-label="Musik und Sendung">
-    <div class="track-row" hidden><div class="track-copy" aria-live="polite"><span class="field-label" id="track-label" hidden>Titel</span><strong id="track-title" hidden></strong><div class="artist-copy" hidden><span class="field-label artist-label">Interpret</span><span id="track-artist"></span></div></div></div>
-    <div class="volume-control"><button id="mute-button" class="icon-button" type="button" aria-label="Ton ausschalten" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3Z" fill="currentColor" stroke="none"/><path class="sound-waves" d="M16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="mute-cross" d="m17 9 5 6m0-6-5 6"/></svg></button><label for="volume">Lautstärke</label><input id="volume" type="range" min="0" max="100" value="40" aria-label="Lautstärke in Prozent" aria-describedby="volume-help"><output for="volume" id="volume-value">40 %</output><span id="volume-help" class="sr-only">Über 60 Prozent ist der Regler rot markiert. Dies ist keine Dezibel-Messung und kein garantierter Schutzbereich: Der Hörpegel hängt von Kopfhörern und Systemlautstärke ab. Auch niedrigere Werte können zu laut sein. Bis 100 Prozent bleibt frei einstellbar.</span></div>
-    <div id="radio-topic" class="topic-display" aria-live="polite" hidden><span class="topic-label">Thema</span><strong id="show-topic"></strong></div>
-  </section>
-  <section class="presenter" aria-label="Aktuelle Moderation">
-    <span class="presenter-label"><span id="on-air-sign" class="on-air-sign" role="status" aria-label="Off Air: Keine Moderation angemeldet.">ON AIR</span></span><strong id="host-name" aria-live="polite">Radio Mischwerk</strong>
-  </section>
-  <div class="bar-actions" aria-label="Musikwünsche">
-    <button id="open-wishes" class="wish-button" type="button" aria-haspopup="dialog" disabled aria-disabled="true"><span class="wish-button-icon" aria-hidden="true"><svg class="wish-icon-music" viewBox="0 0 24 24"><path d="M10 17V6l9-2v11M10 9l9-2"/><ellipse cx="7" cy="17" rx="3" ry="2.5"/><ellipse cx="16" cy="15" rx="3" ry="2.5"/></svg><svg class="wish-icon-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg></span><span class="wish-button-copy"><strong>Wunschbox</strong><span id="wish-button-caption">Dein Musikwunsch</span></span><svg class="wish-button-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>
-  </div>
-  <div class="bar-utility-links">
-    <button id="team-tab" class="studio-link" type="button" aria-haspopup="dialog" title="Radiomoderatoren verwalten" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8-1a2.5 2.5 0 1 0 0-5M3 19c0-3 2-5 5-5s5 2 5 5m1-5c3 0 5 2 5 5"/></svg>Radio-Team</button>
-    <button id="studio-tab" class="studio-link" type="button" aria-haspopup="dialog" title="Moderationsfenster öffnen" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg>Moderation</button>
-  </div>
-  <div class="sr-only"><span id="playback-status" role="status"></span><span id="metadata-status" role="status"></span><a id="station-link" target="_blank" rel="noopener noreferrer" hidden>Öffentlichen Radiostream öffnen</a></div>
-</main>
+<div id="radio-placeholder"></div>
+<div id="curtain-placeholder"></div>
 <div class="dialog-shell">
   <header class="dialog-header">
-    <div class="dialog-brand"><img src="img/mischwerk-logo.png" width="96" height="96" alt="MischWerk"></div>
-    <div class="dialog-heading"><span class="eyebrow">DIE MISCHUNG MACHT’S.</span><h1 id="dialog-title">Dein Musikwunsch</h1><span class="pill" id="wish-status">Verbinde …</span><span class="pill" id="studio-connection" role="status" hidden>Verbinde …</span></div>
+    <div class="dialog-brand"><img src="img/mischwerk-logo.png" width="56" height="56" loading="lazy" decoding="async" alt="MischWerk"></div>
+    <div class="dialog-heading"><span class="eyebrow">Die Mischung macht’s.</span><h1 id="dialog-title">Dein Musikwunsch</h1><span class="pill" id="wish-status" hidden></span><span class="pill" id="studio-connection" role="status" hidden>Verbinde …</span></div>
   </header>
   <main class="dialog-content">
-    <section id="wishes-panel" aria-label="Wunschbox" hidden>
-          <form id="wish-form" class="card form-card">
-            <fieldset id="wish-fields" disabled>
-              <label for="wish-text">Interpret + Titel<textarea name="text" id="wish-text" required maxlength="300" rows="3" placeholder="z. B. a-ha – Take On Me" aria-describedby="wish-rules wish-text-count"></textarea></label>
-              <p id="wish-rules" class="wish-rules">Keine YouTube- oder sonstigen Links.</p>
-              <span id="wish-text-count" class="sr-only">0 / 300</span>
-              <div class="form-footer"><button class="primary-button" type="submit" id="submit-wish">Wunsch senden</button></div>
-            </fieldset>
-            <div id="wish-feedback" class="wish-feedback" role="status" aria-live="polite" aria-atomic="true" hidden></div>
-            <p class="form-hint" id="wish-hint" role="status" hidden></p>
-          </form>
-    </section>
-    <section id="studio-panel" aria-label="Moderationsmenü" hidden>
-      <nav class="compact-tabs" aria-label="Moderations-Bereich"><button type="button" id="studio-controls-tab" aria-pressed="true">Studio</button><button type="button" id="studio-queue-tab" aria-pressed="false">Wünsche</button></nav>
-      <div class="studio-controls">
-        <section class="card studio-control-card microphone-card">
-          <div class="studio-card-heading"><span class="studio-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="12" rx="4"/><path d="M5 11a7 7 0 0 0 14 0m-7 7v3m-4 0h8"/></svg></span><div><span class="eyebrow">AM MIKROFON</span><h2 id="studio-host">Keine Moderation angemeldet</h2></div><span class="studio-status-light" aria-hidden="true"></span></div>
-          <p id="studio-session" class="studio-session" hidden></p>
-          <div class="button-row"><button class="primary-button" id="on-air" type="button">Moderation übernehmen</button><button class="secondary-button" id="off-air" type="button" disabled>Abmelden</button></div>
-        </section>
-        <section class="card studio-control-card wishes-control-card">
-          <div class="studio-card-heading"><span class="studio-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12M9 9l10-2"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg></span><div><span class="eyebrow">WUNSCHBOX</span><h2 id="studio-wish-state">Musikwünsche</h2></div></div>
-          <button id="toggle-wishes" type="button" class="switch-button" role="switch" aria-label="Wunschbox" aria-checked="false"><span class="switch-track"><i></i></span><span id="toggle-label">Wunschbox aktivieren</span></button>
-        </section>
-      </div>
-      <form id="topic-form" class="card topic-form">
-        <div class="topic-form-heading"><div class="topic-title"><span class="studio-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h11M4 18h8"/></svg></span><div><span class="eyebrow">SENDUNG</span><label for="studio-topic">Thema der Sendung</label></div></div><span id="topic-feedback" role="status" aria-live="polite" hidden></span></div>
-        <div class="topic-edit-row"><input id="studio-topic" name="topic" type="text" maxlength="80" placeholder="z. B. 80er und 90er" aria-describedby="topic-help"><button id="save-topic" class="primary-button" type="submit" disabled>Speichern</button></div>
-        <span id="topic-help" class="sr-only">Bis zu 80 Zeichen. Zum Entfernen das Feld leeren und speichern.</span>
-      </form>
-      <section class="studio-queue">
-        <div class="list-heading studio-queue-heading"><div><span class="eyebrow">MUSIKWÜNSCHE</span><h2 id="queue-heading" tabindex="-1">Warteschlange <span class="count-badge" id="queue-count">0</span></h2></div><button class="text-button" id="refresh-queue" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-12-2L4 11m2 4a7 7 0 0 0 12 2l2-4"/></svg>Aktualisieren</button></div>
-        <div id="request-queue" class="queue"></div>
-        <div class="pagination" id="queue-pagination"><button class="secondary-button" id="prev-page" type="button">← Zurück</button><span id="page-label">Wunsch 1 / 1</span><button class="secondary-button" id="next-page" type="button">Weiter →</button></div>
-      </section>
-    </section>
-    <section id="team-panel" aria-label="Radiomoderatoren verwalten" hidden>
-      <section class="card team-intro-card">
-        <span class="eyebrow">CHANNELINHABER</span>
-        <h2>Radio-Team</h2>
-        <p class="form-hint">Ernannte Radiomoderatoren erhalten Zugriff auf das Moderationsmenü. Channelmoderatoren erhalten diesen Zugriff nicht automatisch.</p>
-        <form id="radio-moderator-form" class="team-add-form">
-          <label for="radio-moderator-nick">Knuddels-Nick</label>
-          <div class="topic-edit-row"><input id="radio-moderator-nick" name="nick" type="text" maxlength="50" required autocomplete="off" placeholder="Nickname"><button id="add-radio-moderator" class="primary-button" type="submit">Ernennen</button></div>
-        </form>
-      </section>
-      <section class="card team-list-card">
-        <div class="list-heading"><h2>Radiomoderatoren <span class="count-badge" id="radio-moderator-count">0</span></h2><button class="text-button" id="refresh-radio-team" type="button">Aktualisieren</button></div>
-        <div id="radio-moderator-list" class="team-list"></div>
-        <div class="pagination" id="radio-moderator-pagination" hidden><button class="secondary-button" id="prev-radio-moderator-page" type="button">← Zurück</button><span id="radio-moderator-page-label">Seite 1 / 1</span><button class="secondary-button" id="next-radio-moderator-page" type="button">Weiter →</button></div>
-      </section>
-      <p class="fine-print">Nur der tatsächliche Channelinhaber kann diese Liste ändern. Der Channelinhaber bleibt unabhängig von der Liste für Verwaltung und Studio berechtigt.</p>
-    </section>
+    <div id="wishes-placeholder"></div>
+    <div id="studio-placeholder"></div>
+    <div id="team-placeholder"></div>
+    <div id="schedule-placeholder"></div>
     <section id="access-denied" class="card" hidden><h2>Kein Studiozugriff</h2><p>Das Moderationsmenü ist nur für berechtigte Moderatoren verfügbar.</p></section>
     <section id="team-access-denied" class="card" hidden><h2>Keine Berechtigung</h2><p>Nur der Channelinhaber kann Radiomoderatoren verwalten.</p></section>
   </main>
@@ -101,9 +84,5 @@ if (typeof Client !== 'undefined') {
 </div>
 <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
 <audio id="radio-audio" preload="none"></audio>
-<script>
-if (typeof Client !== 'undefined') { Client.includeJS('js/app.js'); }
-else { var appScript = document.createElement('script'); appScript.src = 'js/app.js'; document.body.appendChild(appScript); }
-</script>
 </body>
 </html>

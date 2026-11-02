@@ -1,4 +1,4 @@
-MischWerk mit RadioKing – lokaler Stand 0.1.31 vom 30.10.2026
+MischWerk mit RadioKing – lokaler Stand 0.1.106 vom 02.11.2026
 
 BEREITS EINGERICHTET
 Radio: MischWerk
@@ -9,8 +9,9 @@ Format: MP3, 128 kbit/s
 Aktueller Titel/Interpret:
 https://api.radioking.io/widget/radio/mischwerk/track/current
 
-Die gepflegte Konfiguration steht in PROJEKT/src/backend/00-config.js.
-PROJEKT/app/main.js wird daraus automatisch erzeugt und nicht direkt bearbeitet:
+Die gepflegte Konfiguration steht in PROJEKT/src/backend/config.js.
+Beim Build entsteht die Laufzeitkopie PROJEKT/app/server/config.js;
+main.js ist nur noch der Einstieg und lädt die fachlichen Serverdateien:
     radioking: { radioId: 'mischwerk' }
 
 Der öffentliche Standard-Hörlink aus deinem Screenshot ist bereits eingebaut.
@@ -36,15 +37,16 @@ RadioKing liefert title und artist als getrennte JSON-Textfelder. Die App
 übernimmt beide ohne zusätzliche Trennung an Bindestrichen. Fehlende Werte
 werden jeweils einschließlich Beschriftung ausgeblendet. Ein Live-Sendungstitel
 ohne Künstler bleibt allein im Titelfeld. Es werden keine Künstler erfunden.
-Abfrage alle 30 Sekunden, nur in der sichtbaren Radioleiste. Popups erzeugen
+Titelabfrage alle fünf Sekunden, Senderstatus unabhängig alle 30 Sekunden,
+nur in der sichtbaren Radioleiste. Popups erzeugen
 keine weiteren Radio-/Titelverbindungen. Bei vorübergehenden API-Fehlern bleibt
 die letzte gültige Anzeige erhalten; Audio wird dadurch nicht gestoppt.
 
 Die öffentlichen Endpunkte wurden am 29.10.2026 direkt geprüft. Sie sind
 RadioKings Widget-Schnittstellen; ein versionierter öffentlicher API-Vertrag
 oder eine dauerhafte Verfügbarkeitsgarantie wurde nicht gefunden. Änderungen
-des Anbieters können eine spätere Anpassung erfordern. Beim aktuellen Test
-lieferte die API HTTP 200, JSON und Access-Control-Allow-Origin: *.
+des Anbieters können eine spätere Anpassung erfordern. Bei der dokumentierten Wiedergabeprüfung
+lieferte die Titel-API HTTP 200, JSON und Access-Control-Allow-Origin: *.
 
 AUTO-DJ UND LIVE
 Playlists, Musik-Uploads, Jingles, Sendeplan und Encoder werden im RadioKing-
@@ -60,22 +62,21 @@ vergeben keine Knuddels-Rechte. Wünsche samt echtem Knuddels-Nick gehen an
 das App-Studio; sie ändern keine RadioKing-Playlist automatisch.
 
 PRÜFUNG
-105 lokale automatisierte Fälle bestanden (54 Backend/HTTP, 51 Browser).
+Die Ergebnisse der lokalen Backend-, Browser- und Rhino-Prüfungen stehen im aktuellen Prüfbericht.
 Zusätzlich echte MP3-Dekodierung und Cross-Origin-Titelabfrage mit deinem
 MischWerk-Sender im Edge-Browser geprüft. Kein fremder Beispielsender.
-Nachweis: PROJEKT/docs/radioking-pruefung/anbindung-0.1.17.json
-Vorschau: PROJEKT/docs/radioking-pruefung/MischWerk-RadioKing-2124.png
+Nachweis: PROJEKT/docs/pruefung/radioking/anbindung-wiedergabe.json (Wiedergabeprüfung 0.1.17).
+Die frühere Screenshotdatei wurde bei der Ordnerbereinigung entfernt; der technische JSON-Nachweis bleibt erhalten.
 
 Die Knuddels-Bridge war im Browser simuliert. Eine echte Abnahme im Knuddels-
 Desktop-/K3-Client mit RadioKing ist weiterhin erforderlich, sobald ein Update
 ausdrücklich freigegeben wird. Es wurde NICHT zu Knuddels hochgeladen.
-Zuletzt wurde im echten App-Log LIVE 0.1.30 beobachtet.
+Zuletzt wurde im echten App-Log LIVE 0.1.33 beobachtet.
 
 LOKALER UPLOAD
 Ordner: UPLOAD/MischWerk
-ZIP: ANLEITUNGEN/Paket/MischWerk-Knuddels-LIVE-0.1.31.zip
-Neu bauen: Installationspaket-erstellen.cmd im MischWerk-Hauptordner.
-Alternativ aus PROJEKT/: node tools/build-install.cjs.
+ZIP: ANLEITUNGEN/Paket/MischWerk-Knuddels-LIVE-0.1.62.zip
+Neu bauen: aus PROJEKT/ den Befehl node tools/build-install.cjs ausführen.
 Diese Werkzeuge bauen nur lokal und laden nichts hoch.
 
 OFFIZIELLE QUELLEN
@@ -93,5 +94,55 @@ etwa alle 30 Sekunden; RadioKing nutzt bis zu 15 Sekunden Cache.
 Beim Wiederanlauf wird Play freigegeben, aber nichts automatisch gestartet.
 API-Fehler oder unbekannte Werte erlauben manuellen Hörversuch und stoppen
 keinen laufenden Ton. Die Knuddels-Studioanmeldung bleibt unabhängig.
-Der gestoppte eigene Sender wurde direkt und im Browser geprüft:
-PROJEKT/docs/radioking-pruefung/anbindung-0.1.31.json
+Letzte reale Status-/Titelprüfung: 0.1.54 vom 01.11.2026, direkt und im Browser. Der
+eigene Sender lief; Cross-Origin-Titelabruf und echte MP3-Dekodierung bestanden:
+PROJEKT/docs/pruefung/radioking/anbindung-aktuell.json
+
+Titelwechsel seit 0.1.54: bevorzugt frische Browser-Abfrage ohne HTTP-Cache.
+RadioKings eigene Titelquelle kann laut Anbieter etwa 30 Sekunden verzögert sein.
+Ein exakt zeitgleicher Wechsel zum gehörten Audio ist deshalb nicht garantiert.
+Bei Fehlern bleibt der letzte Titel erhalten; automatischer neuer Versuch nach 30 Sekunden.
+
+AKTUELLE HÖRERZAHL SEIT 0.1.86
+Öffentlicher Endpunkt: https://api.radioking.io/widget/radio/mischwerk/listener
+JSON-Feld: listener_count. Anzeige für alle Rollen, auch ohne lokalen Play-Klick.
+RadioKing-Manager: drei Punkte neben dem Sendernamen -> Einstellungen -> Sicherheit
+-> Die Anzahl der Hörer öffentlich machen. Der Nutzer hat dies am 01.11.2026
+aktiviert; danach HTTP 200 und echte Aktualisierung von 0 auf 1 im Browser bestätigt.
+Im sichtbaren Radio nach jeder Antwort alle 20 Sekunden abfragen; bei Fehlern
+60 Sekunden bis zum Retry. RadioKing kann Werte intern verzögern (Cache 15 s).
+Fehlende Freigabe, Netzwerkfehler oder ungültige Zahl: Hörer nicht verfügbar,
+keine geschätzte Null. Audio bleibt unverändert. Hintergrund und Popups ohne
+Hörerabfragen. Kein Managerpasswort oder API-Schlüssel notwendig.
+
+Seit 0.1.88 steht die Hörerzahl unter Play. Die sichtbare Bereit-/LIVE-Zeile
+entfällt; Fehler und Sendepausen bleiben über Bedienung/Tooltip erkennbar.
+
+STATUSZENTRALE AB 0.1.89
+Radio-Team öffnen, dann den Reiter Statuszentrale wählen (nur Channelinhaber).
+Übertragung, LIVE/AutoDJ laut Titelstatus und Studio-ON-AIR sind getrennte Befunde.
+RadioKing is_live muss ein echtes Boolean sein; ohne bestätigte Daten unbekannt.
+Keine gesicherte Encoder-Verbindungsprüfung und keine Anbietersteuerung.
+Zusätzlich Hörer, Titelabruf, App-Verbindung, Wunschbox, Queue und Thema.
+Automatisch nach Abschluss alle 30 s, bei Fehlern 60 s; Jetzt prüfen für sofortigen Abruf.
+Andere Popups, Teamverwaltung und Hintergrund erzeugen keine neuen Anbieterabfragen.
+
+KOMPAKTE STATUSZENTRALE AB 0.1.90
+Alle neun Statuswerte sind direkt im kompakten Raster sichtbar.
+Details & Prüfzeiten öffnet sämtliche Erklärungen, Titelangaben, Prüfzeiten und den Anbieterlink.
+Warnungen bleiben sofort sichtbar. Keine Funktion und kein Aktualisierungstakt entfallen.
+
+STATUSPUNKTE AB 0.1.91
+Grüner Punkt: bestätigter nutzbarer/aktiver Zustand.
+Roter Punkt: Fehler oder bestätigter Senderstopp.
+Neutraler Punkt: unbekannt oder inaktiv.
+Die Punkte stehen direkt an den Statuswerten, Kartenränder bleiben neutral.
+
+AB 0.1.92
+Die bisherige Statuskarte Warteschlange heißt jetzt Offene Musikwünsche.
+Dieselbe Beschriftung steht im Detailsbereich; Funktion und Anzahl bleiben erhalten.
+
+AB 0.1.93
+Die technische Intervallzeile steht nur noch unter Details & Prüfzeiten.
+Während eines Abrufs zeigt der Button Prüfe …, anschließend wieder Jetzt prüfen.
+Automatische Aktualisierung und RadioKing-Titelstatus bleiben erhalten.

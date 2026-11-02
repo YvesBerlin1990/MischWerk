@@ -1,14 +1,16 @@
 {
   "name": "mischwerk-knuddels-userapp",
-  "version": "0.1.33",
+  "version": "0.1.106",
   "private": true,
   "packageManager": "pnpm@11.25.0",
   "description": "MischWerk MyChannel Radio für Otterchen – Knuddels UserApps / K3",
   "scripts": {
     "build:backend": "node tools/build-backend.cjs",
     "check:backend": "node tools/build-backend.cjs --check",
-    "test": "node tools/build-backend.cjs --check && node --test tests/backend.test.cjs tests/preview.test.cjs",
-    "test:browser": "node tools/build-backend.cjs --check && node --test tests/frontend.browser.test.cjs",
+    "check:rhino": "node tools/check-rhino.cjs",
+    "check:lengths": "node tools/check-file-lengths.cjs",
+    "test": "node tools/build-backend.cjs --check && node --test tests/backend.test.cjs tests/preview.test.cjs tests/schedule.test.cjs tests/announcements.test.cjs tests/handover.test.cjs",
+    "test:browser": "node tools/build-backend.cjs --check && node --test tests/frontend.browser.test.cjs tests/schedule.browser.test.cjs tests/handover.browser.test.cjs",
     "check": "node tools/check.cjs",
     "preview": "node tools/preview.cjs",
     "build:live": "node tools/build-install.cjs"
@@ -16,5 +18,7 @@
   "devDependencies": {
     "playwright": "1.57.0"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }

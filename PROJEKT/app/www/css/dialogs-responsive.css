@@ -1,0 +1,34 @@
+/* Tabs bei knapper Höhe; verbleibende Inhalte bleiben sichtbar scrollbar. */
+.compact-tabs { display:none; }
+#studio-panel.fit-tabs .compact-tabs { display:flex; }
+.compact-tabs { gap:4px; margin-bottom:14px; padding:4px; border:1px solid #625b4e; border-radius:12px; background:#20202099; }
+.compact-tabs button { flex:1; min-height:44px; padding:8px 12px; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--muted); font-size:14px; }
+.compact-tabs button[aria-pressed=true] { border-color:#b98d32; color:var(--surface); background-color:var(--gold); background-image:var(--button-gold); box-shadow:inset 0 1px 0 #fff3bd99; }
+#studio-panel.fit-tabs:not(.show-queue) .studio-queue,#studio-panel.fit-tabs.show-queue .studio-setup { display:none; }
+@media (max-width:600px) {
+  html[data-view=wishes],html[data-view=studio],html[data-view=team] { --dialog-logo:80px; --dialog-title:28px; --dialog-gap:14px; }
+  .dialog-shell { padding:12px; }
+  html[data-view=schedule] { --dialog-logo:64px; --dialog-title:28px; --dialog-gap:14px; }
+  .dialog-header { gap:var(--dialog-gap,12px); padding:10px; margin-bottom:14px; }
+  .dialog-brand { flex-basis:var(--dialog-logo,48px); }
+  .dialog-brand img { width:var(--dialog-logo,48px); height:var(--dialog-logo,48px); }
+  .dialog-heading { grid-template-columns:minmax(0,1fr); }
+  .dialog-heading h1 { font-size:var(--dialog-title,24px); }
+  .dialog-heading > .pill { grid-column:1; grid-row:auto; margin-top:4px; }
+  .compact-tabs { display:flex; }
+  #studio-panel:not(.show-queue) .studio-queue,#studio-panel.show-queue .studio-setup { display:none; }
+  .studio-controls { grid-template-columns:1fr; gap:12px; }
+  .topic-form { margin-top:16px; }
+  .team-list { grid-template-columns:1fr; }
+}
+@media (max-width:380px) {
+  .dialog-shell { padding:12px; }
+  .card,.queue-item { padding:14px; }
+  .dialog-heading h1 { font-size:var(--dialog-title,22px); }
+  .topic-edit-row { align-items:stretch; flex-direction:column; gap:8px; }
+  .topic-edit-row button { align-self:flex-end; }
+  .form-row { grid-template-columns:1fr; }
+  .pagination { gap:8px; }
+  .pagination .secondary-button { padding:8px; }
+  .team-member { flex-wrap:wrap; }
+}

@@ -1,0 +1,74 @@
+{
+  "checkedAt": "2026-11-01T18:31:21.487Z",
+  "version": "0.1.89",
+  "scope": "Own public MischWerk RadioKing endpoints in production Statuszentrale; Knuddels bridge mocked. No audio, encoder control or deployment.",
+  "references": [
+    "https://player.radioking.io/mischwerk/app.bundle.js",
+    "https://status.radioking.com/"
+  ],
+  "responses": [
+    {
+      "url": "https://api.radioking.io/widget/radio/mischwerk",
+      "status": 200,
+      "cors": "*",
+      "cache": "max-age=15, public; max-age=15",
+      "body": {
+        "idradio": 950821,
+        "slug": "mischwerk",
+        "name": "MischWerk",
+        "slogan": "Die Mischung macht’s!",
+        "lang": "de",
+        "status": "active",
+        "stream_status": "started",
+        "live": null,
+        "public": true,
+        "logo": "https://image.radioking.io/radios/950821/logo/1fafb17b-96db-412b-b4ec-b5d5b9370974.jpeg",
+        "default_cover": null,
+        "website": null,
+        "itunes_affiliate_id": null
+      }
+    },
+    {
+      "url": "https://api.radioking.io/widget/radio/mischwerk/listener",
+      "status": 200,
+      "cors": "*",
+      "cache": "max-age=15, public; max-age=15",
+      "body": {
+        "listener_count": 0
+      }
+    },
+    {
+      "url": "https://api.radioking.io/widget/radio/mischwerk/track/current",
+      "status": 200,
+      "cors": "*",
+      "cache": "max-age=15, public; max-age=15",
+      "body": {
+        "id": 98497831,
+        "artist": "AYLIVA feat. Apache 207",
+        "title": "Wunder",
+        "album": null,
+        "started_at": "2026-11-01T18:28:37+0000",
+        "end_at": "2026-11-01T18:31:29+0000",
+        "next_track": "2026-11-01T18:31:30+0000",
+        "duration": 172,
+        "buy_link": "https://music.apple.com/us/album/wunder/1741382329?i=1741382350",
+        "is_live": false,
+        "cover": "https://image.radioking.io/radios/950821/cover/api/e6358d80-e756-4dbd-b5ab-27a9d9c5208c.jpg",
+        "default_cover": false,
+        "forced_title": false
+      }
+    }
+  ],
+  "errors": [],
+  "displayed": {
+    "mode": "AutoDJ",
+    "transmission": "Sendet",
+    "studio": "Kein ON AIR",
+    "listeners": "0",
+    "metadata": "Erreichbar",
+    "app": "Verbunden"
+  },
+  "realCrossOrigin": true,
+  "noAudioStarted": true,
+  "passed": true
+}

@@ -6,8 +6,8 @@ const assert = require('node:assert/strict');
 const { chromium } = require(process.env.MISCHWERK_PLAYWRIGHT || 'playwright');
 const { createHarness } = require('./knuddels-mock.cjs');
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, 'docs/radioking-pruefung');
-const protectedFiles = ['app/main.js','app/app.config','app/www/index.html','app/www/css/style.css','app/www/js/app.js','app/www/img/mischwerk-logo.png'];
+const output = path.join(root, 'docs/pruefung/radioking');
+const protectedFiles = require('./check-file-lengths.cjs').runtimeFiles.map(file => 'app/' + file);
 const hash = file => crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex');
 const before = Object.fromEntries(protectedFiles.map(file => [file,hash(file)]));
 const report = { checkedAt: new Date().toISOString(), version: require('../package.json').version,
@@ -32,6 +32,9 @@ async function main() {
   const info=await json(infoUrl);
   assert.equal(info.slug,station.radioId);assert.equal(info.name,'MischWerk');assert.equal(info.idradio,950821);
   assert.ok(['started','stopped'].includes(info.stream_status),'Unbekannter Anbieterstatus: keine verlässliche Aussage');
+  const initialListeners = await json(infoUrl + '/listener');
+  assert.ok(Number.isSafeInteger(initialListeners.listener_count) && initialListeners.listener_count >= 0);
+  report.listeners = { public: true, initialCount: initialListeners.listener_count, intervalSeconds: 20 };
   const stopped=info.stream_status==='stopped';report.streamStatus=info.stream_status;
   const streams=await json(infoUrl+'/stream');
   assert.ok(streams.some(stream=>stream.format==='MP3'&&stream.url===station.streamUrl));
@@ -51,14 +54,16 @@ async function main() {
     const errors=[];report.browser.errors=errors;
     page.on('pageerror',error=>errors.push(error.message));
     const apiResponses=[];
+    const listenerResponses=[];
     page.on('response',response=>{
       if(response.url()===station.metadataUrl){apiResponses.push(response.json().catch(()=>null));}
+      if(response.url()===infoUrl+'/listener'){listenerResponses.push(response.json().catch(()=>null));}
     });
     await page.addInitScript(state=>{
       window.__sent=[];window.__handlers={};window.__contexts=[];
       window.Client={pageData:{...state,view:'radio'},isK3Client(){return true;},
         includeCSS(file){const n=document.createElement('link');n.rel='stylesheet';n.href=file;document.head.appendChild(n);},
-        includeJS(file){const n=document.createElement('script');n.src=file;document.body.appendChild(n);},
+        includeJS(file){const n=document.createElement('script');n.src=file;document.head.appendChild(n);},
         sendEvent(type,data){window.__sent.push({type,data});},
         addEventListener(type,handler){(window.__handlers[type]||(window.__handlers[type]=[])).push(handler);}};
       window.AudioContext=window.webkitAudioContext=function(){window.__contexts.push('unexpected');throw new Error('Keine Audioanalyse');};
@@ -72,6 +77,11 @@ async function main() {
       return route.fulfill({contentType:types[path.extname(file)],body:fs.readFileSync(file)});
     });
     await page.goto('http://mischwerk-check.test/');
+    await page.waitForFunction(() => /^Hörer: [0-9]/.test(document.getElementById('listener-count').textContent));
+    const firstListeners = await listenerResponses[listenerResponses.length - 1];
+    assert.equal(await page.locator('#listener-count').textContent(), 'Hörer: ' + firstListeners.listener_count.toLocaleString('de-DE'));
+    report.listeners.realCrossOrigin = true;
+    report.listeners.displayedCount = firstListeners.listener_count;
     if(stopped){
       await page.locator('#stream-label').filter({hasText:'Sendepause'}).waitFor({timeout:15000});
       assert.equal(await page.locator('#play-button').isDisabled(),true);
@@ -82,8 +92,8 @@ async function main() {
       assert.equal(await page.locator('#notice').isVisible(),false);
       report.browser.realCrossOriginStatus=true;report.browser.radioStoppedAsReported=true;
       report.browser.realMp3Decoded=false;report.browser.audioCheckSkipped='Sender confirmed stopped; no audio connection attempted.';
-      await page.screenshot({path:path.join(output,'MischWerk-RadioKing-'+report.version+'-Sendepause.png')});
-      await page.locator('.transport').screenshot({path:path.join(output,'RadioKing-Sendepause-'+report.version+'.png')});
+      await page.screenshot({path:path.join(output,'MischWerk-RadioKing-aktuell.png')});
+      await page.locator('.transport').screenshot({path:path.join(output,'RadioKing-Sendepause.png')});
     }else{
       await page.waitForFunction(()=>document.getElementById('metadata-status').textContent.includes('Titelanzeige von RadioKing'));
       const response=await apiResponses[apiResponses.length-1];
@@ -96,6 +106,12 @@ async function main() {
       await page.locator('#play-button').click();
       await page.waitForFunction(()=>{const a=document.getElementById('radio-audio');return !a.paused&&a.currentTime>.1&&document.getElementById('stream-label').textContent==='LIVE';},null,{timeout:20000});
       report.browser.realMp3Decoded=true;
+      const nextListenerResponse = page.waitForResponse(infoUrl + '/listener', { timeout: 35000 });
+      const nextListeners = await (await nextListenerResponse).json();
+      await page.waitForFunction(count => document.getElementById('listener-count').textContent ===
+        'Hörer: ' + count.toLocaleString('de-DE'), nextListeners.listener_count);
+      report.listeners.refreshedCount = nextListeners.listener_count;
+      report.listeners.automaticRefresh = true;
       await page.locator('#volume').evaluate(n=>{n.value='43';n.dispatchEvent(new Event('input'));});
       assert.equal(await page.locator('#radio-audio').evaluate(a=>a.volume),.43);
       await page.locator('#mute-button').click();assert.equal(await page.locator('#radio-audio').evaluate(a=>a.volume),0);
@@ -104,7 +120,7 @@ async function main() {
       assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),false);
       assert.ok(await page.evaluate(()=>window.__sent.some(e=>e.type==='mw:openWishes')));
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth||document.documentElement.scrollHeight>innerHeight),false);
-      await page.screenshot({path:path.join(output,'MischWerk-RadioKing-'+report.version+'-2124.png')});
+      await page.screenshot({path:path.join(output,'MischWerk-RadioKing-aktuell.png')});
       await page.locator('#play-button').click();assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
       await page.locator('#play-button').click();
       await page.waitForFunction(()=>!document.getElementById('radio-audio').paused&&document.getElementById('radio-audio').currentTime>.1,null,{timeout:20000});
@@ -119,7 +135,8 @@ main().catch(error=>{report.error=error.stack;process.exitCode=1;}).finally(()=>
   report.protectedFilesUnchanged=protectedFiles.every(file=>hash(file)===before[file]);
   if(!report.protectedFilesUnchanged){process.exitCode=1;}
   fs.mkdirSync(output,{recursive:true});
-  const file=path.join(output,'anbindung-'+report.version+'.json');
+  const file=path.join(output,'anbindung-aktuell.json');
   fs.writeFileSync(file,JSON.stringify(report,null,2)+'\n');
-  console.log(JSON.stringify({report:file,passed:report.browser.passed===true,protectedFilesUnchanged:report.protectedFilesUnchanged,error:report.error},null,2));
+  console.log(JSON.stringify({report:file,passed:report.browser.passed===true,listeners:report.listeners,
+    protectedFilesUnchanged:report.protectedFilesUnchanged,error:report.error},null,2));
 });

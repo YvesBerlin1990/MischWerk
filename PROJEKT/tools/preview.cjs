@@ -8,6 +8,8 @@ const root = path.resolve(__dirname, '..');
 const h = createHarness();
 // Die lokale Demo erzeugt keine Verbindungen zum produktiven Radio.
 h.config.radioking.radioId = "";
+h.config.ownerNick = 'Otterchen (Demo)';
+h.config.curtainExemptNicks = ['Otterchen (Demo)', 'Polaroid (Demo)'];
 const sessions = new Map();
 let nextUserId = 100;
 let demoClockAt = Date.now();
@@ -21,7 +23,7 @@ h.event(host, hostSession, 'mw:onAir');
 function respond(res, status, contentType, body) {
   res.writeHead(status, { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); res.end(body);
 }
-const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml' };
+const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg' };
 const server = http.createServer(async (req, res) => {
   try {
     if (!/^(127\.0\.0\.1|localhost|\[::1\])(?::\d+)?$/.test(req.headers.host || '')) { respond(res, 403, 'text/plain', 'Local host required'); return; }
@@ -42,7 +44,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method !== 'GET') { respond(res, 405, 'text/plain', 'Method not allowed'); return; }
     if (url.pathname === '/preview') {
       const role = url.searchParams.get('role') === 'moderator' ? 'moderator' : 'listener';
-      const view = ['wishes', 'studio', 'team'].includes(url.searchParams.get('view')) ? url.searchParams.get('view') : 'radio';
+      const view = ['wishes', 'studio', 'team', 'schedule'].includes(url.searchParams.get('view')) ? url.searchParams.get('view') : 'radio';
       const sourceId = url.searchParams.get('sourceSession');
       const source = sourceId && sessions.get(sourceId);
       if (sourceId && (!source || source.session.removed)) { respond(res, 404, 'text/plain', 'Demo-Sitzung abgelaufen'); return; }
@@ -50,7 +52,7 @@ const server = http.createServer(async (req, res) => {
       let session = source ? source.session : h.open(user);
       if (view !== 'radio') {
         const events = h.event(user, session, view === 'studio' ? 'mw:openStudio' :
-          view === 'team' ? 'mw:openRadioTeam' : 'mw:openWishes');
+          view === 'team' ? 'mw:openRadioTeam' : view === 'schedule' ? 'mw:openSchedule' : 'mw:openWishes');
         const result = events.find(event => event.type === 'mw:result');
         if (!result || !result.data.ok) { respond(res, 403, 'text/plain', result ? result.data.message : 'Fenster nicht verfügbar'); return; }
         session = user.sessions.find(item => item.content.viewMode === 'Popup');
@@ -71,7 +73,7 @@ const server = http.createServer(async (req, res) => {
       if (decoded.includes('\0')) { respond(res, 400, 'text/plain', 'Invalid path'); return; }
       file = path.resolve(publicRoot, decoded);
       if (!file.startsWith(publicRoot + path.sep)) { respond(res, 404, 'text/plain', 'Nicht gefunden'); return; }
-    } else { file = path.join(root, route.slice(1)); }
+    } else { file = path.join(__dirname, 'preview', route === '/preview.html' ? 'index.html' : 'bridge.js'); }
     if (!fs.existsSync(file) || !fs.statSync(file).isFile()) { respond(res, 404, 'text/plain', 'Nicht gefunden'); return; }
     respond(res, 200, types[path.extname(file)] || 'application/octet-stream', fs.readFileSync(file));
   } catch (error) { respond(res, 500, 'text/plain', 'Vorschau-Fehler: ' + error.message); }

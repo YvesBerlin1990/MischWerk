@@ -1,0 +1,60 @@
+/* Anordnung nach tatsächlicher Framebreite und verfügbarer Höhe, ohne Skalierung. */
+@media (min-width:700px) and (max-width:1099px) {
+  .radio-bar { grid-template-columns:144px 104px minmax(0,1fr) 148px; }
+  .play-button { --play-symbol-size:36px; width:88px; height:88px; }
+  .now-playing { grid-column:3; grid-row:1; }
+  .track-copy { gap:0; }
+  .radio-context { grid-column:3; grid-row:2; gap:0; }
+  .topic-label { display:inline; margin-right:8px; }
+  #show-topic { display:inline; font-size:16px; }
+  .volume-control { grid-column:3; grid-row:3; }
+  .radio-actions-panel { padding:0; gap:2px; justify-content:flex-start; }
+  .radio-actions-panel.public-only { justify-content:center; }
+  .bar-actions { grid-template-columns:1fr; gap:2px; }
+  .bar-utility-links { padding:0; border:0; gap:8px; }
+  .studio-link { flex:1; padding:10px; }
+  .studio-link .action-label { display:none; }
+}
+@media (min-width:700px) and (max-width:759px) {
+  .volume-control label { display:none; }
+}
+@media (max-width:699px) {
+  .radio-bar { height:auto; min-height:0; grid-template-columns:72px minmax(0,1fr); grid-template-rows:auto; gap:12px; padding:16px; }
+  .radio-program-face { grid-column:2; grid-row:2; margin:0; }
+  .radio-brand { grid-column:1 / -1; grid-row:1; display:flex; align-items:center; justify-self:stretch; gap:12px; }
+  .bar-logo { width:80px; height:80px; }
+  .radio-brand > span { display:block; font-size:20px; font-weight:600; }
+  .transport { grid-column:1; grid-row:2; align-self:start; gap:6px; }
+  .listener-count { max-width:calc(100% + 16px); padding:3px 4px; }
+  .listener-caption { display:none; }
+  .listener-icon { display:block; width:14px; height:14px; }
+  .play-button { --play-symbol-size:32px; width:72px; height:72px; }
+  .now-playing { grid-column:2; grid-row:2; padding:0; }
+  #track-title { display:block; white-space:normal; overflow:visible; font-size:24px; overflow-wrap:anywhere; }
+  #track-artist { white-space:normal; overflow:visible; font-size:18px; overflow-wrap:anywhere; }
+  .radio-context { grid-column:1 / -1; grid-row:3; gap:8px; padding:0; }
+  .topic-display { white-space:normal; overflow:visible; }
+  .topic-label { display:block; margin:0 0 2px; }
+  #show-topic { display:block; overflow:visible; }
+  .volume-control { grid-column:1 / -1; grid-row:4; width:100%; max-width:none; margin:0; }
+  .radio-actions-panel { grid-column:1 / -1; grid-row:3; padding:0; gap:10px; }
+  .radio-constrained .radio-bar { height:160px; grid-template-columns:64px minmax(0,1fr); grid-template-rows:92px 44px; gap:8px 12px; padding:8px 12px; }
+  .radio-constrained .radio-brand { display:none; }
+  .radio-constrained .transport { grid-column:1; grid-row:1; gap:4px; }
+  .radio-constrained .play-button { width:64px; height:64px; }
+  .radio-constrained .now-playing { grid-column:2; grid-row:1; }
+  .radio-constrained .radio-program-face { grid-column:2; grid-row:1; }
+  .radio-constrained #track-title { font-size:22px; }
+  .radio-constrained #track-artist { font-size:16px; }
+  .radio-constrained .track-copy { gap:2px; }
+  .radio-constrained .radio-actions-panel { grid-column:1 / -1; grid-row:2; flex-direction:row; gap:6px; }
+  .radio-constrained .bar-actions { flex:1; gap:6px; }
+  .radio-constrained .radio-actions-panel.public-only .bar-actions { grid-template-columns:1fr 1fr; gap:6px; }
+  .radio-constrained .bar-utility-links { flex:none; padding:0; border:0; gap:6px; }
+  .radio-constrained .studio-link { flex:none; width:44px; padding:10px; }
+  .radio-constrained .studio-link .action-label { display:none; }
+  .radio-constrained .public-action-icon { display:none; }
+  .radio-constrained .wish-button { padding:4px; }
+  .radio-constrained .wish-button-copy strong { font-size:13px; }
+  .radio-constrained .wish-button-icon { display:none; }
+}

@@ -1,0 +1,18 @@
+@charset "UTF-8";
+:root { --canvas:#404040; --bg:#404040; --surface:#202020; --raised:#292929; --input:#161616; --line:#595959; --text:#f6f0df; --muted:#c4c1b5; --gold:#ffbe2e; --gold-ink:#ffce61; --live:#ff6b5f; --error:#ffc1b9; --radio-height:160px; color:var(--text); background:var(--canvas); font-family:"Segoe UI",Arial,sans-serif; font-synthesis:none; color-scheme:dark; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--canvas); font-size:14px; line-height:1.45; }
+html.mw-ready body > * { visibility:visible; }
+button,input,textarea,select { font:inherit; }
+button { color:var(--text); cursor:pointer; transition:background .15s,border-color .15s; }
+button:disabled { cursor:default; opacity:.55; }
+button,a,input,textarea,select { touch-action:manipulation; }
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex="-1"]:focus-visible { outline:3px solid var(--gold); outline-offset:2px; }
+[hidden] { display:none !important; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+svg { display:block; width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+.icon-button { display:grid; place-items:center; width:44px; height:44px; padding:8px; border:1px solid var(--line); border-radius:8px; background:transparent; flex-shrink:0; }
+.radio-bar,.dialog-shell { display:none; }
+html[data-view=radio],html[data-view=radio] body { height:100%; min-width:0; overflow:hidden; }
+html[data-view=radio] body { overflow-y:auto; }
+@media (prefers-reduced-motion:reduce) { *,*:before,*:after { animation:none !important; transition:none !important; } }

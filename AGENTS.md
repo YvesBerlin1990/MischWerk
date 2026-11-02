@@ -1,9 +1,5 @@
-# MischWerk – verbindliche Projektregeln
+# MischWerk – Projektregeln
 
-Vor Änderungen immer `PROJEKT/AGENTS.md` lesen. Dort stehen die dauerhaften fachlichen Regeln, die Knuddels-/K3-API-Vorgaben und die Prüfungen.
+Vor jeder Änderung `PROJEKT/AGENTS.md` vollständig lesen. Sie ist die zentrale Regeldatei und gilt verbindlich für das gesamte MischWerk-Projekt einschließlich `ANLEITUNGEN/` und `UPLOAD/`.
 
-- Aktiver Quellcode und Werkzeuge liegen unter `PROJEKT/`.
-- Der für den Nutzer sichtbare Uploadordner ist `UPLOAD/MischWerk/` und enthält ausschließlich die sechs freigegebenen Laufzeitdateien.
-- Das aktuelle ZIP, Manifest und die Prüfsumme liegen unter `ANLEITUNGEN/Paket/`.
-- Frühere Stände sind gesammelt unter `ARCHIV/`; keine alte Anbieter-Konfiguration daraus in die aktuelle App übernehmen.
-- Ausschließlich lokal arbeiten. Ohne neue ausdrückliche Nutzeranweisung kein FTP-Upload, Knuddels-Update oder Serverneustart. Zuletzt im echten App-Log beobachtetes LIVE: 0.1.32; lokal: 0.1.33 mit RadioKing.
+Die Ordner und Werkzeuge sind in `PROJEKT/README.md` erklärt. Fachliche Regeln und Prüfvorgaben ausschließlich in `PROJEKT/AGENTS.md` pflegen, damit keine widersprüchlichen Doppelstände entstehen.

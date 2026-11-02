@@ -1,0 +1,7 @@
+/* Rückmeldungen gehören zur auslösenden Bediengruppe. */
+.notice { position:absolute; bottom:8px; left:12px; right:12px; z-index:10; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text); font-size:14px; box-shadow:0 2px 8px #0003; }
+html[data-view=radio] .notice { left:auto; width:max-content; max-width:min(420px,calc(100% - 24px)); padding:8px 12px; overflow-wrap:anywhere; }
+html:not([data-view=radio]) .notice { position:static; margin:16px 0 0; box-shadow:none; }
+.notice.error { background:#392a28; border-color:#b96e65; color:var(--error); }
+.demo-banner { font-size:12px; line-height:1.4; padding:4px 8px; background:var(--surface); color:var(--muted); text-align:center; }
+.demo-banner a { color:var(--gold); }

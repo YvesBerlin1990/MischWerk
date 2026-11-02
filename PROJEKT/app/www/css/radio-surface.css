@@ -1,0 +1,22 @@
+/* Ruhiges Radiogehäuse; weißer Lichtkern weiterhin nur an der spielenden Musikkarte. */
+html[data-view=radio],html[data-view=radio] body { background:#242424; }
+.radio-bar { border-radius:12px; background-color:#2b2b2b; background-image:radial-gradient(ellipse at 8% 0%,#ffce611f,transparent 44%),radial-gradient(ellipse at 100% 100%,#f6f0df08,transparent 46%),repeating-linear-gradient(0deg,#ffffff02 0 1px,transparent 1px 4px),linear-gradient(180deg,#383632 0%,#2b2b2b 46%,#212121 100%); box-shadow:inset 0 0 0 1px #8c795099,inset 0 2px 0 #f6f0df12,inset 0 -2px 0 #090909cc; }
+.radio-panel-face { border:1px solid var(--line); border-radius:12px; box-shadow:inset 0 1px 0 #ffffff0c,0 3px 8px #0003; }
+.radio-program-face { position:relative; z-index:0; overflow:hidden; background-color:#272828; background-image:radial-gradient(ellipse at 50% 50%,#242525f2 0%,#242525d9 24%,#24252500 68%),radial-gradient(ellipse at 0% 80%,#d3a44440,transparent 48%),radial-gradient(ellipse at 100% 10%,#acbbc32e,transparent 46%),repeating-linear-gradient(115deg,#ffffff06 0 1px,transparent 1px 9px),linear-gradient(110deg,#39352d,#262929 52%,#343b3e); }
+.radio-program-face::before,.radio-program-face::after { content:""; position:absolute; top:50%; border-radius:50%; transform:translateY(-50%); pointer-events:none; }
+.radio-program-face::before { left:0; width:clamp(132px,35%,360px); aspect-ratio:1; transform:translate(-35%,-50%); opacity:.65; background:radial-gradient(circle,#15161680 0 8.5%,#e3b95766 9% 17.5%,#1b1b1b99 18% 22.5%,transparent 23%),repeating-radial-gradient(circle,transparent 0 7px,#e8d4a426 8px 9px,transparent 10px 17px); }
+.radio-program-face::after { right:0; width:clamp(180px,45%,560px); aspect-ratio:1; transform:translate(45%,-50%); opacity:.65; background:repeating-radial-gradient(circle,transparent 0 29px,#dbe7eb29 30px 31px,transparent 32px 58px); }
+.radio-metadata { z-index:1; }
+.playing .radio-program-face { border-color:#f5f5f5; box-shadow:0 0 3px #ffffff99,inset 0 0 3px #ffffff66,0 0 7px #ffffff66,inset 0 0 7px #ffffff4d; }
+.play-button { --play-light:#ffdc78; --play-shade:#d79b1b; border-color:#a7802f; background-color:var(--gold); background-image:radial-gradient(circle at 32% 20%,#fff6cb99,transparent 48%),linear-gradient(165deg,var(--play-light),var(--gold) 58%,var(--play-shade)); box-shadow:0 3px 0 #24221e,0 6px 10px #0007,inset 0 2px 1px #fff2c3d9,inset 0 -4px 3px #99620766,0 0 0 2px #292720; }
+.play-button:hover:enabled { --play-light:#ffe89d; --play-shade:#e5aa28; border-color:#d7b15b; }
+.playing .play-button { --play-light:#ffdf83; --play-shade:#cb9014; border-color:var(--gold-ink); }
+.play-button:active:enabled { box-shadow:0 1px 0 #24221e,0 3px 6px #0006,inset 0 3px 5px #87601b80,inset 0 -1px 1px #fff2c380,0 0 0 2px #292720; }
+.play-button.is-offline:disabled { opacity:1; background-color:#666; background-image:linear-gradient(160deg,#797971,#595a54); color:var(--muted); border-color:var(--line); box-shadow:0 2px 0 #24221e,0 4px 7px #0004,inset 0 1px 0 #ffffff33,inset 0 -2px 3px #0003; transition:none; }
+#play-icon { filter:drop-shadow(0 1px 0 #fff0b866); }
+.volume-control.is-high { --volume-thumb:#f16f65; }
+.volume-control #mute-button { border-color:#6d6654; border-radius:10px; background:#2d2d28; color:var(--gold-ink); box-shadow:inset 0 1px 0 #ffffff0d; }
+.volume-control #mute-button:hover:enabled { background:#3a372e; border-color:#a58c52; }
+.volume-control #mute-button[aria-pressed=true] { background:#383226; border-color:var(--gold-ink); }
+.volume-control.is-high output { color:#ffb0a8; border-color:#a95e57; background:#382927; }
+.volume-control.is-high output::before { content:"!"; display:inline-grid; place-items:center; width:12px; height:12px; margin-right:4px; border:1px solid currentColor; border-radius:50%; font-size:12px; line-height:1; }

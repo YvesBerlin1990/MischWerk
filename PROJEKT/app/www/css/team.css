@@ -1,0 +1,12 @@
+/* Ernennung und Mitgliederliste, ohne wiederholten Fenstertitel. */
+.team-intro-card { border-color:#70654d; }
+.team-intro-card > .eyebrow { display:none; }
+.team-intro-card .form-hint { margin:12px 0 0; }
+.team-add-form { margin:0; }
+.team-add-form > label { margin-bottom:8px; }
+.team-list-card { margin-top:14px; }
+.team-list { display:grid; grid-template-columns:1fr; gap:8px; }
+.team-member { display:flex; justify-content:space-between; align-items:center; gap:12px; min-width:0; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#292929; }
+.team-member strong { min-width:0; overflow-wrap:anywhere; font-size:16px; font-weight:600; }
+.team-member button { flex-shrink:0; }
+.team-list > .empty-copy { padding:16px; border-radius:10px; background:var(--surface); }

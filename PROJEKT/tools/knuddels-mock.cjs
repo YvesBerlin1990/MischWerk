@@ -22,11 +22,27 @@ function persistence(data = {}) {
     setNumber: (key, value) => { data[key] = value; }
   };
 }
-function createHarness(existingPersistence) {
+function createHarness(existingPersistence, options = {}) {
   const store = existingPersistence || persistence();
   const users = new Map();
   const contents = [];
   const logs = [];
+  const escapedNicks = [];
+  const bot = { messages: [], sendPublicMessage(message) { this.messages.push(message); } };
+  const updateCalls = [];
+  const updateFileCalls = [];
+  const cacheInvalidations = [];
+  const rootInstance = {
+    availableFiles: ['server/app.js'],
+    invalidateClientCache() {
+      cacheInvalidations.push(true);
+      if (options.failClientCache) { throw new Error('Private interne Cachedetails'); }
+    },
+    updateAppFiles() {
+      const files = this.availableFiles.slice(); this.availableFiles = []; updateFileCalls.push(files); return files;
+    },
+    updateApp(message, logMessage) { updateCalls.push({ message, logMessage }); return 30; }
+  };
   let submissionSequence = 0;
   let timestamp = Date.now();
   class FakeDate extends Date {
@@ -49,14 +65,19 @@ function createHarness(existingPersistence) {
     contents.push(content); return content;
   }
   const context = vm.createContext({
+    escapeKCodeMock(value) {
+      escapedNicks.push(value);
+      return value.replace(/[_°<>\\]/g, character => '\\' + character);
+    },
     Date: FakeDate,
     HTMLFile,
     UserType: { Human: 'human' },
-    KnuddelsServer: { getPersistence: () => store, getDefaultLogger: () => ({
+    KnuddelsServer: { execute: file => runFile(file), getPersistence: () => store, getDefaultBotUser: () => bot, getDefaultLogger: () => ({
       warn(message) { logs.push({ level: 'warn', message }); },
       info(message) { logs.push({ level: 'info', message }); }
     }),
       getChannel: () => ({ getOnlineUsers: () => [...users.values()].filter(user => user.online) }),
+      getAppAccess: () => ({ getOwnInstance: () => ({ getRootInstance: () => rootInstance }) }),
       getUserAccess: () => ({
         exists(nick) { return [...users.values()].some(person => person.nick.toLowerCase() === String(nick).toLowerCase()); },
         getUserId(nick) {
@@ -73,8 +94,16 @@ function createHarness(existingPersistence) {
     AppContent: { headerbarContent: (htmlFile, height) => createContent(htmlFile, 'Headerbar', 0, height),
       popupContent: (htmlFile, width, height) => createContent(htmlFile, 'Popup', width, height) }
   });
-  const source = fs.readFileSync(path.join(__dirname, '../app/main.js'), 'utf8');
-  vm.runInContext(source, context, { filename: 'main.js' });
+  vm.runInContext('String.prototype.escapeKCode = function () { return escapeKCodeMock(String(this)); };', context);
+  const loadedFiles = [];
+  function runFile(file) {
+    const appRoot = path.resolve(__dirname, '../app');
+    const target = path.resolve(appRoot, file);
+    if (!target.startsWith(appRoot + path.sep)) { throw new Error('Loader ausserhalb der App'); }
+    loadedFiles.push(file);
+    return vm.runInContext(fs.readFileSync(target, 'utf8'), context, { filename: file });
+  }
+  runFile('main.js');
   const app = context.App;
   function user(id, nick, role = 'listener') {
     if (users.has(id)) { return users.get(id); }
@@ -83,6 +112,7 @@ function createHarness(existingPersistence) {
       getUserId() { return this.id; }, getNick() { return this.nick; },
       isOnlineInChannel() { return this.online; },
       isChannelOwner() { return this.role === 'owner'; },
+      isAppManager() { return this.role === 'owner' || this.role === 'manager'; },
       isChannelModerator() { return this.role === 'moderator'; },
       equals(other) { return !!other && this.id === other.id; },
       getPersistence() { return this.persistence; },
@@ -110,9 +140,10 @@ function createHarness(existingPersistence) {
     };
     users.set(id, person); return person;
   }
+  for (const person of options.users || []) { user(person.id, person.nick, person.role); }
   app.onAppStart();
   return {
-    app, config: context.MischWerkConfig, store, user, contents, logs,
+    app, config: context.MischWerkConfig, store, user, contents, logs, bot, escapedNicks, updateCalls, updateFileCalls, cacheInvalidations, rootInstance, loadedFiles,
     advance(ms) { timestamp += ms; },
     open(person) { app.chatCommands.mischwerk(person); return person.sessions[0]; },
     event(person, session, type, data = {}) {

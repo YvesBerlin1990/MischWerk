@@ -1,63 +1,62 @@
-// Erzeugt die einzelne Knuddels-main.js deterministisch aus den gepflegten ES5-Modulen.
+// Erzeugt einen kurzen Knuddels-Einstieg und separate Servermodule, kein Sammelbundle.
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-
 const root = path.resolve(__dirname, '..');
 const sourceRoot = path.join(root, 'src', 'backend');
-const target = path.join(root, 'app', 'main.js');
+const appRoot = path.join(root, 'app');
 const modules = [
-  '00-config.js',
-  '10-runtime.js',
-  '20-state.js',
-  '30-actions.js',
-  '35-wish-transport.js',
-  '40-views.js',
-  '50-app.js'
+  'config.js', 'core/runtime.js', 'core/diagnostics.js', 'users/identity.js',
+  'core/validation.js', 'state/persistence.js', 'radio/station.js', 'radio/team.js',
+  'radio/moderation.js', 'radio/announcements.js', 'radio/handover.js', 'state/initialization.js', 'radio/show.js', 'radio/curtain.js', 'wishes/queue.js', 'wishes/transport.js',
+  'schedule/calendar.js', 'schedule/storage.js', 'schedule/programme.js', 'schedule/transport.js',
+  'ui/snapshot.js', 'transport/views.js', 'ui/sessions.js', 'maintenance.js',
+  'lifecycle.js', 'transport/events.js', 'app.js'
 ];
-
 function source(file) {
   const value = fs.readFileSync(path.join(sourceRoot, file), 'utf8');
-  assert.ok(!value.startsWith('\uFEFF'), 'UTF-8-BOM in Backend-Modul: ' + file);
-  new vm.Script(value, { filename: path.join('src/backend', file) });
-  return value.trimEnd();
+  assert.ok(!value.startsWith('\uFEFF'), 'UTF-8-BOM: ' + file);
+  new vm.Script(value, { filename: 'server/' + file });
+  return value.trimEnd() + '\n';
 }
-
-function bundle() {
+function entry() {
   const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
-  const banner = '/* MischWerk ' + version + ' - erzeugtes Knuddels UserApps Backend.\n' +
-    ' * Quellen: src/backend/*.js. Nicht direkt bearbeiten.\n' +
-    ' */';
-  const output = banner + '\n\n' + modules.map(source).join('\n\n') + '\n';
-  new vm.Script(output, { filename: 'app/main.js' });
-  return output;
+  return '/* MischWerk ' + version + ' - Einstieg. Fachlogik liegt unter server/. */\n' +
+    "KnuddelsServer.execute('server/app.js');" +
+    '\nvar App = MischWerkModules.createApp(MischWerkConfig);\n';
 }
-
-function writeBundle() {
-  const output = bundle();
-  fs.writeFileSync(target, output, 'utf8');
-  return output;
+function buildBackend() {
+  for (const file of modules) {
+    const target = path.join(appRoot, 'server', file);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, source(file), 'utf8');
+  }
+  new vm.Script(entry(), { filename: 'main.js' });
+  fs.writeFileSync(path.join(appRoot, 'main.js'), entry(), 'utf8');
 }
-
-function checkBundle() {
-  assert.equal(fs.readFileSync(target, 'utf8'), bundle(),
-    'app/main.js ist nicht aktuell. Bitte `pnpm run build:backend` ausführen.');
+function listFiles(directory, prefix = '') {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap(item => {
+    assert.ok(!item.isSymbolicLink(), 'Symlinks in Servermodulen nicht erlaubt');
+    return item.isDirectory() ? listFiles(path.join(directory, item.name), prefix + item.name + '/') : [prefix + item.name];
+  });
 }
-
+function checkBackend() {
+  const configScope = {};
+  new vm.Script(source('config.js')).runInNewContext(configScope);
+  assert.equal(configScope.MischWerkConfig.version, JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version,
+    'Backend-Konfiguration und Paketversion muessen uebereinstimmen');
+  assert.equal(fs.readFileSync(path.join(appRoot, 'main.js'), 'utf8'), entry(), 'Backend-Einstieg veraltet: build:backend ausfuehren.');
+  for (const file of modules) {
+    assert.equal(fs.readFileSync(path.join(appRoot, 'server', file), 'utf8'), source(file), 'Servermodul veraltet: ' + file);
+  }
+  assert.deepEqual(listFiles(path.join(appRoot, 'server')).sort(), [...modules].sort(), 'Fehlende oder fremde Servermodule');
+  assert.deepEqual(listFiles(sourceRoot).sort(), [...modules].sort(), 'Fehlende oder ungenutzte Backend-Quellen');
+}
 if (require.main === module) {
   try {
-    if (process.argv.includes('--check')) {
-      checkBundle();
-      console.log('Backend-Bundle ist aktuell:', path.relative(root, target));
-    } else {
-      writeBundle();
-      console.log('Backend-Bundle erzeugt:', path.relative(root, target));
-    }
-  } catch (error) {
-    console.error('Backend-Bundle: ' + error.message);
-    process.exitCode = 1;
-  }
+    if (process.argv.includes('--check')) { checkBackend(); console.log('Backend-Einstieg und Servermodule aktuell.'); }
+    else { buildBackend(); console.log('Backend erzeugt: kurzer main.js-Einstieg, ' + modules.length + ' Servermodule.'); }
+  } catch (error) { console.error(error.message); process.exitCode = 1; }
 }
-
-module.exports = { bundle, writeBundle, checkBundle, modules, target };
+module.exports = { modules, entry, buildBackend, checkBackend };

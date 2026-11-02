@@ -5,10 +5,11 @@ const crypto = require('node:crypto');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
-const { writeBundle } = require('./build-backend.cjs');
+const { buildBackend } = require('./build-backend.cjs');
+const { runtimeFiles, isBinary, checkText, checkRuntime } = require('./check-file-lengths.cjs');
 const root = path.resolve(__dirname, '..');
 const projectFolder = path.resolve(root, '..');
-const include = ['main.js', 'app.config', 'www/index.html', 'www/css/style.css', 'www/js/app.js', 'www/img/mischwerk-logo.png'];
+const include = runtimeFiles;
 const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').toUpperCase();
 function properties(text) {
   const data = {};
@@ -21,8 +22,8 @@ function properties(text) {
   return data;
 }
 function build() {
-  writeBundle();
-  for (const args of [['--test', 'tests/backend.test.cjs', 'tests/preview.test.cjs'], ['tools/check.cjs']]) {
+  buildBackend();
+  for (const args of [['--test', 'tests/backend.test.cjs', 'tests/preview.test.cjs', 'tests/schedule.test.cjs', 'tests/announcements.test.cjs', 'tests/handover.test.cjs'], ['tools/check.cjs'], ['tools/check-rhino.cjs']]) {
     const result = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit', windowsHide: true });
     assert.equal(result.status, 0, 'Prüfung fehlgeschlagen; kein Paket erzeugt.');
   }
@@ -44,35 +45,18 @@ function build() {
   assert.equal(live.appId, live.serverId + '.' + live.developerId + '.' + live.appKey);
   assert.equal(live.installId, live.developerId + '.' + live.appKey);
   new vm.Script(fs.readFileSync(path.join(appRoot, 'main.js'), 'utf8'), { filename: 'main.js' });
-  const sourceFiles = [];
-  function list(directory, prefix = '') {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const relative = prefix + entry.name;
-      assert.ok(!entry.isSymbolicLink(), 'Symlinks werden nicht verpackt.');
-      if (entry.isDirectory()) { list(path.join(directory, entry.name), relative + '/'); }
-      else { sourceFiles.push(relative); }
-    }
-  }
-  list(appRoot); assert.deepEqual(sourceFiles.sort(), [...include].sort(), 'Unerwartete oder fehlende Laufzeitdateien');
+  checkRuntime(appRoot);
   const installation = path.join(projectFolder, 'ANLEITUNGEN', 'Paket');
   const upload = path.join(projectFolder, 'UPLOAD', live.appKey);
   fs.mkdirSync(installation, { recursive: true });
   fs.mkdirSync(upload, { recursive: true });
   for (const file of include) {
     const input = path.join(appRoot, file); const output = path.join(upload, file);
-    if (!file.endsWith('.png')) { assert.ok(!fs.readFileSync(input).subarray(0, 3).equals(Buffer.from([239,187,191])), 'UTF-8-BOM in ' + file); }
+    if (!isBinary(file)) { assert.ok(!fs.readFileSync(input).subarray(0, 3).equals(Buffer.from([239,187,191])), 'UTF-8-BOM in ' + file); }
     fs.mkdirSync(path.dirname(output), { recursive: true }); fs.copyFileSync(input, output);
     assert.equal(digest(input), digest(output));
   }
-  const actualUpload = [];
-  function checkUpload(directory, prefix = '') {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      assert.ok(!entry.isSymbolicLink(), 'Symlink im Uploadordner');
-      if (entry.isDirectory()) { checkUpload(path.join(directory, entry.name), prefix + entry.name + '/'); }
-      else { actualUpload.push(prefix + entry.name); }
-    }
-  }
-  checkUpload(upload); assert.deepEqual(actualUpload.sort(), [...include].sort(), 'Uploadordner enthält fremde Dateien');
+  checkRuntime(upload);
   const { createHarness } = require('./knuddels-mock.cjs');
   const h = createHarness();
   const probeUser = h.user(1, 'Lokale Paketpruefung', 'owner');
@@ -81,17 +65,32 @@ function build() {
     environment: live.environment, appId: live.appId, installId: live.installId,
     channel: live.channelName, version, remotePath: live.ftp.remoteRoot + '/' + live.appKey,
     stationConfigured, ftpHost: live.ftp.host, ftpUser: live.ftp.username,
-    files: include.map(file => ({ path: live.appKey + '/' + file, bytes: fs.statSync(path.join(upload, file)).size, sha256: digest(path.join(upload, file)) }))
+    fileCount: include.length, fileManifests: []
   };
+  // Getrennte, vollständige Dateinachweise für Server und Oberfläche statt eines übergroßen JSON.
+  for (const [name, files] of [
+    ['manifest-server.json', include.filter(file => !file.startsWith('www/'))],
+    ['manifest-www.json', include.filter(file => file.startsWith('www/'))]
+  ]) {
+    const file = path.join(installation, name);
+    const content = { version, files: files.map(relative => ({ path: live.appKey + '/' + relative,
+      bytes: fs.statSync(path.join(upload, relative)).size, sha256: digest(path.join(upload, relative)) })) };
+    fs.writeFileSync(file, JSON.stringify(content, null, 2) + '\n', 'utf8');
+    checkText(file);
+    manifest.fileManifests.push({ path: name, fileCount: files.length, bytes: fs.statSync(file).size, sha256: digest(file) });
+  }
   fs.writeFileSync(path.join(installation, 'manifest-live.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  checkText(path.join(installation, 'manifest-live.json'));
   const archive = path.join(installation, live.appKey + '-Knuddels-LIVE-' + version + '.zip');
   const quote = value => "'" + value.replace(/'/g, "''") + "'";
   const temporaryArchive = archive + '.' + Date.now() + '.tmp';
-  assert.deepEqual(fs.readdirSync(path.dirname(upload)), [live.appKey], 'Fremde Ordner neben dem Uploadziel');
+  const uploadEntries = fs.readdirSync(path.dirname(upload));
+  assert.ok(uploadEntries.every(name => name === live.appKey), 'Fremde Dateien neben dem Uploadziel');
   const command = 'Add-Type -AssemblyName System.IO.Compression; Add-Type -AssemblyName System.IO.Compression.FileSystem; ' +
     '$mwBase = ' + quote(path.dirname(upload)) + '; ' +
+    '$mwSource = ' + quote(upload) + '; ' +
     '$mwZip = [IO.Compression.ZipFile]::Open(' + quote(temporaryArchive) + ', [IO.Compression.ZipArchiveMode]::Create); ' +
-    'try { foreach ($mwFile in [IO.Directory]::GetFiles($mwBase, "*", [IO.SearchOption]::AllDirectories)) { ' +
+    'try { foreach ($mwFile in [IO.Directory]::GetFiles($mwSource, "*", [IO.SearchOption]::AllDirectories)) { ' +
     '$mwEntryName = $mwFile.Substring($mwBase.Length + 1).Replace(\'\\\', \'/\'); ' +
     '[void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($mwZip, $mwFile, $mwEntryName, [IO.Compression.CompressionLevel]::Optimal); ' +
     '} } finally { $mwZip.Dispose() }';
@@ -99,6 +98,8 @@ function build() {
   assert.equal(zip.status, 0, 'ZIP-Erstellung fehlgeschlagen');
   fs.renameSync(temporaryArchive, archive);
   fs.writeFileSync(path.join(installation, 'SHA256-LIVE.txt'), digest(archive) + '  ' + path.basename(archive) + '\n', 'utf8');
+  checkText(path.join(installation, 'SHA256-LIVE.txt'));
+  require('./check-package.cjs').checkPackage();
   console.log(JSON.stringify({ appId: live.appId, remotePath: manifest.remotePath, upload, archive, fileCount: include.length, stationConfigured: manifest.stationConfigured }, null, 2));
 }
 if (require.main === module) { try { build(); } catch (error) { console.error('LIVE-Paket: ' + error.message); process.exitCode = 1; } }

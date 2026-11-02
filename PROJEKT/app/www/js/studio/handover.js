@@ -1,0 +1,94 @@
+/* Studio-Übergabe bedienen; bestätigte Anfrage und lokalen Themenentwurf getrennt halten. */
+MischWerkUI.define('handover', function (dependencies) {
+  'use strict';
+  var model = dependencies.model;
+  var dom = dependencies.dom;
+  var layout = dependencies.layout;
+  var commands = dependencies.commands;
+  var signals = dependencies.signals;
+  var opened = false;
+  var incomingId = null;
+  var candidateKey = null;
+  function details() { return model.current().handover || { candidates: [], outgoing: null, incoming: null }; }
+  function close() {
+    if (!opened) { return; }
+    opened = false;
+    dom.el('studio-panel').classList.remove('show-handover');
+    dom.el('handover-panel').hidden = true;
+    layout.resizeDialog();
+    signals.emit('queue-visible');
+  }
+  function render() {
+    if (!model.current()) { return; }
+    var state = model.current(), handover = details();
+    var incoming = handover.incoming, outgoing = handover.outgoing;
+    var available = state.user.canModerate && (state.user.isOnAir || incoming);
+    var disabled = !model.connected() || commands.pending() || !state.user.canModerate;
+    dom.el('handover-open').hidden = !available;
+    dom.el('handover-open').disabled = disabled;
+    dom.setText('handover-open-label', incoming ? 'Übergabe ansehen' : outgoing ? 'Übergabe läuft …' : 'Sendung übergeben');
+    if (!available) { close(); return; }
+    if (incomingId !== (incoming && incoming.id)) {
+      incomingId = incoming && incoming.id;
+      dom.el('handover-topic').value = '';
+    }
+    if (!opened) { return; }
+    dom.el('handover-panel').hidden = false;
+    dom.setText('handover-title', incoming ? 'Sendung übernehmen' : 'Sendung übergeben');
+    dom.setText('handover-description', incoming ? incoming.nick + ' möchte dir die Sendung übergeben. Bestätige, sobald du sendebereit bist.' :
+      outgoing ? 'Warte auf ' + outgoing.nick + '. Bis zur Annahme bleibst du ON AIR.' :
+      handover.candidates.length ? 'Wähle den nächsten Moderator. Du bleibst bis zur Annahme ON AIR.' : 'Aktuell ist kein weiterer Radiomoderator im Channel.');
+    dom.el('handover-request-form').hidden = !!incoming || !!outgoing || !handover.candidates.length;
+    dom.el('handover-accept-form').hidden = !incoming;
+    dom.el('handover-cancel').hidden = !outgoing;
+    var key = JSON.stringify(handover.candidates);
+    if (key !== candidateKey) {
+      candidateKey = key;
+      var select = dom.el('handover-target'), value = select.value;
+      select.textContent = '';
+      handover.candidates.forEach(function (nick) {
+        var option = dom.element('option', '', nick); option.value = nick; select.appendChild(option);
+      });
+      if (handover.candidates.indexOf(value) !== -1) { select.value = value; }
+    }
+    ['handover-target', 'handover-topic', 'handover-request', 'handover-accept', 'handover-decline', 'handover-cancel'].forEach(function (id) {
+      dom.el(id).disabled = disabled;
+    });
+    layout.resizeDialog();
+  }
+  function start() {
+    dom.el('handover-open').addEventListener('click', function () {
+      opened = true; dom.el('studio-panel').classList.add('show-handover'); render();
+      var focus = details().incoming ? dom.el('handover-topic') : dom.el('handover-back');
+      try { focus.focus({ preventScroll: true }); } catch (ignored) { focus.focus(); }
+    });
+    ['handover-back', 'studio-controls-tab', 'studio-queue-tab'].forEach(function (id) {
+      dom.el(id).addEventListener('click', close);
+    });
+    dom.el('handover-request-form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      if (!this.reportValidity() || dom.el('handover-request').disabled) { return; }
+      commands.send('mw:handover.request', { nick: dom.el('handover-target').value,
+        expectedModerator: model.current().moderator && model.current().moderator.sessionKey }, true);
+    });
+    dom.el('handover-accept-form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      if (!this.reportValidity() || dom.el('handover-accept').disabled || !details().incoming) { return; }
+      commands.send('mw:handover.accept', { id: details().incoming.id, topic: dom.el('handover-topic').value }, true);
+    });
+    dom.el('handover-decline').addEventListener('click', function () {
+      if (details().incoming) { commands.send('mw:handover.decline', { id: details().incoming.id }, true); }
+    });
+    dom.el('handover-cancel').addEventListener('click', function () {
+      if (details().outgoing) { commands.send('mw:handover.cancel', { id: details().outgoing.id }, true); }
+    });
+    signals.on('snapshot', render);
+    signals.on('controls', render);
+    signals.on('command-result', function (response) {
+      if (!response.ok || response.action.indexOf('mw:handover.') !== 0) { return; }
+      if (response.action === 'mw:handover.accept') { signals.emit('studio-topic-reset'); }
+      if (response.action !== 'mw:handover.request') { close(); }
+    });
+  }
+  return { start: start };
+});
