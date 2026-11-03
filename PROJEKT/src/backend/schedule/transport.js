@@ -3,7 +3,7 @@ MischWerkModules.attachScheduleTransport = function (runtime) {
     'use strict';
     function notify() {
         runtime.getViews().forEach(function (view) {
-            if (view.kind !== 'schedule') { return; }
+            if (view.kind !== 'schedule' && view.kind !== 'studio') { return; }
             try {
                 view.content.getSessions().forEach(function (session) { runtime.send(session, 'mw:schedule.changed', {}); });
             } catch (error) { runtime.warn('SCHEDULE_NOTIFY', error); }

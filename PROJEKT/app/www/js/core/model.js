@@ -8,11 +8,15 @@ MischWerkUI.define('model', function (dependencies) {
   var retiredWishGenerations = [];
   var initialView = bridge && bridge.pageData && bridge.pageData.view;
   var view = initialView === 'wishes' || initialView === 'studio' || initialView === 'team' || initialView === 'schedule' ? initialView : 'radio';
+  var shared = !!(bridge && bridge.pageData && bridge.pageData.sharedViews);
+  var viewRevision = 0;
   document.documentElement.setAttribute('data-view', view);
   function connected() { return !!state && Date.now() - lastStateAt < 65000 && !state.shuttingDown; }
   
   function receive(next) {
     if (!next || !next.user || !next.station || !Array.isArray(next.myRequests) || !Array.isArray(next.queue)) { return; }
+    if (shared && (!Number.isInteger(next.viewRevision) || next.viewRevision < viewRevision ||
+        ['wishes','studio','team','schedule'].indexOf(next.view) === -1)) { return; }
     if (state && typeof state.revision === 'number' && typeof next.revision === 'number' && next.revision < state.revision) { return; }
     if (state && state.handover && next.handover && next.handover.revision < state.handover.revision) { return; }
     var oldStation = state && JSON.stringify(state.station);
@@ -22,6 +26,8 @@ MischWerkUI.define('model', function (dependencies) {
       if (retiredWishGenerations.indexOf(nextPositions.generation) !== -1 ||
           (previousPositions.generation === nextPositions.generation && nextPositions.revision < previousPositions.revision)) {
         next.wishPositions = previousPositions;
+        next.queue = state.queue; next.queueTotal = state.queueTotal;
+        next.page = state.page; next.pages = state.pages;
       } else if (previousPositions.generation !== nextPositions.generation) {
         retiredWishGenerations.push(previousPositions.generation);
         if (retiredWishGenerations.length > 8) { retiredWishGenerations.shift(); }
@@ -34,8 +40,11 @@ MischWerkUI.define('model', function (dependencies) {
     next.radioModeratorRevision = typeof next.radioModeratorRevision === 'number' ? next.radioModeratorRevision : 0;
     next.user.canManageRadioModerators = next.user.canManageRadioModerators === true;
     state = next; lastStateAt = Date.now();
-    signals.emit('snapshot', { previousStation: oldStation });
+    if (shared) { viewRevision = next.viewRevision; }
+    if (shared) { signals.emit('view-select', { view:next.view, revision:next.viewRevision, state:next.overlayState }); }
+    signals.emit('snapshot', { previousStation: oldStation, refreshRequestId: next.refreshRequestId });
   }
   
-  return { view: view, current: function () { return state; }, connected: connected, receive: receive };
+  var model = { view:view, shared:shared, setView:function (next) { model.view = next; }, current: function () { return state; }, connected: connected, receive: receive };
+  return model;
 });

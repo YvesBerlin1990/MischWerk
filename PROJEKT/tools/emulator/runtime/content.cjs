@@ -14,7 +14,15 @@ class TestContents {
       throw new Error(mode + ': ganzzahlige Fenstermaße von ' + minimum + ' bis 1000 erforderlich.');
     }
     const record = { htmlFile, mode, width: mode === 'Headerbar' ? 0 : width, height, responsive: false, jfx: true, listeners: [], sessions: [] };
+    record.loading = { enabled:true, background:'#FFFFFF', foreground:'#000000', text:'Lädt...' };
+    const loading = {
+      setBackgroundColor: color => { record.loading.background = color.asHexString(); },
+      setForegroundColor: color => { record.loading.foreground = color.asHexString(); },
+      setText: text => { if (typeof text !== 'string') throw new Error('Ladetext benötigt String.'); record.loading.text = text; },
+      setEnabled: value => { if (typeof value !== 'boolean') throw new Error('Ladezustand benötigt Boolean.'); record.loading.enabled = value; }
+    };
     const content = {
+      getLoadConfiguration: () => loading,
       getHTMLFile: () => record.htmlFile, getAppViewMode: () => this.runtime.enums.AppViewMode[mode],
       getWidth: () => record.width, getHeight: () => record.height,
       setResponsive: value => { record.responsive = value === true; }, isResponsive: () => record.responsive,
@@ -60,6 +68,7 @@ class TestContents {
     const content = session.getAppContent(), record = this.records.get(content);
     return { sessionId: id, nick: session.getUser().getNick(), mode: record.mode,
       width: record.width, height: record.height, responsive: record.responsive, allowJFX: record.jfx,
+      loading: copy(record.loading),
       htmlPath: record.htmlFile.getAssetPath(), pageData: copy(record.htmlFile.getPageData()) };
   }
   owned(id, user) { const session = this.sessions.get(id); return session?.getUser() === user ? session : null; }

@@ -3,6 +3,7 @@ MischWerkUI.define('scheduleMarkup', function (dependencies) {
   'use strict';
   dependencies.dom.mount('schedule-placeholder', `
     <section id="schedule-panel" aria-label="Wöchentlicher Sendeplan" hidden>
+      <div id="schedule-calendar">
       <section class="schedule-controls" aria-label="Woche und Sendeplanaktionen">
         <nav class="schedule-navigation" aria-label="Kalenderwoche">
           <button id="schedule-previous" class="secondary-button schedule-step" type="button" aria-label="Vorherige Woche" title="Vorherige Woche"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
@@ -40,6 +41,7 @@ MischWerkUI.define('scheduleMarkup', function (dependencies) {
           </div>
         </fieldset>
       </form>
+      </div>
     </section>
 `);
 });

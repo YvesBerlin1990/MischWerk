@@ -39,8 +39,16 @@ var KnuddelsServer = {
 };
 var UserType = { Human: 'human' };
 function HTMLFile(asset, data) { this.data = copy(data); }
+var Color = { fromHexString: function (hex) { return { asHexString: function () { return hex; } }; } };
 function content(html, mode) {
-    return { html: html, mode: mode, sessions: [], closeListeners: [],
+    var loading = {};
+    return { html: html, mode: mode, sessions: [], closeListeners: [], loading: loading,
+        getLoadConfiguration: function () { return {
+            setBackgroundColor: function (color) { loading.background = color.asHexString(); },
+            setForegroundColor: function (color) { loading.foreground = color.asHexString(); },
+            setText: function (text) { loading.text = text; },
+            setEnabled: function (enabled) { loading.enabled = enabled; }
+        }; },
         getSessions: function () { return this.sessions.slice(); },
         setResponsive: function () {}, setAllowJFXBrowser: function () {},
         addCloseListener: function (callback) { this.closeListeners.push(callback); }
@@ -49,7 +57,7 @@ function content(html, mode) {
 var AppContent = {
     headerbarContent: function (html) { return content(html, 'radio'); },
     popupContent: function (html) { return content(html, html.data.view); },
-    overlayContent: function (html) { return content(html, 'wishes'); }
+    overlayContent: function (html) { return content(html, html.data.view); }
 };
 function person(id, nick, owner) {
     var user = { sessions: [], getUserId: function () { return id; }, getNick: function () { return nick; },
@@ -64,7 +72,7 @@ function person(id, nick, owner) {
                     check(JSON.stringify(data).length < 10000, 'Eventlimit');
                     this.events.push({ type: type, data: copy(data) }); eventOrder.push(type);
                 },
-                remove: function () { view.sessions = []; }
+                remove: function () { view.sessions = view.sessions.filter(function (item) { return item !== session; }); user.sessions = user.sessions.filter(function (item) { return item !== session; }); view.closeListeners.forEach(function (callback) { callback(user, view, false); }); }
             };
             view.sessions.push(session); this.sessions.push(session); return true;
         }
@@ -88,6 +96,11 @@ var ownerSession = owner.sessions[0];
 App.onEventReceived(owner, 'mw:openStudio', {}, ownerSession);
 var studio = owner.sessions[owner.sessions.length - 1];
 check(studio.getAppContent().mode === 'studio', 'Moderationsfenster geoeffnet');
+check(studio.getAppContent().loading.background === '#242424', 'Native Ladeflaeche vor dem HTML dunkel vorbereitet');
+App.onEventReceived(owner, 'mw:openStudio', { requestId: 'rhino-focus' }, ownerSession);
+App.onEventReceived(owner, 'mw:openStudio', { requestId: 'rhino-focus' }, ownerSession);
+check(owner.sessions[owner.sessions.length - 1] === studio, 'Doppelte Fokus-Anfrage behaelt dieselbe Ansicht');
+check(latest(ownerSession, 'mw:result').ok, 'Doppelte Fokus-Anfrage bestaetigt ohne erneutes Oeffnen');
 // Nach der Initialisierung darf kein Wunsch die Persistenz aufrufen.
 store.getObject = function () { throw new Error('Keine Persistenz im Wunschweg'); };
 store.setObject = function () { throw new Error('Keine Persistenz im Wunschweg'); };
@@ -132,13 +145,13 @@ App.chatCommands.update(owner, '');
 check(updates.length === 1, 'Appmanager darf genau ein Update anfordern');
 check(latest(studio, 'mw:state').queueTotal === 125, 'Updateanforderung erhaelt Queue bis zum Neustart');
 var positions = latest(listenerSession, 'mw:state').wishPositions;
-check(positions.total === 125 && positions.items.length === 3, 'Eigene Positionen klein paginiert');
-check(positions.items[0].position === 1 && positions.items[2].position === 3, 'Echte Queuepositionen in Rhino');
+check(positions.total === 125 && positions.items.length === 1, 'Eigene Positionen klein paginiert');
+check(positions.items[0].position === 1 && positions.pages === 125, 'Echte Queuepositionen in Rhino');
 check(latest(studio, 'mw:state').wishPositions.total === 0, 'Keine fremden Positionen fuer Besitzer');
-App.onEventReceived(listener, 'mw:refresh', { myPage: 41 }, listenerSession);
+App.onEventReceived(listener, 'mw:refresh', { myPage: 124 }, listenerSession);
 positions = latest(listenerSession, 'mw:state').wishPositions;
-check(positions.page === 41 && positions.items.length === 2, 'Letzte eigene Seite in Rhino');
-check(positions.items[0].position === 124 && positions.items[1].position === 125, 'Letzte Queuepositionen vollstaendig');
+check(positions.page === 124 && positions.items.length === 1, 'Letzte eigene Seite in Rhino');
+check(positions.items[0].position === 125, 'Letzte Queuepositionen vollstaendig');
 // Kalender und Wochenpersistenz ebenfalls unter der echten Rhino-Engine ausführen.
 store = { data: {}, getObject: function (key, fallback) { return this.data[key] ? copy(this.data[key]) : fallback; },
     setObject: function (key, value) { this.data[key] = copy(value); } };
@@ -148,8 +161,10 @@ KnuddelsServer.getUserAccess = function () { return {
     getNick: function (id) { return id === 2 ? 'Otterchen' : 'Musikfreund'; }
 }; };
 App.onEventReceived(owner, 'mw:openSchedule', {}, ownerSession);
+App.onEventReceived(owner, 'mw:overlay.ready', { token: latest(studio, 'mw:overlay.prepare').token, state: {}, revision: 1 }, studio);
 var scheduleSession = owner.sessions[owner.sessions.length - 1];
-check(scheduleSession.getAppContent().mode === 'schedule', 'Eigenes Sendeplan-Popup');
+check(scheduleSession === studio && latest(scheduleSession, 'mw:view').view === 'schedule', 'Sendeplan im vorhandenen Overlay');
+check(scheduleSession.getAppContent().loading.enabled === false, 'Native Ladeansicht deaktiviert');
 App.onEventReceived(owner, 'mw:schedule.get', { requestId: 'schedule-read', week: '2026-10-26' }, scheduleSession);
 var programme = latest(scheduleSession, 'mw:schedule.data');
 check(programme && programme.days.length === 7 && programme.days[6] === '2026-11-01', 'Sieben Kalenderdaten in Rhino');
@@ -182,21 +197,52 @@ check(warnings.length === 0, 'Keine Warnung bei Studio-Meldungen');
 App.onEventReceived(owner, 'mw:addRadioModerator', { nick: 'Musikfreund' }, ownerSession);
 App.onEventReceived(owner, 'mw:onAir', {}, ownerSession);
 var previousModerator = latest(ownerSession, 'mw:state').moderator;
-App.onEventReceived(owner, 'mw:handover.request', { nick: 'Musikfreund', expectedModerator: previousModerator.sessionKey }, ownerSession);
+App.onEventReceived(owner, 'mw:handover.request', { nick: 'Musikfreund', expectedModerator: previousModerator.sessionKey,
+    notes: 'Bitte die Geburtstagsgruesse vorlesen.' }, ownerSession);
 var incoming = latest(listenerSession, 'mw:state').handover.incoming;
 check(incoming && publicMessages.length === 3, 'Uebergabe wartet ohne oeffentliche Meldung');
+check(incoming.notes === 'Bitte die Geburtstagsgruesse vorlesen.', 'Private Uebergabenotiz in Rhino');
 App.onEventReceived(listener, 'mw:handover.accept', { id: incoming.id, topic: 'Neue Sendung' }, listenerSession);
 check(latest(listenerSession, 'mw:result').ok, 'Uebergabe angenommen');
 check(latest(listenerSession, 'mw:state').moderator.nick === 'Musikfreund', 'Neuer Moderator in Rhino');
 check(latest(listenerSession, 'mw:state').topic === 'Neue Sendung', 'Neues Thema gemeinsam gespeichert');
+check(latest(listenerSession, 'mw:state').handover.receivedNotes === incoming.notes, 'Hinweis nach Uebernahme erhalten');
+check(latest(ownerSession, 'mw:state').handover.receivedNotes === null, 'Uebernommener Hinweis nur beim Empfaenger');
+check(typeof latest(listenerSession, 'mw:state').assistant.startedAt === 'number', 'Sendungsassistent hat bestaetigte Studiozeit');
 check(publicMessages.length === 4 && publicMessages[3].indexOf('Otterchen macht Platz im Studio') !== -1, 'Eine gemeinsame Uebergabemeldung');
 App.onEventReceived(owner, 'mw:onAir', {}, ownerSession);
 check(!latest(ownerSession, 'mw:result').ok && publicMessages.length === 4, 'Keine direkte Uebernahme ohne Bestaetigung');
-App.onEventReceived(owner, 'mw:openWishes', {}, ownerSession);
+App.onEventReceived(owner, 'mw:openWishes', { requestId: 'rhino-wishes' }, ownerSession);
+App.onEventReceived(owner, 'mw:overlay.ready', { token: latest(scheduleSession, 'mw:overlay.prepare').token, state: {}, revision: 1, view: 'schedule', viewRevision: 2 }, scheduleSession);
 check(latest(ownerSession, 'mw:result').ok, 'Natives Wunschoverlay in Rhino geoeffnet');
 var surfaceSession = owner.sessions.filter(function (active) { return active.getAppContent().html.data.wishSurface; })[0];
 check(!!surfaceSession, 'Wunschoberflaeche getrennt von Radio');
+App.onEventReceived(owner, 'mw:openWishes', { requestId: 'rhino-wishes' }, ownerSession);
+check(owner.sessions.indexOf(surfaceSession) !== -1, 'Doppelte Wunschbox-Anfrage schliesst nicht wieder');
+check(latest(ownerSession, 'mw:result').ok, 'Doppelte Wunschbox-Anfrage sicher bestaetigt');
 App.onEventReceived(owner, 'mw:wishes.edit', { text:'Entwurf aus dem Overlay', sequence:1 }, surfaceSession);
 check(latest(ownerSession, 'mw:wishes.input').text === 'Entwurf aus dem Overlay', 'UI-Eingabe erreicht ausschliesslich Radio');
 check(warnings.length === 0, 'Overlay ohne Rhino-Warnungen');
+App.onEventReceived(owner, 'mw:refresh', { page: 0 }, ownerSession);
+var firstWish = latest(ownerSession, 'mw:state').queue[0];
+var totalBeforeStage = latest(ownerSession, 'mw:state').queueTotal;
+App.onEventReceived(owner, 'mw:setWishStage', { id: firstWish.id, previousStage: 'queued', stage: 'preparing' }, ownerSession);
+check(latest(ownerSession, 'mw:result').ok, 'Wunsch in Rhino vorbereiten');
+check(latest(ownerSession, 'mw:state').queue[0].stage === 'preparing', 'Vorbereitung angezeigt');
+App.onEventReceived(owner, 'mw:setWishStage', { id: firstWish.id, previousStage: 'preparing', stage: 'playing' }, ownerSession);
+check(latest(ownerSession, 'mw:result').ok, 'Laufenden Wunsch in Rhino markieren');
+check(latest(ownerSession, 'mw:state').queueTotal === totalBeforeStage, 'Status entfernt keinen Wunsch');
+var calendarRuntime = { failure: function (message) { return new Error(message); } };
+MischWerkModules.attachScheduleCalendar(calendarRuntime);
+check(calendarRuntime.scheduleTimestamp('2026-07-01', '20:00') === Date.UTC(2026, 6, 1, 18), 'Berliner Sommerzeit in Rhino');
+check(calendarRuntime.scheduleTimestamp('2026-11-02', '20:00') === Date.UTC(2026, 10, 2, 19), 'Berliner Winterzeit in Rhino');
+check(calendarRuntime.scheduleTimestamp('2026-10-25', '02:30', true) - calendarRuntime.scheduleTimestamp('2026-10-25', '02:30', false) === 3600000,
+    'Doppelte Stunde bei Winterzeitwechsel');
+check(warnings.length === 0, 'Neue Moderationsfunktionen ohne Rhino-Warnungen');
+App.onEventReceived(owner, 'mw:refresh', { requestId: 'refresh-rhino-1' }, ownerSession);
+check(latest(ownerSession, 'mw:state').refreshRequestId === 'refresh-rhino-1', 'Manuelles Aktualisieren bestaetigt dasselbe Datenpaket');
+App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
+check(latest(ownerSession, 'mw:state').refreshRequestId === undefined, 'Automatische Aktualisierung ohne fremde Quittung');
+App.onEventReceived(owner, 'mw:refresh', { requestId: '<invalid>' }, ownerSession);
+check(!latest(ownerSession, 'mw:result').ok, 'Ungueltige Aktualisierungs-ID abgewiesen');
 print('Rhino-Wunschweg OK: ' + assertions + ' Pruefungen, 125 Wuensche, ' + links.length + ' abgewiesene Links; Sendeplan und Studio-Meldungen ebenfalls geprueft.');

@@ -52,8 +52,10 @@ html:is([data-view=studio],[data-view=team]) :is(#off-air,[data-confirm-removal]
   .dialog-shell { padding:12px; }
   .card,.queue-item { padding:14px; }
   .dialog-heading h1 { font-size:var(--dialog-title,22px); }
-  .form-row { grid-template-columns:1fr; }
   .pagination { gap:8px; }
   .pagination .secondary-button { padding:8px; }
   .team-member { flex-wrap:wrap; }
 }
+
+/* Schließen gehört zur Channelansicht und bleibt auch bei Rechteverlust erreichbar. */
+.overlay-close { flex:none; align-self:center; color:var(--gold-ink); border-color:#6d6654; background:linear-gradient(180deg,#35362f,#292d2e); box-shadow:none; text-shadow:none; }

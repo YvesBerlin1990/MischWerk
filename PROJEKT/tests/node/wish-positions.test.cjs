@@ -11,14 +11,19 @@ test('Eigene Positionen sind privat und rücken nach Erledigt oder Verwerfen tat
   for(const [user,session,text] of [[a,as,'A eins'],[b,bs,'B eins'],[a,as,'A zwei'],[b,bs,'B zwei']])
     h.event(user,session,'mw:wish.submit',{text});
   const first=h.state(a,as).wishPositions, second=h.state(b,bs).wishPositions;
-  assert.deepEqual(first.items.map(x=>[x.text,x.position]),[['A eins',1],['A zwei',3]]);
-  assert.deepEqual(second.items.map(x=>[x.text,x.position]),[['B eins',2],['B zwei',4]]);
+  assert.deepEqual(first.items.map(x=>[x.text,x.position]),[['A eins',1]]);
+  assert.deepEqual(second.items.map(x=>[x.text,x.position]),[['B eins',2]]);
+  assert.equal(first.pages,2);
+  assert.deepEqual(h.state(a,as,0,1).wishPositions.items.map(x=>[x.text,x.position]),[['A zwei',3]]);
+  h.state(a,as,0,0);
+  assert.deepEqual(h.state(b,bs,0,1).wishPositions.items.map(x=>[x.text,x.position]),[['B zwei',4]]);
+  h.state(b,bs,0,0);
   assert.equal(h.state(owner,os).wishPositions.total,0);
   assert.equal(h.state(a,as).myRequests.length,0,'Kein historisches Wunschmodell reaktivieren');
-  assert.ok(first.items.every(item=>Object.keys(item).sort().join(',')==='id,position,text'));
+  assert.ok(first.items.every(item=>Object.keys(item).sort().join(',')==='id,position,stage,text' && item.stage==='queued'));
   h.event(owner,os,'mw:resolveRequest',{id:first.items[0].id,outcome:'done'});
   assert.deepEqual(as.events.findLast(e=>e.type==='mw:state').data.wishPositions.items.map(x=>x.position),[2]);
-  assert.deepEqual(bs.events.findLast(e=>e.type==='mw:state').data.wishPositions.items.map(x=>x.position),[1,3]);
+  assert.deepEqual(bs.events.findLast(e=>e.type==='mw:state').data.wishPositions.items.map(x=>x.position),[1]);
   h.event(owner,os,'mw:resolveRequest',{id:second.items[0].id,outcome:'discarded'});
   assert.deepEqual(h.state(a,as).wishPositions.items.map(x=>x.position),[1]);
   assert.deepEqual(h.state(b,bs).wishPositions.items.map(x=>x.position),[2]);
@@ -43,23 +48,23 @@ test('Positionen vertrauen nur der authentifizierten Identität und erlauben kei
 test('Viele eigene Wünsche bleiben paginiert, klein und auf der ausgewählten Seite bei Push',()=>{
   const {h,owner,a,b,os,as,bs}=setup();
   for(let i=0;i<40;i++)h.event(a,as,'mw:wish.submit',{text:String(i).padStart(2,'0')+'ä'.repeat(298)});
-  let state=h.state(a,as,0,13);
+  let state=h.state(a,as,0,39);
   assert.equal(state.wishPositions.total,40);
-  assert.equal(state.wishPositions.pages,14);
-  assert.equal(state.wishPositions.page,13);
+  assert.equal(state.wishPositions.pages,40);
+  assert.equal(state.wishPositions.page,39);
   assert.deepEqual(state.wishPositions.items.map(x=>x.position),[40]);
   h.event(b,bs,'mw:wish.submit',{text:'Danach B'});
-  assert.equal(as.events.findLast(e=>e.type==='mw:state').data.wishPositions.page,13);
+  assert.equal(as.events.findLast(e=>e.type==='mw:state').data.wishPositions.page,39);
   h.event(owner,os,'mw:resolveRequest',{id:state.wishPositions.items[0].id,outcome:'done'});
   state=as.events.findLast(e=>e.type==='mw:state').data;
-  assert.equal(state.wishPositions.page,12);
+  assert.equal(state.wishPositions.page,38);
   assert.equal(state.wishPositions.total,39);
-  for(let page=0;page<13;page++){
+  for(let page=0;page<39;page++){
     state=h.state(a,as,0,page);
-    assert.ok(state.wishPositions.items.length<=3);
+    assert.ok(state.wishPositions.items.length===1);
     assert.ok(JSON.stringify(state).length<10000);
     assert.ok(Buffer.byteLength(JSON.stringify(state),'utf8')<10000);
-    assert.ok(state.wishPositions.items.every(x=>x.position>=page*3+1));
+    assert.ok(state.wishPositions.items.every(x=>x.position===page+1));
   }
 });
 test('Wiederholungen und Empfang ändern keine Position; ein Neustart beginnt eine neue leere Generation',()=>{
@@ -69,7 +74,7 @@ test('Wiederholungen und Empfang ändern keine Position; ein Neustart beginnt ei
   h.event(a,as,'mw:wish.submit',data);
   assert.deepEqual(h.state(a,as).wishPositions,before);
   h.event(owner,os,'mw:openStudio');
-  const studio=owner.sessions.find(x=>x.content.viewMode==='Popup');
+  const studio=owner.sessions.find(x=>x.content.viewMode==='Overlay');
   h.event(owner,studio,'mw:ackRequest',{id:before.items[0].id});
   assert.equal(h.state(a,as).wishPositions.revision,before.revision);
   h.event(owner,studio,'mw:resolveRequest',{id:before.items[0].id,outcome:'done'});
@@ -95,7 +100,7 @@ test('Geschlossene Wunschbox und Nutzerlöschung erhalten korrekte Positionen oh
   assert.equal(h.state(b,bs).wishPositions.total,0);
 });
 
-test('Wunschbox öffnet als natives Channel-Overlay; Header und Verwaltungs-Popup bleiben erhalten',()=>{
+test('Wunschbox öffnet als natives Channel-Overlay; Header bleibt beim Wechsel zur Moderation erhalten',()=>{
  const {h,owner,a,os,as}=setup();
  h.event(owner,os,'mw:setCurtain',{closed:false,previousClosed:true});
  h.event(a,as,'mw:wishes.sync',{text:'Mein Entwurf',sequence:0,disabled:false});
@@ -103,14 +108,14 @@ test('Wunschbox öffnet als natives Channel-Overlay; Header und Verwaltungs-Popu
  assert.equal(events.find(e=>e.type==='mw:result').data.ok,true);
  const surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
  assert.ok(surface);assert.equal(as.content.height,160);assert.equal(as.removed,false);
- assert.deepEqual([surface.content.width,surface.content.height],[560,360]);
+ assert.deepEqual([surface.content.width,surface.content.height],[560,600]);
  assert.equal(surface.content.responsive,true);assert.equal(surface.content.allowJFXBrowser,false);
  assert.equal(surface.content.htmlFile.pageData.wishSurface,true);
  assert.equal(surface.content.htmlFile.pageData.wishPresentation.text,'Mein Entwurf');
  h.event(owner,os,'mw:openWishes');const ownerOverlay=owner.sessions.find(s=>s.content.viewMode==='Overlay');
- h.event(owner,os,'mw:openStudio');const studio=owner.sessions.find(s=>s.content.viewMode==='Popup');
- assert.equal(ownerOverlay.removed,false);assert.equal(h.event(owner,studio,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
- h.event(a,as,'mw:openWishes');assert.equal(surface.removed,true);assert.equal(as.removed,false);
+ h.event(owner,os,'mw:openStudio');h.finishOverlay(owner,ownerOverlay);const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+ assert.equal(ownerOverlay.removed,false);assert.equal(studio,ownerOverlay);assert.equal(studio.activeView,'studio');assert.equal(h.event(owner,studio,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
+ h.event(a,as,'mw:openWishes');h.finishOverlay(a,surface);assert.equal(surface.removed,true);assert.equal(as.removed,false);
  h.event(owner,os,'mw:setRequests',{enabled:false});
  assert.equal(h.event(a,as,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
 });
@@ -128,7 +133,7 @@ test('Overlay-Eingabe wird nur an die eigene Radio-Sitzung gereicht; Wunschtrans
  assert.equal(receipt[0].type,'mw:wish.receipt');assert.equal(receipt[0].data.accepted,true);
  h.event(a,as,'mw:wishes.sync',{surfaceId:id,sequence:1,text:'',feedback:'Gesendet',feedbackHidden:false,disabled:false});
  assert.equal(surface.events.find(e=>e.type==='mw:wishes.presentation').data.state.feedback,'Gesendet');
- h.event(a,surface,'mw:wishes.close',{});assert.equal(surface.removed,true);
+ h.event(a,surface,'mw:overlay.dismiss',{state:{},revision:1});assert.equal(surface.removed,true);
  h.event(a,as,'mw:openWishes');const next=a.sessions.find(s=>s.content.viewMode==='Overlay');
  assert.equal(next.content.htmlFile.pageData.wishPresentation.feedback,'Gesendet');
  assert.equal(h.state(a,as).wishPositions.total,1);

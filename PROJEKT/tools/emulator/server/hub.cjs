@@ -31,14 +31,13 @@ class EmulatorHub {
   providerConfig() {
     if (this.faults.provider === 'unconfigured') return { streamUrl: '', allowedHosts: [],
       metadata: { url: '', titleField: '', artistField: '', liveField: '' },
-      status: { url: '', valueField: '', onlineValue: null, offlineValue: null, identityField: '', identityValue: '' },
-      listeners: { url: '', valueField: '' } };
+      status: { url: '', valueField: '', onlineValue: null, offlineValue: null, identityField: '', identityValue: '' } };
     const origin = 'https://emulator.mischwerk.invalid';
     return { streamUrl: origin + '/fixture/audio.wav', allowedHosts: ['emulator.mischwerk.invalid'],
+      historyUrl: origin + '/fixture/history',
       metadata: { url: origin + '/fixture/metadata', titleField: 'title', artistField: 'artist', liveField: 'live' },
       status: { url: origin + '/fixture/status', valueField: 'status', onlineValue: 'started',
-        offlineValue: 'stopped', identityField: '', identityValue: '' },
-      listeners: { url: origin + '/fixture/listeners', valueField: 'listeners' } };
+        offlineValue: 'stopped', identityField: '', identityValue: '' } };
   }
   startRuntime(definitions) {
     this.source = new SourceSnapshot(this.options.appDir);

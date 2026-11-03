@@ -1,6 +1,6 @@
 # MischWerk – technische Übersicht
 
-Lokaler Appstand **0.1.117**, STREAMPANEL-Anschluss noch ausstehend. Moderation und Radio-Team passen ihre Höhe an den Inhalt an. Die Wunschbox liegt als natives Overlay über dem Channel. Verbindliche Regeln stehen ausschließlich in [AGENTS.md](AGENTS.md).
+Lokaler Appstand **0.1.146** mit Tageshistorie ausschließlich für den Channelinhaber und ernannte Radiomoderatoren unter **Moderation → Heute gespielt**: verfügbare heutige Titelmeldungen ohne die bekannten Senderjingles, mit Senderuhrzeit und passenden Seiten ohne Scrollen in deutscher Ortszeit, neueste zuerst. Öffentlicher SPCast-Stream, Titelquelle, Übertragungsstatus und Sendemodus bleiben erhalten. MischWerk übernimmt erscheint ausschließlich bei bestätigtem AutoDJ; bestätigtes LIVE zeigt die Live-Kapsel und den im Studio angemeldeten Moderatornamen. Bestätigter Sendestopp sperrt Play; Wiederanlauf gibt Play ohne Autostart frei. Alle Zusatzbereiche behalten ihre gemeinsame Overlay-Sitzung mit abgeschalteter nativer Ladeansicht. Die wieder laufende LIVE-Version 0.1.132 bleibt unverändert. Die Hörerzahl ist vorerst vollständig entfernt. Normale Hörer sehen in der freien rechten Spalte der breiten Leiste das freigegebene Radio-Logo. Die Radioleiste nutzt die volle Breite ohne äußere Seitenränder. Verbindliche Regeln stehen ausschließlich in [AGENTS.md](AGENTS.md).
 
 ## Zuständigkeiten der Ordner
 
@@ -8,13 +8,13 @@ Lokaler Appstand **0.1.117**, STREAMPANEL-Anschluss noch ausstehend. Moderation 
 | --- | --- |
 | app/www/ | Gepflegte Browseroberfläche, Original-Logo und eigene Werbe-MP3 |
 | medien/logos/ und medien/mychannel/ | Zusätzliche Original-Logos und Hintergrundbild für den Knuddels-MyChannel |
-| src/backend/ | 28 gepflegte ES5/Rhino-Backendmodule |
+| src/backend/ | 31 gepflegte ES5/Rhino-Backendmodule |
 | app/server/ und app/main.js | Vom Backendbuild erzeugte Laufzeitkopien und kurzer Einstieg |
-| C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/ | Ausschließlich die 88 fertig geprüften Laufzeitdateien für Knuddels |
+| C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/ | Ausschließlich die 101 fertig geprüften Laufzeitdateien für Knuddels |
 | deployment/live.json | Bestätigtes Ziel und absoluter lokaler Uploadpfad; keine Passwörter |
-| deployment/manifests/ | Vier Dateinachweise mit Inventar, Bytezahlen und SHA-256 |
+| deployment/manifests/ | Fünf Dateinachweise mit Inventar, Bytezahlen und SHA-256 |
 | tools/build/ | backend.cjs erzeugt Laufzeitmodule; prepare-upload.cjs prüft und aktualisiert den Desktop-Upload |
-| tools/checks/ | project, architecture, lengths, upload, rhino und streampanel prüfen ihre jeweiligen Bereiche |
+| tools/checks/ | project, architecture, lengths, upload, delivery, rhino und streampanel prüfen ihre jeweiligen Bereiche |
 | tools/lib/ | Gemeinsames Browserinventar mit ansichtsabhängigen Ladeplänen |
 | tools/preview/ | server.cjs, Vorschauseite und Bridge ausschließlich für die lokale Entwicklung |
 | tools/emulator/ | Strenges lokales Testlabor mit echtem Appcode, getrennten Plattformmodellen und Fehlerkonsole |
@@ -29,7 +29,7 @@ Lokaler Appstand **0.1.117**, STREAMPANEL-Anschluss noch ausstehend. Moderation 
 | docs/pruefung/ | Ein aktueller Prüfbericht und die darin verwendeten aktuellen Appbilder unter oberflaeche/ |
 | references/api/ | Zwei unveränderte offizielle Dokumentationsstubs, niemals als Appcode laden |
 
-Die 28 gleichen Backenddateien sind beabsichtigt: src/backend ist die Quelle, app/server die geprüfte Laufzeit und der Desktop-UPLOAD die Auslieferung. Keine dieser notwendigen Kopien ist ein Archiv. app/www besitzt keinen zweiten Frontendquellordner. Git-Metadaten, package.json, pnpm-lock.yaml und node_modules gehören zur Entwicklungsumgebung und bleiben erhalten.
+Die 31 gleichen Backenddateien sind beabsichtigt: src/backend ist die Quelle, app/server die geprüfte Laufzeit und der Desktop-UPLOAD die Auslieferung. Keine dieser notwendigen Kopien ist ein Archiv. app/www besitzt keinen zweiten Frontendquellordner. Git-Metadaten, package.json, pnpm-lock.yaml und node_modules gehören zur Entwicklungsumgebung und bleiben erhalten.
 
 ## Logos und MyChannel-Hintergrund
 
@@ -59,6 +59,7 @@ Diese Medienablage gehört zum Projekt. Das bereits verwendete App-Logo bleibt u
 | pnpm run check:lengths | Alle Laufzeittexte strikt unter 9500 Zeichen |
 | pnpm run prepare:upload | Vollständige Prüfungen und ausschließliche Desktop-Bereitstellung ohne ZIP |
 | pnpm run check:upload | Quellen, tatsächlichen Desktop-Upload und Dateimanifeste abgleichen |
+| pnpm run check:delivery --base-url URL/ | Ausdrücklich gewählte öffentliche HTML-/JS-/CSS-Auslieferung lesend mit lokalen SHA-256 vergleichen |
 | node tools/checks/streampanel.cjs | Lesende Anbieterprüfung; ohne öffentliche Produktdaten ausstehend bei null Netzabrufen |
 
 Der bisherige npm-Befehl build:live bleibt als Alias für dieselbe Uploadbereitstellung erhalten. Direkte Einstiegspunkte liegen unter tools/build/, tools/checks/ und tools/preview/server.cjs. Die alten flachen Werkzeugpfade entfallen vollständig.
@@ -87,6 +88,10 @@ Die Node-VM simuliert die benötigte Knuddels-API. Fehlende API-Funktionen werde
 
 ## Bereitstellung und Dokumentation
 
-Auch aus einem Codex-Worktree wird ausschließlich C:/Users/Yves/Desktop/MischWerk/UPLOAD aktualisiert. Die vier Manifeste unter deployment/manifests werden im Arbeits- und Desktopprojekt identisch gehalten. Keine zweite Uploadkopie, ZIP oder Sicherungssammlung. Ein Build veröffentlicht und startet nichts neu.
+Auch aus einem Codex-Worktree wird ausschließlich C:/Users/Yves/Desktop/MischWerk/UPLOAD aktualisiert. Die fünf Manifeste unter deployment/manifests werden im Arbeits- und Desktopprojekt identisch gehalten. Keine zweite Uploadkopie, ZIP oder Sicherungssammlung. Ein Build veröffentlicht und startet nichts neu.
 
 [Installation, Betrieb und STREAMPANEL](docs/betrieb/INBETRIEBNAHME.md) · [LIVE-Abnahme](docs/betrieb/LIVE-ABNAHME.md) · [Architektur](docs/architektur/ARCHITEKTUR.md) · [Frontend](docs/architektur/ARCHITEKTUR-FRONTEND.md) · [API-Nachweis](docs/api/API-NACHWEIS.md) · [Prüfbericht](docs/pruefung/PRUEFBERICHT.md).
+
+Moderation seit 0.1.118: manuelle Wunschregie, lesender Sendungsassistent mit Sendeplanzeiten und private Übergabenotizen. [Bedienung](docs/betrieb/INBETRIEBNAHME.md#moderation-verwenden). Neuer Nachweis manifest-studio.json trennt Studiooberfläche von gemeinsamen Browserdateien; kein zusätzliches Uploadziel.
+
+Radio-Team und Statuszentrale verwenden seit 0.1.119 eine gemeinsame natürliche Fensterhöhe. Das Umschalten verändert weder Kopf noch Reiterposition; beide Ansichten bleiben getrennt bedienbar.

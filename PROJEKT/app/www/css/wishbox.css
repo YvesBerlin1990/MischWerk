@@ -24,8 +24,8 @@ html[data-view=wishes] :is(body,.dialog-header,.card,.wish-compose,button:enable
 .wish-label-row label { color:var(--text); font-size:17px; font-weight:600; }
 .wish-note { width:22px; height:22px; color:var(--gold-ink); }
 .wish-editor { border:1px solid #6d6657; border-radius:10px; background:var(--input); }
-.wish-editor:focus-within { border-color:var(--gold); }
-html:is([data-view=wishes],[data-view=radio]) #wish-text { margin:0; padding:12px 14px; min-height:96px; border:0; border-radius:9px 9px 0 0; background:transparent; color:var(--text); font-size:16px; line-height:1.5; letter-spacing:normal; text-transform:none; }
+.wish-editor:focus-within { border-color:var(--muted); }
+html:is([data-view=wishes],[data-view=radio]) #wish-text { margin:0; padding:12px 14px; min-height:96px; border:0; border-radius:9px 9px 0 0; outline:none; background:transparent; color:var(--text); font-size:16px; line-height:1.5; letter-spacing:normal; text-transform:none; }
 .wish-editor-footer { display:flex; justify-content:flex-end; padding:0 12px 9px; }
 html:is([data-view=wishes],[data-view=radio]) #wish-text-count { margin:0; padding:0; border:0; border-radius:0; background:transparent; color:var(--muted); font-size:12px; line-height:1.4; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .wish-rules { margin:10px 0 16px; color:var(--muted); font-size:13px; line-height:1.5; }
@@ -47,8 +47,8 @@ html[data-view=wishes] #wish-hint { padding:12px; margin-top:14px; border:1px so
   .wish-compose { padding:14px; }
 }
 
-/* Der aufklappbare Bereich gehört unmittelbar zur Radioleiste, ohne eigenes Fenster. */
-.wish-drawer { width:100%; height:100%; margin:0; padding:12px; border:1px solid #796b44; border-radius:12px; background:linear-gradient(150deg,#35362f,#242727 65%); color:var(--text); overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:#92928a #292929; }
+/* Natives Channel-Overlay: natürliche Höhe, kein innerer Scrollbereich. */
+.wish-drawer { width:100%; height:auto; margin:0; padding:12px; border:1px solid #796b44; border-radius:12px; background:linear-gradient(150deg,#35362f,#242727 65%); color:var(--text); }
 .wish-drawer-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 8px; }
 .wish-drawer-heading h2 { margin:0; font-size:22px; }
 .wish-drawer-heading button { border-color:#9e8b55 #796b44 #504b35; background:linear-gradient(180deg,#35362f,#292d2e); color:#e7bd55; }
@@ -60,8 +60,21 @@ html[data-wish-surface] .wish-drawer #wish-text { min-height:80px; }
 .wish-drawer .wish-rules { margin:4px 0 10px; }
 .wish-drawer .wish-editor-footer { padding-bottom:6px; }
 html[data-wish-surface],html[data-wish-surface] body { height:100%; min-height:0; overflow:hidden; background:transparent; }
+/* Nur bei tatsächlich begrenzten Hosts bleiben überlange Eingaben nativ erreichbar. */
+html[data-wish-surface] body { overflow-y:auto; scrollbar-width:thin; scrollbar-gutter:stable; }
 html[data-wish-surface] body { outline:0; }
 html[data-wish-surface] .dialog-shell,html[data-wish-surface] .dialog-content { display:contents; }
 html[data-wish-surface] .dialog-header { display:none; }
-html[data-wish-surface] .wish-editor:focus-within { outline:2px solid var(--gold); outline-offset:2px; }
-html[data-wish-surface] #wish-text:focus-visible { outline:none; }
+.wish-position-stage { display:block; color:var(--gold-ink); font-size:13px; margin-top:4px; }
+.wish-drawer .wish-positions { margin:0 0 10px; padding:10px; }
+.wish-drawer .wish-positions .list-heading { margin-bottom:8px; }
+.wish-drawer .wish-position-item { gap:6px 10px; padding:0; }
+.wish-drawer .wish-position-stage { grid-column:2; margin:0; }
+.wish-drawer .wish-position-text { white-space:pre-wrap; }
+.wish-drawer .wish-position-note { margin-top:8px; }
+.wish-drawer .pagination { margin-top:10px; }
+.wish-drawer #wish-compose-open { display:block; width:100%; min-height:48px; margin-top:10px; }
+@media (max-width:400px) {
+  .wish-drawer .wish-position-text { grid-column:1 / -1; grid-row:2; }
+  .wish-drawer .wish-position-stage { grid-row:1; align-self:center; }
+}

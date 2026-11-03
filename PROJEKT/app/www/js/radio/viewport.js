@@ -8,7 +8,7 @@ MischWerkUI.define('viewport', function (dependencies) {
   var root = document.documentElement;
   var requestedHeight = 0, scheduled = false;
   function resize(initial) {
-    if ((!root.classList.contains('mw-ready') && initial !== true) || model.view !== 'radio' || document.readyState === 'loading' ||
+    if ((!root.classList.contains('mw-ready') && initial !== true) || model.view !== 'radio' || (document.readyState === 'loading' && initial !== true) ||
         !Array.from(document.querySelectorAll('link[rel=stylesheet]')).every(function (link) { return !!link.sheet; })) { return; }
     var small = window.innerWidth < 700;
     var focused = document.activeElement;
@@ -36,7 +36,6 @@ MischWerkUI.define('viewport', function (dependencies) {
     if (model.view !== 'radio') { return; }
     signals.on('snapshot', request);
     signals.on('radio-layout', request);
-    signals.on('wish-layout', request);
     resize();
   }
   return { start:start, resize:resize };

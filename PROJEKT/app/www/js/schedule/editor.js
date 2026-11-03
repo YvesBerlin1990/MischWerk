@@ -46,6 +46,29 @@ MischWerkUI.define('scheduleEditor', function (dependencies) {
     return !!draft && draft.week === week && calendar.week(dom.el('schedule-date').value) === draft.week;
   }
   function start() {
+    signals.on('overlay-capture', function (state) {
+      if (model.view !== 'schedule') { return; }
+      if (!draft) { return; }
+      state.scheduleEditor = { draft:JSON.parse(JSON.stringify(draft)), fields:{} };
+      ['schedule-date','schedule-nick','schedule-start','schedule-end','schedule-topic'].forEach(function (id) { state.scheduleEditor.fields[id] = dom.el(id).value; });
+    });
+    signals.on('overlay-restore', function (state) {
+      if (model.view !== 'schedule') { return; }
+      var saved = state.scheduleEditor;
+      if (!saved || !saved.draft || !saved.fields || !model.current().user.canManageRadioModerators ||
+          !calendar.week(saved.draft.week) || !Number.isInteger(saved.draft.expectedRevision)) { return; }
+      draft = { week:saved.draft.week, expectedRevision:saved.draft.expectedRevision, id:Number(saved.draft.id) || 0 };
+      ['schedule-date','schedule-nick','schedule-start','schedule-end','schedule-topic'].forEach(function (id) { if (typeof saved.fields[id] === 'string') { dom.el(id).value = saved.fields[id].slice(0,100); } });
+      if (draft.id) { dom.el('schedule-date').min = draft.week; dom.el('schedule-date').max = calendar.shift(draft.week,6); }
+      else { dom.el('schedule-date').removeAttribute('min'); dom.el('schedule-date').removeAttribute('max'); }
+      dom.setText('schedule-editor-title', draft.id ? 'Sendung bearbeiten' : 'Sendung eintragen');
+      dom.el('schedule-delete').hidden = !draft.id; dom.el('schedule-form').hidden = false; dom.el('schedule-days').hidden = true;
+      signals.emit('schedule-editor-state');
+    });
+    signals.on('schedule-access-lost', function () {
+      if (draft) { close(); }
+      dom.el('schedule-form').reset();
+    });
     signals.on('schedule-edit', function (event) { open(event.data, event.entry); });
     dom.el('schedule-cancel').addEventListener('click', close);
     dom.el('schedule-date').addEventListener('input', function () {

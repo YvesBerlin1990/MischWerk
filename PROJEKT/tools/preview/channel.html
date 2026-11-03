@@ -9,8 +9,8 @@ body { margin:0; background:#1b2830; color:#f6f0df; font:16px/1.5 "Segoe UI",Ari
 #radio-frame { display:block; width:100%; height:160px; border:0; }
 #channel { position:relative; min-height:calc(100vh - 160px); padding:20px; background:repeating-linear-gradient(0deg,#ffffff03 0 1px,transparent 1px 48px),#1b2830; }
 #channel p { max-width:700px; margin:0 0 20px; }
-#wish-frame { position:absolute; top:0; right:0; width:min(560px,100%); height:min(360px,100%); border:0; border-radius:12px; background:transparent; }
-#wish-frame[hidden] { display:none; }
+#overlay-frame { position:absolute; top:0; right:0; width:min(560px,100%); height:600px; border:0; border-radius:12px; background:transparent; }
+#overlay-frame[hidden] { display:none; }
 </style>
 </head>
 <body>
@@ -20,17 +20,28 @@ body { margin:0; background:#1b2830; color:#f6f0df; font:16px/1.5 "Segoe UI",Ari
 <p>Der Channel beginnt direkt unter der Radioleiste. Die Wunschbox liegt beim Öffnen rechts über diesem Bereich.</p>
 <p>Musikfreund: Einen schönen Abend zusammen!</p>
 <p>Klangwelle: Ich freue mich auf die nächste Sendung.</p>
-<iframe id="wish-frame" title="MischWerk Wunschbox" hidden></iframe>
+<iframe id="overlay-frame" title="MischWerk Channelansicht" hidden></iframe>
 </main>
 <script>
-var radio = document.getElementById('radio-frame'), wish = document.getElementById('wish-frame');
+var radio = document.getElementById('radio-frame'), overlay = document.getElementById('overlay-frame');
 radio.src = '/preview?embedded=1&role=' + (new URLSearchParams(location.search).get('role') === 'moderator' ? 'moderator' : 'listener');
 window.addEventListener('message', function (event) {
-  if (event.origin !== location.origin || event.source !== radio.contentWindow || !event.data || event.data.type !== 'preview-wishes') { return; }
-  if (event.data.open) {
-    wish.src = '/preview?view=wishes&sourceSession=' + encodeURIComponent(event.data.sessionId);
-    wish.hidden = false;
-  } else { wish.hidden = true; wish.removeAttribute('src'); }
+  if (event.origin !== location.origin || !event.data) { return; }
+  if (event.source === overlay.contentWindow && event.data.type === 'preview-wish-size') {
+    overlay.style.height = Math.max(50, Math.min(1000, event.data.height)) + 'px';
+    if (event.data.width > 0) { overlay.style.width = 'min(' + event.data.width + 'px,100%)'; }
+    return;
+  }
+  if (event.source !== radio.contentWindow || event.data.type !== 'preview-overlay') { return; }
+  if (!event.data.open) {
+    overlay.hidden = true; overlay.removeAttribute('src'); return;
+  }
+  var kind = event.data.kind;
+  var target = overlay;
+  target.style.width = 'min(' + (kind === 'schedule' ? 820 : kind === 'studio' ? 780 : 560) + 'px,100%)';
+  target.style.height = (kind === 'schedule' ? 660 : kind === 'team' ? 560 : 600) + 'px';
+  target.src = '/preview?view=' + kind + '&sourceSession=' + encodeURIComponent(event.data.sessionId);
+  target.hidden = false;
 });
 </script>
 </body>

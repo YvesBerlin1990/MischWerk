@@ -1,4 +1,8 @@
 /* Ernennung, übersichtliche Mitgliederzeilen und Bestätigung am betroffenen Mitglied. */
+.team-workspace { display:grid; min-width:0; }
+.team-workspace > :is(#team-members,#team-status) { grid-area:1 / 1; align-self:start; min-width:0; }
+/* Beide Reiter tragen zur gemeinsamen Höhe bei; der inaktive bleibt unsichtbar und unbedienbar. */
+.team-workspace > [hidden] { display:block !important; visibility:hidden; pointer-events:none; }
 .team-intro-card,.team-list-card { padding:20px; border:1px solid var(--line); border-radius:14px; background:var(--management-card); }
 .team-section-heading .eyebrow { color:var(--gold-ink); font-size:12px; font-weight:600; letter-spacing:.1em; }
 .team-section-heading h2 { margin:4px 0 0; font-size:21px; font-weight:650; letter-spacing:-.02em; overflow-wrap:anywhere; }

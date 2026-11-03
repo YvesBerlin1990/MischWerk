@@ -1,0 +1,55 @@
+{
+  "version": "0.1.146",
+  "files": [
+    {
+      "path": "MischWerk/www/js/studio/markup.js",
+      "bytes": 5040,
+      "sha256": "B9D12C9F576D48F6F01E40CE6AEFC0DE7B0151759BE7A7F43203D6E36B51DA99"
+    },
+    {
+      "path": "MischWerk/www/js/studio/handover-markup.js",
+      "bytes": 2353,
+      "sha256": "968FBA639252460CB5F4016ABC9DD42E84F21AD19D04ECAF0EABECCC0181C96F"
+    },
+    {
+      "path": "MischWerk/www/js/studio/assistant-markup.js",
+      "bytes": 1249,
+      "sha256": "CC15C85297A2A4C69CB41789B3CDD56722215E7BCF35315F78A8301BD43D9A4E"
+    },
+    {
+      "path": "MischWerk/www/js/studio/controls.js",
+      "bytes": 7140,
+      "sha256": "3A10CEEE206C6396F24BF3B5B6322950890A3D24B77BD338DDA3F802E4604FF4"
+    },
+    {
+      "path": "MischWerk/www/js/studio/handover.js",
+      "bytes": 7228,
+      "sha256": "FAAFF40D6B95A070334FA0BC797323ED73273C1A28A7D8952D4E7860A0F18FC3"
+    },
+    {
+      "path": "MischWerk/www/js/studio/assistant.js",
+      "bytes": 4198,
+      "sha256": "9BA5AC5F4AEF52CDD5064363553C4739A146DC98299679E4A382B1FEBFD443DB"
+    },
+    {
+      "path": "MischWerk/www/js/studio/queue.js",
+      "bytes": 6560,
+      "sha256": "6F2B77840E7301F3E079CD50CBA9E65661D36E6AF3D65F44D70035E2239E0C21"
+    },
+    {
+      "path": "MischWerk/www/css/studio.css",
+      "bytes": 5179,
+      "sha256": "98ABCEE896173A3D9D794AF142FDABE18C4417E66896C12B928AA00B4EB2769D"
+    },
+    {
+      "path": "MischWerk/www/css/handover.css",
+      "bytes": 1883,
+      "sha256": "49663F841FCEBE27F177EC7BBD08B530C2085FE2AEC7897E188B27E80940947D"
+    },
+    {
+      "path": "MischWerk/www/css/studio-assistant.css",
+      "bytes": 1267,
+      "sha256": "017B633B1E23EBDA38FEBDD9B0ED9E969A02B99A58EC98C22406FFF9714EB8E3"
+    }
+  ]
+}

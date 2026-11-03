@@ -46,6 +46,7 @@ MischWerkModules.attachModeration = function (runtime, config) {
                 throw runtime.failure('Bitte die Sendung über eine bestätigte Übergabe übernehmen.');
             }
             next.moderator = newModerator(user);
+            if (runtime.state.moderator) { next.moderator.since = runtime.state.moderator.since; }
         } else {
             if (!next.moderator) { throw runtime.failure('Niemand ist als Moderation angemeldet.'); }
             if (next.moderator.userId !== userId && !user.isChannelOwner()) {

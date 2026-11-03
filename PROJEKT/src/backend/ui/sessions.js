@@ -1,105 +1,135 @@
-/* Radioleiste und getrennte Popups oeffnen und verwalten. */
+/* Radioleiste und authentifizierte Channel-Overlays verwalten. */
 MischWerkModules.attachSessions = function (runtime, config) {
     'use strict';
-    var views = [];
-
+    var views = [], surfaceSequence = 0;
+    runtime.closeView = function (view) {
+        view.content.getSessions().forEach(function (session) { session.remove(); });
+    };
     runtime.getViews = function () { return views.slice(); };
     runtime.removeUserViews = function (userId) {
         views.slice().forEach(function (view) {
-            if (view.userId === userId) {
-                view.content.getSessions().forEach(function (session) { session.remove(); });
-            }
+            if (view.userId === userId) { runtime.closeView(view); }
         });
         views = views.filter(function (view) { return view.userId !== userId; });
     };
-
     runtime.activeSession = function (user, session) {
         try {
             return !!session && runtime.online(user) && user.equals(session.getUser()) &&
                 session.getAppContent().getSessions().some(function (active) { return user.equals(active.getUser()); });
         } catch (error) { return false; }
     };
-
-    runtime.openView = function (user, kind, automatic, opening) {
-        if (kind === 'wishes' && (!opening || !opening.radioContent)) { throw runtime.failure('Bitte öffne die Wunschbox in der Radioleiste.'); }
-        if (!runtime.online(user)) { user.sendPrivateMessage('Bitte öffne MischWerk im MyChannel.'); return; }
-        runtime.load();
-        runtime.loadWishes();
-        // Appstart und Channelbeitritt koennen denselben Nutzer kurz nacheinander melden.
-        // Eine bereits aktive Radioleiste dabei weder schliessen noch erneut senden.
-        if (kind === 'radio' && automatic === true) {
-            var activeRadio = views.some(function (view) {
-                if (view.kind !== 'radio' || view.userId !== runtime.userId(user)) { return false; }
-                try {
-                    return view.content.getSessions().some(function (session) {
-                        return user.equals(session.getUser());
-                    });
-                } catch (error) { return false; }
-            });
-            if (activeRadio) { return true; }
+    runtime.overlayDraftState = function (user, radio, kind) {
+        if (!radio || !radio.overlayDrafts) { return null; }
+        var drafts = radio.overlayDrafts;
+        if (!runtime.isModerator(user)) { delete drafts.studio; }
+        if (!runtime.isChannelOwner(user)) {
+            delete drafts.team;
+            if (drafts.schedule) { delete drafts.schedule.scheduleEditor; }
         }
-        if (kind === 'studio' && !runtime.isModerator(user)) {
-            throw runtime.failure('Nur die Radio-Moderation darf das Moderationsmenü öffnen.');
-        }
-        if (kind === 'team' && !runtime.isChannelOwner(user)) {
-            throw runtime.failure('Nur der Channelinhaber darf das Radio-Team verwalten.');
-        }
+        return drafts[kind] || null;
+    };
+    function selection(opening, kind) {
+        var radio = opening && views.filter(function (view) { return view.content === opening.radioContent; })[0];
+        return radio && radio.overlaySelections && radio.overlaySelections[kind] || {};
+    }
+    function prepareView(user, kind, opening) {
+        if (['radio', 'wishes', 'studio', 'team', 'schedule'].indexOf(kind) === -1) { throw runtime.failure('Diese Ansicht ist nicht verfügbar.'); }
+        if (!runtime.online(user)) { throw runtime.failure('Bitte öffne MischWerk im MyChannel.'); }
+        if (kind !== 'radio' && (!opening || !opening.radioContent || !views.some(function (view) {
+            return view.kind === 'radio' && view.userId === runtime.userId(user) && view.content === opening.radioContent && view.content.getSessions().length;
+        }))) { throw runtime.failure('Bitte öffne die Ansicht in der Radioleiste.'); }
+        runtime.load(); runtime.loadWishes();
+        if (kind === 'studio' && !runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf das Moderationsmenü öffnen.'); }
+        if (kind === 'team' && !runtime.isChannelOwner(user)) { throw runtime.failure('Nur der Channelinhaber darf das Radio-Team verwalten.'); }
+        if (kind === 'studio') { runtime.refreshAssistant(); }
         runtime.prune();
         if (kind === 'wishes' && !runtime.state.requestsEnabled) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
-        var data = runtime.snapshot(user, 0);
-        data.view = kind;
-        if (kind === 'wishes') {
-            data.wishSurface = true; data.wishSurfaceId = opening.surfaceId;
-            data.wishPresentation = opening.presentation;
+        var selected = selection(opening, kind), page = selected.page || 0;
+        if (kind === 'studio' && selected.queueId) {
+            runtime.wishItems().some(function (item, index) { if (item.id !== selected.queueId) { return false; } page = Math.floor(index / runtime.pageSize); return true; });
         }
+        var data = runtime.snapshot(user, page, selected.myPage || 0, selected.feedbackId || null, selected.radioModeratorPage || 0);
+        data.view = kind; data.overlay = kind !== 'radio';
+        data.sharedViews = kind !== 'radio'; data.viewRevision = 1;
+        if (kind !== 'radio') {
+            var radio = views.filter(function (view) { return view.content === opening.radioContent; })[0];
+            data.overlayState = runtime.overlayDraftState(user, radio, kind);
+        }
+        if (kind !== 'radio') {
+            data.wishSurface = true; data.wishSurfaceId = opening.surfaceId; data.wishPresentation = opening.presentation;
+        }
+        if (JSON.stringify(data).length >= 10000) { throw runtime.failure('Die Ansicht ist gerade zu umfangreich. Bitte erneut versuchen.'); }
         var htmlFile = new HTMLFile('index.html', data);
         var content = kind === 'radio' ? AppContent.headerbarContent(htmlFile, 160) :
-            kind === 'wishes' ? AppContent.overlayContent(htmlFile, 560, 360) :
-            AppContent.popupContent(htmlFile, kind === 'schedule' ? 820 : kind === 'team' ? 560 : 780,
-                kind === 'schedule' ? 560 : kind === 'team' ? 560 : 600);
-        content.setResponsive(true);
-        content.setAllowJFXBrowser(false);
+            AppContent.overlayContent(htmlFile, kind === 'schedule' ? 820 : kind === 'studio' ? 780 : 560,
+                kind === 'schedule' ? 660 : kind === 'team' ? 560 : 600);
+        content.setResponsive(true); content.setAllowJFXBrowser(false);
+        // Eigene dunkle HTML-Hülle; keine zusätzliche native Ladeansicht.
+        var loading = content.getLoadConfiguration();
+        loading.setBackgroundColor(Color.fromHexString('#242424'));
+        loading.setForegroundColor(Color.fromHexString('#F6F0DF'));
+        loading.setEnabled(false);
         if (!user.canSendAppContent(content)) {
-            if (automatic === true) { return false; }
             throw runtime.failure(kind === 'radio' ? 'Dieser Client unterstützt die MischWerk-Channelleiste nicht.' :
-                'Dieser Client kann das MischWerk-Fenster gerade nicht öffnen.');
+                'Dieser Client unterstützt diese Channelansicht nicht. Die bisherige Ansicht bleibt geöffnet.');
         }
-        content.addCloseListener(function () {
-            views = views.filter(function (view) { return view.content !== content; });
-            if (kind === 'wishes') {
-                opening.radioContent.getSessions().forEach(function (radioSession) {
-                    try { radioSession.sendEvent('mw:wishes.closed', { surfaceId: opening.surfaceId }); }
-                    catch (ignored) { /* Eine geschlossene Radioleiste benötigt keinen Fokus mehr. */ }
-                });
-            }
-            if (kind === 'radio') {
-                views.slice().forEach(function (view) {
-                    if (view.radioContent === content) { view.content.getSessions().forEach(function (active) { active.remove(); }); }
-                });
-            }
-        });
+        return content;
+    }
+    runtime.openView = function (user, kind, automatic, opening) {
+        if (kind === 'radio' && automatic === true && views.some(function (view) {
+            return view.kind === 'radio' && view.userId === runtime.userId(user) && view.content.getSessions().length;
+        })) { return true; }
+        if (kind !== 'radio' && views.some(function (view) { return view.kind !== 'radio' && view.userId === runtime.userId(user); })) {
+            throw runtime.failure('Die Channelansicht ist bereits geöffnet. Bitte den Bereich wechseln.');
+        }
+        if (kind !== 'radio' && opening) { opening.surfaceId = ++surfaceSequence; }
+        var content;
+        try { content = prepareView(user, kind, opening); }
+        catch (error) { if (automatic === true) { return false; } throw error; }
         var userId = runtime.userId(user);
-        views.slice().forEach(function (view) {
-            var group = function (name) { return name === 'radio' ? 'radio' : name === 'wishes' ? 'wishes' : 'popup'; };
-            if (view.userId === userId && group(view.kind) === group(kind)) {
-                view.content.getSessions().forEach(function (session) { session.remove(); });
+        var selected = selection(opening, kind);
+        var entry = { content:content, kind:kind, viewRevision:1, userId:userId, page:selected.page || 0, myPage:selected.myPage || 0, radioModeratorPage:selected.radioModeratorPage || 0, queueId:selected.queueId,
+            feedbackId:null, radioContent:opening && opening.radioContent, surfaceId:opening && opening.surfaceId };
+        content.addCloseListener(function () {
+            var closedKind = entry.kind;
+            views = views.filter(function (view) { return view.content !== content; });
+            if (entry.transition && entry.transition.cancel) { entry.transition.cancel(); }
+            if (entry.radioContent) {
+                var radio = views.filter(function (view) { return view.content === entry.radioContent; })[0];
+                if (radio && (closedKind !== 'studio' || runtime.isModerator(user)) && (closedKind !== 'team' || runtime.isChannelOwner(user))) {
+                    if (!radio.overlaySelections) { radio.overlaySelections = {}; }
+                    radio.overlaySelections[closedKind] = { page:entry.page, myPage:entry.myPage, queueId:entry.queueId, radioModeratorPage:entry.radioModeratorPage };
+                }
+                entry.radioContent.getSessions().forEach(function (radioSession) {
+                    try {
+                        radioSession.sendEvent(closedKind === 'wishes' ? 'mw:wishes.closed' : 'mw:overlay.closed',
+                            { kind:closedKind, surfaceId:entry.surfaceId });
+                    } catch (ignored) { /* Eine geschlossene Radioleiste benötigt keinen Fokus. */ }
+                });
+            }
+            if (closedKind === 'radio') {
+                views.slice().forEach(function (view) {
+                    if (view.radioContent === content) { runtime.closeView(view); }
+                });
             }
         });
+        var previousRadio = kind === 'radio' ? views.filter(function (view) { return view.userId === userId && view.kind === 'radio'; }) : [];
         if (!user.sendAppContent(content)) {
             throw runtime.failure('MischWerk konnte die Ansicht gerade nicht öffnen. Bitte erneut versuchen.');
         }
-        views.push({ content: content, kind: kind, userId: userId, page: 0, myPage: 0,
-            radioModeratorPage: 0, feedbackId: null, radioContent: opening && opening.radioContent,
-            surfaceId: opening && opening.surfaceId });
+        previousRadio.forEach(runtime.closeView);
+        views.push(entry);
+        if (entry.radioContent) {
+            entry.radioContent.getSessions().forEach(function (session) {
+                try { session.sendEvent(kind === 'wishes' ? 'mw:wishes.open' : 'mw:overlay.open',
+                    { kind:kind, surfaceId:entry.surfaceId, viewRevision:entry.viewRevision }); }
+                catch (error) { runtime.warn('OVERLAY_NOTICE'); }
+            });
+        }
         return true;
     };
-
     runtime.open = function (user, automatic) {
         try { runtime.openView(user, 'radio', automatic); }
-        catch (error) {
-            if (automatic !== true) {
-                user.sendPrivateMessage(error.publicMessage || 'MischWerk konnte gerade nicht geöffnet werden.');
-            } else { runtime.warn(); }
-        }
+        catch (error) { if (automatic !== true) { user.sendPrivateMessage(error.publicMessage || 'MischWerk konnte gerade nicht geöffnet werden.'); } else { runtime.warn(); } }
     };
 };

@@ -3,7 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
-const { runtimeFiles, checkText, checkRuntime } = require('./lengths.cjs');
+const { runtimeFiles, isBinary, checkText, checkRuntime } = require('./lengths.cjs');
+const { manifestGroups } = require('../lib/upload-manifests.cjs');
 const project = path.resolve(__dirname, '../..');
 const hash = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').toUpperCase();
 function checkUpload(options = {}) {
@@ -20,7 +21,8 @@ function checkUpload(options = {}) {
   assert.equal(path.resolve(manifest.localUploadRoot), upload, 'Falsches lokales Uploadziel');
   assert.equal(manifest.version, JSON.parse(fs.readFileSync(path.join(source, 'package.json'), 'utf8')).version);
   const files = [];
-  assert.deepEqual(manifest.fileManifests.map(item => item.path).sort(), ['manifest-media.json', 'manifest-server.json', 'manifest-www.json']);
+  const groups = manifestGroups(runtimeFiles, isBinary);
+  assert.deepEqual(manifest.fileManifests.map(item => item.path).sort(), Object.keys(groups).sort());
   for (const item of manifest.fileManifests) {
     const file = path.join(folder, item.path);
     checkText(file);
@@ -29,6 +31,7 @@ function checkUpload(options = {}) {
     const content = JSON.parse(fs.readFileSync(file, 'utf8'));
     assert.equal(content.version, manifest.version);
     assert.equal(content.files.length, item.fileCount);
+    assert.deepEqual(content.files.map(item => item.path).sort(), groups[item.path].map(file => 'MischWerk/' + file).sort());
     files.push(...content.files);
   }
   assert.equal(files.length, manifest.fileCount);

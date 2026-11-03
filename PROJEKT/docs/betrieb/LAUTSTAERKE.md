@@ -1,6 +1,8 @@
 # Lautstärke und Grenzen der Anzeige
 
-Stand 0.1.62, 01.11.2026. Die Prüfung der App ergibt: Der Regler schreibt ausschließlich den nativen `HTMLMediaElement.volume`-Wert von 0 bis 1. Bei 100 % wird keine zusätzliche Verstärkung durch einen AudioContext/GainNode eingesetzt. Es gibt keinen Pegelmesser oder Analysator. Dies ist **keine Messung des Streams in dBFS/LUFS und keine Messung des Schalldrucks in dB SPL am Ohr**. Aus Prozentwerten lässt sich kein verlässlicher Hörpegel berechnen.
+Darstellung seit 0.1.141: Das Warnsymbol bleibt auch bei 100 % rund und gleich groß. Das 64 px breite Prozentfeld erhält im hohen Bereich etwas weniger Innenabstand; Schriftgröße, Regler und Warnschwelle bleiben erhalten. K3-/STAPP-Modelle bei 320/700/2290 px und Pixeldichte 1/2 mit 61/99/100 % lokal geprüft.
+
+Grundlagenprüfung 0.1.62, 01.11.2026. Die Prüfung der App ergibt: Der Regler schreibt ausschließlich den nativen `HTMLMediaElement.volume`-Wert von 0 bis 1. Bei 100 % wird keine zusätzliche Verstärkung durch einen AudioContext/GainNode eingesetzt. Es gibt keinen Pegelmesser oder Analysator. Dies ist **keine Messung des Streams in dBFS/LUFS und keine Messung des Schalldrucks in dB SPL am Ohr**. Aus Prozentwerten lässt sich kein verlässlicher Hörpegel berechnen.
 
 Die WHO beschreibt das Risiko als abhängig von Lautstärke und Hördauer und empfiehlt generell, die Geräte-Lautstärke niedrig zu halten. Die Geräteempfehlung ist keine kalibrierte Grenze für einen beliebigen Browser-Player. Systemlautstärke, Verstärker, Kopfhörerempfindlichkeit und Tragedauer sind der UserApp unbekannt. Deshalb kann auch ein niedriger Reglerwert zu laut sein.
 

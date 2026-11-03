@@ -87,7 +87,6 @@ MischWerkUI.define('wishes', function (dependencies) {
     dom.el('wish-fields').disabled = !enabled || !!commands.pending() || !!wishPending;
     dom.setText('wish-status', enabled ? '' : !model.current().requestsEnabled ? 'WUNSCHBOX DEAKTIVIERT' : 'VERBINDUNG FEHLT');
     dom.el('wish-status').hidden = model.view !== 'wishes' || enabled;
-    dom.el('wish-status').classList.toggle('green-pill', enabled);
     var hint = '';
     if (!live) { hint = 'Verbindung zum Channel unterbrochen. Bitte öffne MischWerk erneut.'; }
     else if (!enabled) { hint = 'Wunschbox deaktiviert.'; }

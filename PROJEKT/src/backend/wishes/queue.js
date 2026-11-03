@@ -57,15 +57,15 @@ MischWerkModules.attachWishQueue = function (runtime) {
         if (senderKey) {
             queue.items.forEach(function (item, index) {
                 if (item.senderKey === senderKey) {
-                    own.push({ id: item.id, text: item.text, position: index + 1 });
+                    own.push({ id: item.id, text: item.text, position: index + 1, stage: item.stage || 'queued' });
                 }
             });
         }
-        var pages = Math.max(1, Math.ceil(own.length / 3));
+        var pages = Math.max(1, own.length);
         page = Math.max(0, Math.min(pages - 1, Math.floor(Number(page) || 0)));
         return { available: !!senderKey, generation: queue.generation, revision: queue.revision,
             nextPosition: own.length ? own[0].position : null,
-            items: own.slice(page * 3, (page + 1) * 3), total: own.length, page: page, pages: pages };
+            items: own.slice(page, page + 1), total: own.length, page: page, pages: pages };
     };
     runtime.submitWish = function (user, data) {
         runtime.wishPhase = 'WISH_VALIDATE';
@@ -130,5 +130,23 @@ MischWerkModules.attachWishQueue = function (runtime) {
             throw runtime.failure('Ungültige Wunsch-Aktion.');
         }
         runtime.resolveWish(data.id);
+    };
+    runtime.changeWishStage = function (user, data) {
+        if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf Wünsche bearbeiten.'); }
+        var queue = queueState(), item = itemById(queue, data.id);
+        if (!item) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
+        if (['queued', 'preparing', 'playing'].indexOf(data.stage) === -1) {
+            throw runtime.failure('Bitte einen gültigen Wunschstatus wählen.');
+        }
+        var previous = item.stage || 'queued';
+        if (data.stage === previous) { return; }
+        if (data.previousStage !== previous) {
+            throw runtime.failure('Der Wunsch wurde inzwischen geändert. Bitte erneut prüfen.');
+        }
+        if (data.stage === 'playing' && (previous !== 'preparing' || queue.items[0] !== item)) {
+            throw runtime.failure('Bitte zuerst den Wunsch auf Platz 1 vorbereiten.');
+        }
+        item.stage = data.stage;
+        queue.revision += 1;
     };
 };

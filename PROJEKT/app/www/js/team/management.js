@@ -93,7 +93,7 @@ MischWerkUI.define('team', function (dependencies) {
     var live = model.connected();
     dom.el('radio-moderator-nick').disabled = !!commands.pending() || !live || !model.current().user.canManageRadioModerators;
     dom.el('add-radio-moderator').disabled = dom.el('radio-moderator-nick').disabled || !dom.el('radio-moderator-nick').value.trim();
-    dom.el('refresh-radio-team').disabled = !!commands.pending() || !model.current().user.canManageRadioModerators;
+    dom.el('refresh-radio-team').disabled = !model.current().user.canManageRadioModerators;
     dom.el('prev-radio-moderator-page').disabled = !live || !!commands.pending() || !model.current().user.canManageRadioModerators || model.current().radioModeratorPage <= 0;
     dom.el('next-radio-moderator-page').disabled = !live || !!commands.pending() || !model.current().user.canManageRadioModerators || model.current().radioModeratorPage >= model.current().radioModeratorPages - 1;
     document.querySelectorAll('[data-radio-moderator-id]').forEach(function (button) {
@@ -107,13 +107,27 @@ MischWerkUI.define('team', function (dependencies) {
   
   }
   function start() {
+    signals.on('overlay-capture', function (state) {
+      if (model.view !== 'team') { return; }
+      state.team = { nick:dom.el('radio-moderator-nick').value, page:model.current() && model.current().radioModeratorPage || 0,
+        removing:removal && removal.button.dataset.radioModeratorId };
+    });
+    signals.on('overlay-restore', function (state) {
+      if (model.view !== 'team') { return; }
+      if (!state.team || !model.current().user.canManageRadioModerators) { return; }
+      if (typeof state.team.nick === 'string' && state.team.nick.length <= 100) { dom.el('radio-moderator-nick').value = state.team.nick; }
+      if (Number.isInteger(state.team.page) && state.team.page > 0 && state.team.page !== model.current().radioModeratorPage) { commands.send('mw:refresh', { radioModeratorPage:state.team.page }); }
+      var target = Array.from(document.querySelectorAll('[data-radio-moderator-id]')).find(function (button) { return button.dataset.radioModeratorId === state.team.removing; });
+      if (target) { target.click(); }
+      availability();
+    });
     dom.el('radio-moderator-nick').addEventListener('input', availability);
     dom.el('radio-moderator-form').addEventListener('submit', function (event) {
       event.preventDefault();
       if (dom.el('add-radio-moderator').disabled || !this.reportValidity()) { return; }
       commands.send('mw:addRadioModerator', { nick: dom.el('radio-moderator-nick').value }, true);
     });
-    dom.el('refresh-radio-team').addEventListener('click', function () { commands.send('mw:refresh', {}); });
+    commands.bindRefresh('refresh-radio-team', 'team-refresh-feedback');
     dom.el('prev-radio-moderator-page').addEventListener('click', function () { commands.send('mw:refresh', { radioModeratorPage: model.current().radioModeratorPage - 1 }); });
     dom.el('next-radio-moderator-page').addEventListener('click', function () { commands.send('mw:refresh', { radioModeratorPage: model.current().radioModeratorPage + 1 }); });
   

@@ -4,6 +4,7 @@ MischWerkUI.define('wishesMarkup', function (dependencies) {
   dependencies.dom.mount('wishes-placeholder', `
     <section id="wishes-panel" aria-label="Wunschbox" hidden>
       <header id="wish-drawer-heading" class="wish-drawer-heading" hidden><h2 id="inline-wish-title">Wunschbox</h2><button id="close-wishes" class="icon-button" type="button" aria-label="Wunschbox schließen" title="Wunschbox schließen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+      <button id="wish-compose-open" class="secondary-button" type="button" aria-controls="wish-form" hidden>Weiteren Wunsch eingeben</button>
       <form id="wish-form" class="wish-compose">
         <fieldset id="wish-fields" disabled>
           <div class="wish-label-row">

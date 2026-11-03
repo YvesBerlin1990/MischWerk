@@ -4,6 +4,7 @@ MischWerkUI.define('presentation', function (dependencies) {
   var model = dependencies.model;
   var dom = dependencies.dom;
   var signals = dependencies.signals;
+  var broadcast = {};
   function updateMetadataLayout() {
     var root = document.documentElement;
     var title = !dom.el('track-title').hidden;
@@ -37,15 +38,31 @@ MischWerkUI.define('presentation', function (dependencies) {
     updateMetadataLayout();
   }
   function renderOnAirStatus() {
-    var active = model.connected() && !!model.current().moderator;
-    var description = active ? 'On Air: ' + model.current().moderator.nick + ' ist als Moderation angemeldet.' :
-      model.current() && model.current().moderator ? 'On-Air-Status unbestätigt: Verbindung zum Channel unterbrochen.' : 'DJ Mischwerk legt auf';
+    var moderator = model.current() && model.current().moderator;
+    var active = model.connected() && !!moderator;
+    function fresh(at) { var age = Date.now() - at; return typeof at === 'number' && age >= 0 && age < 90000; }
+    var transmitting = broadcast.status === 'started' && fresh(broadcast.statusAt);
+    var confirmedMode = transmitting && fresh(broadcast.modeAt) && !document.hidden;
+    var mix = confirmedMode && broadcast.isLive === false;
+    var live = confirmedMode && broadcast.isLive === true;
+    var paused = broadcast.status === 'stopped' && fresh(broadcast.statusAt);
+    var label = mix ? 'MischWerk übernimmt' : live ? 'Live-Moderation' : paused ? 'Sendepause' :
+      moderator && !active ? 'Moderation unbestätigt' : active ? 'Moderation' : 'Radio MischWerk';
+    var description = mix ? 'MischWerk übernimmt: STREAMPANEL bestätigt die automatische Musikstrecke.' :
+      live ? 'STREAMPANEL bestätigt eine Live-Sendung.' : paused ? 'STREAMPANEL meldet eine Sendepause.' : 'Der Sendemodus ist derzeit nicht bestätigt.';
+    if (active && !mix && !paused) { description += ' ' + moderator.nick + ' ist im Studio als Moderation angemeldet.'; }
+    if (moderator && !active) { description += ' Die Moderationsanmeldung ist bei fehlender Channelverbindung unbestätigt.'; }
+    var mode = mix ? 'mix' : live ? 'live' : 'unconfirmed';
+    var showName = active && !mix && !paused;
+    var presenter = document.querySelector('.presenter');
+    var changed = presenter.getAttribute('data-mode') !== mode || dom.el('on-air-sign').textContent !== label || dom.el('host-name').hidden === showName;
     document.body.classList.toggle('moderator-on-air', active);
+    presenter.setAttribute('data-mode', mode);
     dom.el('on-air-sign').setAttribute('aria-label', description);
     dom.el('on-air-sign').title = description;
-    var label = active ? 'Live-Moderation' : model.current() && model.current().moderator ? 'Moderation unbestätigt' : 'DJ Mischwerk legt auf';
     dom.setText('on-air-sign', label);
-    dom.el('host-name').hidden = !active;
+    dom.el('host-name').hidden = !showName;
+    if (changed) { signals.emit('radio-layout'); }
     var positions = model.current() && model.current().wishPositions;
     dom.el('own-wish-position').hidden = !positions || !positions.available || !positions.total;
     document.body.classList.toggle('has-own-wish', !dom.el('own-wish-position').hidden);
@@ -53,6 +70,8 @@ MischWerkUI.define('presentation', function (dependencies) {
     dom.setText('own-wish-position', positions && positions.total ? !model.connected() || !validPosition ? 'Wunschposition unbestätigt' :
       (positions.total > 1 ? 'Dein nächster Wunsch: Platz ' : 'Dein Wunsch: Platz ') + positions.nextPosition : '');
   }
+  signals.on('broadcast-status', function (value) { broadcast = value; renderOnAirStatus(); });
+  document.addEventListener('visibilitychange', renderOnAirStatus);
   
   return { renderTopic: renderTopic, updateMetadataLayout: updateMetadataLayout, renderSong: renderSong, renderOnAirStatus: renderOnAirStatus };
 });

@@ -10,10 +10,13 @@ MischWerkUI.define('wishPositions', function (dependencies) {
   function finishRead() { clearTimeout(timer); waitingFor = null; }
   function render() {
     var panel = dom.el('wish-positions');
+    var focused = panel.contains(document.activeElement);
     panel.hidden = !current || !current.available || !current.total;
     if (panel.hidden) {
-      if (panel.contains(document.activeElement)) {
-        var target = dom.el('wish-text').disabled ? dom.el(model.view === 'radio' ? 'close-wishes' : 'dialog-title') : dom.el('wish-text');
+      if (focused) {
+        var surface = document.documentElement.hasAttribute('data-wish-surface');
+        var target = surface && dom.el('wish-form').hidden ? dom.el('wish-compose-open') :
+          dom.el('wish-text').matches(':disabled') ? dom.el(surface || model.view === 'radio' ? 'close-wishes' : 'dialog-title') : dom.el('wish-text');
         target.setAttribute('tabindex', target.id === 'dialog-title' ? '-1' : '0'); target.focus({ preventScroll:true });
       }
       layout.resizeDialog(); return;
@@ -36,6 +39,8 @@ MischWerkUI.define('wishPositions', function (dependencies) {
         var row = dom.element('li', 'wish-position-item');
         row.appendChild(dom.element('strong', 'wish-position-value', live ? 'Platz ' + item.position : 'Platz —'));
         row.appendChild(dom.element('p', 'wish-position-text', item.text));
+        row.appendChild(dom.element('span', 'wish-position-stage', live ?
+          item.stage === 'playing' ? 'Läuft gerade' : item.stage === 'preparing' ? 'In Vorbereitung' : 'Wartet' : 'Status momentan nicht verfügbar'));
         list.appendChild(row);
       });
     }

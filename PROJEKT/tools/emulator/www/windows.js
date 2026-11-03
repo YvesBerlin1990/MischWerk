@@ -20,6 +20,7 @@ export class AppWindows {
     iframe.title = description.nick + ' · ' + description.mode + ' · ' + (description.pageData.view || '');
     iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
     const entry = { ...description, iframe, queue: [], loaded: false, min: { width: 0, height: 0 }, max: { width: 3840, height: 1000 } };
+    if (description.loading) iframe.style.backgroundColor = description.loading.background;
     if (description.mode === 'Headerbar') {
       entry.element = iframe; iframe.style.height = description.height + 'px';
       document.querySelector('#headerbars').append(iframe);
@@ -38,6 +39,12 @@ export class AppWindows {
         element.addEventListener('pointerdown', () => { element.style.zIndex = ++this.z; });
       }
       element.append(iframe);
+      if (description.loading && description.loading.enabled) {
+        const loading = document.createElement('div'); loading.className = 'app-loading';
+        loading.style.backgroundColor = description.loading.background; loading.style.color = description.loading.foreground;
+        loading.textContent = description.loading.text; loading.setAttribute('role', 'status');
+        element.append(loading); entry.loadingElement = loading;
+      }
       document.querySelector(description.mode === 'Overlay' ? '#overlays' : '#popups').append(element);
     }
     this.sessions.set(description.sessionId, entry);
@@ -50,7 +57,10 @@ export class AppWindows {
     }
     iframe.src = '/frame/' + description.sessionId + '?connection=' + encodeURIComponent(connectionId);
     entry.startupTimer = setTimeout(() => {
-      if (!entry.appReady && this.sessions.has(description.sessionId)) this.diagnostic('startupError', { sessionId: description.sessionId, message: 'App nach 16 Sekunden nicht bedienbereit.' });
+      if (!entry.appReady && this.sessions.has(description.sessionId)) {
+        entry.loadingElement?.remove();
+        this.diagnostic('startupError', { sessionId: description.sessionId, message: 'App nach 16 Sekunden nicht bedienbereit.' });
+      }
     }, 16000);
   }
   applySize(entry, width, height) {
@@ -111,9 +121,11 @@ export class AppWindows {
       const command = data.command.replace(/^\//, '').split(' ');
       this.send({ type: 'command', command: command.shift(), params: command.join(' ') });
     } else if (data.type === 'frameLoaded') {
+      entry.loadingElement?.remove();
+      this.diagnostic('nativeReady', { sessionId:entry.sessionId, visibleAtHandoff:data.visibleAtHandoff === true });
       entry.loaded = true; entry.queue.splice(0).forEach(event => this.post(entry, 'event', event));
     } else if (data.type === 'ready') {
-      entry.appReady = true; clearTimeout(entry.startupTimer); this.diagnostic('frameReady', { sessionId: entry.sessionId, milliseconds: data.milliseconds });
+      entry.appReady = true; entry.loadingElement?.remove(); clearTimeout(entry.startupTimer); this.diagnostic('frameReady', { sessionId: entry.sessionId, milliseconds: data.milliseconds });
     } else if (data.type === 'host') this.host(entry, data);
     else this.diagnostic(data.type, data);
   }

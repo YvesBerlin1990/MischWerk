@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+function assertHex(hex) { if (!/^#[\da-f]{6}$/i.test(hex)) throw Error('Ungültige Color-Hexfarbe'); }
 function persistence(data = {}) {
   return {
     data,
@@ -58,7 +59,14 @@ function createHarness(existingPersistence, options = {}) {
     getPageData() { return clone(this.pageData); }
   }
   function createContent(htmlFile, viewMode, width, height) {
+    const loading = { background:'#FFFFFF', foreground:'#000000', text:'Lädt...', enabled:true };
     const content = { htmlFile, viewMode, width, height, sessions: [], closeListeners: [],
+      loading, getLoadConfiguration: () => ({
+        setBackgroundColor: color => { loading.background = color.asHexString(); },
+        setForegroundColor: color => { loading.foreground = color.asHexString(); },
+        setText: text => { loading.text = text; },
+        setEnabled: value => { loading.enabled = value; }
+      }),
       getHTMLFile() { return this.htmlFile; }, getSessions() { return this.sessions.slice(); },
       setResponsive(value) { this.responsive = value; }, setAllowJFXBrowser(value) { this.allowJFXBrowser = value; },
       addCloseListener(callback) { this.closeListeners.push(callback); } };
@@ -71,6 +79,7 @@ function createHarness(existingPersistence, options = {}) {
     },
     Date: FakeDate,
     HTMLFile,
+    Color: { fromHexString: hex => { assertHex(hex); return { asHexString: () => hex.toUpperCase() }; } },
     UserType: { Human: 'human' },
     KnuddelsServer: { execute: file => runFile(file), getPersistence: () => store, getDefaultBotUser: () => bot, getDefaultLogger: () => ({
       warn(message) { logs.push({ level: 'warn', message }); },
@@ -122,10 +131,12 @@ function createHarness(existingPersistence, options = {}) {
       sendAppContent(content) {
         this.sessions.slice().filter(session => session.content.viewMode === content.viewMode).forEach(session => session.remove());
         const session = {
-          user: this, content, events: [], removed: false,
+          user: this, content, activeView:content.htmlFile.pageData.view, viewRevision:1, events: [], removed: false,
           getUser() { return this.user; }, getAppContent() { return this.content; },
           sendEvent(type, data) {
             if (JSON.stringify(data).length > 10000) { throw new Error('Event payload exceeds API limit'); }
+            if (type === 'mw:view') { this.activeView = data.view; this.viewRevision = data.revision; }
+            if (type === 'mw:state' && data.view) { this.activeView = data.view; this.viewRevision = data.viewRevision; }
             this.events.push({ type, data: clone(data) });
             if (options.onEvent) { options.onEvent(this, { type, data: clone(data) }); }
             if (this.events.length > 100) { this.events.shift(); }
@@ -149,10 +160,16 @@ function createHarness(existingPersistence, options = {}) {
     advance(ms) { timestamp += ms; },
     open(person) { app.chatCommands.mischwerk(person); return person.sessions[0]; },
     event(person, session, type, data = {}) {
+      if (/^mw:overlay\./.test(type)) { data = { view:session.activeView, viewRevision:session.viewRevision, ...data }; }
       if (type === 'mw:wish.submit' && data.submissionId === undefined) {
         data = { ...data, submissionId: 'test-wish-' + (++submissionSequence) };
       }
       session.events = []; app.onEventReceived(person, type, data, session); return session.events;
+    },
+    finishOverlay(person, surface, state = {}, error = false, revision = 1) {
+      const prepare = surface.events.findLast(event => event.type === 'mw:overlay.prepare');
+      if (!prepare) throw Error('Keine vorbereitete Overlay-Transaktion');
+      return this.event(person, surface, 'mw:overlay.ready', { token:prepare.data.token, state, revision, error });
     },
     state(person, session, page = 0, myPage, radioModeratorPage) {
       this.event(person, session, 'mw:refresh', { page, myPage, radioModeratorPage });

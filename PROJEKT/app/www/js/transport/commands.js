@@ -8,12 +8,51 @@ MischWerkUI.define('commands', function (dependencies) {
   var pending = null;
   var pendingTimer;
   var requestSequence = 0;
+  var manualRefresh = null;
+  var refreshBinding = null;
+  function finishRefresh(message, error, detail) {
+    if (manualRefresh) { clearTimeout(manualRefresh.timer); }
+    manualRefresh = null;
+    refreshBinding.button.removeAttribute('aria-busy');
+    refreshBinding.button.setAttribute('aria-disabled', 'false');
+    refreshBinding.button.title = detail || refreshBinding.label;
+    refreshBinding.feedback.textContent = message;
+    refreshBinding.feedback.title = detail || message;
+    refreshBinding.feedback.classList.toggle('refresh-error', !!error);
+    refreshControls();
+  }
+  function refreshManually(binding) {
+    if (manualRefresh) { return; }
+    refreshBinding = binding;
+    if (manualRefresh || refreshBinding.button.disabled) { return; }
+    if (!bridge) { finishRefresh('Verbindung fehlt', true, 'Bitte öffne MischWerk erneut.'); return; }
+    var requestId = nextId('refresh');
+    manualRefresh = { requestId: requestId };
+    refreshBinding.button.setAttribute('aria-busy', 'true');
+    refreshBinding.button.setAttribute('aria-disabled', 'true');
+    refreshBinding.button.title = 'Wird aktualisiert …';
+    refreshBinding.feedback.textContent = 'Aktualisiere …';
+    refreshBinding.feedback.title = '';
+    refreshBinding.feedback.classList.remove('refresh-error');
+    manualRefresh.timer = setTimeout(function () {
+      finishRefresh('Keine Antwort', true, 'Keine Antwort erhalten. Bitte erneut aktualisieren.');
+    }, 15000);
+    refreshControls();
+    try { bridge.sendEvent('mw:refresh', { requestId: requestId }); }
+    catch (error) { finishRefresh('Verbindung fehlt', true, 'Bitte erneut aktualisieren oder MischWerk erneut öffnen.'); }
+  }
+  function bindRefresh(buttonId, feedbackId) {
+    var button = document.getElementById(buttonId);
+    var binding = { button:button, feedback:document.getElementById(feedbackId), label:button.title };
+    button.addEventListener('click', function () { refreshManually(binding); });
+  }
   function nextId(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + (++requestSequence) + '-' + Math.random().toString(36).slice(2, 10); }
   function refreshControls() { signals.emit('controls'); }
   function send(type, data, mutation) {
     if (!bridge || (mutation && !model.connected())) { layout.notify('Die Verbindung zum Channel fehlt. Bitte öffne MischWerk erneut.', true); return; }
-    if (mutation && pending) { return; }
+    if (mutation && (pending || manualRefresh)) { return; }
     data = data || {};
+    if (model.shared && model.current()) { data.view = model.view; data.viewRevision = model.current().viewRevision; }
     var requestId;
     if (mutation) {
       if (type === 'mw:onAir' || type === 'mw:offAir') { data.expectedModerator = model.current().moderator ? model.current().moderator.sessionKey || String(model.current().moderator.since) : null; }
@@ -45,6 +84,9 @@ MischWerkUI.define('commands', function (dependencies) {
   
   function result(response) {
     response = response || {};
+    if (manualRefresh && response.action === 'mw:refresh' && response.requestId === manualRefresh.requestId && response.ok === false) {
+      finishRefresh('Nicht aktualisiert', true, response.message || 'Bitte erneut aktualisieren.'); return;
+    }
     if (!pending || response.requestId !== pending.requestId || response.action !== pending.type) { return; }
     pending = null; clearTimeout(pendingTimer);
     signals.emit('command-result', response);
@@ -55,13 +97,25 @@ MischWerkUI.define('commands', function (dependencies) {
     }
   }
   function start() {
+    signals.on('snapshot', function (change) {
+      if (!manualRefresh || change.refreshRequestId !== manualRefresh.requestId) { return; }
+      var state = model.current();
+      if (!model.connected()) { finishRefresh('Verbindung fehlt', true, 'Bitte öffne MischWerk gleich erneut.'); }
+      else if ((model.view === 'studio' && !state.user.canModerate) || (model.view === 'team' && !state.user.canManageRadioModerators)) {
+        finishRefresh('Zugriff beendet', true, 'Deine Berechtigung hat sich geändert.');
+      } else { finishRefresh('Aktualisiert · ' + new Date().toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }), false); }
+    });
+    window.addEventListener('pagehide', function () {
+      if (manualRefresh) { finishRefresh('Bitte aktualisieren', false); }
+    });
     if (model.view !== 'radio') { return; }
-    [['open-schedule','mw:openSchedule'],
+    [['open-wishes','mw:openWishes'], ['open-schedule','mw:openSchedule'],
       ['studio-tab','mw:openStudio'], ['team-tab','mw:openRadioTeam']].forEach(function (action) {
       document.getElementById(action[0]).addEventListener('click', function () {
         if (!this.disabled && !this.hidden && model.connected()) { send(action[1], {}, true); }
       });
     });
   }
-  return { start: start, send: send, result: result, nextId: nextId, pending: function () { return !!pending; } };
+  return { start: start, send: send, result: result, nextId: nextId, bindRefresh: bindRefresh,
+    pending: function () { return !!pending || !!manualRefresh; } };
 });

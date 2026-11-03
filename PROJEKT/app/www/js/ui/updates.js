@@ -11,7 +11,6 @@ MischWerkUI.define('updates', function (dependencies) {
   var team = dependencies.team;
   var schedule = dependencies.schedule;
   var provider = dependencies.provider;
-  var listeners = dependencies.listeners;
   var player = dependencies.player;
   var presentation = dependencies.presentation;
   var signals = dependencies.signals;
@@ -22,6 +21,7 @@ MischWerkUI.define('updates', function (dependencies) {
     dom.el('studio-tab').disabled = !live || pending || !state.user.canModerate;
     dom.el('team-tab').disabled = !live || pending || !state.user.canManageRadioModerators;
     dom.el('radio-private-actions').hidden = !state.user.canModerate && !state.user.canManageRadioModerators;
+    dom.el('radio-listener-brand').hidden = !dom.el('radio-private-actions').hidden;
     dom.el('radio-actions').classList.toggle('public-only', dom.el('radio-private-actions').hidden);
     dom.el('open-schedule').disabled = !live || pending;
     dom.el('open-schedule').setAttribute('aria-disabled', String(dom.el('open-schedule').disabled));
@@ -49,7 +49,6 @@ MischWerkUI.define('updates', function (dependencies) {
     var state = model.current();
     layout.renderView();
     if (provider) { provider.selectStation(change.previousStation); }
-    if (listeners) { listeners.selectStation(); }
     if (presentation) { presentation.renderTopic(); }
     if (studio) {
       studio.renderTopic();

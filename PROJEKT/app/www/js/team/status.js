@@ -8,7 +8,7 @@ MischWerkUI.define('statusCentral', function (dependencies) {
   var signals = dependencies.signals;
   var view = dependencies.view;
   var selected = false, ended = false, stationKey = null, generation = 0;
-  var remote = {}, pending = null, timer;
+  var remote = {}, remoteStation = null, pending = null, timer;
   var detailPage = 0;
   function details() {
     var items = document.querySelectorAll('.status-detail-list > div');
@@ -16,7 +16,7 @@ MischWerkUI.define('statusCentral', function (dependencies) {
     dom.setText('status-detail-page', 'Detail ' + (detailPage + 1) + ' / ' + items.length);
     dom.el('prev-status-detail').disabled = detailPage === 0;
     dom.el('next-status-detail').disabled = detailPage >= items.length - 1;
-    document.documentElement.classList.toggle('status-details-open', selected && dom.el('status-details').open);
+    document.documentElement.classList.toggle('status-details-open', dom.el('status-details').open);
     signals.emit('team-layout');
   }
   function authorized() {
@@ -24,10 +24,10 @@ MischWerkUI.define('statusCentral', function (dependencies) {
   }
   function visible() { return !ended && authorized() && selected && !document.hidden; }
   function render() {
-    if (visible()) { view.render(remote, !!pending, !!api.streamUrls(model.current().station)); }
+    if (authorized()) { view.render(remote, visible() && !!pending, !!api.streamUrls(model.current().station)); }
   }
   function stop() {
-    clearTimeout(timer); generation += 1; pending = null; stationKey = null; remote = {};
+    clearTimeout(timer); generation += 1; pending = null; stationKey = null;
   }
   function poll() {
     clearTimeout(timer);
@@ -35,7 +35,7 @@ MischWerkUI.define('statusCentral', function (dependencies) {
     if (pending) { return pending; }
     var station = model.current().station;
     var urls = api.streamUrls(station);
-    if (!urls || (!urls.status && !urls.metadata && !urls.listeners)) { render(); return; }
+    if (!urls || (!urls.status && !urls.metadata)) { render(); return; }
     var currentGeneration = generation, failed = false;
     function current() { return currentGeneration === generation && visible(); }
     function save(name, value, kind) {
@@ -47,14 +47,11 @@ MischWerkUI.define('statusCentral', function (dependencies) {
         failed = true; save(name, null, 'error'); return null;
       });
     }
-    var task = Promise.all([
-      (urls.status ? read('transmission', api.fetchStationStatus(station)) : Promise.resolve('unknown')).then(function (status) {
+    var task = (urls.status ? read('transmission', api.fetchStationStatus(station)) : Promise.resolve('unknown')).then(function (status) {
         if (!current()) { return; }
         if (status === 'stopped') { save('metadata', null, 'paused'); return; }
         if (urls.metadata) { return read('metadata', api.fetchMetadata(station)); }
-      }),
-      urls.listeners ? read('listeners', api.fetchListeners(station)) : Promise.resolve()
-    ]).then(function () {
+      }).then(function () {
       if (!current() || pending !== task) { return; }
       pending = null; render(); timer = setTimeout(poll, failed ? 60000 : 30000);
     });
@@ -62,11 +59,13 @@ MischWerkUI.define('statusCentral', function (dependencies) {
   }
   function synchronize() {
     document.documentElement.classList.toggle('status-central-open', !!(authorized() && selected));
+    var next = authorized() ? JSON.stringify(model.current().station) : null;
+    // Bekannte Werte auch im inaktiven Reiter messen, ohne dafür Anbieterabfragen zu starten.
+    if (next !== remoteStation) { remote = {}; remoteStation = next; }
     if (!visible() || !model.connected()) {
       if (stationKey !== null || pending) { stop(); }
       render(); return;
     }
-    var next = JSON.stringify(model.current().station);
     if (next !== stationKey) { stop(); stationKey = next; poll(); }
     render();
   }
@@ -79,6 +78,14 @@ MischWerkUI.define('statusCentral', function (dependencies) {
     synchronize(); details();
   }
   function start() {
+    signals.on('overlay-capture', function (state) {
+      if (model.view !== 'team') { return; } state.status = { selected:selected, details:dom.el('status-details').open }; });
+    signals.on('overlay-restore', function (state) {
+      if (model.view !== 'team') { return; }
+      if (state.status && model.current().user.canManageRadioModerators) {
+        dom.el('status-details').open = state.status.details === true; select(state.status.selected === true);
+      }
+    });
     dom.el('status-details').addEventListener('toggle', details);
     [['prev-status-detail', -1], ['next-status-detail', 1]].forEach(function (entry) {
       dom.el(entry[0]).addEventListener('click', function () {

@@ -39,4 +39,19 @@ MischWerkModules.attachScheduleCalendar = function (runtime) {
         var day = runtime.scheduleDate(entry.date) / 60000;
         return { start: day + start, end: day + end + (end < start ? 1440 : 0) };
     };
+    runtime.scheduleTimestamp = function (date, time, endOfInterval) {
+        var wall = runtime.scheduleDate(date) + runtime.scheduleMinutes(time) * 60000;
+        var matches = [];
+        [2, 1].forEach(function (offset) {
+            var value = wall - offset * 3600000, year = new Date(value).getUTCFullYear();
+            function change(month) {
+                var last = new Date(Date.UTC(year, month + 1, 0));
+                return Date.UTC(year, month, last.getUTCDate() - last.getUTCDay(), 1);
+            }
+            var actual = value >= change(2) && value < change(9) ? 2 : 1;
+            if (actual === offset) { matches.push(value); }
+        });
+        if (!matches.length) { throw runtime.failure('Diese Uhrzeit entfällt durch die Zeitumstellung.'); }
+        return endOfInterval ? Math.max.apply(Math, matches) : Math.min.apply(Math, matches);
+    };
 };

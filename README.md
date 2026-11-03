@@ -2,7 +2,7 @@
 
 # MischWerk
 
-Radio-App für den Knuddels-Channel **MischWerk**. Aktueller lokaler Stand **0.1.117**; STREAMPANEL ist vorbereitet und wartet auf Freischaltung. Der tatsächliche LIVE-Stand ergibt sich aus dem Knuddels-App-Log.
+Radio-App für den Knuddels-Channel **MischWerk**. Aktueller lokaler Stand **0.1.146** mit Tageshistorie ausschließlich für den Channelinhaber und ernannte Radiomoderatoren unter **Moderation → Heute gespielt**: verfügbare heutige Titelmeldungen ohne die bekannten Senderjingles, mit Senderuhrzeit und passenden Seiten ohne Scrollen. Öffentlicher SPCast-Stream, Titelquelle, Übertragungsstatus und Sendemodus bleiben erhalten. MischWerk übernimmt erscheint ausschließlich bei bestätigtem AutoDJ; bestätigtes LIVE zeigt die Live-Kapsel und den im Studio angemeldeten Moderatornamen. Bestätigter Sendestopp sperrt Play; Rückkehr startet keinen Ton automatisch. Der tatsächliche LIVE-Stand ergibt sich aus dem Knuddels-App-Log.
 
 ## Schnell finden
 
@@ -18,9 +18,10 @@ Radio-App für den Knuddels-Channel **MischWerk**. Aktueller lokaler Stand **0.1
 
 ## Funktionen
 
-- Radioleiste mit Play/Stop, Lautstärke, Mute, Titel/Interpret, Moderation, Thema und weißer Hörerzahl.
+- Radioleiste mit Play/Stop, Lautstärke, Mute, Titel/Interpret, Moderation und Thema.
 - Wunschbox als natives Overlay oben rechts im Channel: Versandbestätigung und ausschließlich eigene offene Wunschplätze; Erledigt/Verwerfen in der Moderation lässt Folgeplätze nachrücken.
-- Moderation mit Studio-Anmeldung, Sendungsthema, Wunschannahme und bestätigter Sendungsübergabe.
+- Moderation mit Studio-Anmeldung, Sendungsthema, manueller Wunschregie, Sendungsassistent und bestätigter Übergabe mit privaten Notizen.
+- Freigegebenes Radio-Logo rechts in der breiten Leiste für Hörer ohne Verwaltungsaktionen.
 - Radio-Team und Statuszentrale für den tatsächlichen Channelinhaber.
 - Sendeplan für alle zum Lesen, für den Channelinhaber zum Bearbeiten.
 - Globaler Vorhang und getrennt nach eigenem Klick abspielbare Radio-Werbung.
@@ -39,7 +40,7 @@ MischWerk/
 │   ├── medien/                   Original-Logos und MyChannel-Hintergrund
 │   ├── deployment/
 │   │   ├── live.json             Zielkonfiguration ohne Passwort
-│   │   └── manifests/            Vier geprüfte Dateimanifeste
+│   │   └── manifests/            Fünf geprüfte Dateimanifeste
 │   ├── tools/
 │   │   ├── build/                Backend und Uploadbereitstellung
 │   │   ├── checks/               Projekt-, Upload-, Rhino- und Anbieterprüfungen
@@ -87,10 +88,12 @@ Anschließend http://127.0.0.1:8776 öffnen; Strg+C beendet den Server. Die auto
 
 Der Emulator lädt den echten lokalen Appcode und stellt Radioleiste, Wunsch-Overlay und Verwaltungsfenster in getrennten Frames dar. Mehrere Testnutzer, Rollenwechsel, verlorene oder doppelte Nachrichten, Verzögerungen, Speicherfehler und lokale Anbieterantworten lassen sich gezielt prüfen. Testdaten liegen getrennt im System-Tempordner; Appdateien und Upload werden vom Emulator nur gelesen.
 
-Die [Bedienhilfe](PROJEKT/tools/emulator/www/help.html) erklärt die Fehlerfälle und Diagnose. Die Plattform wird lokal simuliert; echte Knuddels-/K3-/STAPP-/iOS-Prüfungen und der noch ausstehende STREAMPANEL-Zugang bleiben separat erforderlich. Ergebnisse stehen im [aktuellen Prüfbericht](PROJEKT/docs/pruefung/PRUEFBERICHT.md).
+Die [Bedienhilfe](PROJEKT/tools/emulator/www/help.html) erklärt die Fehlerfälle und Diagnose. Die Plattform wird lokal simuliert; echte Knuddels-/K3-/STAPP-/iOS-Prüfungen bleiben separat erforderlich. Öffentliche SPCast-Anschlüsse wurden zusätzlich im HTTP-/Edge-Test geprüft. Ergebnisse stehen im [aktuellen Prüfbericht](PROJEKT/docs/pruefung/PRUEFBERICHT.md).
 
 ## Knuddels-Bereitstellung
 
 Die lokale Bereitstellung führt keinen FTP-Upload, kein Knuddels-Update und keinen Neustart aus. Nach gesondertem Auftrag gehört der Ordner MischWerk aus dem Desktop-UPLOAD nach /ftp. Installation und kontrolliertes Update sind in der [Betriebsanleitung](PROJEKT/docs/betrieb/INBETRIEBNAHME.md#installation-und-upload) beschrieben.
 
 Passwörter, Tokens und Encoder-Zugangsdaten gehören nicht in die App oder Git. Git-Verwaltung und installierte Abhängigkeiten bleiben an ihren vorgesehenen Stellen; UPLOAD und node_modules sind per .gitignore ausgeschlossen.
+
+[Bedienung der Moderationserweiterungen](PROJEKT/docs/betrieb/INBETRIEBNAHME.md#moderation-verwenden).

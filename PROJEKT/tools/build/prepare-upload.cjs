@@ -7,6 +7,7 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const { buildBackend } = require('./backend.cjs');
 const { runtimeFiles, isBinary, checkText, checkRuntime } = require('../checks/lengths.cjs');
+const { manifestGroups } = require('../lib/upload-manifests.cjs');
 const root = path.resolve(__dirname, '../..');
 const include = runtimeFiles;
 const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').toUpperCase();
@@ -22,7 +23,7 @@ function properties(text) {
 }
 function build() {
   buildBackend();
-  for (const args of [['--test', 'tests/node/backend.test.cjs', 'tests/node/wish-positions.test.cjs', 'tests/node/stream.test.cjs', 'tests/node/upload.test.cjs', 'tests/node/preview.test.cjs', 'tests/node/schedule.test.cjs', 'tests/node/announcements.test.cjs', 'tests/node/handover.test.cjs'], ['tools/checks/project.cjs'], ['tools/checks/rhino.cjs']]) {
+  for (const args of [['--test', 'tests/node/backend.test.cjs', 'tests/node/wish-positions.test.cjs', 'tests/node/stream.test.cjs', 'tests/node/history.test.cjs', 'tests/node/upload.test.cjs', 'tests/node/preview.test.cjs', 'tests/node/schedule.test.cjs', 'tests/node/announcements.test.cjs', 'tests/node/handover.test.cjs', 'tests/node/studio-features.test.cjs', 'tests/node/emulator.test.cjs'], ['tools/checks/project.cjs'], ['tools/checks/rhino.cjs']]) {
     const result = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit', windowsHide: true });
     assert.equal(result.status, 0, 'Prüfung fehlgeschlagen; Uploadordner nicht aktualisiert.');
   }
@@ -73,11 +74,7 @@ function build() {
     delivery: 'upload-directory', localUploadRoot: uploadRoot, fileCount: include.length, fileManifests: []
   };
   // Getrennte, vollständige Dateinachweise für Server und Oberfläche statt eines übergroßen JSON.
-  for (const [name, files] of [
-    ['manifest-server.json', include.filter(file => !file.startsWith('www/'))],
-    ['manifest-www.json', include.filter(file => file.startsWith('www/') && !isBinary(file))],
-    ['manifest-media.json', include.filter(file => file.startsWith('www/') && isBinary(file))]
-  ]) {
+  for (const [name, files] of Object.entries(manifestGroups(include, isBinary))) {
     const file = path.join(installation, name);
     const content = { version, files: files.map(relative => ({ path: live.appKey + '/' + relative,
       bytes: fs.statSync(path.join(upload, relative)).size, sha256: digest(path.join(upload, relative)) })) };

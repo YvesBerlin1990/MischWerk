@@ -42,7 +42,7 @@ async function setup(t, width = 780, longNames = false) {
   for (const user of [owner, next]) {
     const header = user === owner ? radio : h.open(user);
     h.event(user, header, 'mw:openStudio');
-    const session = user.sessions.find(item => item.content.viewMode === 'Popup');
+    const session = user.sessions.find(item => item.content.viewMode === 'Overlay');
     const state = h.state(user, session); state.view = 'studio'; state.station.configured = false;
     const page = await context.newPage(); records.push({ page, session, user });
     for (const record of records) { record.session.events = []; }
@@ -138,4 +138,33 @@ test('Ablehnen beendet nur die Anfrage; 320px-Studio bleibt mit Übergabeaktion 
   await source.locator('#handover-back').click();
   await source.locator('#on-air').waitFor(); await fits(source);
   assert.deepEqual(errors, []);
+});
+
+test('Private Übergabenotizen erscheinen im echten Browserablauf vor und nach Annahme und bleiben bei Speicherfehler erhalten',async t=>{
+  const {h,owner,source,target,errors}=await setup(t,320);
+  const notes='Bitte nach dem nächsten Song die Geburtstagsgrüße vorlesen. '.repeat(8).slice(0,500).trim();
+  await source.locator('#handover-open').click();
+  await source.locator('#handover-notes').fill(notes);
+  assert.equal(await source.locator('#handover-notes-count').textContent(),notes.length+' / 500');
+  await source.locator('#handover-request').click();
+  await source.locator('#handover-cancel').waitFor();
+  assert.equal(await source.locator('#handover-note-text').textContent(),notes);
+  await target.locator('#handover-open').click();
+  assert.equal(await target.locator('#handover-note-text').textContent(),notes);
+  await target.locator('#handover-topic').fill('Meine neue Sendung');
+  const write=h.store.setObject;h.store.setObject=()=>{throw Error('storage-failed');};
+  await target.locator('#handover-accept').click();await target.locator('#notice.error').waitFor();
+  assert.equal(await target.locator('#handover-note-text').textContent(),notes);
+  assert.equal(await target.locator('#handover-topic').inputValue(),'Meine neue Sendung');
+  h.store.setObject=write;
+  await target.locator('#handover-accept').click();await target.locator('#handover-panel').waitFor({state:'hidden'});
+  await target.locator('#assistant-notes').waitFor();
+  assert.equal(await target.locator('#assistant-notes-text').textContent(),notes);
+  assert.equal(await target.locator('#studio-assistant').evaluate(n=>n.open),true);
+  owner.online=false;h.app.onUserLeft(owner);
+  assert.equal(await target.locator('#assistant-notes-text').textContent(),notes);
+  await target.locator('#assistant-notes-text').scrollIntoViewIfNeeded();
+  assert.equal(await target.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  if(process.env.MISCHWERK_CAPTURE_STUDIO_FEATURES)await target.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/moderation-320.png'),fullPage:true});
+  assert.equal(h.bot.messages.length,2);assert.deepEqual(errors,[]);
 });

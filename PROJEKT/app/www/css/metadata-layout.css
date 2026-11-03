@@ -5,6 +5,12 @@
 .radio-metadata:focus-visible { outline:2px solid var(--gold); outline-offset:-2px; border-radius:8px; }
 .radio-metadata .now-playing,.radio-metadata .radio-context { width:100%; max-width:960px; text-align:center; }
 .radio-metadata .presenter { justify-content:center; }
+@media (min-width:1400px) {
+  .radio-metadata { justify-content:safe center; scrollbar-gutter:auto; }
+  .radio-metadata .now-playing,.radio-metadata .radio-context { padding:0; }
+  .radio-metadata .radio-context { min-height:0; margin:4px 0; }
+  .volume-control { width:100%; margin:0; }
+}
 @media (max-width:699px) {
   .radio-metadata { grid-column:2; grid-row:2; padding:8px; scrollbar-gutter:auto; }
   .radio-metadata .radio-context { min-height:0; }

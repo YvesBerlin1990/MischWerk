@@ -22,6 +22,7 @@ var styles = [
   'css/dialogs.css',
   'css/studio.css',
   'css/handover.css',
+  'css/studio-assistant.css',
   'css/team.css',
   'css/team-status.css',
   'css/feedback.css',
@@ -31,22 +32,26 @@ var styles = [
   'css/radio-surface.css',
   'css/metadata-layout.css',
   'css/schedule.css',
+  'css/history.css',
   'css/curtain.css'
 ];
 var initialView = typeof Client !== 'undefined' && Client.pageData && Client.pageData.view;
 var view = ['wishes', 'studio', 'team', 'schedule'].indexOf(initialView) !== -1 ? initialView : 'radio';
 document.documentElement.setAttribute('data-view', view);
-if (typeof Client !== 'undefined' && Client.pageData && Client.pageData.wishSurface) { document.documentElement.setAttribute('data-wish-surface', 'true'); }
+if (view === 'wishes' && typeof Client !== 'undefined' && Client.pageData && Client.pageData.wishSurface) { document.documentElement.setAttribute('data-wish-surface', 'true'); }
 var initialCurtain = typeof Client !== 'undefined' && Client.pageData && Client.pageData.curtain;
 document.documentElement.setAttribute('data-curtain', view === 'radio' && initialCurtain && initialCurtain.closed === true && initialCurtain.exempt !== true ? 'closed' : 'open');
 var styleViews = {
   'css/radio.css':'radio', 'css/radio-actions.css':'radio', 'css/radio-responsive.css':'radio',
   'css/radio-surface.css':'radio', 'css/metadata-layout.css':'radio',
   'css/dialogs.css':'radio wishes studio team schedule', 'css/dialogs-responsive.css':'wishes studio team schedule',
-  'css/studio.css':'studio', 'css/handover.css':'studio', 'css/wishbox.css':'radio wishes',
-  'css/team.css':'team', 'css/team-status.css':'team', 'css/schedule.css':'schedule', 'css/curtain.css':'radio'
+  'css/studio.css':'studio', 'css/handover.css':'studio', 'css/studio-assistant.css':'studio', 'css/wishbox.css':'radio wishes',
+  'css/team.css':'team', 'css/team-status.css':'team', 'css/schedule.css':'schedule', 'css/curtain.css':'radio',
+  'css/history.css':'studio'
 };
-styles.filter(function (file) { return !styleViews[file] || styleViews[file].split(' ').indexOf(view) !== -1; }).forEach(function (file) {
+var sharedViews = typeof Client !== 'undefined' && Client.pageData && Client.pageData.sharedViews;
+styles.filter(function (file) { return !styleViews[file] || styleViews[file].split(' ').indexOf(view) !== -1 ||
+  (sharedViews && styleViews[file].split(' ').some(function (name) { return name !== 'radio'; })); }).forEach(function (file) {
   if (typeof Client !== 'undefined') { Client.includeCSS(file); }
   else {
     var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = file; document.head.appendChild(css);
@@ -57,7 +62,7 @@ function startFrontend() {
   else { var script = document.createElement('script'); script.src = 'js/start.js'; document.body.appendChild(script); }
 }
 // Knuddels bindet mit document.write ein: ausschließlich während des HTML-Parsens aufrufen.
-// Der Einstieg wartet mit der Zusammensetzung auf DOMContentLoaded.
+// Die Zusammensetzung erfolgt am Ende des vollständigen Markups vor der SDK-Ladeübergabe.
 setTimeout(function () {
   if (!document.documentElement.classList.contains('mw-ready')) { document.documentElement.classList.add('mw-start-failed'); }
 }, 15000);
@@ -73,6 +78,7 @@ startFrontend();
   <header class="dialog-header">
     <div class="dialog-brand"><img src="img/mischwerk-logo.png" width="56" height="56" loading="lazy" decoding="async" alt="MischWerk"></div>
     <div class="dialog-heading"><span class="eyebrow">Die Mischung macht’s.</span><h1 id="dialog-title">Dein Musikwunsch</h1><span class="pill" id="wish-status" hidden></span><span class="pill" id="studio-connection" role="status" hidden>Verbinde …</span></div>
+    <button id="close-overlay" class="icon-button overlay-close" type="button" aria-label="Ansicht schließen" title="Schließen" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
   </header>
   <main class="dialog-content">
     <div id="wishes-placeholder"></div>
@@ -86,5 +92,10 @@ startFrontend();
 </div>
 <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
 <audio id="radio-audio" preload="none"></audio>
+<script>
+// Knuddels gibt seine Ladefläche bereits im eigenen DOMContentLoaded-Listener frei.
+// Hier ist das gesamte Markup vorhanden; erst vollständig registrierte Module werden gestartet.
+if (window.MischWerkUI) { window.MischWerkUI.mount(); }
+</script>
 </body>
 </html>

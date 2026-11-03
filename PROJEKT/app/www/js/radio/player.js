@@ -76,6 +76,7 @@ MischWerkUI.define('player', function (dependencies) {
     function buffering() {
       if (target !== audio || !wantedPlayback) { return; }
       streamPhase = 'connecting'; renderStreamStatus(); dom.setText('playback-status', 'Der Stream lädt nach …');
+      provider.poll();
       clearTimeout(playbackTimer); playbackTimer = setTimeout(playbackFailed, 20000);
     }
     target.addEventListener('waiting', buffering); target.addEventListener('stalled', buffering);

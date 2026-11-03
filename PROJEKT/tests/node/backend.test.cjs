@@ -6,6 +6,170 @@ const vm = require('node:vm');
 const { createHarness, persistence } = require('../support/knuddels.cjs');
 const { configureStream } = require('../fixtures/stream.cjs');
 const wish = { text: 'Lieblingsband – Unser Song · Für den Channel' };
+
+test('Overlayöffnung verarbeitet doppelte Wunschbox-Anfragen nur einmal statt Öffnen und Schließen',()=>{
+  const {h,owner,os}=fixture();
+  h.event(owner,os,'mw:openWishes',{requestId:'open-once'});
+  const surface=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  h.event(owner,os,'mw:openWishes',{requestId:'open-once'});
+  if(surface.events.some(e=>e.type==='mw:overlay.prepare'))h.finishOverlay(owner,surface);
+  assert.equal(surface.removed,false,'Eine doppelte Zustellung darf das gerade geöffnete Overlay nicht schließen');
+  assert.equal(owner.sessions.filter(s=>s.content.viewMode==='Overlay').length,1);
+  h.event(owner,os,'mw:openWishes',{requestId:'close-once'});h.finishOverlay(owner,surface);
+  h.event(owner,os,'mw:openWishes',{requestId:'close-once'});
+  assert.equal(owner.sessions.some(s=>s.content.viewMode==='Overlay'),false,'Doppeltes Schließen öffnet nicht erneut');
+});
+
+test('Overlayöffnung lässt verspätete Wiederholungen abgeschlossener Aufträge nicht zur alten Ansicht zurückspringen',()=>{
+  const {h,owner,os}=fixture();h.event(owner,os,'mw:openStudio',{requestId:'first-studio'});
+  const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  h.event(owner,studio,'mw:overlay.dismiss',{state:{},revision:1});
+  h.event(owner,os,'mw:openRadioTeam',{requestId:'new-team'});
+  const team=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  h.event(owner,os,'mw:openStudio',{requestId:'first-studio'});
+  if(team.events.some(e=>e.type==='mw:overlay.prepare'))h.finishOverlay(owner,team);
+  assert.equal(team.removed,false);assert.equal(owner.sessions.find(s=>s.content.viewMode==='Overlay'),team);
+});
+
+test('Overlayöffnung erzeugt beim ersten Öffnen nur den gesendeten AppContent; erneuter Fokus erzeugt keinen',()=>{
+  for(const action of ['mw:openStudio','mw:openRadioTeam','mw:openSchedule','mw:openWishes']){
+    const {h,owner,os}=fixture(),before=h.contents.length;
+    h.event(owner,os,action,{requestId:'first'});
+    assert.equal(h.contents.length-before,1,action+' ohne ungenutzten Vorprüfungsinhalt');
+    if(action!=='mw:openWishes'){
+      const at=h.contents.length;h.event(owner,os,action,{requestId:'focus'});
+      assert.equal(h.contents.length,at,'Fokus sendet keine neue Ansicht');
+    }
+  }
+});
+
+test('Overlayöffnung bleibt erfolgreich, wenn allein die nachgelagerte Öffnungsmitteilung fehlschlägt',()=>{
+  const {h,owner,os}=fixture(),send=os.sendEvent;
+  os.sendEvent=function(type,data){if(type==='mw:overlay.open')throw Error('Mitteilung verloren');return send.call(this,type,data);};
+  h.event(owner,os,'mw:openStudio',{requestId:'notice-fails'});
+  assert.equal(owner.sessions.some(s=>s.content.viewMode==='Overlay'),true);
+  assert.equal(lastResult(os.events).ok,true,'Erfolgreiches Anzeigen darf nicht nachträglich als fehlgeschlagen gelten');
+});
+
+test('Overlayöffnung übermittelt eine frühe verlorene Wechselanfrage nach der eigenen Clientbereitschaft erneut',()=>{
+  const {h,owner,os}=fixture();h.event(owner,os,'mw:openStudio');
+  const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  h.event(owner,os,'mw:openRadioTeam',{requestId:'early-team'});
+  h.event(owner,studio,'mw:ready');
+  assert.ok(studio.events.some(e=>e.type==='mw:overlay.prepare'),'Bereitschaft wiederholt den noch offenen Token');
+  h.finishOverlay(owner,studio);assert.equal(studio.removed,false);
+  assert.equal(owner.sessions.find(s=>s.content.viewMode==='Overlay'),studio);assert.equal(studio.activeView,'team');
+});
+
+test('Overlayöffnung behält Rechte, Sitzungszuordnung und erneute Versuche nach Fehlern beim Wiederholungsschutz',()=>{
+  const {h,owner,os,listener,ls}=fixture();
+  const send=owner.sendAppContent;owner.sendAppContent=()=>false;
+  assert.equal(lastResult(h.event(owner,os,'mw:openStudio',{requestId:'retry'})).ok,false);
+  owner.sendAppContent=send;h.event(owner,os,'mw:openStudio',{requestId:'retry'});
+  const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');assert.ok(studio);
+  owner.role='listener';assert.equal(lastResult(h.event(owner,os,'mw:openStudio',{requestId:'retry'})).ok,false);
+  owner.role='owner';assert.equal(lastResult(h.event(owner,os,'mw:openRadioTeam',{requestId:'retry'})).ok,false);
+  assert.equal(studio.removed,false);
+  h.event(listener,ls,'mw:openSchedule',{requestId:'retry'});
+  assert.equal(listener.sessions.some(s=>s.content.htmlFile.pageData.view==='schedule'),true);
+  assert.equal(JSON.stringify(h.state(listener,ls)).includes('overlayRequests'),false);
+  assert.equal(Object.keys(h.store.data).some(key=>/overlay/i.test(key)),false);
+});
+
+test('Overlayöffnung wiederholt abgelaufene oder schon abgeschlossene Wechsel bei später Bereitschaft nicht',()=>{
+  const {h,owner,os}=fixture();h.event(owner,os,'mw:openStudio');
+  const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  h.event(owner,os,'mw:openRadioTeam',{requestId:'expired'});h.advance(14001);
+  h.event(owner,studio,'mw:ready');assert.equal(studio.events.some(e=>e.type==='mw:overlay.prepare'),false);
+  assert.equal(studio.removed,false);assert.equal(lastResult(os.events).ok,false);
+  h.event(owner,os,'mw:openRadioTeam',{requestId:'fresh'});h.finishOverlay(owner,studio);
+  const team=owner.sessions.find(s=>s.content.viewMode==='Overlay');h.event(owner,team,'mw:ready');
+  assert.equal(team.events.some(e=>e.type==='mw:overlay.prepare'),false);
+});
+
+test('Authentifizierte Sitzungsprüfung erhält den bewährten Uservergleich auch bei neuen Plattformwrappern',()=>{
+  const {h,owner,os,listener}=fixture(),content=os.content,getSessions=content.getSessions;
+  content.getSessions=()=>getSessions.call(content).map(active=>({getUser:()=>active.getUser()}));
+  assert.equal(h.event(owner,os,'mw:refresh').some(e=>e.type==='mw:state'),true);
+  assert.equal(h.event(listener,os,'mw:refresh').length,0);
+  content.getSessions=getSessions;
+});
+
+test('Alle vier Bereiche teilen ein responsives Channel-Overlay mit abgeschalteter Ladeansicht und privaten Entwürfen',()=>{
+  const {h,owner,os,listener,ls}=fixture();
+  assert.deepEqual(os.content.loading,{enabled:false,background:'#242424',foreground:'#F6F0DF',text:'Lädt...'});
+  let previous;
+  for(const [action,kind,width,height] of [['mw:openStudio','studio',780,600],['mw:openRadioTeam','team',560,560],['mw:openSchedule','schedule',820,660],['mw:openWishes','wishes',560,600]]){
+    h.event(owner,os,action,{requestId:'open-'+kind});
+    if(previous){assert.equal(previous.removed,false);h.finishOverlay(owner,previous,{draft:previous.activeView});}
+    const surface=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+    assert.ok(surface);assert.equal(surface.activeView,kind);
+    if(previous)assert.equal(surface,previous,'Bereichswechsel behält dieselbe Sitzung');
+    assert.deepEqual(surface.content.loading,os.content.loading);
+    if(!previous)assert.deepEqual([surface.content.width,surface.content.height],[width,height]);
+    assert.equal(surface.content.htmlFile.pageData.sharedViews,true);
+    assert.equal(surface.content.responsive,true);assert.equal(surface.content.allowJFXBrowser,false);
+    assert.equal(surface.content.htmlFile.pageData.overlay,true);assert.equal(os.removed,false);
+    assert.equal(owner.sessions.length,2);previous=surface;
+  }
+  h.event(owner,os,'mw:openStudio');h.finishOverlay(owner,previous);
+  const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  assert.deepEqual(h.state(owner,studio).overlayState,{draft:'studio'});
+  assert.equal(JSON.stringify(h.state(listener,ls)).includes('draft'),false);
+  const same=studio.content;h.event(owner,os,'mw:openStudio');assert.equal(studio.content,same);assert.equal(studio.removed,false);
+  h.event(owner,studio,'mw:overlay.dismiss',{state:{studio:{topic:'Mein Entwurf'}},revision:2});
+  assert.equal(studio.removed,true);h.event(owner,os,'mw:openStudio');
+  assert.equal(owner.sessions.find(s=>s.content.viewMode==='Overlay').content.htmlFile.pageData.overlayState.studio.topic,'Mein Entwurf');
+});
+
+test('Bereichswechsel prüft Token, Sitzungsbesitz, Revision und Fehler vor der Navigation',()=>{
+  const {h,owner,os,listener,ls}=fixture();h.event(owner,os,'mw:openStudio');
+  const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  h.event(owner,studio,'mw:overlay.draft',{state:{value:'neu'},revision:4});
+  h.event(owner,studio,'mw:overlay.draft',{state:{value:'alt'},revision:2});
+  h.event(owner,os,'mw:openRadioTeam',{requestId:'to-team'});
+  const token=studio.events.findLast(e=>e.type==='mw:overlay.prepare').data.token;
+  h.event(listener,studio,'mw:overlay.ready',{token,state:{},revision:5});
+  h.event(owner,os,'mw:overlay.ready',{token,state:{},revision:5});
+  h.event(owner,studio,'mw:overlay.ready',{token:token+1,state:{},revision:5});
+  assert.equal(studio.removed,false);assert.equal(ls.removed,false);
+  h.event(owner,studio,'mw:overlay.ready',{token,state:{value:'veraltet'},revision:3});
+  assert.equal(studio.removed,false);assert.equal(lastResult(os.events).ok,false);
+  h.event(owner,os,'mw:openRadioTeam',{requestId:'retry-team'});
+  h.finishOverlay(owner,studio,{value:'neu'},true);
+  assert.equal(studio.removed,false);assert.equal(lastResult(os.events).ok,false);
+  h.event(owner,os,'mw:openRadioTeam',{requestId:'timeout-team'});h.advance(14001);
+  h.finishOverlay(owner,studio,{value:'zu spät'});assert.equal(studio.removed,false);
+  h.event(owner,os,'mw:openRadioTeam',{requestId:'fresh-team'});
+  h.finishOverlay(owner,studio,{value:'neu'},false,5);
+  assert.equal(studio.removed,false);assert.equal(studio.activeView,'team');assert.equal(lastResult(os.events).ok,true);
+});
+
+test('Overlayfehler, entzogene Rechte und fehlende Fähigkeiten erhalten den bisherigen Inhalt',()=>{
+  const {h,owner,os}=fixture();h.event(owner,os,'mw:openStudio');
+  const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  owner.canSendAppContent=()=>false;assert.equal(lastResult(h.event(owner,os,'mw:openSchedule')).ok,false);
+  assert.equal(studio.removed,false);owner.canSendAppContent=()=>true;
+  h.event(owner,os,'mw:openRadioTeam',{requestId:'revoked'});owner.role='listener';h.finishOverlay(owner,studio);
+  assert.equal(studio.removed,false);assert.equal(lastResult(os.events).ok,false);owner.role='owner';
+  h.event(owner,os,'mw:openSchedule',{requestId:'lost-capability'});
+  owner.canSendAppContent=()=>false;h.finishOverlay(owner,studio);owner.canSendAppContent=()=>true;
+  assert.equal(studio.removed,false);assert.equal(lastResult(os.events).ok,false);assert.equal(os.removed,false);
+  h.app.onUserLeft(owner);assert.equal(owner.sessions.length,0);
+  assert.equal(h.event(owner,studio,'mw:overlay.draft',{state:{value:'alt'},revision:99}).length,0);
+});
+
+test('Wunschbereich wechselt erst nach Übernahme seiner letzten Eingabe innerhalb derselben Sitzung',()=>{
+  const {h,owner,os}=fixture();h.event(owner,os,'mw:openWishes');
+  const surface=owner.sessions.find(s=>s.content.viewMode==='Overlay'),id=surface.content.htmlFile.pageData.wishSurfaceId;
+  h.event(owner,surface,'mw:wishes.edit',{text:'Noch nicht übernommen',sequence:1});
+  h.event(owner,os,'mw:openStudio');h.finishOverlay(owner,surface);
+  assert.equal(surface.removed,false);assert.equal(lastResult(os.events).ok,false);
+  h.event(owner,os,'mw:wishes.sync',{surfaceId:id,text:'Noch nicht übernommen',sequence:1,disabled:false});
+  h.event(owner,os,'mw:openStudio');h.finishOverlay(owner,surface);
+  assert.equal(surface.removed,false);assert.equal(surface.activeView,'studio');assert.equal(lastResult(os.events).ok,true);
+  assert.equal(h.state(owner,os).queueTotal,0,'UI-Wechsel sendet keinen Wunsch');
+});
 const lastResult = events => {
   const data = events.findLast(event => event.type === 'mw:result' || event.type === 'mw:wish.receipt')?.data;
   return data && typeof data.accepted === 'boolean' ? { ...data, ok: data.accepted } : data;
@@ -15,6 +179,30 @@ function fixture() {
   const listener = h.user(1, 'Musikfreund'); const owner = h.user(2, 'Otterchen', 'owner');
   return { h, listener, owner, ls: h.open(listener), os: h.open(owner) };
 }
+
+test('Manuelles Aktualisieren bestätigt nur den angeforderten Snapshot und erhält alte Clients', () => {
+  const {h,owner,os,listener,ls}=fixture();
+  const response=h.event(owner,os,'mw:refresh',{requestId:'refresh-owner-1'});
+  assert.equal(response.findLast(e=>e.type==='mw:state').data.refreshRequestId,'refresh-owner-1');
+  assert.equal(response.some(e=>e.type==='mw:result'),false,'Erfolg gehört zum tatsächlichen Datenpaket');
+  assert.equal(h.state(owner,os).refreshRequestId,undefined);
+  h.event(owner,os,'mw:setTopic',{topic:'Neue Sendung'});
+  assert.equal(ls.events.findLast(e=>e.type==='mw:state').data.refreshRequestId,undefined,'Push trägt keine fremde Anfrage-ID');
+  assert.equal(h.event(listener,ls,'mw:refresh',{requestId:'refresh-listener'}).findLast(e=>e.type==='mw:state').data.refreshRequestId,'refresh-listener');
+  assert.equal(h.event(owner,os,'mw:refresh',{requestId:'<invalid>'}).findLast(e=>e.type==='mw:result').data.ok,false);
+  assert.equal(h.event(listener,os,'mw:refresh',{requestId:'forged-session'}).length,0);
+  const getContent=os.getAppContent;
+  let contentReads=0;
+  os.getAppContent=function(){if(++contentReads>1)throw Error('simulierter Lesefehler');return getContent.call(this);};
+  const failed=h.event(owner,os,'mw:refresh',{requestId:'refresh-error'}).findLast(e=>e.type==='mw:result').data;
+  assert.equal(failed.requestId,'refresh-error');assert.equal(failed.ok,false);assert.match(failed.message,/Aktualisierung/);
+  os.getAppContent=getContent;
+  h.event(owner,os,'mw:openStudio',{requestId:'open-studio'});
+  const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  owner.role='listener';
+  const revoked=h.event(owner,studio,'mw:refresh',{requestId:'refresh-revoked'}).findLast(e=>e.type==='mw:state').data;
+  assert.equal(revoked.refreshRequestId,'refresh-revoked'); assert.equal(revoked.user.canModerate,false); assert.deepEqual(revoked.queue,[]);
+});
 function legacyStore(requests, extra = {}) {
   const highest = requests.reduce((value, item) => Math.max(value, item.id), 0);
   return persistence({ 'mischwerk.state.v1': { version: 1, revision: 0, topic: '', requestsEnabled: true,
@@ -90,8 +278,8 @@ test('main.js laedt fachlich getrennte Serverdateien statt eines Sammelbundles',
 });
 test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
   const result = require('../../tools/checks/architecture.cjs').checkArchitecture();
-  assert.equal(result.backendModules, 28);
-  assert.equal(result.frontendComponents, 38);
+  assert.equal(result.backendModules, 31);
+  assert.equal(result.frontendComponents, 44);
 });
 
 test('Laufzeitprüfung verweigert fremde und fehlende Dateien vor der Paketfreigabe', t => {
@@ -254,7 +442,7 @@ test('Ernannte Radiomoderation entfernt gespielte und nicht verfügbare Wünsche
     h.event(listener, ls, 'mw:wish.submit', { text });
   }
   h.event(mod, ms, 'mw:openStudio');
-  const studio = mod.sessions.find(session => session.content.viewMode === 'Popup');
+  const studio = mod.sessions.find(session => session.content.viewMode === 'Overlay');
   for (const outcome of ['done', 'discarded']) {
     const id = h.state(mod, studio).queue[0].id;
     const response = lastResult(h.event(mod, studio, 'mw:resolveRequest', { id, outcome }));
@@ -428,12 +616,12 @@ test('Radio-Team ist ein eigenes Besitzer-Popup; Entzug beendet eine laufende St
   assert.equal(lastResult(h.event(listener,ls,'mw:openRadioTeam')).ok,false);
   assert.equal(lastResult(h.event(radioMod,rms,'mw:openStudio')).ok,false,'Channelmoderator kann das Studio nicht öffnen');
   assert.equal(lastResult(h.event(owner,os,'mw:openRadioTeam')).ok,true);
-  const team=owner.sessions.find(session=>session.content.viewMode==='Popup');
+  const team=owner.sessions.find(session=>session.content.viewMode==='Overlay');
   assert.equal(team.content.width,560);assert.equal(team.content.height,560);
   assert.equal(team.content.htmlFile.getPageData().view,'team');assert.equal(os.removed,false);
   appoint(h,owner,team,radioMod);
   assert.equal(lastResult(h.event(radioMod,rms,'mw:openStudio')).ok,true);
-  const studio=radioMod.sessions.find(session=>session.content.viewMode==='Popup');
+  const studio=radioMod.sessions.find(session=>session.content.viewMode==='Overlay');
   h.event(radioMod,studio,'mw:onAir');
   assert.equal(h.state(owner,os).moderator.nick,'RadioMod');
   removeRadioModerator(h,owner,team,radioMod);
@@ -567,9 +755,9 @@ test('Gleichzeitige Themen- und Wunschbox-Änderungen überschreiben keinen neue
 test('Parallele Bearbeitung hält den angezeigten Wunsch und quittiert weiterhin die richtige ID',()=>{
   const {h,listener,owner,ls,os}=fixture();
   for(const text of ['A','B','C','D'])h.event(listener,ls,'mw:wish.submit',{text});
-  h.event(owner,os,'mw:openStudio');const studio=owner.sessions.find(s=>s.content.viewMode==='Popup');
+  h.event(owner,os,'mw:openStudio');const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
   const other=h.user(9,'ZweiterMod','moderator'),ss=h.open(other);appoint(h,owner,os,other);h.event(other,ss,'mw:openStudio');
-  const second=other.sessions.find(s=>s.content.viewMode==='Popup');
+  const second=other.sessions.find(s=>s.content.viewMode==='Overlay');
   const item=h.state(owner,studio,1).queue[0],first=h.state(other,second).queue[0];
   h.event(other,second,'mw:resolveRequest',{id:first.id,outcome:'done'});
   let pushed=studio.events.findLast(e=>e.type==='mw:state').data;
@@ -620,11 +808,18 @@ test('Channel verlassen schließt die UI, Löschung entfernt persönliche Daten'
   listener.online = false; assert.deepEqual(h.event(listener, ls, 'mw:wish.submit', wish), []);
   h.app.onUserDeleted(listener.id); assert.equal(h.state(owner, os).queueTotal, 0);
 });
-test('STREAMPANEL bleibt bis zur Bereitstellung ohne erfundene Streamadresse vorbereitet', () => {
+test('STREAMPANEL verwendet die bestätigten öffentlichen MischWerk-SPCast-Anschlüsse', () => {
   const {h,owner,os}=fixture(),station=h.state(owner,os).station;
-  assert.equal(station.provider,'streampanel');assert.equal(station.configured,false);
-  assert.equal(station.streamUrl,'');assert.equal(station.metadataUrl,'');
-  assert.equal(station.statusUrl,'');assert.equal(station.listenersUrl,'');
+  assert.equal(station.provider,'streampanel');assert.equal(station.configured,true);
+  assert.equal(station.streamUrl,'https://mischwerk.sp.radio.fm/stream');
+  assert.equal(station.metadataUrl,'https://scripts.streampanel.net/spcast/player/default/api.php?url=mischwerk.spcast.eu&userid=8884&historic=true');
+  assert.equal(station.fields.title,'currentSong');assert.equal(station.fields.artist,'currentArtist');
+  assert.equal(station.fields.live,'');
+  assert.deepEqual(station.allowedHosts,['mischwerk.sp.radio.fm','mischwerk.spcast.eu','scripts.streampanel.net']);
+  assert.equal(station.statusUrl,'https://mischwerk.sp.radio.fm/statistics?json=1');
+  assert.equal('listenersUrl' in station,false);assert.equal('listeners' in station.fields,false);assert.equal(station.statusFormat,'spcast-statistics');
+  assert.equal(station.streamId,1);assert.equal(station.streamPath,'/stream');
+  assert.equal(station.modeUrl,'https://mischwerk.sp.radio.fm/scripts/whoIsLive.php');
 });
 test('Ein öffentlicher HTTPS-Audiostream funktioniert unabhängig von noch fehlenden Datendiensten',()=>{
   const {h,owner,os,listener,ls}=fixture();configureStream(h.config);
@@ -781,18 +976,19 @@ test('Nicht unterstützte Headerbar öffnet kein Popup und erzeugt beim Beitritt
   h.app.onUserJoined(user); assert.equal(user.sessions.length, 0); assert.equal(user.messages.length, 0);
   h.app.chatCommands.mischwerk(user); assert.match(user.messages[0], /Channel.*leiste/);
 });
-test('Wunschbox nutzt ein Channel-Overlay; Moderation öffnet weiterhin als getrenntes Popup', () => {
+test('Wunschbox und Moderation wechseln als Channel-Overlays bei erhaltener Radioleiste', () => {
   const {h,owner,os} = fixture();
   assert.equal(lastResult(h.event(owner,os,'mw:openWishes')).ok,true);
   assert.equal(owner.sessions.length,2);
   const overlay=owner.sessions.find(session=>session.content.viewMode==='Overlay');assert.ok(overlay);
   assert.ok(os.events.some(event=>event.type==='mw:wishes.open'));
   assert.equal(os.removed,false);
-  h.event(owner,os,'mw:openStudio');
-  const studio=owner.sessions.find(session=>session.content.viewMode==='Popup');
-  assert.equal(studio.content.width,780);assert.equal(studio.content.height,600);
+  h.event(owner,os,'mw:openStudio'); h.finishOverlay(owner,overlay);
+  const studio=owner.sessions.find(session=>session.content.viewMode==='Overlay');
+  assert.equal(studio,overlay);assert.equal(studio.activeView,'studio');
+  assert.deepEqual(studio.events.find(e=>e.type==='mw:view').data,{view:'studio',revision:2});
   assert.equal(os.removed,false);
-  assert.equal(studio.content.htmlFile.getPageData().view,'studio');
+  assert.equal(studio.content.htmlFile.getPageData().view,'wishes','Die ursprüngliche HTMLFile wird nicht ersetzt');
   assert.equal(overlay.removed,false);
   h.event(owner,studio,'mw:setRequests',{enabled:false});
   assert.equal(h.state(owner,os).requestsEnabled,false);
@@ -812,10 +1008,10 @@ test('Deaktivierte Wunschbox blockiert das Öffnen serverseitig für Hörer und 
   h.event(owner,os,'mw:setCurtain',{closed:false,previousClosed:true});
   h.event(listener,ls,'mw:wish.submit',{text:'Diesen Wunsch erhalten'});
   assert.equal(lastResult(h.event(listener,ls,'mw:openWishes')).ok,true);
-  const existingWish=ls;
+  const existingWish=ls, listenerOverlay=listener.sessions.find(s=>s.content.viewMode==='Overlay');
   h.event(owner,os,'mw:setRequests',{enabled:false});
   assert.equal(lastResult(h.event(owner,os,'mw:openStudio')).ok,true);
-  const studio=owner.sessions.find(s=>s.content.viewMode==='Popup');
+  const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
   const contentCount=h.contents.length;
   for(const [person,session] of [[listener,ls],[owner,os]]){
     const result=lastResult(h.event(person,session,'mw:openWishes',{enabled:true,canModerate:true}));
@@ -829,14 +1025,15 @@ test('Deaktivierte Wunschbox blockiert das Öffnen serverseitig für Hörer und 
   const restarted=createHarness(h.store),nextListener=restarted.user(10,'Neuer Hörer'),nextSession=restarted.open(nextListener);
   assert.equal(lastResult(restarted.event(nextListener,nextSession,'mw:openWishes')).ok,false,'Sperre nach Neustart erhalten');
   assert.equal(lastResult(h.event(owner,studio,'mw:setRequests',{enabled:true})).ok,true);
-  assert.equal(lastResult(h.event(listener,ls,'mw:openWishes')).ok,true);
+  h.event(listener,ls,'mw:openWishes'); h.finishOverlay(listener,listenerOverlay);
+  assert.equal(lastResult(ls.events).ok,true);
   assert.equal(h.state(listener,ls).myTotal,0,'Hörer erhält keine Wunschhistorie');
   assert.equal(h.state(owner,studio).queueTotal,1,'Laufende Moderationsqueue bleibt erhalten');
 });
 test('Popup und Radioleiste behalten getrennte Seiten bei Statusmeldungen', () => {
   const {h,owner,os}=fixture();
   for(let i=0;i<17;i++){const user=h.user(200+i,'Wunsch'+i);h.event(user,h.open(user),'mw:wish.submit',wish);}
-  h.event(owner,os,'mw:openStudio'); const popup=owner.sessions.find(session=>session.content.viewMode==='Popup');
+  h.event(owner,os,'mw:openStudio'); const popup=owner.sessions.find(session=>session.content.viewMode==='Overlay');
   assert.equal(h.state(owner,popup,1).page,1); assert.equal(h.state(owner,os,0).page,0);
   h.event(owner,os,'mw:setRequests',{enabled:false});
   assert.equal(popup.events.findLast(event=>event.type==='mw:state').data.page,1);
@@ -882,7 +1079,7 @@ test('Zustellung erfordert eine berechtigte Studiositzung und genau den angezeig
   const id=h.state(owner,os).queue[0].id;
   assert.equal(lastResult(h.event(listener,ls,'mw:ackRequest',{id,nick:'Fake'})).ok,false);
   assert.equal(lastResult(h.event(owner,os,'mw:ackRequest',{id})).ok,false);
-  h.event(owner,os,'mw:openStudio');const studio=owner.sessions.find(s=>s.content.viewMode==='Popup');
+  h.event(owner,os,'mw:openStudio');const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
   const second=h.state(owner,studio,1).queue[0];
   assert.equal(lastResult(h.event(owner,studio,'mw:ackRequest',{id})).ok,false);
   assert.equal(h.state(owner,studio,0).queue[0].delivery,null);
@@ -906,7 +1103,7 @@ test('Viele Wünsche bleiben nur in der Moderation paginiert und unter dem Event
   let state=h.state(listener,ls,0,0);
   assert.equal(state.myTotal,0);assert.equal(state.myPages,1);assert.equal(state.myRequests.length,0);
   assert.ok(JSON.stringify(state).length<10000);
-  h.event(owner,os,'mw:openStudio');const studio=owner.sessions.find(s=>s.content.viewMode==='Popup');
+  h.event(owner,os,'mw:openStudio');const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
   const item=h.state(owner,studio,49).queue[0];
   h.event(owner,studio,'mw:ackRequest',{id:item.id});
   state=h.state(listener,ls,0,3);
@@ -921,3 +1118,103 @@ test('Viele Wünsche bleiben nur in der Moderation paginiert und unter dem Event
 });
 
 
+
+test('Gemeinsame Sitzung verwirft verspätete Entwürfe, Schließen und Bestätigungen eines alten Bereichs',()=>{
+  const {h,owner,os}=fixture();h.event(owner,os,'mw:openStudio');
+  const surface=owner.sessions.find(s=>s.content.viewMode==='Overlay'),content=surface.content,count=h.contents.length;
+  h.event(owner,os,'mw:openRadioTeam');h.finishOverlay(owner,surface,{studio:{topic:'Aktueller Entwurf'}},false,4);
+  assert.equal(surface.activeView,'team');assert.equal(surface.viewRevision,2);
+  for(const type of ['mw:overlay.draft','mw:overlay.dismiss','mw:overlay.ready']){
+    h.event(owner,surface,type,{view:'studio',viewRevision:1,state:{studio:{topic:'Veraltet'}},revision:999,token:1});
+    assert.equal(surface.removed,false);
+  }
+  h.event(owner,os,'mw:openStudio');h.finishOverlay(owner,surface,{team:{nick:'Teamentwurf'}},false,5);
+  assert.equal(surface.content,content);assert.equal(h.contents.length,count);
+  assert.equal(surface.content.htmlFile.pageData.view,'studio','HTMLFile bleibt unverändert');
+  assert.equal(h.state(owner,surface).overlayState.studio.topic,'Aktueller Entwurf');
+  const originalSend=owner.sendAppContent;owner.sendAppContent=()=>{throw Error('Keine neue HTML-Oberfläche beim Wechsel');};
+  h.event(owner,os,'mw:openSchedule');h.finishOverlay(owner,surface,{},false,6);
+  assert.equal(surface.activeView,'schedule');assert.equal(surface.removed,false);owner.sendAppContent=originalSend;
+});
+
+test('Rechteverlust verwirft auch versteckte Verwaltungsentwürfe vor erneuter Bereichsfreigabe',()=>{
+  const {h,owner,os}=fixture();h.event(owner,os,'mw:openStudio');
+  const surface=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  h.event(owner,os,'mw:openRadioTeam');h.finishOverlay(owner,surface,{studio:{topic:'Privates Studiothema'}});
+  h.event(owner,os,'mw:openSchedule');h.finishOverlay(owner,surface,{team:{nick:'Privater Teamnick'}});
+  h.event(owner,os,'mw:openWishes');h.finishOverlay(owner,surface,{scheduleWeek:'2026-11-02',scheduleEditor:{fields:{'schedule-topic':'Privater Planentwurf'}}});
+  owner.role='listener';h.state(owner,surface);owner.role='owner';
+  for(const [action,field] of [['mw:openSchedule','scheduleEditor'],['mw:openStudio','studio'],['mw:openRadioTeam','team']]){
+    h.event(owner,os,action);h.finishOverlay(owner,surface);
+    assert.equal(h.state(owner,surface).overlayState?.[field],undefined,field+' nach Rechteverlust nicht wiederherstellen');
+  }
+});
+
+test('Bereichsrevision wird erst mit einem tatsächlich angenommenen Zustand fortgeschrieben',()=>{
+  const {h,owner,os}=fixture(),changes=[];let factory;
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../app/www/js/core/model.js'),'utf8'),{
+    MischWerkUI:{define(name,value){factory=value;}},document:{documentElement:{setAttribute(){}}}
+  });
+  const model=factory({bridge:{pageData:{view:'studio',sharedViews:true}},signals:{emit(name,data){if(name==='view-select')changes.push(data);}}});
+  const base=h.state(owner,os);model.receive({...base,revision:10,view:'studio',viewRevision:1});
+  model.receive({...base,revision:9,view:'schedule',viewRevision:3});
+  model.receive({...base,revision:10,view:'team',viewRevision:2});
+  assert.equal(model.current().view,'team');assert.equal(changes.length,2);
+  model.receive({...base,revision:11,view:'studio',viewRevision:1});
+  assert.equal(model.current().view,'team','Alte Bereichspakete selbst mit höherer Fachrevision ablehnen');
+});
+
+test('Neue gemeinsame Sitzung beginnt auch über Moderation mit einer frischen Wunsch-Eingabesequenz',()=>{
+  const {h,owner,os}=fixture();h.event(owner,os,'mw:openWishes');
+  let surface=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  h.event(owner,os,'mw:wishes.sync',{surfaceId:surface.content.htmlFile.pageData.wishSurfaceId,text:'Erhaltener Wunsch',sequence:7,disabled:false});
+  surface.remove();h.event(owner,os,'mw:openStudio');surface=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  assert.equal(surface.content.htmlFile.pageData.wishPresentation.sequence,0);
+  assert.equal(surface.content.htmlFile.pageData.wishPresentation.text,'Erhaltener Wunsch');
+  h.event(owner,os,'mw:openWishes');h.finishOverlay(owner,surface);
+  h.event(owner,surface,'mw:wishes.edit',{text:'Neu bearbeitet',sequence:1});
+  const relay=os.events.findLast(e=>e.type==='mw:wishes.input');assert.equal(relay.data.text,'Neu bearbeitet');
+  h.event(owner,os,'mw:wishes.sync',{surfaceId:relay.data.surfaceId,text:'Neu bearbeitet',sequence:1,disabled:false});
+  assert.equal(surface.events.findLast(e=>e.type==='mw:wishes.presentation').data.state.text,'Neu bearbeitet');
+});
+
+test('Jeder Bereich verwendet vom Erstaufruf bis zur Wiederöffnung denselben Overlay-Lebenszyklus',()=>{
+  const actions=[['mw:openWishes','wishes'],['mw:openStudio','studio'],['mw:openRadioTeam','team'],['mw:openSchedule','schedule']];
+  for(let start=0;start<actions.length;start++){
+    const {h,owner,os}=fixture(),before=h.contents.length;
+    h.event(owner,os,actions[start][0]);const surface=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+    assert.equal(surface.content.loading.enabled,false);assert.equal(surface.content.htmlFile.pageData.sharedViews,true);
+    for(let offset=1;offset<=actions.length;offset++){
+      const [action,kind]=actions[(start+offset)%actions.length];h.event(owner,os,action);h.finishOverlay(owner,surface,{},false,offset);
+      assert.equal(surface.activeView,kind);assert.equal(surface.removed,false);
+      assert.equal(owner.sessions.find(s=>s.content.viewMode==='Overlay'),surface);
+      assert.equal(h.contents.length,before+1,'Kein Ersatzinhalt oder Kandidat beim Wechsel');
+    }
+    h.event(owner,surface,'mw:overlay.dismiss',{state:{},revision:5});assert.equal(surface.removed,true);
+    h.event(owner,os,actions[start][0]);const reopened=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+    assert.notEqual(reopened,surface);assert.equal(h.contents.length,before+2);assert.equal(os.removed,false);
+  }
+});
+
+test('Gemeinsames Schließen der Wunschansicht wartet auch serverseitig auf die letzte Eingabeübernahme',()=>{
+  const {h,owner,os}=fixture();h.event(owner,os,'mw:openWishes');const surface=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  const id=surface.content.htmlFile.pageData.wishSurfaceId;
+  h.event(owner,surface,'mw:wishes.edit',{text:'Letzte Eingabe',sequence:1});
+  h.event(owner,surface,'mw:overlay.dismiss',{state:{},revision:1});assert.equal(surface.removed,false);
+  h.event(owner,os,'mw:wishes.sync',{surfaceId:id,text:'Letzte Eingabe',sequence:1,disabled:false});
+  h.event(owner,surface,'mw:overlay.dismiss',{state:{},revision:2});assert.equal(surface.removed,true);
+  h.event(owner,os,'mw:openWishes');const next=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  assert.equal(next.content.htmlFile.pageData.wishPresentation.text,'Letzte Eingabe');assert.equal(h.state(owner,os).queueTotal,0);
+});
+
+test('Schließen aus der Radioleiste gilt nur für die eigene aktuelle Wunschansicht und Bereichsrevision',()=>{
+  const {h,owner,os,listener,ls}=fixture();h.event(owner,os,'mw:openWishes');const surface=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  const old={view:'wishes',surfaceId:surface.content.htmlFile.pageData.wishSurfaceId,viewRevision:1};
+  h.event(listener,ls,'mw:overlay.close',old);assert.equal(surface.removed,false);
+  h.event(owner,os,'mw:openStudio');h.finishOverlay(owner,surface);h.event(owner,os,'mw:overlay.close',old);
+  assert.equal(surface.activeView,'studio');assert.equal(surface.removed,false);
+  h.event(owner,os,'mw:openWishes');h.finishOverlay(owner,surface);h.event(owner,os,'mw:overlay.close',old);assert.equal(surface.removed,false);
+  h.event(owner,os,'mw:overlay.close',{...old,viewRevision:surface.viewRevision,surfaceId:old.surfaceId+1});assert.equal(surface.removed,false);
+  h.event(owner,os,'mw:overlay.close',{...old,viewRevision:surface.viewRevision});assert.equal(surface.removed,true);
+  assert.equal(os.removed,false);
+});

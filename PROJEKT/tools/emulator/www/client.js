@@ -123,7 +123,10 @@
     note(error.message || 'Ressource konnte nicht geladen werden.', { file: error.filename || error.target.src || error.target.href || '', line: error.lineno });
   }, true);
   window.addEventListener('unhandledrejection', function (error) { note('Unbehandelte Promise-Ablehnung: ' + String(error.reason)); });
-  document.addEventListener('DOMContentLoaded', function () { send('frameLoaded'); });
+  // Der echte SDK-Listener meldet AppReadiness hier, vor später registrierten App-Listenern.
+  document.addEventListener('DOMContentLoaded', function () {
+    send('frameLoaded', { visibleAtHandoff:document.documentElement.classList.contains('mw-ready') });
+  });
   var readyAt = performance.now(), observer = new MutationObserver(function () {
     if (document.documentElement.classList.contains('mw-ready')) {
       send('ready', { milliseconds: Math.round(performance.now() - readyAt) }); observer.disconnect();

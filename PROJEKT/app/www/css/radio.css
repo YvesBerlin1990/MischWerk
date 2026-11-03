@@ -34,7 +34,16 @@ input[type=range]::-webkit-slider-thumb { appearance:none; width:24px; height:24
 input[type=range]::-moz-range-thumb { width:24px; height:24px; background:linear-gradient(145deg,#ffffff59,transparent 65%),var(--volume-thumb,var(--gold)); border-radius:50%; border:2px solid var(--text); box-shadow:0 2px 4px #0008,inset 0 1px 0 #ffffff66; }
 .radio-bar > .sr-only { left:0; top:0; }
 .own-wish-position { margin:0; padding:2px 0; color:var(--gold-ink); font-size:12px; line-height:18px; overflow-wrap:anywhere; }
+.radio-status-row { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px 14px; min-width:0; max-width:100%; }
 @media (min-width:700px) {
   .has-own-wish .radio-context { flex-direction:row; flex-wrap:wrap; align-items:center; column-gap:10px; }
   .has-own-wish .topic-display { flex-basis:100%; }
+}
+/* Freigegebene breite Studioreferenz: ruhige Seiten, drei Bereiche in der Musikkarte. */
+@media (min-width:1400px) {
+  .radio-bar { padding:8px 0; grid-template-columns:160px minmax(108px,1fr) minmax(200px,500px) minmax(392px,1fr) 160px; grid-template-rows:minmax(140px,1fr); column-gap:24px; }
+  .radio-program-face { grid-column:2 / 5; margin:0 -8px; }
+  .bar-logo { width:140px; height:140px; }
+  .transport { position:relative; z-index:1; justify-self:center; }
+  .play-button { width:108px; height:108px; }
 }

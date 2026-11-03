@@ -51,6 +51,7 @@ summary{cursor:pointer;font-size:12px}
 .app-window iframe{display:block;border:0;width:100%;height:calc(100% - 30px);background:#242424}
 .app-window.overlay{border-radius:0 0 0 8px}
 .app-window.overlay iframe{height:100%}
+.app-loading{position:absolute;inset:0;display:grid;place-items:center;padding:16px;z-index:1;font:14px/1.5 "Segoe UI",Arial,sans-serif}
 .app-window.popup{position:absolute;top:30px;left:22px;z-index:10;border-radius:9px;resize:both;min-width:200px;min-height:110px;max-width:100%;box-shadow:0 16px 40px #0008}
 .window-title{height:30px;display:flex;align-items:center;gap:10px;padding-left:12px;background:#363a3e;color:#ddd7c9;font-size:12px;cursor:move;touch-action:none}
 .window-title span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

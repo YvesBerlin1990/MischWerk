@@ -10,7 +10,6 @@ MischWerkUI.define('statusMarkup', function (dependencies) {
       </section>
       <section class="status-grid" aria-label="Radio und Channel im Überblick">
         <article id="status-transmission" class="status-item" data-tone="neutral"><h3>Übertragung</h3><strong id="status-transmission-value">Noch nicht geprüft</strong></article>
-        <article id="status-listeners" class="status-item" data-tone="neutral"><h3>Aktuelle Hörer</h3><strong id="status-listeners-value">Noch nicht geprüft</strong></article>
         <article id="status-metadata" class="status-item" data-tone="neutral"><h3>Titelabruf</h3><strong id="status-metadata-value">Noch nicht geprüft</strong></article>
         <article id="status-studio" class="status-item" data-tone="neutral"><h3>ON AIR · Studio</h3><strong id="status-studio-value">Noch nicht geprüft</strong></article>
         <article id="status-app" class="status-item" data-tone="neutral"><h3>App-Verbindung</h3><strong id="status-app-value">Noch nicht geprüft</strong></article>
@@ -25,7 +24,6 @@ MischWerkUI.define('statusMarkup', function (dependencies) {
           <div><dt>Sendebetrieb · STREAMPANEL</dt><dd id="status-mode-detail"></dd></div>
           <div><dt>Übertragung · STREAMPANEL</dt><dd id="status-transmission-detail"></dd></div>
           <div><dt>ON AIR · Studio</dt><dd id="status-studio-detail"></dd></div>
-          <div><dt>Aktuelle Hörer</dt><dd id="status-listeners-detail"></dd></div>
           <div><dt>Titelabruf · STREAMPANEL</dt><dd id="status-metadata-detail"></dd></div>
           <div><dt>App-Verbindung</dt><dd id="status-app-detail"></dd></div>
           <div><dt>Wunschbox</dt><dd id="status-wishes-detail"></dd></div>
@@ -33,7 +31,7 @@ MischWerkUI.define('statusMarkup', function (dependencies) {
           <div><dt>Sendungsthema</dt><dd id="status-topic-detail"></dd></div>
         </dl>
         <nav class="pagination" aria-label="Statusdetails durchblättern"><button id="prev-status-detail" class="secondary-button" type="button">← Zurück</button><span id="status-detail-page"></span><button id="next-status-detail" class="secondary-button" type="button">Weiter →</button></nav>
-        <p class="fine-print">LIVE/AutoDJ folgt ausschließlich der aktuellen STREAMPANEL-Titelkennzeichnung, nicht der Studio-Anmeldung. Dies ist kein separater Encoder-Verbindungstest. Anbieter-Cache und Titelverzögerungen sind möglich.</p>
+        <p class="fine-print">LIVE/AutoDJ folgt bestätigten STREAMPANEL-Angaben. Die Studio-Anmeldung wird getrennt angezeigt. Anbieterwerte und Titel können zeitversetzt sein.</p>
         <a class="status-provider-link" href="https://status.streampanel.net/" target="_blank" rel="noopener noreferrer">Offizielle STREAMPANEL-Störungsübersicht ↗</a>
       </details>
     </section>

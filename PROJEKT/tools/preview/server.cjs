@@ -62,28 +62,22 @@ const server = http.createServer(async (req, res) => {
       if (sourceId && (!source || source.session.removed)) { respond(res, 404, 'text/plain', 'Demo-Sitzung abgelaufen'); return; }
       const user = source ? source.user : h.user(nextUserId++, role === 'moderator' ? 'Otterchen (Demo)' : 'Musikfreund (Demo)', role === 'moderator' ? 'owner' : 'listener');
       let session = source ? source.session : h.open(user);
-      if (view === 'wishes' && source) {
-        session = user.sessions.find(item => item.content.viewMode === 'Overlay');
-        if (!session) {
-          h.event(user, source.session, 'mw:openWishes');
-          session = user.sessions.find(item => item.content.viewMode === 'Overlay');
+      // Ohne Quellsitzung bleibt die einzelne Wunschansicht eine lokale Controller-Diagnose.
+      // Im Channel verwenden alle vier Ansichten den echten serverseitigen Overlayweg.
+      if (view !== 'radio' && (view !== 'wishes' || source)) {
+        let surface = user.sessions.find(item => item.content.viewMode === 'Overlay' && item.activeView === view);
+        if (!surface) {
+          const events = h.event(user, session, view === 'studio' ? 'mw:openStudio' : view === 'team' ? 'mw:openRadioTeam' : view === 'schedule' ? 'mw:openSchedule' : 'mw:openWishes');
+          const result = events.find(event => event.type === 'mw:result');
+          surface = user.sessions.find(item => item.content.viewMode === 'Overlay' && item.activeView === view);
+          if (!surface) { respond(res, 403, 'text/plain', result ? result.data.message : 'Ansicht nicht verfügbar'); return; }
         }
-        if (!session) { respond(res, 403, 'text/plain', 'Wunschbox nicht verfügbar'); return; }
-      }
-      if (view !== 'radio' && view !== 'wishes') {
-        const events = h.event(user, session, view === 'studio' ? 'mw:openStudio' :
-          view === 'team' ? 'mw:openRadioTeam' : view === 'schedule' ? 'mw:openSchedule' : 'mw:openWishes');
-        const result = events.find(event => event.type === 'mw:result');
-        if (!result || !result.data.ok) { respond(res, 403, 'text/plain', result ? result.data.message : 'Fenster nicht verfügbar'); return; }
-        session = user.sessions.find(item => item.content.viewMode === 'Popup');
+        session = surface;
       }
       const sessionId = randomUUID();
       sessions.set(sessionId, { user, session, touchedAt: Date.now() });
-      const data = { sessionId, embedded: url.searchParams.get('embedded') === '1', pageData: { ...h.state(user, session), view } };
-      if (session.content.viewMode === 'Overlay') {
-        data.pageData.wishSurface = true;
-        data.pageData.wishSurfaceId = session.content.htmlFile.pageData.wishSurfaceId;
-      }
+      const data = { sessionId, embedded: url.searchParams.get('embedded') === '1',
+        pageData: { ...session.content.htmlFile.pageData, ...h.state(user, session), view } };
       drain(session);
       const injection = '<base href="/app/www/"><script>window.MischWerkDemoData=' + JSON.stringify(data).replace(/</g, '\\u003c') + ';</script><script src="/preview-bridge.js"></script>';
       const html = fs.readFileSync(path.join(root, 'app/www/index.html'), 'utf8').replace('<head>', '<head>' + injection);

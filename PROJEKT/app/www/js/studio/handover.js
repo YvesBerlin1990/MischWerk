@@ -12,11 +12,16 @@ MischWerkUI.define('handover', function (dependencies) {
   function details() { return model.current().handover || { candidates: [], outgoing: null, incoming: null }; }
   function close() {
     if (!opened) { return; }
+    var restoreFocus = dom.el('handover-panel').contains(document.activeElement);
     opened = false;
     dom.el('studio-panel').classList.remove('show-handover');
     dom.el('handover-panel').hidden = true;
     layout.resizeDialog();
     signals.emit('queue-visible');
+    var entry = dom.el('handover-open');
+    if (restoreFocus && !entry.disabled && entry.getClientRects().length) {
+      entry.focus({ preventScroll: true });
+    }
   }
   function render() {
     if (!model.current()) { return; }
@@ -41,6 +46,9 @@ MischWerkUI.define('handover', function (dependencies) {
     dom.el('handover-request-form').hidden = !!incoming || !!outgoing || !handover.candidates.length;
     dom.el('handover-accept-form').hidden = !incoming;
     dom.el('handover-cancel').hidden = !outgoing;
+    var notes = incoming ? incoming.notes : outgoing ? outgoing.notes : '';
+    dom.el('handover-note-preview').hidden = !notes;
+    dom.setText('handover-note-text', notes || '');
     var key = JSON.stringify(handover.candidates);
     if (key !== candidateKey) {
       candidateKey = key;
@@ -51,12 +59,34 @@ MischWerkUI.define('handover', function (dependencies) {
       });
       if (handover.candidates.indexOf(value) !== -1) { select.value = value; }
     }
-    ['handover-target', 'handover-topic', 'handover-request', 'handover-accept', 'handover-decline', 'handover-cancel'].forEach(function (id) {
+    ['handover-target', 'handover-topic', 'handover-notes', 'handover-request', 'handover-accept', 'handover-decline', 'handover-cancel'].forEach(function (id) {
       dom.el(id).disabled = disabled;
     });
     layout.resizeDialog();
   }
   function start() {
+    signals.on('overlay-capture', function (state) {
+      if (model.view !== 'studio') { return; }
+      state.handover = { open:opened, target:dom.el('handover-target').value,
+        notes:dom.el('handover-notes').value, topic:dom.el('handover-topic').value,
+        incoming:incomingId, moderator:model.current() && model.current().moderator && model.current().moderator.sessionKey };
+    });
+    signals.on('overlay-restore', function (state) {
+      if (model.view !== 'studio') { return; }
+      var draft = state.handover;
+      if (!draft || !model.current().user.canModerate) { return; }
+      var moderator = model.current().moderator;
+      if (moderator && moderator.sessionKey === draft.moderator) {
+        if (typeof draft.notes === 'string' && draft.notes.length <= 500) { dom.el('handover-notes').value = draft.notes; }
+        if (Array.from(dom.el('handover-target').options).some(function (option) { return option.value === draft.target; })) { dom.el('handover-target').value = draft.target; }
+      }
+      if (draft.incoming === incomingId && typeof draft.topic === 'string' && draft.topic.length <= 80) { dom.el('handover-topic').value = draft.topic; }
+      if (draft.open && !dom.el('handover-open').hidden && !dom.el('handover-open').disabled) { dom.el('handover-open').click(); }
+      dom.setText('handover-notes-count', dom.el('handover-notes').value.length + ' / 500');
+    });
+    dom.el('handover-notes').addEventListener('input', function () {
+      dom.setText('handover-notes-count', this.value.length + ' / 500');
+    });
     dom.el('handover-open').addEventListener('click', function () {
       opened = true; dom.el('studio-panel').classList.add('show-handover'); render();
       var focus = details().incoming ? dom.el('handover-topic') : dom.el('handover-back');
@@ -68,7 +98,7 @@ MischWerkUI.define('handover', function (dependencies) {
     dom.el('handover-request-form').addEventListener('submit', function (event) {
       event.preventDefault();
       if (!this.reportValidity() || dom.el('handover-request').disabled) { return; }
-      commands.send('mw:handover.request', { nick: dom.el('handover-target').value,
+      commands.send('mw:handover.request', { nick: dom.el('handover-target').value, notes: dom.el('handover-notes').value,
         expectedModerator: model.current().moderator && model.current().moderator.sessionKey }, true);
     });
     dom.el('handover-accept-form').addEventListener('submit', function (event) {
@@ -87,6 +117,9 @@ MischWerkUI.define('handover', function (dependencies) {
     signals.on('command-result', function (response) {
       if (!response.ok || response.action.indexOf('mw:handover.') !== 0) { return; }
       if (response.action === 'mw:handover.accept') { signals.emit('studio-topic-reset'); }
+      if (response.action === 'mw:handover.request') {
+        dom.el('handover-notes').value = ''; dom.setText('handover-notes-count', '0 / 500');
+      }
       if (response.action !== 'mw:handover.request') { close(); }
     });
   }

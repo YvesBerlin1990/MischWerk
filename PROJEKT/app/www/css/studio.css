@@ -46,6 +46,10 @@
 .studio-queue #queue-pagination { margin-top:auto; padding-top:24px; }
 .pagination.single-page { justify-content:center; min-height:28px; }
 .pagination.single-page button { display:none; }
+.request-stage { margin:12px 0 0; font-size:14px; font-weight:600; color:var(--muted); }
+.request-stage[data-stage-value=preparing],.request-stage[data-stage-value=playing] { color:var(--gold-ink); }
+.queue-stage-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.queue-stage-actions button { min-height:44px; font-size:13px; }
 @media (min-width:740px) {
   #studio-panel:not(.fit-tabs) .studio-workspace { grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); }
 }

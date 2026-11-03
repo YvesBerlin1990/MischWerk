@@ -48,6 +48,21 @@ MischWerkUI.define('studio', function (dependencies) {
   
   }
   function start() {
+    signals.on('overlay-capture', function (state) {
+      if (model.view !== 'studio') { return; }
+      state.studio = { topic:topicDirty ? dom.el('studio-topic').value : null,
+        queue:dom.el('studio-panel').classList.contains('show-queue'), assistant:dom.el('studio-assistant').open };
+    });
+    signals.on('overlay-restore', function (state) {
+      if (model.view !== 'studio') { return; }
+      if (!state.studio || !model.current().user.canModerate) { return; }
+      if (typeof state.studio.topic === 'string' && state.studio.topic.length <= 80) {
+        dom.el('studio-topic').value = state.studio.topic; topicDirty = true;
+        topicFeedback('Ungespeicherte Änderungen', false); refreshControls();
+      }
+      dom.el(state.studio.queue ? 'studio-queue-tab' : 'studio-controls-tab').click();
+      dom.el('studio-assistant').open = state.studio.assistant === true;
+    });
     dom.el('studio-controls-tab').addEventListener('click', function () { layout.switchPane('studio-panel', 'show-queue', 'studio-controls-tab', 'studio-queue-tab', false); });
     dom.el('studio-queue-tab').addEventListener('click', function () { layout.switchPane('studio-panel', 'show-queue', 'studio-controls-tab', 'studio-queue-tab', true); });
     dom.el('on-air').addEventListener('click', function () { commands.send('mw:onAir', {}, true); });
@@ -73,6 +88,13 @@ MischWerkUI.define('studio', function (dependencies) {
     });
     signals.on('studio-topic-reset', function () { topicDirty = false; topicRequest = null; });
     signals.on('topic-error', function (message) { topicFeedback(message, true); });
+    signals.on('topic-draft', function (topic) {
+      if (dom.el('studio-topic').disabled) { return; }
+      dom.el('studio-topic').value = topic;
+      topicDirty = topic !== (model.current().topic || '');
+      topicFeedback(topicDirty ? 'Ungespeicherte Änderungen' : '', false);
+      refreshControls(); dom.el('studio-topic').focus({ preventScroll:true });
+    });
     signals.on('command-result', function (response) {
       if (response.action === 'mw:setTopic') {
         if (response.ok && topicRequest && topicRequest.value === dom.el('studio-topic').value) { topicDirty = false; }

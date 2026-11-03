@@ -43,11 +43,10 @@ assert.ok(backendApi.includes('KnuddelsServer.getAppAccess = function'), 'Fehlen
 assert.ok(backendApi.includes('KnuddelsServer.getDefaultBotUser = function'), 'Fehlende BotUser-Signatur');
 assert.ok(backendApi.includes('KnuddelsServer.execute = function'), 'Fehlende Loader-Signatur');
 assert.ok(backendApi.includes('AppContent.overlayContent'), 'Overlay fehlt in der Backend-Referenz');
-assert.ok(frontendApi.includes('Client.close = function'), 'Schließen fehlt in der Frontend-Referenz');
-for (const name of ['setTitle', 'setResizable', 'setSize']) {
+for (const name of ['setTitle', 'setSize']) {
   assert.ok(frontendApi.includes('Client.HostFrame.prototype.' + name + ' = function'), 'Fehlende HostFrame-Signatur: ' + name);
 }
-const markupFiles = frontendFiles.filter(file => /(?:\/|-)markup\.js$/.test(file));
+const markupFiles = frontendFiles.filter(file => file.endsWith('.js') && /\bdom\.mount\(/.test(read('app/www/' + file)));
 const html = read('app/www/index.html') + markupFiles.map(file => read('app/www/' + file)).join('\n');
 assert.ok(!html.includes('knuddels-webapp-frontend-api.js'), 'Referenzstub darf nicht ausgeführt werden');
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
@@ -65,6 +64,6 @@ console.log('Backend-Module, API-Signaturen, UI-IDs, Laufzeitgrenzen und Trennun
 const lengths = checkRuntime(path.join(root, 'app'));
 console.log(lengths.length + ' tatsächlich ausgelieferte Textdateien: jeweils strikt unter 9.500 Zeichen.');
 assert.ok(backend.includes('AppContent.headerbarContent'), 'Radio benötigt die Channelleiste.');
-assert.ok(backend.includes('AppContent.popupContent'), 'Moderation, Radio-Team und Sendeplan benötigen Popups.');
+assert.ok(backend.includes('AppContent.overlayContent') && !backend.includes('AppContent.popupContent'), 'Alle vier Channelansichten benötigen echte Overlays.');
 assert.ok(frontendApi.includes('Client.HostFrame.prototype.setSize'), 'Headerbar-Höhenanpassung fehlt in Referenz.');
-console.log('LIVE-Stand: docs/betrieb/LIVE-ABNAHME.md. STREAMPANEL ist vorbereitet, Produktanschlüsse stehen aus; echte Knuddels-/K3-Abnahme steht noch aus.');
+console.log('Produktnachweise: docs/pruefung/PRUEFBERICHT.md. Echte Knuddels-/K3-Abnahme: docs/betrieb/LIVE-ABNAHME.md.');

@@ -1,5 +1,5 @@
-/* Wochenübersicht und eigener Editor: Pagination plus erreichbarer Überlauf bei knappen Frames. */
-html[data-view=schedule],html[data-view=schedule] body { height:auto; min-height:0; overflow-x:hidden; overflow-y:auto; }
+/* Wochenübersicht im stabilen Rahmen: Pagination plus erreichbarer Überlauf bei knappen Frames. */
+html[data-view=schedule],html[data-view=schedule] body { height:auto; min-height:100vh; overflow-x:hidden; overflow-y:auto; }
 html[data-view=schedule] .dialog-shell { display:block; }
 #schedule-panel { width:100%; min-width:0; }
 .schedule-controls { padding:8px 12px; margin-bottom:12px; border:1px solid #70654d; border-radius:12px; background:linear-gradient(120deg,#ffffff06,transparent 60%),var(--surface); box-shadow:inset 0 1px 0 #ffffff06,0 3px 8px #0002; }

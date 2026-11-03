@@ -75,6 +75,10 @@ class AppRuntime {
     }
     const context = {
       Date: this.clock.Date, HTMLFile, UserType: this.enums.UserType, AppViewMode: this.enums.AppViewMode,
+      Color: strict({ fromHexString: value => {
+        if (typeof value !== 'string' || !/^#[\da-f]{6}$/i.test(value)) throw new Error('Color.fromHexString benötigt #RRGGBB.');
+        return { asHexString: () => value.toUpperCase() };
+      } }, 'Color'),
       KnuddelsServer: strict(server, 'KnuddelsServer'),
       AppContent: {
         headerbarContent: (html, height) => runtime.contents.create(html, 'Headerbar', 0, height),

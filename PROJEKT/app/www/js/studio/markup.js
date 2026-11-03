@@ -3,6 +3,11 @@ MischWerkUI.define('studioMarkup', function (dependencies) {
   'use strict';
   dependencies.dom.mount('studio-placeholder', `
     <section id="studio-panel" aria-label="Moderationsmenü" hidden>
+      <nav id="studio-programme-tabs" class="studio-programme-tabs" role="tablist" aria-label="Moderation und Titelhistorie" hidden>
+        <button id="studio-programme-tab" class="secondary-button" type="button" role="tab" aria-selected="true" aria-controls="studio-programme">Moderation</button>
+        <button id="studio-history-tab" class="secondary-button" type="button" role="tab" aria-selected="false" aria-controls="history-panel" tabindex="-1">Heute gespielt</button>
+      </nav>
+      <div id="studio-programme" role="tabpanel" aria-labelledby="studio-programme-tab">
       <nav class="compact-tabs" aria-label="Moderations-Bereich">
         <button type="button" id="studio-controls-tab" aria-pressed="true" aria-controls="studio-setup">Sendesteuerung</button>
         <button type="button" id="studio-queue-tab" aria-pressed="false" aria-controls="studio-requests">Wünsche</button>
@@ -33,14 +38,17 @@ MischWerkUI.define('studioMarkup', function (dependencies) {
             <div class="topic-actions"><button id="reset-topic" class="text-button" type="button" hidden>Änderungen verwerfen</button><button id="save-topic" class="primary-button" type="submit" disabled>Speichern</button></div>
             <p id="topic-feedback" role="status" aria-live="polite" hidden></p>
           </form>
+          <div id="assistant-placeholder"></div>
         </section>
         <section id="studio-requests" class="card studio-queue" aria-labelledby="queue-heading">
-          <div class="list-heading studio-queue-heading"><div class="workspace-heading"><span class="eyebrow">AUS DEM CHANNEL</span><h2 id="queue-heading" tabindex="-1">Musikwünsche <span class="count-badge" id="queue-count">0</span></h2></div><button class="icon-button" id="refresh-queue" type="button" aria-label="Musikwünsche aktualisieren" title="Musikwünsche aktualisieren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-12-2L4 11m2 4a7 7 0 0 0 12 2l2-4"/></svg></button></div>
+          <div class="list-heading studio-queue-heading"><div class="workspace-heading"><span class="eyebrow" id="queue-refresh-feedback" role="status" aria-live="polite" aria-atomic="true">AUS DEM CHANNEL</span><h2 id="queue-heading" tabindex="-1">Musikwünsche <span class="count-badge" id="queue-count">0</span></h2></div><button class="icon-button" id="refresh-queue" type="button" aria-label="Musikwünsche aktualisieren" title="Musikwünsche aktualisieren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-12-2L4 11m2 4a7 7 0 0 0 12 2l2-4"/></svg></button></div>
           <div id="request-queue" class="queue"></div>
           <div class="pagination" id="queue-pagination"><button class="secondary-button" id="prev-page" type="button">← Zurück</button><span id="page-label">Wunsch 1 / 1</span><button class="secondary-button" id="next-page" type="button">Weiter →</button></div>
         </section>
       </div>
       <div id="handover-placeholder"></div>
+      </div>
+      <div id="history-placeholder"></div>
     </section>
   `);
 });

@@ -26,7 +26,7 @@ test('Zentrierung und Studiokartenhintergrund bleiben beim Wechsel aller Leisten
           function textCenter(id){const r=document.createRange();r.selectNodeContents(document.getElementById(id));const b=r.getBoundingClientRect();return b.x+b.width/2;}
           const volume=document.querySelector('.volume-control').getBoundingClientRect();
           const before=getComputedStyle(face,'::before'),after=getComputedStyle(face,'::after');
-          return {faceVisible:getComputedStyle(face).display!=='none',faceX:f.x,faceY:f.y,faceWidth:f.width,faceHeight:f.height,center:f.x+f.width/2,
+          return {faceVisible:getComputedStyle(face).display!=='none',faceX:f.x,faceY:f.y,faceWidth:f.width,faceHeight:f.height,center:m.getBoundingClientRect().x+m.getBoundingClientRect().width/2,
             titleCenter:textCenter('track-title'),artistCenter:textCenter('track-artist'),volumeCenter:volume.x+volume.width/2,
             metadataAlign:getComputedStyle(m).textAlign,horizontalOverflow:document.documentElement.scrollWidth>innerWidth||m.scrollWidth>m.clientWidth,
             grooves:{width:parseFloat(before.width),height:parseFloat(before.height)},arcs:{width:parseFloat(after.width),height:parseFloat(after.height)}};
@@ -82,7 +82,8 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
     });
     return nativeQueue;
   });
-  page.on('request',request=>requests.push(request.url()));
+  // Ressourcenhinweise führen keine Module aus und gehören nicht zum ausführenden Fensterladeplan.
+  page.on('request',request=>{if(!/prefetch/.test(request.headers()['sec-purpose']||request.headers().purpose||''))requests.push(request.url());});
   const songGate = new Promise(resolve => { releaseSong = resolve; });
   const statusGate = new Promise(resolve => { releaseStatus = resolve; });
   let releaseLayout;
@@ -199,6 +200,239 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
 }
 
 function radioHeight() { return 160; }
+async function showStudioPane(page, queue) {
+  if (!await page.locator(queue ? '#studio-requests' : '#studio-setup').isVisible()) {
+    await page.locator(queue ? '#studio-queue-tab' : '#studio-controls-tab').click();
+  }
+}
+
+async function historySetup(t, respond, when = '2026-11-03T12:00:00Z') {
+  const lab = await setup(t,{view:'studio',station:true,clock:true,viewport:{width:820,height:660}});
+  await lab.page.clock.setSystemTime(new Date(when));
+  const source = 'https://mischwerk.spcast.eu:9000/sp/cache/history/history.json';
+  await lab.page.route(source, respond);
+  lab.state.station = {...lab.state.station,historyUrl:source,historyIgnoredTitles:['Mischwerk dein Radio','Dein Mix auf Mischwerk'],allowedHosts:[...lab.state.station.allowedHosts,'mischwerk.spcast.eu']};
+  await lab.page.evaluate(state=>__emit('mw:state',{...state,revision:2}),lab.state);
+  return {...lab,source};
+}
+const historyRow = (time, song) => ({timestamp:Date.parse(time)/1000,metadata:{song}});
+
+test('Historienzugriff bleibt Hörern, Channelmoderatoren und Appmanagern auch bei direkten Reiteraufrufen versperrt',async t=>{
+  for(const role of ['listener','channelModerator','manager']){
+    const {page,state,requests,errors}=await setup(t,{role,view:'studio',station:true,clock:true});
+    assert.equal(Object.hasOwn(state.station,'historyUrl'),false);assert.equal(state.user.canModerate,false);
+    assert.equal(await page.locator('#studio-history-tab').isVisible(),false);
+    await page.locator('#studio-history-tab').evaluate(n=>n.click());
+    await page.clock.runFor(60000);
+    assert.equal(await page.locator('#history-panel').isVisible(),false);assert.equal(await page.locator('#history-list li').count(),0);
+    assert.equal(requests.some(url=>url.includes('/sp/cache/history/')),false);assert.deepEqual(errors,[]);
+  }
+  const listener=await setup(t,{role:'listener',view:'schedule'});
+  assert.equal(await listener.page.locator('#schedule-panel').isVisible(),true);
+  assert.equal(await listener.page.locator('#studio-history-tab').count(),0,'Der Kalender-Ladeplan enthält keine Historienoberfläche');
+});
+
+test('Rechteverlust bricht die Moderationshistorie ab, leert Titel und Seiten und verwirft die späte Antwort',async t=>{
+  let calls=0,release;const gate=new Promise(resolve=>{release=resolve;});
+  const {page,state,requests,errors}=await historySetup(t,async route=>{
+    calls++;if(calls===2){await gate;return route.fulfill({json:[historyRow('2026-11-03T11:30:00Z','Verspäteter privater Titel')]}).catch(()=>{});}
+    return route.fulfill({json:[historyRow('2026-11-03T11:00:00Z',calls===1?'Bisher geladener Titel':'Frisch nach Ernennung')]});
+  });
+  try{
+    await page.locator('#studio-history-tab').click();await page.locator('#history-list li').waitFor();
+    await page.locator('#history-refresh').click();await page.waitForFunction(()=>document.getElementById('history-refresh').disabled);
+    await page.evaluate(state=>__emit('mw:state',{...state,revision:3,user:{...state.user,canModerate:false}}),state);
+    assert.equal(await page.locator('#studio-history-tab').isVisible(),false);assert.equal(await page.locator('#history-list li').count(),0);
+    assert.equal(await page.locator('#history-panel').isVisible(),false);
+    release();await page.waitForTimeout(50);const before=requests.length;
+    await page.locator('#studio-history-tab').evaluate(n=>n.click());await page.clock.runFor(60000);
+    assert.equal(requests.length,before);assert.equal(await page.locator('#history-list li').count(),0);
+    await page.evaluate(state=>__emit('mw:state',{...state,revision:4}),state);
+    assert.equal(await page.locator('#history-panel').isVisible(),false);
+    await page.locator('#studio-history-tab').click();await page.locator('#history-list li span').filter({hasText:'Frisch nach Ernennung'}).waitFor();
+    assert.equal(await page.locator('#history-list li').count(),1);assert.deepEqual(errors,[]);
+  }finally{release();}
+});
+test('Tageshistorie zeigt heute nach Senderzeit, erhält Wiederholungen und stellt Fremdtexte sicher dar', async t => {
+  const entries = Array.from({length:9},(_,i)=>historyRow('2026-11-03T10:0'+i+':00Z','Band – Titel '+i));
+  entries.push(entries[0],historyRow('2026-11-03T11:00:00Z','Band – Titel 0'),
+    historyRow('2026-11-03T11:30:00Z','<img src=x onerror=alert(1)>'),historyRow('2026-11-02T22:59:59Z','Gestern'),
+    historyRow('2026-11-03T13:00:00Z','Noch nicht gespielt'),historyRow('2026-11-03T10:00:00Z','Unknown'));
+  const {page,state,requests,source,errors}=await historySetup(t,r=>r.fulfill({json:entries}));
+  assert.equal(requests.includes(source),false);
+  const sizes=await page.evaluate(()=>__sizes.slice());
+  await page.locator('#studio-history-tab').click();await page.locator('#history-list li').first().waitFor();
+  assert.ok((await page.locator('#history-list li').count())>0 && (await page.locator('#history-list li').count())<=6);
+  assert.equal(await page.locator('#history-list li').first().textContent(),'12:30:00<img src=x onerror=alert(1)>');
+  assert.equal(await page.locator('#history-list img').count(),0);
+  assert.equal(await page.locator('#history-heading').textContent(),'Heute · 03.11.2026');
+  assert.equal(await page.locator('#studio-programme').isVisible(),false);
+  const calendarReads=await page.evaluate(()=>__sent.filter(e=>e.type==='mw:schedule.get').length);
+  await page.evaluate(state=>__emit('mw:state',{...state,revision:3}),state);
+  assert.equal(await page.evaluate(()=>__sent.filter(e=>e.type==='mw:schedule.get').length),calendarReads);
+  const texts=[...(await page.locator('#history-list li span').allTextContents())];
+  while(!await page.locator('#history-next').isDisabled()) { await page.locator('#history-next').click();texts.push(...await page.locator('#history-list li span').allTextContents()); }
+  assert.equal(texts.filter(text=>text==='Band – Titel 0').length,2);
+  assert.ok(!texts.some(text=>['Gestern','Noch nicht gespielt','Unknown'].includes(text)));
+  for(const width of [320,390,820]){
+    await page.setViewportSize({width,height:660});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    for(const control of await page.locator('#history-panel button:visible').all())await control.scrollIntoViewIfNeeded();
+  }
+  assert.deepEqual(await page.evaluate(()=>__sizes),sizes);
+  await page.locator('#studio-history-tab').focus();await page.keyboard.press('ArrowLeft');
+  assert.equal(await page.locator('#studio-programme').isVisible(),true);
+  assert.equal(await page.locator('#studio-programme-tab').evaluate(n=>n===document.activeElement),true);
+  assert.deepEqual(errors,[]);
+});
+test('Tageshistorie blendet konfigurierte Senderjingles aus und erhält ähnliche Musiktitel unverändert',async t=>{
+  let entries=['Mischwerk dein Radio','  MISCHWERK  dein\tRadio  ','Dein Mix auf Mischwerk','dein mix auf mischwerk',
+    'GAYLE - abcdefu','Cher - Believe','The Black Eyed Peas - I Gotta Feeling','Band - Dein Mix auf Mischwerk'].map((text,i)=>historyRow('2026-11-03T10:0'+i+':00Z',text));
+  const {page,state,errors}=await historySetup(t,r=>r.fulfill({json:entries}));
+  await page.locator('#studio-history-tab').click();await page.locator('#history-feedback').filter({hasText:'Aktualisiert'}).waitFor();
+  assert.deepEqual(await page.locator('#history-list li span').allTextContents(),
+    ['Band - Dein Mix auf Mischwerk','The Black Eyed Peas - I Gotta Feeling','Cher - Believe','GAYLE - abcdefu']);
+  assert.equal(await page.locator('#history-list time').last().textContent(),'11:04:00');
+  assert.equal(await page.locator('#history-pagination').isVisible(),false);
+  await page.evaluate(state=>__emit('mw:state',{...state,revision:3,station:{...state.station,historyIgnoredTitles:[]}}),state);
+  await page.locator('#history-refresh:not([disabled])').waitFor();
+  assert.equal(await page.locator('#history-list li').count(),6);assert.equal(await page.locator('#history-page').textContent(),'Seite 1 / 2');
+  await page.evaluate(state=>__emit('mw:state',{...state,revision:4}),state);await page.locator('#history-refresh:not([disabled])').waitFor();
+  assert.equal(await page.locator('#history-list li').count(),4);
+  entries=entries.slice(0,4);await page.locator('#history-refresh').click();
+  await page.locator('#history-feedback').filter({hasText:'Aktualisiert'}).waitFor();
+  assert.equal(await page.locator('#history-list li').count(),0);assert.equal(await page.locator('#history-empty').isVisible(),true);
+  assert.deepEqual(errors,[]);
+});
+
+test('Historie passt ihre Seiten ohne Scrollen an den Overlayrahmen an und erhält extrem lange Titel vollständig',async t=>{
+  const longTitle=('Band – Sehr langer Titel 🎵 mit unverändertem Text. ').repeat(35);
+  const entries=[historyRow('2026-11-03T11:59:00Z',longTitle),...Array.from({length:10},(_,i)=>historyRow('2026-11-03T10:'+String(i).padStart(2,'0')+':00Z','Band – Titel '+i))];
+  const {page,errors}=await historySetup(t,r=>r.fulfill({json:entries}));
+  await page.locator('#studio-history-tab').click();await page.locator('#history-feedback').filter({hasText:'Aktualisiert'}).waitFor();
+  for(const [width,height] of [[820,660],[390,480],[320,400]]){
+    await page.setViewportSize({width,height});
+    let guard=0;while(!await page.locator('#history-previous').isDisabled()){
+      assert.ok(guard++<100);await page.locator('#history-previous').click();
+    }
+    const recovered=new Map();guard=0;
+    for(;;){
+      const geometry=await page.evaluate(()=>({height:document.documentElement.scrollHeight,width:document.documentElement.scrollWidth,controls:document.getElementById('history-pagination').getBoundingClientRect().bottom,
+        shell:document.querySelector('.dialog-shell').getBoundingClientRect().bottom,body:document.body.getBoundingClientRect().bottom,
+        list:document.getElementById('history-list').getBoundingClientRect().height,footer:document.querySelector('#history-panel .fine-print').getBoundingClientRect().bottom}));
+      assert.ok(geometry.height<=height+1,JSON.stringify({width,height,...geometry}));assert.ok(geometry.width<=width);
+      assert.ok(geometry.controls<=height+1);
+      for(const row of await page.locator('#history-list li').evaluateAll(nodes=>nodes.map(n=>({key:n.querySelector('time').dateTime,text:n.querySelector('span').textContent})))){
+        recovered.set(row.key,(recovered.get(row.key)||'')+row.text);
+      }
+      if(await page.locator('#history-next').isDisabled())break;
+      assert.ok(guard++<100);await page.locator('#history-next').click();
+    }
+    assert.equal(recovered.size,entries.length);for(const row of entries)assert.equal(recovered.get(new Date(row.timestamp*1000).toISOString()),row.metadata.song);
+  }
+  await page.locator('#studio-programme-tab').click();assert.equal(await page.locator('html').evaluate(n=>n.classList.contains('history-open')),false);
+  assert.deepEqual(errors,[]);
+});
+
+test('Tageshistorie behält heutige Daten bei Abruffehlern, begrenzt Anfragen und beendet sie im Hintergrund',async t=>{
+  let broken=false,count=0;
+  const {page,state,errors}=await historySetup(t,r=>{count++;return broken?r.fulfill({status:503,body:'unavailable'}):r.fulfill({json:[historyRow('2026-11-03T11:00:00Z','Mein Titel')]});});
+  await page.locator('#studio-history-tab').click();await page.locator('#history-list li').waitFor();
+  broken=true;await page.locator('#history-refresh').click();
+  await page.locator('#history-feedback').filter({hasText:'nicht erreichbar'}).waitFor();
+  assert.equal(await page.locator('#history-list li span').textContent(),'Mein Titel');const before=count;
+  await page.clock.runFor(59000);assert.equal(count,before);
+  broken=false;await page.clock.runFor(1001);await page.locator('#history-feedback').filter({hasText:'Aktualisiert'}).waitFor();
+  assert.equal(count,before+1);
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
+  const hidden=count;await page.clock.runFor(120000);assert.equal(count,hidden);
+  await page.evaluate(state=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});__emit('mw:state',{...state,revision:3});document.dispatchEvent(new Event('visibilitychange'));},state);
+  await page.locator('#history-refresh:not([disabled])').waitFor();assert.equal(count,hidden+1);assert.deepEqual(errors,[]);
+});
+test('Tageshistorie entfernt gestern um Mitternacht und zeigt neue heutige Meldungen ohne alte Daten',async t=>{
+  const entries=[historyRow('2026-11-03T22:59:00Z','Vor Mitternacht'),historyRow('2026-11-03T23:00:00Z','Neuer Tag')];
+  const {page,errors}=await historySetup(t,r=>r.fulfill({json:entries}),'2026-11-03T22:59:58Z');
+  await page.locator('#studio-history-tab').click();await page.locator('#history-list li').waitFor();
+  assert.equal(await page.locator('#history-list li span').textContent(),'Vor Mitternacht');
+  await page.clock.runFor(3000);await page.locator('#history-heading').filter({hasText:'04.11.2026'}).waitFor();
+  await page.locator('#history-list li span').filter({hasText:'Neuer Tag'}).waitFor();
+  assert.equal(await page.locator('#history-list li').count(),1);assert.equal(await page.locator('#history-list time').textContent(),'00:00:00');
+  assert.deepEqual(errors,[]);
+});
+test('Tageshistorie bricht beim Reiterwechsel ab und übernimmt keine verspätete alte Antwort',async t=>{
+  let release,first=true;
+  const {page,errors}=await historySetup(t,async r=>{
+    if(first){first=false;await new Promise(resolve=>{release=resolve;});return r.fulfill({json:[historyRow('2026-11-03T11:00:00Z','Alte Antwort')]}).catch(()=>{});}
+    return r.fulfill({json:[historyRow('2026-11-03T11:30:00Z','Aktuelle Antwort')]});
+  });
+  try{
+    await page.locator('#studio-history-tab').click();await page.waitForFunction(()=>document.getElementById('history-refresh').disabled);
+    await page.locator('#studio-programme-tab').click();await page.locator('#studio-history-tab').click();
+    await page.locator('#history-list li span').filter({hasText:'Aktuelle Antwort'}).waitFor();release();
+    await page.waitForTimeout(50);assert.equal(await page.locator('#history-list li span').textContent(),'Aktuelle Antwort');assert.deepEqual(errors,[]);
+  }finally{if(release)release();}
+});
+test('Tageshistorie zeigt bei leeren Providerdaten keine Platzhalter als gespielte Lieder',async t=>{
+  const {page,errors}=await historySetup(t,r=>r.fulfill({json:[historyRow('2026-11-03T10:00:00Z','Unknown'),historyRow('2026-11-03T11:00:00Z','')]}));
+  await page.locator('#studio-history-tab').click();await page.locator('#history-feedback').filter({hasText:'Aktualisiert'}).waitFor();
+  assert.equal(await page.locator('#history-list li').count(),0);assert.equal(await page.locator('#history-empty').isVisible(),true);assert.deepEqual(errors,[]);
+});
+
+for (const view of ['studio','team']) {
+  const button=view==='studio'?'#refresh-queue':'#refresh-radio-team';
+  const feedback=view==='studio'?'#queue-refresh-feedback':'#team-refresh-feedback';
+  test(view+': Aktualisieren bestätigt unveränderte Daten, sperrt Doppelklicks und erhält Maße/Fokus/Entwurf',async t=>{
+    for(const width of [320,780]) {
+      const {page,state,errors}=await setup(t,{view,clock:true,viewport:{width,height:900}});
+      const draft=view==='studio'?'#studio-topic':'#radio-moderator-nick';
+      await page.locator(draft).fill('Mein Entwurf');
+      if(view==='studio' && await page.locator('#studio-queue-tab').isVisible())await page.locator('#studio-queue-tab').click();
+      await page.clock.runFor(150);
+      const before=await page.locator('.dialog-shell').boundingBox();
+      await page.locator(button+' svg').click();
+      const request=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:refresh'));
+      assert.match(request.data.requestId,/^refresh-/);
+      assert.match(await page.locator(feedback).textContent(),/Aktualisiere/);
+      assert.equal(await page.locator(button).getAttribute('aria-busy'),'true');
+      await page.locator(button).evaluate(b=>{b.click();b.click();});
+      assert.equal(await page.evaluate(()=>__sent.filter(e=>e.type==='mw:refresh').length),1);
+      await page.evaluate(({state,id})=>__emit('mw:state',{...state,refreshRequestId:id}),{state,id:request.data.requestId});
+      assert.match(await page.locator(feedback).textContent(),/Aktualisiert · \d\d:\d\d/);
+      assert.equal(await page.locator(button).getAttribute('aria-busy'),null);
+      assert.equal(await page.locator(button).evaluate(b=>b===document.activeElement),true);
+      assert.equal(await page.locator(draft).inputValue(),'Mein Entwurf');
+      await page.clock.runFor(150);
+      assert.deepEqual(await page.locator('.dialog-shell').boundingBox(),before);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      assert.deepEqual(errors,[]);
+    }
+  });
+  test(view+': Fehlende/alte Antworten melden Fehler, Wiederholung und Tastatur funktionieren',async t=>{
+    const {page,state,errors}=await setup(t,{view,clock:true});
+    if(view==='studio' && await page.locator('#studio-queue-tab').isVisible())await page.locator('#studio-queue-tab').click();
+    await page.locator(button).focus();await page.keyboard.press('Enter');
+    const first=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:refresh').data.requestId);
+    await page.evaluate(s=>{__emit('mw:state',{...s,revision:3});__emit('mw:state',{...s,revision:2,refreshRequestId:__sent.findLast(e=>e.type==='mw:refresh').data.requestId});},state);
+    assert.equal(await page.locator(button).getAttribute('aria-busy'),'true','Fremder Push und veraltete Daten bestätigen nicht');
+    await page.clock.runFor(15001);
+    assert.match(await page.locator(feedback).textContent(),/Keine Antwort/);
+    await page.keyboard.press('Space');
+    const second=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:refresh').data.requestId);assert.notEqual(second,first);
+    await page.evaluate(({s,id})=>__emit('mw:state',{...s,revision:3,refreshRequestId:id}),{s:state,id:first});
+    assert.equal(await page.locator(button).getAttribute('aria-busy'),'true','Verspätete erste Antwort bestätigt keinen zweiten Versuch');
+    await page.evaluate(id=>__emit('mw:result',{action:'mw:refresh',requestId:id,ok:false,message:'Bitte erneut aktualisieren.'}),second);
+    assert.match(await page.locator(feedback).textContent(),/Nicht aktualisiert/);
+    await page.clock.runFor(66000);
+    assert.equal(await page.locator(button).isEnabled(),true,'Wiederverbindung bleibt erreichbar');
+    await page.locator(button).click();
+    await page.evaluate(s=>__emit('mw:state',{...s,revision:3,refreshRequestId:__sent.findLast(e=>e.type==='mw:refresh').data.requestId}),state);
+    assert.match(await page.locator(feedback).textContent(),/Aktualisiert/);
+    await page.evaluate(()=>{Client.sendEvent=()=>{throw Error('unterbrochen');};});
+    await page.locator(button).click();
+    assert.match(await page.locator(feedback).textContent(),/Verbindung fehlt/);
+    assert.equal(await page.locator(button).getAttribute('aria-busy'),null);
+    assert.deepEqual(errors,[]);
+  });
+}
 async function validDialogSizes(page) {
   const sizes=await page.evaluate(()=>window.__sizes);
   assert.ok(sizes.every(([width,height])=>(width===0||(width>=50&&width<=1000))&&height>=260&&height<=1000));
@@ -212,7 +446,7 @@ test('Moderationsfenster nimmt vor Sichtbarkeit genau seine Inhaltshöhe an und 
     await page.waitForFunction(()=>__sizes.length===1&&innerHeight===__sizes[0][1]);
     const first=await page.evaluate(()=>({sizes:__sizes.slice(),states:__sizeStates.slice(),natural:Math.ceil(document.querySelector('.dialog-shell').getBoundingClientRect().height)}));
     assert.equal(first.sizes[0][1],first.natural);
-    assert.ok(first.natural>=560&&first.natural<=620,'Passende Standardhöhe ohne den bisherigen 680-px-Leerraum');
+    assert.ok(first.natural>=560&&first.natural<=740,'Passende Inhaltshöhe einschließlich des kompakten Sendungsassistenten');
     assert.equal(first.states[0].visible,false);
     assert.equal(await page.locator('#studio-panel').evaluate(n=>n.classList.contains('fit-tabs')),false);
     await page.waitForTimeout(1250);
@@ -220,7 +454,11 @@ test('Moderationsfenster nimmt vor Sichtbarkeit genau seine Inhaltshöhe an und 
     await page.waitForTimeout(120);
     assert.deepEqual(await page.evaluate(()=>__sizes),first.sizes,'Identischer Zustand und Hostantwort erzeugen keine Folgehöhe');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight+1),false);
-    if(k3&&process.env.MISCHWERK_CAPTURE_STUDIO_HEIGHT)await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/moderation-780.png')});
+    if(k3&&process.env.MISCHWERK_CAPTURE_STUDIO_HEIGHT) {
+      await page.locator('#refresh-queue').click();
+      await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1,refreshRequestId:__sent.findLast(e=>e.type==='mw:refresh').data.requestId}),state);
+      await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/moderation-780.png')});
+    }
     assert.deepEqual(errors,[]);
   }
 });
@@ -268,10 +506,18 @@ test('Fensteröffnung: Radio-Team bleibt mit angewendeten animierten Hostgröße
     await page.waitForTimeout(100);
     assert.deepEqual(await page.evaluate(()=>__sizes),first.sizes,'Unveränderter Push erzeugt keinen Größenwechsel');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight+1),false);
-    await page.locator('#team-status-tab').click();
-    await page.waitForFunction(()=>__sizes.length===2&&innerHeight===__sizes[1][1]);
-    await page.waitForTimeout(160);
-    assert.equal(await page.evaluate(()=>__sizes.length),2,'Ein Reiterwechsel führt zu genau einer neuen Zielgröße');
+    const geometry=await page.locator('.team-tabs').boundingBox();
+    if(k3&&width===560&&process.env.MISCHWERK_CAPTURE_TEAM_TABS) {
+      await page.locator('#refresh-radio-team').click();
+      await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1,refreshRequestId:__sent.findLast(e=>e.type==='mw:refresh').data.requestId}),state);
+      await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/radio-team-560.png')});
+    }
+    for(const selector of ['#team-status-tab','#team-members-tab','#team-status-tab','#team-members-tab']){
+      await page.locator(selector).click();await page.waitForTimeout(160);
+      assert.deepEqual(await page.evaluate(()=>__sizes),first.sizes,'Reiterwechsel ändert die gemeinsame Höhe nicht');
+      assert.deepEqual(await page.locator('.team-tabs').boundingBox(),geometry,'Kopf und Reiter bleiben an derselben Stelle');
+      if(k3&&width===560&&selector==='#team-status-tab'&&process.env.MISCHWERK_CAPTURE_TEAM_TABS)await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/statuszentrale-560.png')});
+    }
     assert.deepEqual(errors,[]);
   }
 });
@@ -452,14 +698,12 @@ test('Statuszentrale trennt STREAMPANEL-LIVE/AutoDJ und Studio-ON-AIR und zeigt 
   const {page,state,errors}=await setup(t,{view:'team',station:true,k3:false,viewport:{width:560,height:560}});
   let isLive=false;
   await page.route('https://stats.example.com/widget/radio/test-radio/track/current',route=>route.fulfill({json:{title:'A < B',artist:'Interpret',is_live:isLive}}));
-  await page.route('**/test-radio/listener',route=>route.fulfill({json:{listener_count:0}}));
   await page.locator('#team-status-tab').click(); await statusReady(page);
   assert.equal(await page.locator('#team-members').isVisible(),false);
   assert.equal(await page.locator('#status-mode-value').textContent(),'AutoDJ');
   assert.match(await page.locator('#status-mode-detail').textContent(),/STREAMPANEL-Titelkennzeichnung/);
   assert.equal(await page.locator('#status-studio-value').textContent(),'Kein ON AIR');
   assert.equal(await page.locator('#status-transmission-value').textContent(),'Sendet');
-  assert.equal(await page.locator('#status-listeners-value').textContent(),'0');
   assert.equal(await page.locator('#status-app-value').textContent(),'Verbunden');
   assert.equal(await page.locator('#status-mode-warning').isVisible(),false);
   await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,requestsEnabled:false,queueTotal:8,topic:'<img src=x>',moderator:{nick:'<b>Stimme</b>',expiresAt:Date.now()+60000}}),state);
@@ -480,27 +724,24 @@ test('Statuszentrale trennt STREAMPANEL-LIVE/AutoDJ und Studio-ON-AIR und zeigt 
   assert.deepEqual(errors,[]);
 });
 
-test('Statuszentrale erfindet aus fehlenden, falschen oder gesperrten Daten keinen AutoDJ- oder Hörerstatus',async t=>{
+test('Statuszentrale erfindet aus fehlenden, falschen oder gesperrten Daten keinen AutoDJ-Status',async t=>{
   const {page,errors}=await setup(t,{view:'team',station:true});
-  let song={title:'Titel',artist:'Interpret',is_live:false},info={slug:'test-radio',stream_status:'started'},listeners={listener_count:20},http=200;
+  let song={title:'Titel',artist:'Interpret',is_live:false},info={slug:'test-radio',stream_status:'started'};
   await page.route('**/test-radio/track/current',r=>r.fulfill({json:song}));
-  await page.route('**/test-radio/listener',r=>r.fulfill({status:http,json:listeners}));
   await page.route('**/test-radio',r=>r.fulfill({json:info}));
   await page.locator('#team-status-tab').click();await statusReady(page);
   for(const flag of [undefined,null,'false',0,{},'true']){
     song={title:'Titel',artist:'Interpret',is_live:flag};await statusRefresh(page);
     assert.equal(await page.locator('#status-mode-value').textContent(),'Status unbekannt');
   }
-  song={title:'Titel',artist:'Interpret',is_live:false};info={slug:'wrong-radio',stream_status:'started'};http=403;
+  song={title:'Titel',artist:'Interpret',is_live:false};info={slug:'wrong-radio',stream_status:'started'};
   await statusRefresh(page);
   assert.equal(await page.locator('#status-mode-value').textContent(),'Status unbekannt');
   assert.equal(await page.locator('#status-transmission-value').textContent(),'Nicht erreichbar');
-  assert.equal(await page.locator('#status-listeners-value').textContent(),'Nicht erreichbar');
-  info={slug:'test-radio',status:'active',live:true};http=200;listeners={listener_count:-1};await statusRefresh(page);
+  info={slug:'test-radio',status:'active',live:true};await statusRefresh(page);
   assert.equal(await page.locator('#status-transmission-value').textContent(),'Status unbekannt');
   assert.equal(await page.locator('#status-mode-value').textContent(),'Status unbekannt');
-  assert.equal(await page.locator('#status-listeners-value').textContent(),'Nicht erreichbar');
-  info={slug:'test-radio',stream_status:'started'};song=null;listeners={listener_count:0};await statusRefresh(page);
+  info={slug:'test-radio',stream_status:'started'};song=null;await statusRefresh(page);
   assert.equal(await page.locator('#status-metadata-value').textContent(),'Keine Titelangaben');
   assert.equal(await page.locator('#status-mode-value').textContent(),'Status unbekannt');
   assert.deepEqual(errors,[]);
@@ -523,7 +764,7 @@ test('Statuszentrale prüft Sendepausen ohne Audio oder Titelabruf und erholt si
 
 test('Statuszentrale pollt 30/60 Sekunden nur im sichtbaren Reiter und beendet Abfragen bei Seitenende',async t=>{
   const {page,state,requests,errors}=await setup(t,{view:'team',station:true,clock:true});let failed=false,calls=0;
-  await page.route('**/test-radio/listener',r=>{calls++;return r.fulfill({status:failed?503:200,json:{listener_count:0}});});
+  await page.route('**/test-radio',r=>{calls++;return r.fulfill({status:failed?503:200,json:{slug:'test-radio',stream_status:'started'}});});
   const pulse=()=>page.evaluate(state=>window.__emit('mw:state',state),state);
   await page.locator('#team-status-tab').click();await statusReady(page);assert.equal(calls,1);
   await page.clock.runFor(29900);assert.equal(calls,1);
@@ -544,16 +785,14 @@ test('Statuszentrale pollt 30/60 Sekunden nur im sichtbaren Reiter und beendet A
 test('Statuszentrale verwirft verspätete Senderantworten, begrenzt Parallelabfragen und stoppt bei Rechteverlust',async t=>{
   const {page,state,requests,errors}=await setup(t,{view:'team',station:true});let release,calls=0;
   const gate=new Promise(resolve=>{release=resolve;});
-  await page.route('**/test-radio/listener',async r=>{calls++;await gate;return r.fulfill({json:{listener_count:999}});});
-  const requested=page.waitForRequest('**/test-radio/listener');
+  await page.route('**/test-radio',async r=>{calls++;await gate;return r.fulfill({json:{slug:'test-radio',stream_status:'stopped'}});});
+  const requested=page.waitForRequest('**/test-radio');
   await page.locator('#team-status-tab').click();await requested;
   assert.equal(await page.locator('#refresh-status').isDisabled(),true);
   await page.locator('#refresh-status').evaluate(b=>{b.click();b.dispatchEvent(new MouseEvent('click',{bubbles:true}));});assert.equal(calls,1);
-  await page.route('**/other-radio/listener',r=>r.fulfill({json:{listener_count:7}}));
   await page.route('**/other-radio/track/current',r=>r.fulfill({json:{title:'Neuer Sender',is_live:true}}));
-  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,station:{...state.station,stationId:'other-radio',streamUrl:'https://stream.example.com/other-radio',metadataUrl:'https://stats.example.com/widget/radio/other-radio/track/current',statusUrl:'https://stats.example.com/widget/radio/other-radio',listenersUrl:'https://stats.example.com/widget/radio/other-radio/listener'}}),state);
+  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,station:{...state.station,stationId:'other-radio',streamUrl:'https://stream.example.com/other-radio',metadataUrl:'https://stats.example.com/widget/radio/other-radio/track/current',statusUrl:'https://stats.example.com/widget/radio/other-radio'}}),state);
   await statusReady(page);release();await page.waitForTimeout(30);
-  assert.equal(await page.locator('#status-listeners-value').textContent(),'7');
   assert.equal(await page.locator('#status-mode-value').textContent(),'LIVE');
   await page.evaluate(state=>window.__emit('mw:state',{...state,revision:3,user:{...state.user,canManageRadioModerators:false}}),state);
   assert.equal(await page.locator('#team-panel').isVisible(),false);
@@ -609,16 +848,17 @@ test('Statuszentrale bleibt dem tatsächlichen Channelinhaber vorbehalten und be
   }
 });
 
-test('Kompakte Statuszentrale zeigt alle neun Statuswerte bei 320 und 560 Pixeln ohne Scrollen',async t=>{
-  const {page,errors}=await setup(t,{view:'team',station:true,k3:false,viewport:{width:560,height:560}});
+test('Gemeinsames Teamfenster zeigt alle acht Statuswerte bei 320 bis 780 Pixeln ohne Scrollen',async t=>{
+  const {page,errors}=await setup(t,{view:'team',station:true,k3:false,nativeSizing:true,screenHeight:1200,viewport:{width:560,height:560}});
   await page.route('**/test-radio/track/current',r=>r.fulfill({json:{title:'American Pie',artist:'Don McLean',is_live:false}}));
   await page.locator('#team-status-tab').click();await statusReady(page);
   const measurements=[];
   for(const width of [560,320,390,480,481,780]){
-    await page.setViewportSize({width,height:560});await page.evaluate(()=>window.scrollTo(0,0));
+    await page.setViewportSize({width,height:page.viewportSize().height});await page.evaluate(()=>window.scrollTo(0,0));
+    await page.waitForFunction(()=>Math.abs(innerHeight-Math.ceil(document.querySelector('.dialog-shell').getBoundingClientRect().height))<=1);
     const result=await page.evaluate(()=>{
-      const ids=['mode','transmission','studio','listeners','app','wishes','queue','metadata','topic'];
-      return {width:innerWidth,height:document.querySelector('.dialog-shell').getBoundingClientRect().height,
+      const ids=['mode','transmission','studio','app','wishes','queue','metadata','topic'];
+      return {width:innerWidth,viewportHeight:innerHeight,height:document.querySelector('.dialog-shell').getBoundingClientRect().height,
         overflow:document.documentElement.scrollWidth>innerWidth||document.documentElement.scrollHeight>innerHeight,
         detailsOpen:document.getElementById('status-details').open,
         values:ids.map(id=>{const n=document.getElementById('status-'+id+'-value'),r=n.getBoundingClientRect();return {id,text:n.textContent,top:r.top,bottom:r.bottom,font:parseFloat(getComputedStyle(n).fontSize)};}),
@@ -626,7 +866,7 @@ test('Kompakte Statuszentrale zeigt alle neun Statuswerte bei 320 und 560 Pixeln
     });
     measurements.push(result);
     assert.equal(result.overflow,false,JSON.stringify(result));assert.equal(result.detailsOpen,false);
-    for(const value of result.values){assert.ok(value.text&&value.top>=0&&value.bottom<=560&&value.font>=16,JSON.stringify(value));}
+    for(const value of result.values){assert.ok(value.text&&value.top>=0&&value.bottom<=result.viewportHeight&&value.font>=16,JSON.stringify(value));}
     assert.ok(result.controlHeights.every(height=>height>=44));
     if(width===560||width===320)await captureDesign(page,'Statuszentrale-'+width);
   }
@@ -645,7 +885,7 @@ test('Statusdetails bleiben vollständig erreichbar und bei Aktualisierungen ge�
   assert.equal(await page.locator('#status-studio-value').textContent(),'ON AIR · '+nick);
   const summary=page.locator('#status-details > summary');await summary.focus();await page.keyboard.press('Enter');
   assert.equal(await page.locator('#status-details').getAttribute('open'),'');
-  for(const name of ['mode','transmission','studio','listeners','metadata','app','wishes','queue','topic']){
+  for(const name of ['mode','transmission','studio','metadata','app','wishes','queue','topic']){
     assert.ok((await page.locator('#status-'+name+'-detail').textContent()).length);
   }
   assert.match(await page.locator('#status-metadata-detail').textContent(),new RegExp(title));
@@ -664,161 +904,35 @@ test('Statusdetails bleiben vollständig erreichbar und bei Aktualisierungen ge�
   assert.equal(await page.locator('#radio-moderator-form').isVisible(),true);assert.deepEqual(errors,[]);
 });
 
-test('STREAMPANEL-Hörerzahl ist für alle Rollen sichtbar und aktualisiert sich auch ohne Play alle 20 Sekunden', async t => {
-  for (const role of ['listener', 'radioModerator', 'owner']) {
-    const { page, errors } = await setup(t, { station: true, role, clock: true, viewport: { width: 960, height: 160 } });
-    await page.locator('#listener-count').filter({ hasText: 'Hörer: 12' }).waitFor();
-    let value = 0, calls = 0;
-    await page.route('https://stats.example.com/widget/radio/test-radio/listener', route => {
-      calls += 1; return route.fulfill({ json: { listener_count: value } });
-    });
-    await page.clock.fastForward(20100);
-    await page.locator('#listener-count').filter({ hasText: 'Hörer: 0' }).waitFor();
-    assert.equal(calls, 1);
-    value = '1234';
-    await page.clock.fastForward(20100);
-    await page.locator('#listener-count').filter({ hasText: 'Hörer: 1.234' }).waitFor();
-    assert.equal(calls, 2);
-    assert.equal(await page.locator('#radio-audio').getAttribute('src'), null);
-    for (const width of [320, 700, 1360]) {
-      await resizeViewport(page, { width, height: 160 });
-      await page.locator('#listener-count').scrollIntoViewIfNeeded();
-      assert.equal(await page.locator('#listener-count').isVisible(), true);
-      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-    }
-    assert.deepEqual(errors, []);
+test('Hörerzahl bleibt in allen Rollen und Ansichten ohne Anzeige und ohne Abfragetimer entfernt',async t=>{
+ for(const role of ['owner','radioModerator','channelModerator','manager','listener']){
+  const {page,state,requests,errors}=await setup(t,{station:true,role,clock:true,viewport:{width:1360,height:160}});
+  await page.evaluate(state=>__emit('mw:state',{...state,revision:2,station:{...state.station,
+   listenersUrl:'https://stats.example.com/obsolete-listeners',fields:{...state.station.fields,listeners:'listener_count'}}}),state);
+  for(const width of [320,390,699,700,1099,1100,1360,2290]){
+   await resizeViewport(page,{width,height:160});
+   assert.equal(await page.locator('#listener-count,#listener-value,.listener-icon').count(),0);
+   assert.equal(await page.locator('.presenter').isVisible(),true);
+   assert.equal(await page.locator('#stream-label').evaluate(n=>!!n.closest('.sr-only')),true);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+   if(role==='owner'&&[320,700,2290].includes(width)){await captureDesign(page,'Appleiste-ohne-Hoerer-'+width);}
   }
+  await page.clock.runFor(61000);
+  await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  assert.equal(requests.some(url=>url.includes('/listener')||url.includes('obsolete-listeners')),false);
+  assert.equal(requests.some(url=>url.endsWith('/track/current')),true);
+  assert.equal(requests.some(url=>url.includes('radio/listeners.js')),false);
+  assert.deepEqual(errors,[]);await page.context().close();
+ }
+ for(const view of ['wishes','studio','team','schedule']){
+  const {page,requests,errors}=await setup(t,{station:true,view,clock:true});
+  if(view==='team'){await page.locator('#team-status-tab').click();await statusReady(page);}
+  await page.clock.runFor(61000);
+  assert.equal(await page.locator('#listener-count,#status-listeners,#status-listeners-detail').count(),0);
+  assert.equal(requests.some(url=>url.endsWith('/listener')),false);assert.deepEqual(errors,[]);
+ }
 });
 
-test('STREAMPANEL-Hörerfehler zeigen keine falsche Null, erhalten Audio und warten 60 Sekunden bis zum Retry', async t => {
-  const { page, errors } = await setup(t, { station: true, clock: true });
-  await page.locator('#listener-count').filter({ hasText: 'Hörer: 12' }).waitFor();
-  await page.locator('#play-button').click();
-  await page.locator('#radio-audio').evaluate(audio => audio.dispatchEvent(new Event('playing')));
-  const source = await page.locator('#radio-audio').getAttribute('src');
-  let calls = 0;
-  await page.route('https://stats.example.com/widget/radio/test-radio/listener', route => {
-    calls += 1; return route.fulfill({ status: 403, json: { message: 'Forbidden' } });
-  });
-  await page.clock.fastForward(20100);
-  await page.locator('#listener-count').filter({ hasText: 'Hörer: nicht verfügbar' }).waitFor();
-  assert.equal(calls, 1);
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'), source);
-  await page.clock.fastForward(59000);
-  assert.equal(calls, 1);
-  await page.clock.fastForward(1100);
-  await page.waitForFunction(() => document.getElementById('listener-count').textContent === 'Hörer: nicht verfügbar');
-  await page.waitForTimeout(20);
-  assert.equal(calls, 2);
-  assert.deepEqual(errors, []);
-});
-
-test('STREAMPANEL-Hörerantworten werden streng geprüft und nach Rückkehr sofort neu gelesen', async t => {
-  const { page, errors } = await setup(t, { station: true });
-  await page.locator('#listener-count').filter({ hasText: 'Hörer: 12' }).waitFor();
-  let response;
-  await page.route('https://stats.example.com/widget/radio/test-radio/listener', route => route.fulfill({ json: response }));
-  for (response of [null, {}, [], { listener_count: null }, { listener_count: false }, { listener_count: -1 },
-    { listener_count: 1.5 }, { listener_count: '12 Hörer' }, { listener_count: '' },
-    { listener_count: 9007199254740992 }, { listener_count: 12, error: true }]) {
-    await page.evaluate(() => { document.getElementById('listener-value').textContent = ''; document.dispatchEvent(new Event('visibilitychange')); });
-    await page.locator('#listener-count').filter({ hasText: 'Hörer: nicht verfügbar' }).waitFor();
-  }
-  response = { listener_count: 7 };
-  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await page.locator('#listener-count').filter({ hasText: 'Hörer: 7' }).waitFor();
-  assert.deepEqual(errors, []);
-});
-
-test('STREAMPANEL-Hörerabfragen sind einfach laufend, sendergebunden und enden beim Seitenende', async t => {
-  const { page, state, requests, errors } = await setup(t, { station: true, clock: true });
-  await page.locator('#listener-count').filter({ hasText: 'Hörer: 12' }).waitFor();
-  let release, calls = 0;
-  const gate = new Promise(resolve => { release = resolve; });
-  t.after(release);
-  await page.route('https://stats.example.com/widget/radio/test-radio/listener', async route => {
-    calls += 1; await gate; await route.fulfill({ json: { listener_count: 8 } });
-  });
-  const pendingRequest = page.waitForRequest('https://stats.example.com/widget/radio/test-radio/listener');
-  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await pendingRequest;
-  for (let i = 0; i < 4; i++) { await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); }
-  assert.equal(calls, 1);
-  await page.route('https://stats.example.com/widget/radio/other-radio/listener', route => route.fulfill({ json: { listener_count: 99 } }));
-  await page.route('https://stats.example.com/widget/radio/other-radio/track/current', route => route.fulfill({ json: { title: 'Anderer Titel', artist: 'Andere Band' } }));
-  await page.evaluate(state => window.__emit('mw:state', { ...state, revision: 2, station: { ...state.station,
-    stationId: 'other-radio', streamUrl: 'https://stream.example.com/other-radio',
-    metadataUrl: 'https://stats.example.com/widget/radio/other-radio/track/current', statusUrl:'https://stats.example.com/widget/radio/other-radio', listenersUrl:'https://stats.example.com/widget/radio/other-radio/listener' } }), state);
-  await page.locator('#listener-count').filter({ hasText: 'Hörer: 99' }).waitFor();
-  const oldResponse = page.waitForResponse('https://stats.example.com/widget/radio/test-radio/listener');
-  release(); await oldResponse; await page.waitForTimeout(20);
-  assert.equal(await page.locator('#listener-count').textContent(), 'Hörer: 99');
-  const count = requests.filter(url => url.endsWith('/listener')).length;
-  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')));
-  await page.clock.fastForward(75000);
-  assert.equal(requests.filter(url => url.endsWith('/listener')).length, count);
-  assert.deepEqual(errors, []);
-});
-
-test('Popups und unsichtbare Radioleisten fragen keine STREAMPANEL-Hörerzahl ab', async t => {
-  for (const view of ['wishes', 'studio', 'team', 'schedule']) {
-    const { requests, errors } = await setup(t, { station: true, view });
-    assert.equal(requests.some(url => url.endsWith('/listener')), false);
-    assert.deepEqual(errors, []);
-  }
-  const { page, requests } = await setup(t, { station: true, clock: true });
-  await page.locator('#listener-count').filter({ hasText: 'Hörer: 12' }).waitFor();
-  const count = requests.filter(url => url.endsWith('/listener')).length;
-  await page.evaluate(() => Object.defineProperty(document, 'hidden', { configurable: true, value: true }));
-  await page.clock.fastForward(45000);
-  assert.equal(requests.filter(url => url.endsWith('/listener')).length, count);
-  await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: false }); document.dispatchEvent(new Event('visibilitychange')); });
-  await page.waitForTimeout(30);
-  assert.equal(requests.filter(url => url.endsWith('/listener')).length, count + 1);
-});
-
-test('Hörerzahl steht unter Play statt der sichtbaren Statuszeile und überlappt keine Radioaktion', async t => {
-  for (const role of ['listener', 'owner']) {
-    const { page, errors } = await setup(t, { station: true, role });
-    await page.locator('#listener-count').filter({ hasText: 'Hörer: 12' }).waitFor();
-    let count = 0;
-    await page.route('https://stats.example.com/widget/radio/test-radio/listener', route =>
-      route.fulfill({ json: { listener_count: count } }));
-    for (const value of [0, 1234, null]) {
-      count = value;
-      const response = page.waitForResponse('https://stats.example.com/widget/radio/test-radio/listener');
-      await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-      await response;
-      await page.locator('#listener-count').filter({ hasText: value === null ? 'nicht verfügbar' :
-        'Hörer: ' + value.toLocaleString('de-DE') }).waitFor();
-      for (const [width, height] of [[320, 160], [390, 160], [699, 160], [700, 160], [1099, 160], [1100, 160], [1360, 160], [390, 600]]) {
-        await resizeViewport(page, { width, height });
-        await page.waitForFunction(({ width, height }) => document.documentElement.classList.contains('radio-constrained') ===
-          (width < 700 && height < 360), { width, height });
-        const geometry = await page.evaluate(() => {
-          const play = document.getElementById('play-button').getBoundingClientRect();
-          const counter = document.getElementById('listener-count').getBoundingClientRect();
-          const actions = document.getElementById('radio-actions').getBoundingClientRect();
-          return { below: counter.top >= play.bottom, centered: Math.abs(counter.x + counter.width / 2 - play.x - play.width / 2),
-            top: counter.top, bottom: counter.bottom, left: counter.left, right: counter.right, actionsTop: actions.top,
-            constrained: document.documentElement.classList.contains('radio-constrained'),
-            overflow: document.documentElement.scrollWidth > innerWidth,
-            accessible: document.getElementById('listener-count').getAttribute('aria-label') };
-        });
-        assert.equal(geometry.below, true, 'Hörerzahl unter Play bei ' + width);
-        assert.ok(geometry.centered < 1.5, 'Hörerzahl mittig unter Play');
-        assert.ok(geometry.left >= 0 && geometry.right <= width, 'Hörerzahl bleibt im Frame');
-        if (geometry.constrained) { assert.ok(geometry.bottom <= geometry.actionsTop, 'Keine Überlagerung der Aktionen: ' + JSON.stringify({width, value, ...geometry})); }
-        assert.equal(geometry.overflow, false);
-        assert.match(geometry.accessible, /^Hörer: /);
-      }
-    }
-    assert.equal(await page.locator('.transport > #listener-count').count(), 1);
-    assert.equal(await page.locator('.radio-context #listener-count,.live-badge,.transport #stream-badge').count(), 0);
-    assert.equal(await page.locator('#stream-label').evaluate(node => !!node.closest('.sr-only')), true);
-    assert.deepEqual(errors, []);
-  }
-});
 async function resizeViewport(page, viewport) {
   await page.setViewportSize(viewport);
   await page.waitForFunction(() => document.documentElement.classList.contains('mw-ready'));
@@ -965,7 +1079,7 @@ test('Langsames Original-Logo blockiert weder bedienbare Radioleiste noch korrek
     assert.equal(await page.locator('#play-button').isEnabled(),true);
     await page.locator('#play-button').click();
     assert.equal(await page.locator('#radio-audio').getAttribute('src'),'https://stream.example.com/test-radio');
-    assert.equal(requests.filter(url=>url.startsWith('http://mischwerk.test/') && url.endsWith('.js')).length,22);
+    assert.equal(requests.filter(url=>url.startsWith('http://mischwerk.test/') && url.endsWith('.js')).length,24);
     assert.equal(requests.filter(url=>url.startsWith('http://mischwerk.test/') && url.endsWith('.css')).length,10);
     assert.equal(requests.some(url=>/\/js\/(studio|team|schedule)\//.test(url)),false);
     assert.deepEqual(errors,[]);
@@ -1127,8 +1241,8 @@ test('Studioleiste nutzt sehr breite Fenster vollständig und gruppiert auch ohn
     assert.ok(actions.x-music.x-music.width<=16,'Musik und Bedienung bleiben unmittelbar benachbart');
     assert.equal(await page.locator('#radio-topic').isVisible(),false);
     assert.equal(await page.locator('#open-wishes').isDisabled(),true);
-    assert.equal(await page.locator('#open-wishes').evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(41, 45, 46)','Gesicherte Wunschbox behält die dunkle Tastenfläche und bleibt nativ gesperrt');
-    assert.equal(await page.locator('#on-air-sign').textContent(),'DJ Mischwerk legt auf');
+    assert.equal(await page.locator('#open-wishes').evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(216, 187, 117)','Gesicherte Wunschbox behält die matte Goldfläche und bleibt nativ gesperrt');
+    assert.equal(await page.locator('#on-air-sign').textContent(),'Radio MischWerk');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     if(width===2291)await captureDesign(page,'Radio-Studio-2291');
   }
@@ -1152,8 +1266,8 @@ test('Hohe Auflösungen und Bildschirmskalierungen erhalten lesbare Gruppen, dir
     const bounds=await page.locator('#radio-panel').boundingBox();
     assert.equal(bounds.width,width);assert.equal(bounds.height,160);assert.equal(bounds.x,0);
     assert.equal(await page.evaluate(()=>devicePixelRatio),deviceScaleFactor);
-    assert.equal(await page.locator('.bar-logo').evaluate(n=>n.getBoundingClientRect().width),128);
-    assert.equal(await page.locator('#play-button').evaluate(n=>n.getBoundingClientRect().width),100);
+    assert.equal(await page.locator('.bar-logo').evaluate(n=>n.getBoundingClientRect().width),140);
+    assert.equal(await page.locator('#play-button').evaluate(n=>n.getBoundingClientRect().width),108);
     assert.equal(await page.locator('#track-title').evaluate(n=>getComputedStyle(n).fontSize),'26px');
     const actions=['#open-schedule','#open-wishes',...(role==='owner'?['#studio-tab','#team-tab']:[])];
     async function reachable() {
@@ -1168,7 +1282,7 @@ test('Hohe Auflösungen und Bildschirmskalierungen erhalten lesbare Gruppen, dir
     assert.equal(await page.locator('#radio-panel').evaluate(n=>getComputedStyle(n,'::after').content),'none','Keine Beleuchtung um die äußere Leiste');
     const light=await page.locator('.radio-program-face').evaluate(n=>{const r=n.getBoundingClientRect();return {left:r.left,right:innerWidth-r.right,outerWidth:r.width,top:r.top,height:r.height};});
     const metadata=await page.locator('#radio-metadata').boundingBox();
-    assert.ok(Math.abs(light.left-metadata.x)<1&&Math.abs(light.outerWidth-metadata.width)<1,'Weißer Rahmen folgt ausschließlich der inneren Musikgruppe');
+    assert.ok(light.left<metadata.x&&light.left+light.outerWidth>metadata.x+metadata.width,'Weißer Rahmen folgt der Musikkarte einschließlich Player und Hörertasten');
     assert.ok(light.left>0&&light.right>0&&light.outerWidth<width&&light.top>=0&&light.height<=160);
     const music=await page.locator('.radio-program-face').boundingBox(),volume=await page.locator('.volume-control').boundingBox();
     assert.ok(Math.abs((volume.x+volume.width/2)-(music.x+music.width/2))<1,'Lautstärke und Musik bleiben gemeinsam in der Mitte');
@@ -1183,7 +1297,7 @@ test('Hohe Auflösungen und Bildschirmskalierungen erhalten lesbare Gruppen, dir
       assert.equal(await page.locator('#radio-metadata').evaluate(n=>n.scrollWidth>n.clientWidth),false,'Keine horizontale Überbreite bei Langtext');
     }
     await page.evaluate(()=>{document.scrollingElement.scrollTop=0;document.body.scrollTop=0;document.getElementById('radio-metadata').scrollTop=0;});
-    assert.ok(await page.locator('#radio-metadata').evaluate(n=>{const r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=160&&n.clientHeight<=136;}),'Lange Musikangaben bleiben in der festen Musikfläche statt über den App-Rand hinauszuwachsen');
+    assert.ok(await page.locator('#radio-metadata').evaluate(n=>{const r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=160&&n.clientHeight<=144;}),'Lange Musikangaben bleiben in der festen Musikfläche statt über den App-Rand hinauszuwachsen');
     await page.locator('#radio-metadata').hover();await page.mouse.wheel(0,1000);
     await page.waitForFunction(()=>{const n=document.getElementById('radio-metadata');return n.scrollHeight<=n.clientHeight||n.scrollTop>0;});
     const longScroll=await page.locator('#radio-metadata').evaluate(n=>{
@@ -1371,7 +1485,7 @@ test('Deaktivierte Wunschbox ist sichtbar gesperrt, sendet keine Popup-Anfrage u
       assert.equal(await page.locator('#wish-button-caption').textContent(),'Deaktiviert');
       assert.equal(await page.locator('#open-wishes .wish-icon-lock').evaluate(n=>getComputedStyle(n).display!=='none'),true);
       assert.equal(await page.locator('#open-wishes .wish-icon-music').isVisible(),false);
-      assert.equal(await page.locator('#open-wishes').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(41, 45, 46)','Gesperrte Wunschbox behält die gemeinsame dunkle Fläche bei '+width);
+      assert.equal(await page.locator('#open-wishes').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(216, 187, 117)','Gesperrte Wunschbox behält die gemeinsame matte Goldfläche bei '+width);
       assert.equal(await page.locator('#open-wishes').evaluate(n=>getComputedStyle(n).borderTopColor),await page.locator('#open-schedule').evaluate(n=>getComputedStyle(n).borderTopColor),'Beide öffentlichen Aktionen behalten dieselbe Goldkontur bei '+width);
       assert.equal(await page.locator('#open-wishes .wish-button-arrow').isVisible(),false);
       assert.match(await page.locator('#open-wishes').getAttribute('title'),/deaktiviert/);
@@ -1437,8 +1551,13 @@ test('Wunschbox enthält weder Regeltext noch Offen-Limit und sperrt nicht wegen
   assert.doesNotMatch(await page.locator('#wishes-panel').innerText(),/2 offene|2 Minuten|24 Stunden|0 \/ 2 offen/);
 });
 
-test('Fehlgeschlagene Statusabfrage entsperrt keine parallele Studioaktion', async t => {
-  const {page}=await setup(t,{view:'studio'}); await page.locator('#on-air').click();
+test('Erfolgreiche oder fehlgeschlagene Statusabfrage entsperrt keine parallele Studioaktion', async t => {
+  const {page,state}=await setup(t,{view:'studio'}); await page.locator('#on-air').click();
+  await page.locator('#refresh-queue').click();
+  assert.equal(await page.locator('#refresh-queue').getAttribute('aria-busy'),'true','Aktualisieren bleibt auch während einer wartenden Schreibaktion nutzbar');
+  await page.evaluate(s=>__emit('mw:state',{...s,refreshRequestId:__sent.findLast(e=>e.type==='mw:refresh').data.requestId}),state);
+  assert.match(await page.locator('#queue-refresh-feedback').textContent(),/Aktualisiert/);
+  assert.equal(await page.locator('#on-air').isDisabled(),true,'Die Lesebestätigung bestätigt keine Schreibaktion');
   await page.evaluate(()=>{const send=Client.sendEvent;Client.sendEvent=function(type,data){if(type==='mw:refresh')throw new Error('offline');return send(type,data);};});
   await page.locator('#refresh-queue').click(); assert.equal(await page.locator('#on-air').isDisabled(),true);
 });
@@ -1503,19 +1622,80 @@ test('Wiedergabestatus folgt echter Wiedergabe statt dem Play-Klick', async t =>
   await page.emulateMedia({reducedMotion:'reduce'});
 });
 
-test('Moderationsanzeige wechselt zwischen DJ Mischwerk, Live-Moderation und unbestätigter Anmeldung; Audio vergibt keine Moderation',async t=>{
+test('MischWerk übernimmt braucht bestätigten AutoDJ; LIVE zeigt den authentifizierten Moderatornamen ohne Audiowechsel',async t=>{
   const {page,state,errors}=await setup(t,{station:true,clock:true,viewport:{width:1600,height:160}});
-  const sign=page.locator('#on-air-sign');
-  assert.equal(await sign.textContent(),'DJ Mischwerk legt auf');assert.equal(await page.locator('#host-name').isVisible(),false);
-  await page.locator('#play-button').click();await page.evaluate(()=>document.getElementById('radio-audio').dispatchEvent(new Event('playing')));
-  assert.equal(await sign.textContent(),'DJ Mischwerk legt auf');
-  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,moderator:{nick:'StudioNick'}}),state);
-  assert.equal(await sign.textContent(),'Live-Moderation');assert.equal(await page.locator('#host-name').textContent(),'StudioNick');
-  await page.locator('#play-button').click();assert.equal(await sign.textContent(),'Live-Moderation');
-  await page.clock.fastForward(66000);assert.equal(await sign.textContent(),'Moderation unbestätigt');
-  assert.equal(await page.locator('#host-name').isVisible(),false);
-  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:3,moderator:null}),state);
-  assert.equal(await sign.textContent(),'DJ Mischwerk legt auf');assert.deepEqual(errors,[]);
+  const sign=page.locator('#on-air-sign'),host=page.locator('#host-name');
+  assert.equal(await sign.textContent(),'Radio MischWerk','Fehlende Modusinformation ist kein AutoDJ');
+  let mode='autodj',modeError=false,transmission='started',revision=2;
+  const base='https://stats.example.com/widget/radio/test-radio',modeUrl='https://stats.example.com/mode';
+  await page.route(modeUrl,r=>r.fulfill({status:modeError?503:200,contentType:'text/plain',body:mode}));
+  await page.route(base,r=>r.fulfill({json:{slug:'test-radio',stream_status:transmission}}));
+  const selected={...state,station:{...state.station,modeUrl,fields:{...state.station.fields,live:''}}};
+  await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++});
+  await sign.filter({hasText:'MischWerk übernimmt'}).waitFor();
+  await page.locator('#play-button').click();
+  await page.evaluate(()=>{const audio=document.getElementById('radio-audio');window.__modeAudio=audio;audio.dispatchEvent(new Event('playing'));});
+  assert.equal(await sign.textContent(),'MischWerk übernimmt','Play erzeugt keine Live-Moderation');
+  const moderator={nick:'StudioNick mit vollständigem Namen'};
+  await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator});
+  assert.equal(await sign.textContent(),'MischWerk übernimmt','Studioanmeldung überschreibt bestätigten AutoDJ nicht');
+  assert.equal(await host.isVisible(),false);
+  async function refresh(label){
+    const response=page.waitForResponse(base);
+    await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+    await(await response).finished();
+    await sign.filter({hasText:label}).waitFor();
+    assert.equal(await sign.textContent(),label);
+  }
+  mode='live';await refresh('Live-Moderation');
+  assert.equal(await host.textContent(),moderator.nick);assert.equal(await host.isVisible(),true);
+  assert.equal(await page.locator('.presenter').getAttribute('data-mode'),'live');
+  assert.equal(await sign.evaluate(n=>getComputedStyle(n).color),'rgb(240, 184, 174)');
+  for(const value of ['relay','autodj_live','']){
+    mode=value;await refresh('Moderation');
+    assert.equal(await page.locator('.presenter').getAttribute('data-mode'),'unconfirmed');
+    assert.equal(await host.isVisible(),true,'Bestätigte Studioanmeldung bleibt erkennbar, ohne LIVE zu behaupten');
+  }
+  mode='autodj';await refresh('MischWerk übernimmt');
+  modeError=true;await refresh('Moderation');modeError=false;
+  mode='live';await refresh('Live-Moderation');
+  await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator:null});
+  assert.equal(await sign.textContent(),'Live-Moderation');assert.equal(await host.isVisible(),false,'Keine erfundene Moderationsidentität aus Anbieterwerten');
+  assert.equal(await page.locator('body').evaluate(n=>n.classList.contains('moderator-on-air')),false);
+  mode='autodj';transmission='stopped';await refresh('Sendepause');
+  assert.equal(await host.isVisible(),false);assert.equal(await page.locator('#play-button').isDisabled(),true);
+  transmission='unbekannt';await refresh('Radio MischWerk');
+  transmission='started';await refresh('MischWerk übernimmt');
+  assert.equal(await page.locator('#play-button').isDisabled(),false);
+  assert.equal(await page.locator('#radio-audio').evaluate(n=>n===window.__modeAudio),true);
+  assert.equal(await page.evaluate(()=>window.__sent.some(e=>e.type==='mw:onAir')),false);
+  assert.deepEqual(errors,[]);
+});
+
+test('Sendemodus bleibt bei verzögerter Erstprüfung, alter Senderantwort und veralteten Hintergrunddaten neutral',async t=>{
+  const {page,state,errors,releaseSong}=await setup(t,{station:true,clock:true,delayedSong:true});
+  const sign=page.locator('#on-air-sign'),base='https://stats.example.com/widget/radio/';
+  assert.equal(await sign.textContent(),'Radio MischWerk');
+  await page.route('https://stats.example.com/old-mode',r=>r.fulfill({contentType:'text/plain',body:'autodj'}));
+  await page.evaluate(s=>window.__emit('mw:state',s),{...state,revision:2,station:{...state.station,modeUrl:'https://stats.example.com/old-mode'}});
+  assert.equal(await sign.textContent(),'Radio MischWerk','Unvollständige Erstprüfung bestätigt keinen AutoDJ');
+  let release,blocked=false;
+  const gate=new Promise(resolve=>{release=resolve;});
+  await page.route(base+'other-radio',async r=>{if(blocked)await gate;await r.fulfill({json:{slug:'other-radio',stream_status:'started'}});});
+  await page.route(base+'other-radio/track/current',async r=>{if(blocked)await gate;await r.fulfill({json:{title:'Anderer Sender',is_live:true}});});
+  const changed={...state,revision:3,station:{...state.station,stationId:'other-radio',streamUrl:'https://stream.example.com/other-radio',
+    metadataUrl:base+'other-radio/track/current',statusUrl:base+'other-radio'}};
+  await page.evaluate(s=>window.__emit('mw:state',s),changed);
+  await sign.filter({hasText:'Live-Moderation'}).waitFor();
+  releaseSong();await page.waitForTimeout(60);
+  assert.equal(await sign.textContent(),'Live-Moderation','Verspäteter AutoDJ-Befund des alten Senders wird verworfen');
+  blocked=true;
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
+  await page.clock.fastForward(91000);
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});
+  assert.equal(await sign.textContent(),'Radio MischWerk','Alte Befunde werden vor neuer Prüfung nicht wieder als aktuell angezeigt');
+  release();await sign.filter({hasText:'Live-Moderation'}).waitFor();
+  assert.deepEqual(errors,[]);
 });
 
 test('Stummschaltung stellt Lautstärke wieder her und gesperrter Speicher blockiert sie nicht', async t => {
@@ -1602,7 +1782,7 @@ test('Fehlende Musikdaten erfinden keine Titel und zeigen einen neutralen Status
   const {page,state,errors}=await setup(t,{station:true});
   for(const song of [{title:'',artist:''},{title:'Nur Titel',artist:''},{title:'',artist:'Nur Interpret'}]){
     await page.route('https://stats.example.com/widget/radio/test-radio/track/current',route=>route.fulfill({json:song}));
-    await page.evaluate(state=>window.__emit('mw:state',{...state,revision:state.revision+1,station:{...state.station,stationId:'test-other',streamUrl:'https://stream.example.com/test-other',metadataUrl:'https://stats.example.com/widget/radio/test-other/track/current',statusUrl:'https://stats.example.com/widget/radio/test-other',listenersUrl:'https://stats.example.com/widget/radio/test-other/listener'}}),state);
+    await page.evaluate(state=>window.__emit('mw:state',{...state,revision:state.revision+1,station:{...state.station,stationId:'test-other',streamUrl:'https://stream.example.com/test-other',metadataUrl:'https://stats.example.com/widget/radio/test-other/track/current',statusUrl:'https://stats.example.com/widget/radio/test-other'}}),state);
     await page.evaluate(state=>window.__emit('mw:state',{...state,revision:state.revision+2}),state);
     await page.waitForFunction(song=>document.getElementById('track-title').textContent===song.title&&document.getElementById('track-artist').textContent===song.artist,song);
     assert.equal(await page.locator('#track-title').isVisible(),!!song.title);
@@ -1731,9 +1911,10 @@ test('Studio zeigt eigene Anmeldung, Ablauf und echte Abmelderechte; Verbindungs
   assert.equal(await page.locator('#studio-session').isVisible(),false);
   assert.equal(await page.locator('body').evaluate(n=>n.classList.contains('moderator-on-air')),false);
   for(const id of ['on-air','off-air','toggle-wishes','save-topic','prev-page','next-page'])assert.equal(await page.locator('#'+id).isDisabled(),true,id);
+  await showStudioPane(page,true);
   await page.locator('#refresh-queue').click();
-  assert.deepEqual(await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:refresh').data),{});
-  await page.evaluate(s=>window.__emit('mw:state',{...s,revision:5}),next);
+  assert.match(await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:refresh').data.requestId),/^refresh-/);
+  await page.evaluate(s=>window.__emit('mw:state',{...s,revision:5,refreshRequestId:__sent.findLast(e=>e.type==='mw:refresh').data.requestId}),next);
   assert.equal(await page.locator('#studio-connection').textContent(),'Verbunden');
   assert.equal(await page.locator('#toggle-wishes').isDisabled(),false);
   assert.deepEqual(errors,[]);
@@ -1750,7 +1931,9 @@ test('Studio-Warteschlange behält Tastaturfokus und sperrt Seitenwechsel währe
   await page.evaluate(s=>window.__emit('mw:state',{...s,revision:4}),next);
   assert.equal(await page.evaluate(()=>document.activeElement===window.__focusedWish),true,'Statusaktualisierung erhält Fokus');
   await page.locator('#refresh-queue').click();
-  assert.deepEqual(await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:refresh').data),{});
+  const refreshId=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:refresh').data.requestId);
+  assert.match(refreshId,/^refresh-/);
+  await page.evaluate(({s,id})=>window.__emit('mw:state',{...s,revision:4,refreshRequestId:id}),{s:next,id:refreshId});
   await page.locator('[data-outcome="discarded"]').click();
   const discard=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:resolveRequest'));
   assert.equal(discard.data.id,17);assert.equal(discard.data.outcome,'discarded');
@@ -2077,6 +2260,7 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   await listener.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
   await mod.goto(base+'/preview?role=moderator&view=studio');
   for(let i=0;i<2;i++){
+    await showStudioPane(mod,true);
     await mod.locator('#next-page:not([disabled])').waitFor();
     await mod.locator('#next-page').click();
     await mod.locator('#page-label').filter({hasText:'Wunsch '+(i+2)+' /'}).waitFor();
@@ -2096,6 +2280,7 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   await radio.evaluate(()=>Client.sendEvent('mw:refresh',{}));
   await radio.waitForFunction(()=>document.documentElement.dataset.curtain==='open');
   await radio.locator('#open-wishes:not([disabled])').waitFor();
+  await showStudioPane(mod,false);
   await mod.locator('#studio-topic').fill('80er und 90er');
   await mod.locator('#save-topic').click();
   await mod.locator('#topic-feedback').filter({hasText:'Thema gespeichert.'}).waitFor();
@@ -2125,11 +2310,12 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   await mod.locator('#studio-host').filter({hasText:'Keine Moderation angemeldet'}).waitFor();
   assert.equal(await mod.locator('#off-air').isDisabled(),true);
   await radio.evaluate(()=>Client.sendEvent('mw:refresh',{}));
-  await radio.locator('#on-air-sign').filter({hasText:'DJ Mischwerk legt auf'}).waitFor();
+  await radio.locator('#on-air-sign').filter({hasText:'Radio MischWerk'}).waitFor();
   assert.equal(await radio.locator('#host-name').isVisible(),false);
   await radio.locator('#radio-topic').waitFor({state:'hidden'});
   assert.equal(await mod.locator('#studio-topic').inputValue(),'');
   assert.equal(await radio.locator('body').evaluate(n=>n.classList.contains('moderator-on-air')),false);
+  await showStudioPane(mod,true);
   await mod.locator('.request-text').filter({hasText:'Browser-Roundtrip'}).waitFor();
   await mod.locator('[data-outcome="discarded"]').click();
   await mod.locator('#notice').filter({hasText:'Wunsch verworfen.'}).waitFor();
@@ -2294,7 +2480,7 @@ test('STREAMPANEL-Senderwechsel stoppt den alten Stream; verspätete Antworten �
   await page.locator('#play-button').click();
   const stream='https://stream.example.com/other-radio',metadata='https://stats.example.com/widget/radio/other-radio/track/current';
   await page.route(metadata,route=>route.fulfill({json:{title:'Neuer Titel',artist:'Neuer Interpret'}}));
-  await page.evaluate(({state,stream,metadata})=>window.__emit('mw:state',{...state,revision:2,station:{...state.station,stationId:'other-radio',streamUrl:stream,stationUrl:stream,metadataUrl:metadata,statusUrl:'https://stats.example.com/widget/radio/other-radio',listenersUrl:'https://stats.example.com/widget/radio/other-radio/listener'}}),{state,stream,metadata});
+  await page.evaluate(({state,stream,metadata})=>window.__emit('mw:state',{...state,revision:2,station:{...state.station,stationId:'other-radio',streamUrl:stream,stationUrl:stream,metadataUrl:metadata,statusUrl:'https://stats.example.com/widget/radio/other-radio'}}),{state,stream,metadata});
   await page.locator('#track-title').filter({hasText:'Neuer Titel'}).waitFor();
   assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
   const oldResponse=page.waitForResponse('https://stats.example.com/widget/radio/test-radio/track/current');releaseSong();await oldResponse;
@@ -2319,7 +2505,7 @@ test('STREAMPANEL blockiert manipulierte Hörer-/API-Adressen und Zugangsdaten a
     {metadataUrl:'https://foreign.example.com/track/current'},
     {metadataUrl:'https://stats.example.com/widget/radio/test-radio/track/current?token=secret'},
     {statusUrl:'https://foreign.example.com/status'},
-    {listenersUrl:'https://stats.example.com/listeners?password=secret'},
+
     {provider:'unknown'}
   ]){
     await page.evaluate(({state,station,revision})=>window.__emit('mw:state',{...state,station,revision}),{state,station:{...base,...patch},revision:revision++});
@@ -2381,6 +2567,51 @@ test('Senderstart entsperrt Play ohne Autostart; bestätigte Sendepause beendet 
   assert.deepEqual(errors,[]);
 });
 
+test('Tatsächliches SPCast-Antwortformat sperrt Play bei Sendestopp und prüft Nachladen sofort ohne Audioprobe',async t=>{
+  const h=createHarness(),u=h.user(1,'Otterchen','owner'),product=h.state(u,h.open(u)).station;
+  const {spcastStatistics}=require('../fixtures/stream.cjs');
+  const {page,state,errors,requests}=await setup(t,{station:true,realAudio:true,clock:true});
+  let online=false,broken=false;
+  await page.route(product.statusUrl,route=>broken?route.fulfill({status:503,body:'unavailable'}):route.fulfill({json:spcastStatistics({online,listeners:online?6:0})}));
+  await page.route(product.metadataUrl,route=>route.fulfill({json:{currentSong:'SPCast-Testtitel',currentArtist:'Testband'}}));
+  await page.route(product.modeUrl,route=>route.fulfill({contentType:'text/plain',body:'autodj'}));
+  await page.route(product.streamUrl,route=>route.fulfill({contentType:'audio/wav',body:require('../fixtures/audio.cjs').audioFixture()}));
+  const start=requests.length;
+  await page.evaluate(({state,product})=>__emit('mw:state',{...state,revision:2,station:product}),{state,product});
+  await page.locator('#stream-label').filter({hasText:'Sendepause'}).waitFor();
+  assert.equal(await page.locator('#play-button').isDisabled(),true);
+  assert.equal(requests.slice(start).some(url=>url===product.streamUrl||url===product.metadataUrl),false);
+  online=true;await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  await page.locator('#track-title').filter({hasText:'SPCast-Testtitel'}).waitFor();
+  assert.equal(await page.locator('#play-button').isEnabled(),true);
+  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
+  await page.locator('#play-button').click();await waitRadioPlaying(page);
+  broken=true;await page.locator('#radio-audio').evaluate(a=>a.dispatchEvent(new Event('stalled')));
+  await page.waitForFunction(()=>document.getElementById('play-button').title.includes('momentan nicht prüfbar'));
+  assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),false);
+  broken=false;online=false;
+  await page.locator('#radio-audio').evaluate(a=>a.dispatchEvent(new Event('waiting')));
+  await page.locator('#stream-label').filter({hasText:'Sendepause'}).waitFor();
+  assert.equal(await page.locator('#play-button').isDisabled(),true);
+  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
+  assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),true);
+  online=true;await page.clock.runFor(30001);
+  await page.locator('#play-button:not([disabled])').waitFor();
+  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null,'Rückkehr der Übertragung startet keinen Ton');
+  assert.deepEqual(errors,[]);
+  const central=await setup(t,{view:'team',station:true,clock:true});
+  await central.page.route(product.statusUrl,r=>r.fulfill({json:spcastStatistics()}));
+  await central.page.route(product.metadataUrl,r=>r.fulfill({json:{currentSong:null,currentArtist:'Unknown'}}));
+  await central.page.route(product.modeUrl,r=>r.fulfill({contentType:'text/plain',body:'autodj'}));
+  await central.page.evaluate(({state,product})=>__emit('mw:state',{...state,revision:2,station:product}),{state:central.state,product});
+  await central.page.locator('#team-status-tab').click();
+  await central.page.locator('#status-mode-value').filter({hasText:'AutoDJ'}).waitFor();
+  assert.equal(await central.page.locator('#status-transmission-value').textContent(),'Sendet');
+  assert.match(await central.page.locator('#status-mode-detail').textContent(),/STREAMPANEL-Sendemodus/);
+  assert.equal(central.requests.includes(product.streamUrl),false);
+  assert.deepEqual(central.errors,[]);
+});
+
 test('Nicht prüfbarer oder unbekannter Anbieterstatus sperrt nicht dauerhaft und unterbricht keinen Ton',async t=>{
   const {page,errors}=await setup(t,{station:true,realAudio:true});
   await page.locator('#play-button').click();await waitRadioPlaying(page);
@@ -2411,7 +2642,7 @@ test('Verspäteter Stop-Status eines alten Senders sperrt keinen neu gewählten 
   assert.equal(await page.locator('#stream-label').textContent(),'Prüfe …');
   await page.route('https://stats.example.com/widget/radio/other-radio',route=>route.fulfill({json:{slug:'other-radio',stream_status:'started'}}));
   await page.route('https://stats.example.com/widget/radio/other-radio/track/current',route=>route.fulfill({json:{title:'Neuer Titel',artist:'Neue Band'}}));
-  await page.evaluate(s=>window.__emit('mw:state',{...s,revision:2,station:{...s.station,stationId:'other-radio',streamUrl:'https://stream.example.com/other-radio',metadataUrl:'https://stats.example.com/widget/radio/other-radio/track/current',statusUrl:'https://stats.example.com/widget/radio/other-radio',listenersUrl:'https://stats.example.com/widget/radio/other-radio/listener'}}),state);
+  await page.evaluate(s=>window.__emit('mw:state',{...s,revision:2,station:{...s.station,stationId:'other-radio',streamUrl:'https://stream.example.com/other-radio',metadataUrl:'https://stats.example.com/widget/radio/other-radio/track/current',statusUrl:'https://stats.example.com/widget/radio/other-radio'}}),state);
   await page.locator('#track-title').filter({hasText:'Neuer Titel'}).waitFor();
   await page.locator('#play-button').click();
   const oldResponse=page.waitForResponse('https://stats.example.com/widget/radio/test-radio');releaseStatus();await oldResponse;
@@ -2640,11 +2871,13 @@ test('Wunschplätze rücken im vollständigen Versand- und Moderations-Roundtrip
   await mod.goto(base+'/preview?role=moderator&view=studio');
   await mod.setViewportSize({width:780,height:740});
   for(const [outcome,rank] of [['done',2],['discarded',1]]){
+    await showStudioPane(mod,true);
     await mod.locator('[data-outcome="'+outcome+'"]').click();
     await mod.locator('#queue-count').filter({hasText:String(rank)}).waitFor();
     await listener.locator('#refresh-wish-positions').click();
     await listener.locator('.wish-position-value').filter({hasText:'Platz '+rank}).waitFor();
   }
+  await showStudioPane(mod,true);
   await mod.locator('.request-text').filter({hasText:'Ein Song mit sichtbarem Platz'}).waitFor();
   await mod.locator('[data-outcome="done"]').click();
   await mod.locator('#queue-count').filter({hasText:'0'}).waitFor();
@@ -2653,23 +2886,26 @@ test('Wunschplätze rücken im vollständigen Versand- und Moderations-Roundtrip
   assert.equal(await listener.locator('#wish-text').isEnabled(),true);
 });
 
-test('Dunkle Radioaktionen bilden bei voller Breite zwei Reihen und eine Vorhangtaste mit unveränderter Tastaturbedienung',async t=>{
+test('Freigegebene breite Radioleiste entspricht der Bildgeometrie und erhält Tastaturbedienung',async t=>{
   const {page,state,errors}=await setup(t,{station:true,curtainClosed:true,viewport:{width:2290,height:160}});
   await page.waitForFunction(()=>{const img=document.querySelector('.bar-logo');return img.complete&&img.naturalWidth>0;});
   const ids=['open-schedule','open-wishes','studio-tab','team-tab','curtain-toggle'];
   const boxes=await Promise.all(ids.map(id=>page.locator('#'+id).boundingBox()));
   assert.equal((await page.locator('#radio-panel').boundingBox()).width,2290);
-  assert.equal((await page.locator('#play-button').boundingBox()).width,100);
-  assert.ok(Math.abs(boxes[0].y-boxes[1].y)<1&&Math.abs(boxes[2].y-boxes[3].y)<1);
-  assert.ok(boxes[2].y>=boxes[0].y+44&&boxes[4].y>=boxes[2].y+44);
-  assert.equal(boxes[4].width,336);assert.equal(boxes[0].x,boxes[4].x);
-  assert.ok(Math.abs(boxes[1].x+boxes[1].width-boxes[4].x-boxes[4].width)<1);
+  assert.equal((await page.locator('#play-button').boundingBox()).width,108);
+  for(const [i,x] of [[0,1566.5],[1,1768.5],[2,2130],[3,2130],[4,2130]])assert.ok(Math.abs(boxes[i].x-x)<.5,'Position ohne seitlichen Außenabstand: '+ids[i]);
+  assert.deepEqual(boxes.slice(0,2).map(b=>[b.width,b.height]),[[190,44],[190,44]]);
+  assert.ok(Math.abs(boxes[0].y-boxes[1].y)<1&&boxes[3].y>=boxes[2].y+44&&boxes[4].y>=boxes[3].y+44);
+  const logo=await page.locator('.bar-logo').boundingBox(),play=await page.locator('#play-button').boundingBox(),music=await page.locator('.radio-program-face').boundingBox(),info=await page.locator('#radio-metadata').boundingBox();
+  assert.deepEqual([logo.x,logo.width,logo.height,play.x,play.width,info.x,info.width,music.x,music.x+music.width],[10,140,140,473.5,108,895,500,176,2114]);
+  assert.equal(await page.locator('.bar-logo').getAttribute('src'),'img/mischwerk-logo.png');
+  for(const id of ['studio-tab','team-tab','curtain-toggle'])assert.deepEqual(await page.locator('#'+id).evaluate(n=>{const s=getComputedStyle(n);return [s.fontSize,s.fontWeight,s.backgroundImage];}),['15px','500','none']);
   for(const [index,id] of ids.entries()){
     const node=page.locator('#'+id),before=await node.boundingBox();
     await node.hover();await page.mouse.down();
     assert.deepEqual(await node.boundingBox(),before,'Druckzustand verschiebt keine Klickfläche');
     const styles=await node.evaluate(n=>{const s=getComputedStyle(n);return {shadow:s.boxShadow,textShadow:s.textShadow,background:s.backgroundImage};});
-    assert.equal(styles.shadow,'none');assert.equal(styles.textShadow,'none');assert.match(styles.background,/linear-gradient/);
+    assert.equal(styles.shadow,'none');assert.equal(styles.textShadow,'none');if(index<2)assert.match(styles.background,/linear-gradient/);else assert.equal(styles.background,'none');
     await page.mouse.move(0,0);await page.mouse.up();
     await node.focus();await page.keyboard.press('Enter');
     const sent=await page.evaluate(()=>window.__sent.at(-1));
@@ -2682,7 +2918,7 @@ test('Dunkle Radioaktionen bilden bei voller Breite zwei Reihen und eine Vorhang
   assert.deepEqual(errors,[]);
 });
 
-test('Radio-Team wächst auf seine Inhaltshöhe und passt sich nach Reiterwechsel wieder an',async t=>{
+test('Radio-Team wächst mit dem gemeinsamen Inhalt und bleibt beim Reiterwechsel gleich groß',async t=>{
  for(const k3 of [true,false]){
   const {page,state,errors}=await setup(t,{view:'team',k3,screenHeight:1200,viewport:{width:560,height:560}});
   async function fit(){
@@ -2705,15 +2941,56 @@ test('Radio-Team wächst auf seine Inhaltshöhe und passt sich nach Reiterwechse
  }
 });
 
-test('Hörerzahl liegt ohne Badge in Weiß auf dem Hintergrund',async t=>{
- const {page,state,errors}=await setup(t,{station:true,role:'listener',viewport:{width:1360,height:160}});
- for(const width of [1360,700,390,320]){
-  await resizeViewport(page,{width,height:160});
-  const look=await page.locator('#listener-count').evaluate(n=>{const s=getComputedStyle(n);return {color:s.color,background:s.backgroundColor,border:s.borderTopWidth,shadow:s.boxShadow,size:s.fontSize};});
-  assert.deepEqual(look,{color:'rgb(255, 255, 255)',background:'rgba(0, 0, 0, 0)',border:'0px',shadow:'none',size:'18px'});
- }
- assert.deepEqual(errors,[]);
+test('Geladene Statuswerte und lange Moderationsnamen verändern die Fenstergröße beim Reiterwechsel nicht',async t=>{
+  for(const [width,k3] of [[320,true],[560,false]]){
+    const {page,state,errors,requests}=await setup(t,{view:'team',station:true,k3,nativeSizing:true,hostSteps:true,screenHeight:1400,viewport:{width,height:560}});
+    await page.route('**/test-radio/track/current',r=>r.fulfill({json:{title:'Testtitel',artist:'Interpret',is_live:false}}));
+    await page.evaluate(s=>__emit('mw:state',{...s,revision:2,moderator:{nick:'SehrLangerModerationsname'.repeat(2),expiresAt:Date.now()+3600000}}),state);
+    await page.waitForTimeout(200);
+    assert.equal(requests.some(u=>u.startsWith('https://stats.example.com/')),false,'Vorberechnete Appwerte brauchen keine Anbieterabfrage');
+    await page.locator('#team-status-tab').click();await statusReady(page);await page.waitForTimeout(200);
+    assert.equal(await page.locator('#status-mode-warning').isVisible(),true);
+    const sizes=await page.evaluate(()=>__sizes.slice()),height=page.viewportSize().height;
+    for(const selector of ['#team-members-tab','#team-status-tab','#team-members-tab','#team-status-tab']){
+      await page.locator(selector).click();if(selector==='#team-status-tab')await statusReady(page);await page.waitForTimeout(160);
+      assert.deepEqual(await page.evaluate(()=>__sizes),sizes,'Bekannte Daten bleiben während des erneuten Abrufs mit ursprünglicher Prüfzeit dargestellt');
+      assert.equal(page.viewportSize().height,height);
+    }
+    assert.deepEqual(errors,[]);
+  }
 });
+
+test('Team-Reiter erhalten Details, Eingabe und Entzugsbestätigung ohne versteckte Tabstopps oder Größenwechsel',async t=>{
+  const {page,state,errors,requests}=await setup(t,{view:'team',nativeSizing:true,hostSteps:true,screenHeight:1400,viewport:{width:560,height:560}});
+  await page.locator('#radio-moderator-nick').fill('Mein unverlorener Entwurf');
+  await page.evaluate(s=>__emit('mw:state',{...s,revision:2,radioModerators:[{userId:21,nick:'Ein Radiomoderator'}],radioModeratorTotal:1}),state);
+  await page.locator('[data-radio-moderator-id="21"]').click();
+  await page.locator('#team-status-tab').click();
+  assert.equal(await page.locator('#radio-moderator-form').isVisible(),false);
+  await page.locator('#status-details > summary').click();
+  await page.waitForTimeout(240);
+  const sizes=await page.evaluate(()=>__sizes.slice()),height=page.viewportSize().height;
+  for(const selector of ['#team-members-tab','#team-status-tab','#team-members-tab','#team-status-tab']){
+    await page.locator(selector).click();await page.waitForTimeout(160);
+    assert.deepEqual(await page.evaluate(()=>__sizes),sizes,'Geöffnete Statusdetails reservieren dieselbe gemeinsame Höhe');
+    assert.equal(page.viewportSize().height,height);
+    assert.equal(await page.locator('#radio-moderator-nick').inputValue(),'Mein unverlorener Entwurf');
+    assert.equal(await page.locator('#studio-connection').textContent(),'Verbunden');
+    assert.equal(await page.locator('#status-details').evaluate(n=>n.open),true);
+    const inactive=selector==='#team-status-tab'?'#team-members':'#team-status';
+    await page.locator(selector).focus();
+    for(let i=0;i<12;i++){
+      await page.keyboard.press('Tab');
+      assert.equal(await page.locator(inactive).evaluate(n=>n.contains(document.activeElement)),false,'Inaktiver Reiter erhält keinen Tastaturfokus');
+    }
+  }
+  await page.locator('#team-members-tab').click();
+  assert.equal(await page.locator('#team-removal-confirm').isVisible(),true);
+  assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:removeRadioModerator')),false);
+  assert.equal(requests.some(u=>u.startsWith('https://stats.example.com/')),false,'Layoutmessung löst keine Anbieterabfragen aus');
+  assert.deepEqual(errors,[]);
+});
+
 
 test('Overlay-Eingaben nutzen denselben Wunschcontroller und erhalten laufendes Audio auch bei später Quittung',async t=>{
  for(const k3 of [true,false]){
@@ -2744,15 +3021,15 @@ test('Team-Statusdetails bleiben über Seiten ohne Scrollstapel vollständig err
  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,topic:'S'.repeat(80),moderator:{nick:'N'.repeat(50)}}),state);
  await page.locator('#status-details > summary').click();
  const found=[];
- for(let index=0;index<9;index++){
+ for(let index=0;index<8;index++){
   await page.waitForTimeout(100);const size=await page.evaluate(()=>window.__sizes.at(-1));
   await page.setViewportSize({width:320,height:size[1]});await page.waitForTimeout(80);
   assert.equal(await page.locator('.status-detail-list > div:visible').count(),1);
   found.push(await page.locator('.status-detail-list > div:visible dt').textContent());
   assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight+1),false,'Details passen in den angeforderten Rahmen');
-  if(index<8)await page.locator('#next-status-detail').click();
+  if(index<7)await page.locator('#next-status-detail').click();
  }
- assert.equal(new Set(found).size,9);assert.equal(await page.locator('#next-status-detail').isDisabled(),true);
+ assert.equal(new Set(found).size,8);assert.equal(await page.locator('#next-status-detail').isDisabled(),true);
  assert.deepEqual(errors,[]);
 });
 test('Ausstehender STREAMPANEL-Zugang erzeugt keine Anbieterabfragen und sperrt nur den Player',async t=>{
@@ -2760,7 +3037,6 @@ test('Ausstehender STREAMPANEL-Zugang erzeugt keine Anbieterabfragen und sperrt 
  await page.clock.fastForward(61000);
  assert.equal(await page.locator('#play-button').isDisabled(),true);
  assert.equal(await page.locator('#open-wishes').isEnabled(),true);
- assert.equal(await page.locator('#listener-value').textContent(),'nicht verfügbar');
  assert.equal(requests.some(url=>url.startsWith('https://')),false);
  assert.deepEqual(errors,[]);
 });
@@ -2809,4 +3085,67 @@ test('Tastatur verlässt die Radioaktionen ohne unsichtbaren Zwischenstopp auf d
  await page.locator('#curtain-toggle').focus();await page.keyboard.press('Tab');
  assert.notEqual(await page.evaluate(()=>document.activeElement.id),'station-link');
  assert.deepEqual(errors,[]);
+});
+
+test('Sendungsassistent zählt mit Serverzeit, erinnert vor dem Ende und löst keine Moderations- oder Audioaktion aus',async t=>{
+  for(const k3 of [true,false]){
+    const {page,state,errors}=await setup(t,{view:'studio',clock:true,k3,viewport:{width:780,height:950}});
+    const now=state.serverTime,slot={key:'plan-1',date:'2026-11-02',start:'20:00',end:'22:00',nick:'Otterchen',topic:'80er Abend',startAt:now-3600000,endAt:now+601000};
+    const next={...state,revision:2,serverTime:now,moderator:{nick:'Otterchen',since:now-45000,expiresAt:now+3600000,sessionKey:'timer-1'},
+      user:{...state.user,isOnAir:true,canEndModeration:true},assistant:{startedAt:now-45000,current:slot,next:{...slot,key:'plan-2',nick:'Nächster DJ'},unavailable:false}};
+    await page.evaluate(s=>__emit('mw:state',s),next);
+    await page.locator('#studio-assistant > summary').click();
+    assert.match(await page.locator('#assistant-elapsed').textContent(),/0:00:4/);
+    assert.match(await page.locator('#assistant-next').textContent(),/Nächster DJ/);
+    assert.equal(await page.locator('#assistant-reminder').isVisible(),false);
+    await page.clock.fastForward(2200);
+    assert.match(await page.locator('#assistant-reminder').textContent(),/Bereite die Übergabe vor/);
+    await page.evaluate(s=>__emit('mw:state',{...s,serverTime:s.assistant.current.endAt-299000}),next);
+    assert.match(await page.locator('#assistant-reminder').textContent(),/wenigen Minuten/);
+    await page.evaluate(s=>__emit('mw:state',{...s,serverTime:s.assistant.current.endAt+1000}),next);
+    assert.match(await page.locator('#assistant-reminder').textContent(),/Sendezeit ist beendet/);
+    assert.equal(await page.evaluate(()=>__sent.some(e=>['mw:offAir','mw:onAir','mw:handover.request'].includes(e.type))),false);
+    assert.equal(await page.locator('#studio-assistant').evaluate(n=>n.open),true);
+    await page.clock.fastForward(66000);
+    assert.equal(await page.locator('#assistant-reminder').isVisible(),false);
+    assert.match(await page.locator('#assistant-summary').textContent(),/Verbindung fehlt/);
+    assert.deepEqual(errors,[]);
+  }
+});
+
+test('Geplantes Thema wird nur als Entwurf übernommen; Fehler, schmale Ansicht und Verbindungsverlust erhalten die Eingabe',async t=>{
+  const {page,state,errors}=await setup(t,{view:'studio',viewport:{width:320,height:740}});
+  await page.locator('#studio-topic').fill('Mein eigener Entwurf');
+  const slot={key:'plan-1',date:'2026-11-02',start:'20:00',end:'22:00',nick:'Otterchen',topic:'<img src=x onerror=alert(1)> 80er',startAt:state.serverTime+60000,endAt:state.serverTime+3600000};
+  const next={...state,revision:2,assistant:{startedAt:null,current:slot,next:null,unavailable:false}};
+  await page.evaluate(s=>__emit('mw:state',s),next);
+  await page.locator('#studio-assistant > summary').click();
+  assert.equal(await page.locator('#assistant-topic').isDisabled(),true,'Eigener Entwurf wird nicht überschrieben');
+  assert.equal(await page.locator('#assistant-topic-copy img').count(),0);
+  await page.locator('#reset-topic').click();await page.locator('#assistant-topic:not([disabled])').waitFor();
+  await page.locator('#assistant-topic').click();assert.equal(await page.locator('#studio-topic').inputValue(),slot.topic);
+  assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:setTopic')),false,'Übernehmen speichert nicht ungefragt');
+  await page.locator('#save-topic').click();
+  const sent=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:setTopic'));
+  await page.evaluate(e=>__emit('mw:result',{ok:false,action:e.type,requestId:e.data.requestId,message:'Speichern fehlgeschlagen.'}),sent);
+  assert.equal(await page.locator('#studio-topic').inputValue(),slot.topic);
+  await page.evaluate(s=>__emit('mw:state',{...s,revision:3,shuttingDown:true}),next);
+  assert.equal(await page.locator('#assistant-topic').isDisabled(),true);
+  assert.match(await page.locator('#assistant-plan').textContent(),/nicht bestätigt/);
+  await page.locator('#assistant-topic').scrollIntoViewIfNeeded();
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  assert.deepEqual(errors,[]);
+});
+
+test('Verspäteter Queue-Stand setzt weder Wunschstatus noch Hörerposition zurück',async t=>{
+  const {page,state,errors}=await setup(t,{view:'studio',initialRequest:true,viewport:{width:780,height:900}});
+  const base={...state,revision:2,wishPositions:{...state.wishPositions,revision:10},queue:[{...state.queue[0],stage:'preparing'}]};
+  await page.evaluate(s=>__emit('mw:state',s),base);
+  assert.equal(await page.locator('.request-stage').textContent(),'In Vorbereitung');
+  const old={...base,wishPositions:{...base.wishPositions,revision:9},queue:[{...base.queue[0],stage:'queued'}]};
+  await page.evaluate(s=>__emit('mw:state',s),old);
+  assert.equal(await page.locator('.request-stage').textContent(),'In Vorbereitung');
+  await page.evaluate(s=>__emit('mw:state',{...s,user:{...s.user,canModerate:false}}),base);
+  assert.equal(await page.locator('#studio-panel').isVisible(),false);
+  assert.deepEqual(errors,[]);
 });

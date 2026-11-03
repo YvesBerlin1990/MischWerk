@@ -58,7 +58,7 @@ test('100 Wünsche, wiederholte IDs und mehrere Hörer: Queue vollständig und p
   runtime.event('Polaroid', listener, 'mw:wish.submit', { submissionId: 'stress-99', text: 'Interpret – Titel 99' });
   assert.equal(state('Otterchen', owner).queueTotal, 100);
   const own = state('Polaroid', listener);
-  assert.equal(own.wishPositions.total, 100); assert.equal(own.wishPositions.items.length, 3);
+  assert.equal(own.wishPositions.total, 100); assert.equal(own.wishPositions.items.length, 1);
   assert.equal(own.queue.length, 0);
   assert.equal(events.filter(event => event.eventType === 'mw:wish.receipt' && event.eventData.accepted).length, 101);
 });
@@ -82,14 +82,14 @@ test('Sieben Stunden Zeitsprung beenden eine echte Studio-Anmeldung', t => {
   assert.equal(state('Otterchen', owner).moderator, null);
   assert.equal(state('Otterchen', owner).user.isOnAir, false);
 });
-test('Radioende schließt sein natives Wunsch-Overlay; Popup bleibt unabhängig', t => {
+test('Radioende schließt alle zugehörigen Channel-Overlays', t => {
   const { runtime, join } = setup(t), owner = join('Otterchen');
   runtime.event('Otterchen', owner, 'mw:openWishes', {});
   runtime.event('Otterchen', owner, 'mw:openStudio', {});
-  assert.equal(runtime.contents.sessions.size, 3);
+  assert.equal(runtime.contents.sessions.size, 2,'Wechsel wartet auf bestätigte Übernahme');
   runtime.close('Otterchen', owner);
   const remaining = [...runtime.contents.sessions.keys()].map(id => runtime.contents.describe(id));
-  assert.deepEqual(remaining.map(view => view.mode), ['Popup']);
+  assert.deepEqual(remaining, []);
 });
 test('Unbekannte Plattform-API und Loader außerhalb der App fallen sichtbar durch', t => {
   const { runtime } = setup(t);

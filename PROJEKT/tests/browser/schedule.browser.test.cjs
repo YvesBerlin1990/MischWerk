@@ -21,7 +21,7 @@ async function setup(t, { clock = false, nativeSizing = false } = {}) {
       if (match) { clearTimeout(timeout); resolve(match[0]); }
     });
   });
-  const context = await browser.newContext({ viewport: { width: 820, height: nativeSizing ? 560 : 680 }, screen: { width: 1920, height: 1080 } });
+  const context = await browser.newContext({ viewport: { width: 820, height: 660 }, screen: { width: 1920, height: 1080 } });
   t.after(() => context.close());
   const errors = [];
   context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
@@ -59,13 +59,13 @@ async function setup(t, { clock = false, nativeSizing = false } = {}) {
   return { base, context, owner, listener, errors };
 }
 
-test('Fensteröffnung: Sendeplan bleibt trotz animierter Hostantwort und viewportabhängiger Bildschirmangabe stabil',async t=>{
+test('Fensteröffnung: Sendeplan behält seine passende Anfangsgröße ohne nachträgliche Hostanpassung',async t=>{
   const {owner,listener,errors}=await setup(t,{nativeSizing:true});
   for(const page of [owner,listener]){
-    await page.waitForFunction(()=>__scheduleSizes.length&&innerHeight===__scheduleSizes.at(-1)[1]);
     await page.waitForTimeout(1300);
-    assert.equal(await page.evaluate(()=>__scheduleSizes.length),1,'Vollständige Woche führt zu genau einer Zielhöhe');
-    assert.equal(await page.evaluate(()=>__scheduleSizes[0][1]>500),true,'Keine schrittweise Verkleinerung bis zum Mindestmaß');
+    assert.deepEqual(await page.evaluate(()=>__scheduleSizes),[],'Kein Größenbefehl nach dem nativen Öffnen');
+    assert.equal(await page.evaluate(()=>innerHeight),660);
+    assert.equal(await page.locator('.schedule-day').count(),7,'Auch mit zusätzlichem Vorschauhinweis bleibt die vollständige Woche erhalten');
     await scheduleReachable(page);
   }
   await owner.locator('#schedule-new').click();
@@ -92,24 +92,6 @@ async function scheduleCall(page, type, values = {}) {
         data: { requestId: 'window-' + crypto.randomUUID(), ...values } }) });
     return response.json();
   }, { type, values });
-}
-async function nativeWindow(page) {
-  await page.exposeBinding('__resizeSchedule', async (source, height) => {
-    await source.page.setViewportSize({ width: source.page.viewportSize().width, height });
-  });
-  await page.evaluate(() => {
-    const original = Client.getHostFrame;
-    // Native Fenstergröße ändert nicht die verfügbare Bildschirmhöhe.
-    Object.defineProperty(screen, 'availHeight', { configurable: true, value: 1080 });
-    window.__scheduleSizes = [];
-    Client.isK3Client = () => false;
-    Client.getHostFrame = () => ({ ...original(), setSize(width, height) {
-      window.__scheduleSizes.push([width, height]); window.__resizeSchedule(height);
-    } });
-  });
-  await page.setViewportSize({ width: 821, height: 680 });
-  await page.waitForFunction(() => window.__scheduleSizes.length > 0 &&
-    innerHeight === window.__scheduleSizes.at(-1)[1]);
 }
 async function scheduleReachable(page) {
   const result = await page.evaluate(() => {
@@ -239,7 +221,7 @@ test('Sendeplan zeigt nach Ende um 00:00 keine Null-Minuten-Sendung am Folgetag'
   assert.equal(await owner.locator('#schedule-refresh').isEnabled(), true);
   assert.deepEqual(errors, []);
 });
-test('Sendeplan-Button steht über der Wunschbox, bleibt bei geschlossener Wunschbox aktiv und öffnet getrennt', async t => {
+test('Sendeplan bleibt bei geschlossener Wunschbox aktiv und öffnet als separates Channel-Overlay', async t => {
   const { base, context, owner, errors } = await setup(t);
   const radio = await context.newPage();
   await radio.goto(base + '/preview?role=moderator');
@@ -271,13 +253,20 @@ test('Sendeplan-Button steht über der Wunschbox, bleibt bei geschlossener Wunsc
   await radio.reload();
   await radio.waitForFunction(() => document.getElementById('open-wishes').disabled && !document.getElementById('open-schedule').disabled);
   await radio.evaluate(() => { window.__sameAudio = document.getElementById('radio-audio'); });
-  const popupPromise = radio.waitForEvent('popup');
-  await radio.locator('#open-schedule').click();
-  const popup = await popupPromise;
-  await popup.waitForFunction(() => document.querySelectorAll('.schedule-day').length === 7);
-  assert.equal(await popup.locator('#dialog-title').textContent(), 'Sendeplan');
-  assert.equal(await radio.locator('#radio-panel').isVisible(), true);
-  assert.ok(await radio.evaluate(() => window.__sameAudio === document.getElementById('radio-audio')));
+  const channel=await context.newPage();await channel.goto(base+'/channel.html?role=moderator');
+  const header=await(await channel.locator('#radio-frame').elementHandle()).contentFrame();
+  await header.waitForFunction(()=>document.getElementById('open-wishes').disabled&&!document.getElementById('open-schedule').disabled);
+  await header.evaluate(()=>{window.__sameAudio=document.getElementById('radio-audio');});
+  const pages=context.pages().length;
+  await header.locator('#open-schedule').click();
+  await channel.locator('#overlay-frame:not([hidden])').waitFor();
+  const overlay=await(await channel.locator('#overlay-frame').elementHandle()).contentFrame();
+  await overlay.waitForFunction(()=>document.querySelectorAll('.schedule-day').length===7);
+  assert.equal(await overlay.locator('#dialog-title').textContent(),'Sendeplan');
+  assert.equal(context.pages().length,pages,'Kein separates Browserfenster');
+  assert.equal(await header.locator('#radio-panel').isVisible(),true);
+  assert.ok(await header.evaluate(()=>window.__sameAudio===document.getElementById('radio-audio')));
+  assert.equal((await channel.locator('#radio-frame').boundingBox()).height,160);
   assert.equal(await owner.locator('#dialog-title').textContent(), 'Sendeplan');
   assert.deepEqual(errors, []);
 });
@@ -332,15 +321,10 @@ test('Mehr als ein Paket wird vollständig als Woche dargestellt; Sendungstexte 
   assert.deepEqual(errors, []);
 });
 
-test('Sendeplanfenster schrumpft auf Inhaltshöhe, wächst mit Sendungen und wird nach Löschen wieder kleiner', async t => {
-  const { owner, errors } = await setup(t);
-  await nativeWindow(owner);
+test('Sendeplan behält den Rahmen bei neuen und gelöschten Sendungen; alle Einträge bleiben erreichbar', async t => {
+  const { owner, errors } = await setup(t,{nativeSizing:true});
   const emptyHeight = owner.viewportSize().height;
-  assert.ok(emptyHeight < 680, 'Leere Woche bleibt kompakt: ' + JSON.stringify(await owner.evaluate(() => ({
-    height: innerHeight, sections: Array.from(document.querySelectorAll('.dialog-header,.schedule-navigation,.schedule-toolbar,#schedule-days,.schedule-day')).map(node => ({
-      name: node.id || node.className, height: node.getBoundingClientRect().height
-    }))
-  }))));
+  assert.equal(emptyHeight,660);
   await scheduleReachable(owner);
   const first = (await scheduleCall(owner, 'mw:schedule.get')).find(e => e.type === 'mw:schedule.data').data;
   for (let i = 0; i < 3; i++) {
@@ -350,10 +334,18 @@ test('Sendeplanfenster schrumpft auf Inhaltshöhe, wächst mit Sendungen und wir
     assert.equal(events.find(e => e.type === 'mw:schedule.result').data.ok, true);
   }
   await owner.locator('#schedule-refresh').click();
-  await owner.waitForFunction(height => document.querySelectorAll('.schedule-show').length === 3 &&
-    innerHeight === window.__scheduleSizes.at(-1)[1] && innerHeight > height, emptyHeight);
-  assert.ok(owner.viewportSize().height > emptyHeight, 'Fenster wächst mit dem tatsächlichen Plan');
+  await owner.waitForFunction(()=>document.querySelectorAll('.schedule-show').length===3);
+  await owner.waitForTimeout(100);
+  assert.equal(owner.viewportSize().height,emptyHeight);
+  assert.deepEqual(await owner.evaluate(()=>__scheduleSizes),[]);
   await scheduleReachable(owner);
+  const seen=new Set();
+  while(true){
+    for(const text of await owner.locator('.schedule-show:visible .schedule-topic').allTextContents())seen.add(text);
+    if(!(await owner.locator('#schedule-pagination').isVisible())||await owner.locator('#schedule-page-next').isDisabled())break;
+    await owner.locator('#schedule-page-next').click();await scheduleReachable(owner);
+  }
+  assert.equal(seen.size,3);
   if (process.env.MISCHWERK_CAPTURE_SCHEDULE) {
     await owner.screenshot({ path: path.join(require('node:os').tmpdir(), 'MischWerk-Pruefbilder', 'sendeplan/Sendeplan-Dynamisch-Belegt.png') });
   }
@@ -365,7 +357,10 @@ test('Sendeplanfenster schrumpft auf Inhaltshöhe, wächst mit Sendungen und wir
   }
   await owner.locator('#schedule-refresh').click();
   await owner.waitForFunction(height => document.querySelectorAll('.schedule-show').length === 0 &&
-    innerHeight <= height, emptyHeight);
+    innerHeight === height, emptyHeight);
+  await owner.waitForTimeout(100);
+  assert.deepEqual(await owner.evaluate(()=>__scheduleSizes),[]);
+  assert.equal(await owner.locator('.schedule-day').count(),7);
   await scheduleReachable(owner);
   if (process.env.MISCHWERK_CAPTURE_SCHEDULE) {
     await owner.screenshot({ path: path.join(require('node:os').tmpdir(), 'MischWerk-Pruefbilder', 'sendeplan/Sendeplan-Dynamisch-Leer.png') });

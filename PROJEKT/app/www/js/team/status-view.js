@@ -15,7 +15,7 @@ MischWerkUI.define('statusView', function (dependencies) {
     if (!configured) { card(name, 'Nicht eingerichtet', 'Es fehlt eine gültige STREAMPANEL-Senderkonfiguration.'); return false; }
     var station = model.current().station;
     var source = name === 'transmission' ? station.statusUrl && station.fields.status :
-      name === 'metadata' ? station.metadataUrl && (station.fields.title || station.fields.artist) : station.listenersUrl && station.fields.listeners;
+      station.metadataUrl && (station.fields.title || station.fields.artist);
     if (!source) { card(name, 'Noch nicht angebunden', 'Die öffentliche Datenquelle ist noch nicht eingerichtet.'); return false; }
     if (!model.connected()) { card(name, 'Nicht aktuell', 'Anbieterprüfung pausiert, bis die App-Verbindung bestätigt ist.', 'error'); return false; }
     if (!item) { card(name, 'Prüfe …', 'Öffentliche STREAMPANEL-Daten werden abgerufen.'); return false; }
@@ -30,6 +30,7 @@ MischWerkUI.define('statusView', function (dependencies) {
   function render(remote, running, configured) {
     var state = model.current();
     if (!state) { return; }
+    dom.el('status-mode').querySelector('.eyebrow').textContent = state.station.modeUrl ? 'STREAMPANEL · Sendemodus' : 'STREAMPANEL · Titelstatus';
     var connected = model.connected();
     card('app', connected ? 'Verbunden' : state.shuttingDown ? 'Wartung läuft' : 'Verbindung fehlt',
       connected ? 'Channelzustand bestätigt; automatische Aktualisierung aktiv.' : 'App-Zustände sind nicht aktuell. Jetzt prüfen oder das Fenster erneut öffnen.', connected ? 'ok' : 'error');
@@ -52,9 +53,6 @@ MischWerkUI.define('statusView', function (dependencies) {
       card('transmission', transmission.value === 'started' ? 'Sendet' : transmission.value === 'stopped' ? 'Gestoppt' : 'Status unbekannt',
         'Öffentlicher Senderstatus; kein Audio-Test. ' + stamp(transmission), transmission.value === 'started' ? 'ok' : transmission.value === 'stopped' ? 'error' : 'neutral');
     }
-    if (remoteCard('listeners', remote.listeners, configured)) {
-      card('listeners', remote.listeners.value.toLocaleString('de-DE'), 'Öffentliche STREAMPANEL-Hörerzahl. ' + stamp(remote.listeners), 'ok');
-    }
     if (remoteCard('metadata', song, configured)) {
       var text = [song.value.title, song.value.artist.name].filter(Boolean).join(' · ');
       card('metadata', text ? 'Erreichbar' : 'Keine Titelangaben', (text ? text + '. ' : 'STREAMPANEL liefert derzeit keinen Titel. ') + stamp(song), text ? 'ok' : 'neutral');
@@ -66,10 +64,10 @@ MischWerkUI.define('statusView', function (dependencies) {
       if (connected && state.moderator) { warning = 'Im Studio ist noch eine Moderation ON AIR angemeldet.'; }
     } else if (current(transmission) && transmission.value === 'started' && current(song) && typeof song.value.isLive === 'boolean') {
       mode = song.value.isLive ? 'LIVE' : 'AutoDJ'; tone = song.value.isLive ? 'gold' : 'ok';
-      detail = 'Laut aktueller STREAMPANEL-Titelkennzeichnung. ' + stamp(song);
+      detail = (state.station.modeUrl ? 'Laut aktuellem STREAMPANEL-Sendemodus. ' : 'Laut aktueller STREAMPANEL-Titelkennzeichnung. ') + stamp(song);
       if (connected && song.value.isLive !== !!state.moderator) {
         warning = song.value.isLive ? 'STREAMPANEL meldet LIVE; im Studio ist niemand ON AIR angemeldet.' :
-          'STREAMPANEL meldet AutoDJ laut Titelstatus; im Studio ist eine Moderation ON AIR angemeldet. Encoderverbindung prüfen.';
+          'STREAMPANEL meldet AutoDJ; im Studio ist eine Moderation ON AIR angemeldet. Encoderverbindung prüfen.';
       }
     }
     card('mode', mode, detail, tone);

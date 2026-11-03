@@ -2,12 +2,6 @@
 .team-tabs { display:flex; gap:0; margin:0 0 16px; padding:0; border:0; border-bottom:1px solid #6d6654; background:transparent; }
 .team-tabs button { flex:1; min-height:48px; padding:10px 8px; border:0; border-bottom:3px solid transparent; background:transparent; color:var(--muted); font-size:14px; font-weight:600; }
 .team-tabs button[aria-pressed=true] { color:var(--surface); border-bottom-color:#b98d32; border-radius:8px; background-color:var(--gold); background-image:var(--button-gold); }
-html[data-view=team].status-central-open .dialog-shell { padding:10px; }
-html[data-view=team].status-central-open { --dialog-logo:48px; --dialog-title:24px; --dialog-gap:10px; }
-html[data-view=team].status-central-open .dialog-header { gap:10px; padding:0 0 8px; margin-bottom:6px; }
-html[data-view=team].status-central-open .dialog-heading { grid-template-columns:minmax(0,1fr) auto; column-gap:8px; }
-html[data-view=team].status-central-open .dialog-heading > .pill { grid-column:2; grid-row:1 / 3; margin-top:0; }
-.status-central-open .team-tabs { margin-bottom:8px; }
 .status-heading { margin-bottom:6px; }
 .status-heading h2 { font-size:18px; font-weight:600; }
 #refresh-status { min-width:102px; border-color:#6d6654; background:linear-gradient(180deg,#ffffff08,transparent),var(--raised); }
@@ -21,7 +15,6 @@ html[data-view=team].status-central-open .dialog-heading > .pill { grid-column:2
 .status-item { --status-dot:#99958a; min-width:0; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
 .status-item h3 { margin:0 0 4px; color:var(--muted); font-size:12px; font-weight:400; line-height:1.2; }
 .status-item > strong { display:block; color:var(--text); font-size:16px; line-height:1.2; font-weight:600; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
-#status-listeners-value { font-size:20px; }
 .status-item > strong::before,.status-mode-main > strong::before { content:""; display:inline-block; width:9px; height:9px; margin-right:6px; border-radius:50%; background:var(--status-dot); vertical-align:1px; }
 .status-item[data-tone=ok],.status-mode[data-tone=ok],.status-item[data-tone=gold],.status-mode[data-tone=gold] { --status-dot:#9ccda2; }
 .status-item[data-tone=error],.status-mode[data-tone=error] { --status-dot:#ff6b5f; }

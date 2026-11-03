@@ -1,12 +1,14 @@
 # MischWerk – Sendeplan
 
-Der Button **Sendeplan** steht in der Radioleiste direkt über der Wunschbox. Er öffnet ein eigenes Fenster und bleibt auch bei geschlossener Wunschbox erreichbar. Radioleiste und laufender Ton bleiben bestehen.
+Der Button **Sendeplan** steht in der Radioleiste direkt über der Wunschbox. Er zeigt den Plan in der gemeinsamen Zusatzoberfläche; eine bereits geöffnete Sitzung bleibt beim Bereichswechsel erhalten. Radioleiste und laufender Ton bleiben bestehen. Seit 0.1.139 zeigt dieser öffentliche Bereich ausschließlich den Kalender.
+
+Die Titelhistorie steht ausschließlich dem Channelinhaber und ernannten Radiomoderatoren unter **Moderation → Heute gespielt** zur Verfügung. [Bedienung](INBETRIEBNAHME.md#tageshistorie-verwenden).
 
 ## Wochenübersicht
 
 Die Ansicht startet mit der aktuellen Woche von Montag bis Sonntag. Jeder Tag zeigt Wochentag und Datum. Geplante Sendungen enthalten Von-/Bis-Zeit, Moderator und Thema; leere Tage zeigen „Keine Sendung geplant“. Der heutige Tag wird markiert. Zeiten sind deutsche Ortszeit; die Datumsgrenze berücksichtigt MEZ/MESZ unabhängig von der Serverzeitzone.
 
-Mit den Pfeilen wechseln Sie zur vorherigen oder nächsten Woche. **Diese Woche** kehrt zur aktuellen Woche zurück. Solange diese Ansicht ausgewählt bleibt, folgt sie auch dem nächsten Wochenwechsel. Bewusst ausgewählte andere Wochen bleiben stehen. Seit 0.1.47 passt sich die Höhe des nativen Desktopfensters dem Inhalt an und wächst oder schrumpft mit den Sendungen. Es gibt keine Scrollleisten. Reicht die Bildschirmhöhe nicht aus oder gibt der Client eine feste Höhe vor, erscheinen **Zurück**, **Weiter** und eine Seitenangabe unter der Liste. Auch lange einzelne Tage werden vollständig auf Folgeseiten fortgesetzt. Alle Termine werden bei Bedarf über mehrere kleine Datenpakete nachgeladen; diese Übertragung ist unabhängig von der sichtbaren Seiteneinteilung.
+Mit den Pfeilen wechseln Sie zur vorherigen oder nächsten Woche. **Diese Woche** kehrt zur aktuellen Woche zurück. Solange diese Ansicht ausgewählt bleibt, folgt sie auch dem nächsten Wochenwechsel. Bewusst ausgewählte andere Wochen bleiben stehen. Seit 0.1.122 öffnet das Desktopfenster unmittelbar mit 820 × 660 px. Es bleibt beim Laden, Wochenwechsel und Bearbeiten in dieser Größe. Reicht der tatsächlich verfügbare Platz für den Plan nicht aus, erscheinen **Zurück**, **Weiter** und eine Seitenangabe unter der Liste. Auch lange einzelne Tage werden vollständig auf Folgeseiten fortgesetzt. Alle Termine werden bei Bedarf über mehrere kleine Datenpakete nachgeladen; diese Übertragung ist unabhängig von der sichtbaren Seiteneinteilung.
 
 Ein Ende vor dem Beginn bedeutet den Folgetag, beispielsweise Sonntag 22:00 bis Montag 02:00. Die Fortsetzung ist auch am Montag der Folgewoche sichtbar. Gleiche Anfangs- und Endzeiten sowie sich überschneidende Sendungen werden zurückgewiesen. Es handelt sich um datierte Einträge, nicht um automatisch wiederkehrende Termine.
 
@@ -32,3 +34,5 @@ Die Client-/Server-Kommunikation verwendet `mw:schedule.get`, `.data`, `.save`, 
 Architektur: vier Backendmodule unter `src/backend/schedule/`, sieben Frontendkomponenten unter `app/www/js/schedule/` und das zuständige Stylesheet `app/www/css/schedule.css`. Tests: `tests/node/schedule.test.cjs` und `tests/browser/schedule.browser.test.cjs`. Einzelheiten zum lokalen Paket und verbleibender echter Knuddels-Abnahme: [PRUEFBERICHT.md](../pruefung/PRUEFBERICHT.md).
 
 Seit 0.1.46 entfällt die Verbindungsplakette im Kopf des Sendeplans. Lade-, Speicher- und Fehlerrückmeldungen erscheinen weiterhin direkt im Plan.
+
+Seit 0.1.118 liest der Sendungsassistent der Moderation passende Planzeiten und nächste Moderation, ohne Schreibrechte zu erhalten. Ein geplantes Thema kann als Entwurf übernommen werden; die ausdrückliche Themenbestätigung bleibt nötig. Planänderungen benachrichtigen ein bereits geöffnetes Studio. Anmeldung, tatsächliche Ausstrahlung und geplanter Termin bleiben getrennt.

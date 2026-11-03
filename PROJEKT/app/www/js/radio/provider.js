@@ -17,6 +17,10 @@ MischWerkUI.define('provider', function (dependencies) {
   var metadataStation = null;
   var providerStatus = 'unknown';
   var lastSong = null;
+  var broadcastMode = null, modeAt = 0, statusAt = 0;
+  function publishBroadcast() {
+    signals.emit('broadcast-status', { status: providerStatus, statusAt: statusAt, isLive: broadcastMode, modeAt: modeAt });
+  }
   function canReadMetadata() {
     var urls = api.streamUrls(metadataStation);
     return urls && !!urls.metadata && !document.hidden && providerStatus !== 'checking' && providerStatus !== 'stopped';
@@ -30,10 +34,12 @@ MischWerkUI.define('provider', function (dependencies) {
     var pending = api.fetchMetadata(metadataStation).then(function (song) {
       if (!current()) { return; }
       presentation.renderSong(song); lastSong = song;
+      broadcastMode = typeof song.isLive === 'boolean' ? song.isLive : null; modeAt = Date.now(); publishBroadcast();
       dom.setText('metadata-status', 'Titelanzeige von STREAMPANEL · zuletzt aktualisiert um ' + dom.time(Date.now()) + '. Titel und Audio können zeitversetzt sein.');
     }).catch(function () {
       if (!current()) { return; }
       retry = STATUS_INTERVAL;
+      broadcastMode = null; modeAt = 0; publishBroadcast();
       if (!lastSong) { presentation.renderSong(null); }
       dom.setText('metadata-status', 'Musikdaten sind gerade nicht erreichbar. ' + (lastSong ? 'Die letzte Titelanzeige kann veraltet sein. ' : '') + 'Der Player kann trotzdem funktionieren.');
     }).then(function () {
@@ -47,12 +53,16 @@ MischWerkUI.define('provider', function (dependencies) {
   function applyProviderStatus(status) {
     var previous = providerStatus;
     providerStatus = status;
+    statusAt = Date.now();
+    if (status !== 'started') { broadcastMode = null; modeAt = 0; }
     signals.emit('provider-status', { status: status, previous: previous });
     if (status === 'stopped') {
       clearTimeout(metadataTimer); metadataRevision += 1; metadataRequest = null;
       lastSong = null; presentation.renderSong(null);
+      broadcastMode = null; modeAt = 0;
       dom.setText('metadata-status', 'Sender bei STREAMPANEL gestoppt. Automatische Prüfung alle 30 Sekunden.');
     } else if (previous === 'checking' || previous === 'stopped') { pollMetadata(); }
+    publishBroadcast();
   }
   function pollStatus() {
     clearTimeout(statusTimer);
@@ -82,13 +92,19 @@ MischWerkUI.define('provider', function (dependencies) {
     clearTimeout(metadataTimer); clearTimeout(statusTimer);
     generation += 1; metadataRevision += 1;
     metadataRequest = null; statusRequest = null;
+    broadcastMode = null; modeAt = 0; statusAt = 0; publishBroadcast();
+  }
+  function playbackKey(station) {
+    var value = Object.assign({}, typeof station === 'string' ? JSON.parse(station) : station);
+    delete value.historyUrl; delete value.historyIgnoredTitles;
+    return JSON.stringify(value);
   }
   function selectStation(oldStation) {
     var radioUrls = api.streamUrls(model.current().station);
     dom.el('play-button').disabled = !radioUrls;
     if (radioUrls && model.view === 'radio') {
       dom.el('station-link').hidden = false; dom.el('station-link').href = radioUrls.stream;
-      if (oldStation !== JSON.stringify(model.current().station)) {
+      if (playbackKey(oldStation) !== playbackKey(model.current().station)) {
         dispose(); metadataStation = model.current().station; lastSong = null; providerStatus = 'checking';
         signals.emit('station-changed', { configured: true });
         presentation.renderSong(null); pollStatus();

@@ -1,0 +1,25 @@
+/* Historie passend zum Overlay paginieren, ohne eigene Scrollfläche. */
+.studio-programme-tabs { display:flex; gap:8px; margin:0 0 14px; }
+.studio-programme-tabs [role=tab] { flex:1; min-width:0; }
+.studio-programme-tabs [aria-selected=true] { color:var(--text); border-color:#d8bb75; background:linear-gradient(180deg,#4a4434,#34332c); }
+.history-feedback { min-height:20px; margin:0 0 12px; font-size:13px; line-height:1.5; color:var(--muted); }
+.history-feedback.error { color:var(--error); }
+.history-list { list-style:none; padding:0; margin:0; min-height:1px; }
+.history-list li { display:grid; grid-template-columns:80px minmax(0,1fr); gap:12px; padding:10px 0; border-bottom:1px solid var(--line); font-size:16px; line-height:1.5; }
+.history-list time { font-size:14px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.history-list span { min-width:0; overflow-wrap:anywhere; white-space:pre-wrap; }
+#history-pagination > span { text-align:center; }
+.history-open #history-panel .fine-print { margin:8px 0 0; font-size:12px; line-height:1.4; }
+.history-open #history-panel .list-heading { gap:8px; }
+.history-open #history-panel h2 { margin:0; }
+.history-open #history-pagination { margin-top:8px; }
+@media (max-height:550px) {
+  html.history-open .dialog-shell { padding:8px; }
+  .history-open .dialog-header { --dialog-logo:44px; --dialog-title:20px; --dialog-gap:8px; padding:8px; margin-bottom:8px; }
+  .history-open .studio-programme-tabs { margin-bottom:8px; }
+  .history-open #history-panel .list-heading { margin-bottom:8px; }
+  .history-open #history-heading { font-size:16px; }
+  .history-open .history-feedback { margin-bottom:8px; font-size:12px; }
+  .history-open .history-list li { padding:6px 0; }
+}
+@media (max-width:380px) { .history-list li { grid-template-columns:70px minmax(0,1fr); gap:8px; } }

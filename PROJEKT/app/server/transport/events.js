@@ -9,6 +9,7 @@ MischWerkModules.attachEvents = function (runtime, config) {
             runtime.handleWishSubmission(user, data, session);
             return;
         }
+        if (type.indexOf('mw:overlay.') === 0) { runtime.handleOverlayEvent(user, type, data, session); return; }
         if (type.indexOf('mw:wishes.') === 0) {
             runtime.handleWishSurfaceEvent(user, type, data, session);
             return;
@@ -20,11 +21,6 @@ MischWerkModules.attachEvents = function (runtime, config) {
         var requestId = null;
         var operation = 'EVENT_PREPARE';
         try {
-            operation = 'STATE_LOAD';
-            runtime.load();
-            runtime.loadWishes();
-            operation = 'STATE_PRUNE';
-            if (runtime.prune()) { runtime.broadcast(); }
             operation = 'EVENT_VALIDATE';
             data = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
             if (data.requestId !== undefined) {
@@ -33,25 +29,28 @@ MischWerkModules.attachEvents = function (runtime, config) {
                 }
                 requestId = data.requestId;
             }
+            operation = 'STATE_LOAD';
+            runtime.load();
+            runtime.loadWishes();
+            operation = 'STATE_PRUNE';
+            if (runtime.prune()) { runtime.broadcast(); }
             if (type === 'mw:ready' || type === 'mw:refresh') {
                 operation = 'STATE_REFRESH';
-                runtime.refresh(session, user, data.page, data.myPage, data.radioModeratorPage);
+                runtime.expireOverlays(user);
+                if (runtime.isModerator(user)) { runtime.refreshAssistant(); }
+                var currentView = runtime.getViews().filter(function (view) { return view.content === session.getAppContent(); })[0];
+                if (currentView && data.viewRevision !== undefined && data.viewRevision !== currentView.viewRevision) {
+                    runtime.refresh(session, user);
+                } else { runtime.refresh(session, user, data.page, data.myPage, data.radioModeratorPage, type === 'mw:refresh' ? requestId : null); }
+                if (type === 'mw:ready') { runtime.resumeOverlayOpening(user, session); }
                 return;
             }
             if (runtime.shuttingDown) {
                 throw runtime.failure('MischWerk wird gerade neu gestartet. Bitte öffne die App gleich erneut.');
             }
-            if (type === 'mw:openWishes') {
-                runtime.toggleWishSurface(user, session);
-                runtime.result(session, true, 'Wunschbox geöffnet.', type, requestId);
-                return;
-            }
-            if (type === 'mw:openStudio' || type === 'mw:openRadioTeam' || type === 'mw:openSchedule') {
-                operation = 'OPEN_VIEW';
-                runtime.openView(user, type === 'mw:openStudio' ? 'studio' :
-                    type === 'mw:openRadioTeam' ? 'team' : type === 'mw:openSchedule' ? 'schedule' : 'schedule');
-                runtime.result(session, true, 'Fenster geöffnet.', type, requestId);
-                return;
+            if (type === 'mw:openWishes' || type === 'mw:openStudio' || type === 'mw:openRadioTeam' || type === 'mw:openSchedule') {
+                operation = 'OPEN_OVERLAY';
+                runtime.openOverlay(user, session, type, requestId); return;
             }
             if (type === 'mw:ackRequest') {
                 operation = 'REQUEST_ACK';
@@ -72,10 +71,12 @@ MischWerkModules.attachEvents = function (runtime, config) {
             } else {
                 operation = 'MODERATION_ACTION';
                 if (type === 'mw:resolveRequest') { runtime.resolveRequest(user, data); }
+                else if (type === 'mw:setWishStage') { runtime.changeWishStage(user, data); }
                 else if (type === 'mw:setTopic' || type === 'mw:setRequests') { runtime.changeShow(user, type, data); }
                 else { runtime.changeModeration(user, type, data); }
                 runtime.result(session, true, type === 'mw:setTopic' ? (runtime.state.topic ? 'Thema gespeichert.' : 'Thema entfernt.') :
                     type === 'mw:setRequests' ? (runtime.state.requestsEnabled ? 'Wunschbox aktiviert.' : 'Wunschbox deaktiviert.') :
+                    type === 'mw:setWishStage' ? 'Wunschstatus aktualisiert.' :
                     type === 'mw:resolveRequest' ? (data.outcome === 'discarded' ? 'Wunsch verworfen.' : 'Wunsch als erledigt entfernt.') :
                     type === 'mw:onAir' ? 'Studio-Anmeldung bestätigt.' : 'Studio-Anmeldung beendet.', type, requestId);
             }
@@ -83,8 +84,9 @@ MischWerkModules.attachEvents = function (runtime, config) {
             runtime.broadcast();
         } catch (error) {
             if (!error.publicMessage) { runtime.warn(operation); }
-            runtime.result(session, false, error.publicMessage ||
-                'Die Aktion konnte nicht gespeichert werden. Bitte versuche es erneut.', type, requestId);
+            runtime.result(session, false, error.publicMessage || (type === 'mw:refresh' || type === 'mw:ready' ?
+                'Aktualisierung fehlgeschlagen. Bitte versuche es erneut.' :
+                'Die Aktion konnte nicht gespeichert werden. Bitte versuche es erneut.'), type, requestId);
             try { if (runtime.state) { runtime.refresh(session, user); } } catch (ignored) { runtime.warn(); }
         }
     };

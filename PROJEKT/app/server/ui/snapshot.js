@@ -12,11 +12,14 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
     runtime.requestView = function (item) {
         return { id: item.id, nick: item.nick, artist: item.artist, title: item.title,
             message: item.message, text: runtime.requestText(item), createdAt: item.createdAt,
-            delivery: item.delivery ? { nick: item.delivery.nick, at: item.delivery.at } : null };
+            delivery: item.delivery ? { nick: item.delivery.nick, at: item.delivery.at } : null,
+            stage: item.stage || 'queued' };
     };
 
     runtime.snapshot = function (user, page, myPage, feedbackId, radioModeratorPage) {
         var mod = runtime.isModerator(user);
+        var station = runtime.station();
+        if (!mod) { delete station.historyUrl; delete station.historyIgnoredTitles; }
         var presenter = runtime.moderatorIsActive() ? runtime.state.moderator : null;
         var radioTeam = runtime.radioModeratorViews(user, radioModeratorPage);
         var currentUserId = runtime.userId(user);
@@ -24,7 +27,7 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
         var totalPages = Math.max(1, Math.ceil(requests.length / runtime.pageSize));
         page = Math.max(0, Math.min(totalPages - 1, Math.floor(Number(page) || 0)));
         return {
-            station: runtime.station(),
+            station: station,
             topic: runtime.state.topic,
             curtain: runtime.curtainState(user),
             revision: runtime.state.revision,
@@ -37,6 +40,7 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
             moderator: presenter ? { nick: presenter.nick, since: presenter.since,
                 expiresAt: presenter.expiresAt, sessionKey: runtime.moderatorKey() } : null,
             handover: runtime.handoverSnapshot(user),
+            assistant: mod ? runtime.assistantSnapshot(user) : null,
             myRequests: [],
             myTotal: 0,
             myPage: 0,

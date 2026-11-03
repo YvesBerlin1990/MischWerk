@@ -34,7 +34,7 @@ test('Sendeplan öffnet für Hörer trotz deaktivierter Wunschbox als eigenes Po
   assert.equal(result.find(item => item.type === 'mw:result').data.ok, true);
   assert.equal(f.listenerRadio.removed, false);
   const popup = f.listener.sessions.find(item => item.content.htmlFile.pageData.view === 'schedule');
-  assert.equal(popup.content.width, 820); assert.equal(popup.content.height, 560);
+  assert.equal(popup.content.width, 820); assert.equal(popup.content.height, 660);
   assert.equal(popup.content.allowJFXBrowser, false);
   const data = read(f, week, 0, f.listener, popup);
   assert.equal(data.canManage, false);
@@ -126,12 +126,12 @@ test('Sendungen bis exakt Mitternacht erzeugen keine leere Fortsetzung in der Fo
 test('Defektes Sendeplanfenster erzeugt nach erfolgreichem Speichern keine zweite Fehlerquittung', () => {
   const f = fixture();
   f.h.event(f.listener, f.listenerRadio, 'mw:openSchedule');
-  const broken = f.listener.sessions.find(item => item.content.viewMode === 'Popup').content;
+  const broken = f.listener.sessions.find(item => item.content.viewMode === 'Overlay').content;
   broken.getSessions = () => { throw new Error('Private Sitzungsdetails'); };
   const observer = f.h.user(3, 'Weitere Hörerin');
   const observerRadio = f.h.open(observer);
   f.h.event(observer, observerRadio, 'mw:openSchedule');
-  const observerPopup = observer.sessions.find(item => item.content.viewMode === 'Popup');
+  const observerPopup = observer.sessions.find(item => item.content.viewMode === 'Overlay');
   observerPopup.events = [];
   const events = event(f, 'mw:schedule.save', { week, expectedRevision: 0,
     date: week, start: '19:00', end: '21:00', nick: f.owner.nick, topic: 'Gespeicherte Sendung' });

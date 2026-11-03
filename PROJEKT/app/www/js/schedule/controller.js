@@ -47,7 +47,7 @@ MischWerkUI.define('schedule', function (dependencies) {
     signals.emit('schedule-layout');
   }
   function load(week, page) {
-    if (!bridge || !model.connected() || document.hidden) { return; }
+    if (model.view !== 'schedule' || !bridge || !model.connected() || document.hidden) { return; }
     page = page || 0;
     if (!page) { batch = null; }
     clearTimeout(readTimer);
@@ -135,7 +135,16 @@ MischWerkUI.define('schedule', function (dependencies) {
     reload();
   }
   function start() {
-    if (model.view !== 'schedule' || !bridge) { return; }
+    signals.on('overlay-capture', function (state) {
+      if (model.view !== 'schedule') { return; } state.scheduleWeek = selectedWeek || data && data.week; state.busy = !!mutation; });
+    signals.on('overlay-restore', function (state) {
+      if (model.view !== 'schedule') { return; }
+      if (typeof state.scheduleWeek === 'string' && calendar.week(state.scheduleWeek)) { selectedWeek = state.scheduleWeek; reload(); }
+    });
+    if ((!model.shared && model.view !== 'schedule') || !bridge) { return; }
+    signals.on('view-changed', function () {
+      if (model.view !== 'schedule') { clearTimeout(readTimer); reading = null; batch = null; }
+    });
     bridge.addEventListener('mw:schedule.data', receive);
     bridge.addEventListener('mw:schedule.result', result);
     bridge.addEventListener('mw:schedule.changed', function () { if (!mutation && !reading) { reload(); } });

@@ -8,26 +8,36 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
   var signals = dependencies.signals;
   var surface = !!(bridge && bridge.pageData && bridge.pageData.wishSurface);
   var surfaceId = surface ? bridge.pageData.wishSurfaceId : null;
+  var surfaceRevision = surface ? bridge.pageData.viewRevision : 0;
   var sequence = 0, acknowledged = 0, mirrored = null, opened = false, receiving = false, closing = false;
   var closeTimer;
   var focusPending = true;
+  var composing = false, feedbackKey = null, presentation = null;
+  function showComposer(data) {
+    presentation = data;
+    var key = JSON.stringify([data.feedbackHidden, data.pending, data.error, data.feedback]);
+    if (key !== feedbackKey && !data.feedbackHidden && !data.pending && !data.error) { composing = false; }
+    feedbackKey = key;
+    var positions = model.current() && model.current().wishPositions;
+    var show = !positions || !positions.total || composing || !!data.text || data.error || data.pending;
+    var form = dom.el('wish-form'), button = dom.el('wish-compose-open');
+    var restore = !show && form.contains(document.activeElement);
+    var reveal = show && document.activeElement === button;
+    form.hidden = !show; button.hidden = !!show;
+    if (restore) { button.focus({ preventScroll:true }); }
+    else if (reveal) {
+      dom.el(dom.el('wish-fields').disabled ? 'close-wishes' : 'wish-text').focus({ preventScroll:true });
+    }
+  }
   function focusInput() {
     requestAnimationFrame(function () {
-      if (!focusPending || closing || dom.el('wish-fields').disabled ||
+      if (model.view !== 'wishes' || !focusPending || closing || dom.el('wish-fields').disabled ||
           !document.documentElement.classList.contains('mw-ready')) { return; }
       if (document.activeElement !== document.body && document.activeElement !== document.documentElement) {
         focusPending = false; return;
       }
-      dom.el('wish-text').focus({ preventScroll:true }); focusPending = false;
+      dom.el(dom.el('wish-form').hidden ? 'wish-compose-open' : 'wish-text').focus({ preventScroll:true }); focusPending = false;
     });
-  }
-  function restoreFocus() {
-    var target = !dom.el('open-wishes').disabled ? dom.el('open-wishes') :
-      !dom.el('open-schedule').disabled ? dom.el('open-schedule') : dom.el('mute-button');
-    var curtain = model.current() && model.current().curtain;
-    if (curtain && curtain.closed && !curtain.exempt) { target = dom.el('curtain-ad'); }
-    target.focus({ preventScroll:true });
-    if (target.id === 'mute-button') { target.scrollIntoView({ block:'nearest', inline:'nearest' }); }
   }
   function mirror(force) {
     if (!opened && force !== true) { return; }
@@ -44,16 +54,14 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
   function radioStart() {
     dom.el('open-wishes').setAttribute('aria-haspopup', 'dialog');
     dom.el('open-wishes').setAttribute('aria-expanded', 'false');
-    dom.el('open-wishes').addEventListener('click', function () {
-      if (!this.disabled) { commands.send('mw:openWishes', {}, true); }
-    });
     bridge.addEventListener('mw:wishes.open', function (event) {
-      surfaceId = event.data.surfaceId; sequence = 0; opened = true;
+      if (!event.data.shared || surfaceId !== event.data.surfaceId) { sequence = 0; }
+      surfaceId = event.data.surfaceId; surfaceRevision = event.data.viewRevision || 1; opened = true;
       dom.el('open-wishes').setAttribute('aria-expanded', 'true'); mirror(true);
     });
     bridge.addEventListener('mw:wishes.closed', function (event) {
       if (event.data.surfaceId !== surfaceId) { return; }
-      opened = false; dom.el('open-wishes').setAttribute('aria-expanded', 'false'); restoreFocus();
+      opened = false; dom.el('open-wishes').setAttribute('aria-expanded', 'false'); if (!event.data.switching) { signals.emit('overlay-closed', { kind:'wishes' }); }
     });
     bridge.addEventListener('mw:wishes.input', function (event) {
       var data = event.data;
@@ -73,7 +81,7 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
     dom.el('wish-text').addEventListener('input', function () { mirror(); });
     signals.on('snapshot', function () {
       var curtain = model.current() && model.current().curtain;
-      if (opened && curtain && curtain.closed && !curtain.exempt) { commands.send('mw:wishes.close', {}, false); }
+      if (opened && curtain && curtain.closed && !curtain.exempt) { commands.send('mw:overlay.close', { view:'wishes', surfaceId:surfaceId, viewRevision:surfaceRevision }, false); }
     });
   }
   function fitText() {
@@ -95,11 +103,12 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
     feedback.textContent = data.feedback; feedback.hidden = data.feedbackHidden;
     dom.setText('wish-hint', data.hint); dom.el('wish-hint').hidden = !data.hint;
     receiving = false;
+    showComposer(data);
     focusInput();
-    if (closing && acknowledged >= sequence) { clearTimeout(closeTimer); bridge.close(); }
+    if (closing && acknowledged >= sequence) { clearTimeout(closeTimer); closing = false; signals.emit('overlay-dismiss'); }
   }
   function close() {
-    if (acknowledged >= sequence) { bridge.close(); }
+    if (acknowledged >= sequence) { closing = false; signals.emit('overlay-dismiss'); }
     else {
       closing = true;
       dom.setText('wish-hint', 'Deine Eingabe wird noch übernommen …'); dom.el('wish-hint').hidden = false;
@@ -120,6 +129,12 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
     var panel = dom.el('wishes-panel');
     panel.classList.add('wish-drawer'); panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-labelledby', 'inline-wish-title');
+    panel.insertBefore(dom.el('wish-positions'), dom.el('wish-compose-open'));
+    panel.insertBefore(dom.el('wish-feedback'), dom.el('wish-compose-open'));
+    panel.insertBefore(dom.el('wish-hint'), dom.el('wish-compose-open'));
+    dom.el('wish-compose-open').addEventListener('click', function () {
+      composing = true; showComposer(presentation); dom.el('wish-text').focus({ preventScroll:true });
+    });
     dom.el('wish-drawer-heading').hidden = false;
     dom.el('wish-text').rows = 2;
     dom.el('wish-text').addEventListener('input', function () { fitText(); edit(false); });
@@ -128,13 +143,14 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
     });
     dom.el('close-wishes').addEventListener('click', close);
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape') { event.preventDefault(); close(); }
+      if (model.view === 'wishes' && event.key === 'Escape') { event.preventDefault(); close(); }
     });
     bridge.addEventListener('mw:wishes.presentation', function (event) {
       if (event.data.surfaceId === surfaceId) { apply(event.data.state); }
     });
     signals.on('snapshot', function () { apply(model.current() && model.current().wishPresentation); });
     signals.on('initial-layout', function () { fitText(); focusInput(); });
+    window.addEventListener('resize', fitText);
     window.addEventListener('pagehide', function () { clearTimeout(closeTimer); });
     signals.on('controls', function () {
       if (!model.connected() || !model.current().requestsEnabled) { dom.el('wish-fields').disabled = true; }
@@ -147,5 +163,5 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
     if (model.view === 'radio') { radioStart(); }
     else if (surface) { surfaceStart(); }
   }
-  return { start:start };
+  return { start:start, fitText:fitText, isSynced:function () { return acknowledged >= sequence; } };
 });

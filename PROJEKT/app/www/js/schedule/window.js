@@ -1,18 +1,15 @@
-/* Natürliche Sendeplanhöhe, native Fensteranpassung und Platzgrenzen des jeweiligen Clients. */
+/* Sendeplan im bereits passend geöffneten Rahmen paginieren; keine nachträglichen Hostgrößen. */
 MischWerkUI.define('scheduleWindow', function (dependencies) {
   'use strict';
-  var bridge = dependencies.bridge;
   var model = dependencies.model;
   var dom = dependencies.dom;
   var signals = dependencies.signals;
   var pages = dependencies.pages;
   var timer;
   var lastKey = null;
-  var requestedHeight = 0;
-  var popupLimit = null;
   var revealKey = null;
   function fitWindow(initial) {
-    if (document.hidden) { return; }
+    if (model.view !== 'schedule' || document.hidden) { return; }
     if (!document.documentElement.classList.contains('mw-ready') && initial !== true) { return; }
     if (!pages.revision()) { return; }
     var form = dom.el('schedule-form');
@@ -28,20 +25,7 @@ MischWerkUI.define('scheduleWindow', function (dependencies) {
     var banner = dom.el('demo-banner');
     var bannerHeight = banner.hidden ? 0 : banner.getBoundingClientRect().height;
     var natural = Math.ceil(shell.getBoundingClientRect().height + bannerHeight);
-    var target = natural;
-    if (bridge && !bridge.isK3Client()) {
-      if (popupLimit === null) {
-        var available = window.screen && window.screen.availHeight;
-        // Vor dem ersten Resize festhalten; ein Host-Resize darf seine Grenze nicht verkleinern.
-        popupLimit = Math.max(260, Math.min(1000, available > window.innerHeight ? available - 80 : window.innerHeight));
-      }
-      target = Math.max(50, Math.min(natural, popupLimit));
-      if (target !== requestedHeight) {
-        try { bridge.getHostFrame().setSize(0, target); requestedHeight = target; }
-        catch (error) { /* Der aktuelle Viewport bleibt die verlässliche Platzgrenze. */ }
-      }
-    }
-    var usable = Math.min(target, window.innerHeight);
+    var usable = window.innerHeight;
     if (form.hidden && natural > usable + 1) {
       var pager = dom.el('schedule-pagination');
       pager.hidden = false;
@@ -59,7 +43,7 @@ MischWerkUI.define('scheduleWindow', function (dependencies) {
     timer = setTimeout(fitWindow, 40);
   }
   function start() {
-    if (model.view !== 'schedule') { return; }
+    if (!model.shared && model.view !== 'schedule') { return; }
     pages.start();
     signals.on('schedule-content', function (data) { pages.capture(data.week); lastKey = null; request(); });
     signals.on('schedule-layout', function (initial) { if (initial === true) { clearTimeout(timer); fitWindow(true); } else { request(); } });
