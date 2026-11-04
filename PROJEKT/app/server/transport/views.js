@@ -3,8 +3,9 @@ MischWerkModules.attachViewTransport = function (runtime, config) {
     'use strict';
 
     runtime.send = function (session, type, data) {
-        try { if (session) { session.sendEvent(type, data); } }
+        try { if (session) { session.sendEvent(type, data); return true; } }
         catch (error) { runtime.warn(); }
+        return false;
     };
 
     runtime.refresh = function (session, user, page, myPage, radioModeratorPage, refreshRequestId) {

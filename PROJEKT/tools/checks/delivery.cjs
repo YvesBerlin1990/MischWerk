@@ -4,6 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { parseArgs } = require('node:util');
 const { frontendFiles } = require('../lib/frontend-files.cjs');
+const { createDelivery } = require('../build/prepare-upload.cjs');
 const root = path.resolve(__dirname, '../..');
 const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 async function checkDelivery(baseUrl, { project = root } = {}) {
@@ -14,13 +15,15 @@ async function checkDelivery(baseUrl, { project = root } = {}) {
     throw new Error('Basisadresse ohne Zugangsdaten, Query oder Fragment und mit abschließendem / verwenden; HTTPS oder lokales HTTP.');
   }
   const files = frontendFiles.filter(file => /\.(html|js|css)$/.test(file));
+  const manifestFile = path.join(project,'deployment/manifests/manifest-live.json');
+  const delivery = fs.existsSync(manifestFile) && JSON.parse(fs.readFileSync(manifestFile,'utf8')).bundled === true ? createDelivery(project) : new Map();
   const results = new Array(files.length);
   let cursor = 0;
   await Promise.all(Array.from({ length: 4 }, async () => {
     for (;;) {
       const index = cursor++, file = files[index];
       if (!file) return;
-      const expected = fs.readFileSync(path.join(project, 'app/www', file));
+      const expected = delivery.get('www/' + file) || fs.readFileSync(path.join(project, 'app/www', file));
       const result = { file, status: 'unreachable', httpStatus: null, expectedBytes: expected.length, expectedSha256: digest(expected) };
       try {
         const response = await fetch(new URL(file, base), {

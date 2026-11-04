@@ -19,13 +19,13 @@ MischWerkUI.define('player', function (dependencies) {
     var checking = provider.status() === 'checking';
     var label = !model.current() ? 'Verbinde …' : !urls ? 'In Vorbereitung' : offline ? 'Sendepause' : streamPhase === 'playing' ? 'LIVE' : streamPhase === 'connecting' ? 'Verbinden' : checking ? 'Prüfe …' : streamPhase === 'error' ? 'Streamfehler' : !model.connected() ? 'Getrennt' : provider.status() === 'unknown' ? 'Status unbekannt' : streamPhase === 'stopped' ? 'Gestoppt' : 'Bereit';
     dom.setText('stream-label', label);
-    var description = !urls ? 'Der STREAMPANEL-Hörerstream ist noch nicht eingerichtet.' : offline ? 'Der Sender ist bei STREAMPANEL gestoppt. Automatische Prüfung alle 30 Sekunden.' : checking ? 'Der Senderstatus bei STREAMPANEL wird geprüft.' : provider.status() === 'unknown' && streamPhase !== 'playing' ? 'Senderstatus momentan nicht prüfbar. Du kannst die Wiedergabe versuchen.' : 'Status deiner Radio-Wiedergabe: ' + label;
+    var description = !urls ? 'Der Hörerstream von Radio Mischwerk ist noch nicht eingerichtet.' : offline ? 'Radio Mischwerk meldet eine Sendepause. Automatische Prüfung alle 30 Sekunden.' : checking ? 'Der Senderstatus von Radio Mischwerk wird geprüft.' : provider.status() === 'unknown' && streamPhase !== 'playing' ? 'Senderstatus momentan nicht prüfbar. Du kannst die Wiedergabe versuchen.' : 'Status deiner Radio-Wiedergabe: ' + label;
     dom.el('stream-badge').title = description;
     dom.el('play-button').disabled = model.view !== 'radio' || !urls || offline || (checking && !wantedPlayback);
     dom.el('play-button').setAttribute('aria-disabled', String(dom.el('play-button').disabled));
     dom.el('play-button').classList.toggle('is-offline', !!urls && offline);
     dom.el('play-button').title = description;
-    dom.el('play-button').setAttribute('aria-label', offline ? 'Radio pausiert: Sender bei STREAMPANEL gestoppt' : checking ? 'Senderstatus wird geprüft' : wantedPlayback ? 'Radio stoppen' : 'Radio abspielen');
+    dom.el('play-button').setAttribute('aria-label', offline ? 'Radio pausiert: Radio Mischwerk meldet eine Sendepause' : checking ? 'Senderstatus wird geprüft' : wantedPlayback ? 'Radio stoppen' : 'Radio abspielen');
     dom.el('stream-badge').classList.toggle('is-idle', label !== 'LIVE');
     document.body.classList.toggle('playing', streamPhase === 'playing');
   }
@@ -39,6 +39,7 @@ MischWerkUI.define('player', function (dependencies) {
   
   function stopPlayback() {
     wantedPlayback = false; streamPhase = 'stopped'; playbackAttempt += 1; clearTimeout(playbackTimer); audio.pause(); audio.removeAttribute('src'); audio.load();
+    signals.emit('playback-reset');
     playbackUi(false);
   }
   
@@ -52,6 +53,7 @@ MischWerkUI.define('player', function (dependencies) {
   }
   
   function startPlayback() {
+    signals.emit('playback-reset');
     volume.preparePlayback();
     wantedPlayback = true; streamPhase = 'connecting'; var attempt = ++playbackAttempt;
     playbackUi(true, 'Verbinde mit dem Stream …');
@@ -76,6 +78,7 @@ MischWerkUI.define('player', function (dependencies) {
     function buffering() {
       if (target !== audio || !wantedPlayback) { return; }
       streamPhase = 'connecting'; renderStreamStatus(); dom.setText('playback-status', 'Der Stream lädt nach …');
+      signals.emit('playback-reset');
       provider.poll();
       clearTimeout(playbackTimer); playbackTimer = setTimeout(playbackFailed, 20000);
     }
@@ -102,7 +105,7 @@ MischWerkUI.define('player', function (dependencies) {
     signals.on('provider-status', function (change) {
       if (change.status === 'stopped') {
         if (change.previous !== 'stopped' || wantedPlayback) { stopPlayback(); }
-        dom.setText('playback-status', 'STREAMPANEL meldet den Sender als gestoppt. Der Status wird automatisch erneut geprüft.');
+        dom.setText('playback-status', 'Radio Mischwerk meldet eine Sendepause. Der Status wird automatisch erneut geprüft.');
       } else if (change.previous === 'stopped') {
         streamPhase = 'ready';
         dom.setText('playback-status', change.status === 'started' ? 'Der Sender ist wieder bereit. Drücke Play zum Zuhören.' : 'Senderstatus nicht prüfbar. Du kannst die Wiedergabe versuchen.');
@@ -110,5 +113,10 @@ MischWerkUI.define('player', function (dependencies) {
       renderStreamStatus();
     });
   }
-  return { start: start, stop: stopPlayback, renderStatus: renderStreamStatus };
+  function playbackPosition() {
+    if (!wantedPlayback || streamPhase !== 'playing' || audio.paused || audio.ended || audio.seeking ||
+        audio.error || audio.readyState < 3 || !isFinite(audio.currentTime)) { return null; }
+    return audio.currentTime;
+  }
+  return { start: start, stop: stopPlayback, renderStatus: renderStreamStatus, playbackPosition: playbackPosition };
 });

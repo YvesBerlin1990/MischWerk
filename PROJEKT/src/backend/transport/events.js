@@ -2,6 +2,30 @@
 MischWerkModules.attachEvents = function (runtime, config) {
     'use strict';
 
+    runtime.curtainCommand = function (user, params) {
+        var message;
+        try {
+            if (!runtime.online(user)) { throw runtime.failure('Bitte verwende /vorhang im MischWerk-Channel.'); }
+            runtime.load();
+            if (!runtime.curtainState(user).canManage) {
+                throw runtime.failure('Nur Otterchen als Channelinhaber kann den Vorhang bedienen.');
+            }
+            if (runtime.shuttingDown) { throw runtime.failure('MischWerk wird gerade neu gestartet. Bitte versuche es gleich erneut.'); }
+            var action = String(params || '').replace(/^\s+|\s+$/g, '').toLowerCase();
+            if (action !== 'öffnen' && action !== 'schließen') {
+                throw runtime.failure('Bitte verwende /vorhang öffnen oder /vorhang schließen.');
+            }
+            message = runtime.changeCurtain(user, { closed:action === 'schließen', previousClosed:runtime.state.curtainClosed });
+        } catch (error) {
+            if (!error.publicMessage) { runtime.warn('CURTAIN_COMMAND'); }
+            user.sendPrivateMessage(error.publicMessage || 'Der Vorhang konnte nicht gespeichert werden. Bitte versuche es erneut.');
+            return;
+        }
+        try { runtime.broadcast(); } catch (error) { runtime.warn('CURTAIN_BROADCAST'); }
+        user.sendPrivateMessage(message);
+    };
+
+
     runtime.handleEvent = function (user, type, data, session) {
         if (!runtime.activeSession(user, session)) { return; }
         if (typeof type !== 'string' || type.indexOf('mw:') !== 0) { return; }
@@ -37,7 +61,6 @@ MischWerkModules.attachEvents = function (runtime, config) {
             if (type === 'mw:ready' || type === 'mw:refresh') {
                 operation = 'STATE_REFRESH';
                 runtime.expireOverlays(user);
-                if (runtime.isModerator(user)) { runtime.refreshAssistant(); }
                 var currentView = runtime.getViews().filter(function (view) { return view.content === session.getAppContent(); })[0];
                 if (currentView && data.viewRevision !== undefined && data.viewRevision !== currentView.viewRevision) {
                     runtime.refresh(session, user);
@@ -62,9 +85,6 @@ MischWerkModules.attachEvents = function (runtime, config) {
                 var changedNick = runtime.manageRadioModerator(user, type, data);
                 runtime.result(session, true, type === 'mw:addRadioModerator' ?
                     changedNick + ' ist jetzt Radiomoderator.' : 'Radiomoderator entfernt.', type, requestId);
-            } else if (type === 'mw:setCurtain') {
-                operation = 'CURTAIN_ACTION';
-                runtime.result(session, true, runtime.changeCurtain(user, data), type, requestId);
             } else if (type.indexOf('mw:handover.') === 0) {
                 operation = 'HANDOVER_ACTION';
                 runtime.result(session, true, runtime.changeHandover(user, type, data), type, requestId);

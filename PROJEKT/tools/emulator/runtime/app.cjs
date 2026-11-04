@@ -127,6 +127,9 @@ class AppRuntime {
   }
   command(nick, command, params = '') {
     const record = this.users.find(nick); if (!record?.state.online) throw new Error('Channelbeitritt erforderlich.');
+    if (command === '/confirm' && params === '') {
+      this.emit('platformCommand', { nick:record.state.nick, command, idleEffect:'not-modelled' }); return;
+    }
     const fn = this.app.chatCommands?.[command];
     if (typeof fn !== 'function') throw new Error('Unbekannter Appbefehl.');
     this.invokeFunction(fn, [record.user, String(params), command]);

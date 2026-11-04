@@ -8,7 +8,7 @@ const { frontendFiles } = require('../lib/frontend-files.cjs');
 const root = path.resolve(__dirname, '../..');
 const runtimeFiles = ['main.js', 'app.config', ...modules.map(file => 'server/' + file), ...frontendFiles.map(file => 'www/' + file)];
 const decoder = new TextDecoder('utf-8', { fatal: true });
-function isBinary(file) { return /\.(png|mp3)$/.test(file); }
+function isBinary(file) { return /\.(png|mp3|woff2)$/.test(file); }
 function checkText(file) {
   const buffer = fs.readFileSync(file);
   assert.ok(!buffer.subarray(0, 3).equals(Buffer.from([239, 187, 191])), 'UTF-8-BOM: ' + file);

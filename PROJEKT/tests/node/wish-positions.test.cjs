@@ -14,11 +14,15 @@ test('Eigene Positionen sind privat und rücken nach Erledigt oder Verwerfen tat
   assert.deepEqual(first.items.map(x=>[x.text,x.position]),[['A eins',1]]);
   assert.deepEqual(second.items.map(x=>[x.text,x.position]),[['B eins',2]]);
   assert.equal(first.pages,2);
+  assert.deepEqual(first.nextItem,first.items[0]);
+  assert.equal(second.nextItem.text,'B eins','Die Zusammenfassung enthält ausschließlich eigene Wünsche');
+  assert.deepEqual(h.state(a,as,0,1).wishPositions.nextItem,first.items[0],'Blättern verändert den nächsten Wunsch der Appleiste nicht');
   assert.deepEqual(h.state(a,as,0,1).wishPositions.items.map(x=>[x.text,x.position]),[['A zwei',3]]);
   h.state(a,as,0,0);
   assert.deepEqual(h.state(b,bs,0,1).wishPositions.items.map(x=>[x.text,x.position]),[['B zwei',4]]);
   h.state(b,bs,0,0);
   assert.equal(h.state(owner,os).wishPositions.total,0);
+  assert.equal(h.state(owner,os).wishPositions.nextItem,null);
   assert.equal(h.state(a,as).myRequests.length,0,'Kein historisches Wunschmodell reaktivieren');
   assert.ok(first.items.every(item=>Object.keys(item).sort().join(',')==='id,position,stage,text' && item.stage==='queued'));
   h.event(owner,os,'mw:resolveRequest',{id:first.items[0].id,outcome:'done'});
@@ -102,26 +106,26 @@ test('Geschlossene Wunschbox und Nutzerlöschung erhalten korrekte Positionen oh
 
 test('Wunschbox öffnet als natives Channel-Overlay; Header bleibt beim Wechsel zur Moderation erhalten',()=>{
  const {h,owner,a,os,as}=setup();
- h.event(owner,os,'mw:setCurtain',{closed:false,previousClosed:true});
+ h.app.chatCommands.vorhang(owner,'öffnen');
  h.event(a,as,'mw:wishes.sync',{text:'Mein Entwurf',sequence:0,disabled:false});
  const events=h.event(a,as,'mw:openWishes');
  assert.equal(events.find(e=>e.type==='mw:result').data.ok,true);
  const surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
  assert.ok(surface);assert.equal(as.content.height,160);assert.equal(as.removed,false);
- assert.deepEqual([surface.content.width,surface.content.height],[560,600]);
+ assert.deepEqual([surface.content.width,surface.content.height],[560,340]);
  assert.equal(surface.content.responsive,true);assert.equal(surface.content.allowJFXBrowser,false);
  assert.equal(surface.content.htmlFile.pageData.wishSurface,true);
  assert.equal(surface.content.htmlFile.pageData.wishPresentation.text,'Mein Entwurf');
  h.event(owner,os,'mw:openWishes');const ownerOverlay=owner.sessions.find(s=>s.content.viewMode==='Overlay');
  h.event(owner,os,'mw:openStudio');h.finishOverlay(owner,ownerOverlay);const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
- assert.equal(ownerOverlay.removed,false);assert.equal(studio,ownerOverlay);assert.equal(studio.activeView,'studio');assert.equal(h.event(owner,studio,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
+ assert.equal(ownerOverlay.removed,true);assert.notEqual(studio,ownerOverlay);assert.equal(studio.activeView,'studio');assert.equal(h.event(owner,studio,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
  h.event(a,as,'mw:openWishes');h.finishOverlay(a,surface);assert.equal(surface.removed,true);assert.equal(as.removed,false);
  h.event(owner,os,'mw:setRequests',{enabled:false});
  assert.equal(h.event(a,as,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
 });
 
 test('Overlay-Eingabe wird nur an die eigene Radio-Sitzung gereicht; Wunschtransport bleibt eigenständig',()=>{
- const {h,owner,a,b,os,as,bs}=setup();h.event(owner,os,'mw:setCurtain',{closed:false,previousClosed:true});
+ const {h,owner,a,b,os,as,bs}=setup();h.app.chatCommands.vorhang(owner,'öffnen');
  h.event(a,as,'mw:openWishes');const surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
  const id=surface.content.htmlFile.pageData.wishSurfaceId;
  h.event(a,surface,'mw:wishes.submit',{text:'Unser Song',sequence:1});
@@ -140,7 +144,7 @@ test('Overlay-Eingabe wird nur an die eigene Radio-Sitzung gereicht; Wunschtrans
 });
 
 test('Geschlossene, fremde und veraltete Overlay-Eingaben verändern keinen Radioentwurf',()=>{
- const {h,owner,a,b,os,as,bs}=setup();h.event(owner,os,'mw:setCurtain',{closed:false,previousClosed:true});
+ const {h,owner,a,b,os,as,bs}=setup();h.app.chatCommands.vorhang(owner,'öffnen');
  h.event(a,as,'mw:openWishes');const surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
  as.events=[];h.event(b,surface,'mw:wishes.edit',{text:'Fremd',sequence:1});assert.equal(as.events.length,0);
  h.event(b,bs,'mw:wishes.edit',{text:'Falsche Ansicht',sequence:1});assert.equal(as.events.length,0);
@@ -156,9 +160,23 @@ test('Geschlossene, fremde und veraltete Overlay-Eingaben verändern keinen Radi
 test('Nicht unterstütztes Overlay und verhüllte Radioleiste erhalten den bestehenden Header',()=>{
  const {h,owner,a,os,as}=setup();
  assert.equal(h.event(a,as,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
- h.event(owner,os,'mw:setCurtain',{closed:false,previousClosed:true});
+ h.app.chatCommands.vorhang(owner,'öffnen');
  a.capable=false;assert.equal(h.event(a,as,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
  assert.equal(as.removed,false);assert.equal(as.content.height,160);assert.equal(a.sessions.length,1);
  a.capable=true;h.event(a,as,'mw:openWishes');const surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
  as.remove();assert.equal(surface.removed,true);
+});
+
+
+test('Identische Wunschdarstellung wird nicht erneut gesendet; neue Sequenz und neues Fenster erhalten ihre Bestätigung',()=>{
+ const {h,owner,a,as}=setup();h.app.chatCommands.vorhang(owner,'öffnen');h.event(a,as,'mw:openWishes');
+ let surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
+ const data={surfaceId:as.events.findLast(e=>e.type==='mw:wishes.open').data.surfaceId,sequence:1,text:'Mein Entwurf',disabled:false,feedbackHidden:true};
+ for(let i=0;i<25;i++)h.event(a,as,'mw:wishes.sync',data);
+ assert.equal(surface.events.filter(e=>e.type==='mw:wishes.presentation').length,1);
+ h.event(a,as,'mw:wishes.sync',{...data,sequence:2});assert.equal(surface.events.filter(e=>e.type==='mw:wishes.presentation').length,2);
+ surface.nativeClose(false);h.event(a,as,'mw:openWishes');surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
+ const nextId=as.events.findLast(e=>e.type==='mw:wishes.open').data.surfaceId;
+ h.event(a,as,'mw:wishes.sync',{...data,surfaceId:nextId,sequence:0});assert.equal(surface.events.filter(e=>e.type==='mw:wishes.presentation').length,1);
+ h.event(a,as,'mw:wishes.sync',data);assert.equal(surface.events.filter(e=>e.type==='mw:wishes.presentation').length,1,'Alte Fensterkennung bleibt wirkungslos');
 });

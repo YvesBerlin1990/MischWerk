@@ -2,6 +2,70 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {createHarness}=require('../support/knuddels.cjs');
 const {configureStream,spcastStatistics}=require('../fixtures/stream.cjs');
+const {playbackHarness}=require('../support/playback.cjs');
+
+test('Wiedergabe-Heartbeat sendet ausschließlich alle drei Minuten mit frischer Antwort',()=>{
+ const p=playbackHarness();p.advance(600000);assert.equal(p.slashes.length,0);
+ p.play();p.advance(180000);assert.equal(p.slashes.length,0);p.advance(2000);assert.equal(p.slashes.length,1);
+ p.advance(364000);assert.equal(p.slashes.length,3);assert.ok(p.slashes.every(s=>s.command==='/confirm'));
+ for(let i=1;i<p.slashes.length;i++)assert.ok(p.slashes[i].at-p.slashes[i-1].at>=180000);
+ assert.deepEqual(p.errors,[]);
+});
+for(const action of ['stop','pause','waiting','stalled','error','ended','station','provider','offline','pagehide'])test('Heartbeat endet bei '+action+' ohne weiteren Klick',()=>{
+ const p=playbackHarness();p.play();p.advance(182000);assert.equal(p.slashes.length,1);
+ if(action==='stop')p.stop();
+ else if(action==='station')p.signals.emit('station-changed',{configured:true});
+ else if(action==='provider')p.signals.emit('provider-status',{status:'stopped',previous:'started'});
+ else if(action==='offline'){p.navigator.onLine=false;p.window.emit('offline');}
+ else if(action==='pagehide')p.window.emit('pagehide');
+ else p.audio.emit(action);
+ const queries=p.activityRequests().length;p.advance(600000);assert.equal(p.slashes.length,1);assert.equal(p.activityRequests().length,queries);
+});
+test('Stehende Medienzeit und Zeitsprünge erzeugen keinen Heartbeat; Fortschritt kann neu beginnen',()=>{
+ const p=playbackHarness();p.play();p.freeze(true);p.advance(300000);assert.equal(p.slashes.length,0);
+ p.freeze(false);p.advance(182000);assert.equal(p.slashes.length,1);
+ p.audio.currentTime+=600;p.advance(10000);assert.equal(p.slashes.length,1);p.advance(180000);assert.equal(p.slashes.length,2);
+});
+test('Direkt vor Fälligkeit eingefrorene Medienzeit darf keinen Heartbeat erzeugen',()=>{
+ const p=playbackHarness();p.play();p.advance(179000);p.freeze(true);p.advance(10000);assert.equal(p.slashes.length,0);
+});
+test('Auch nach frischer Antwort muss Audio noch fortschreiten, bevor der Slash-Aufruf erfolgt',()=>{
+ const p=playbackHarness();p.ack('hold');p.play();p.advance(182000);p.freeze(true);
+ p.audio.currentTime+=0.1;
+ p.reply(p.activityRequests()[0].data.requestId);assert.equal(p.slashes.length,0);
+ p.advance(10000);assert.equal(p.slashes.length,0);
+});
+test('Fehlende, fremde, doppelte und zu späte Channelantworten bestätigen keine neue Aktivität',()=>{
+ const p=playbackHarness();p.ack('hold');p.play();p.advance(182000);assert.equal(p.slashes.length,0);
+ const first=p.activityRequests()[0].data.requestId;p.reply('foreign');assert.equal(p.slashes.length,0);
+ p.reply(first);p.reply(first);p.advance(1000);assert.equal(p.slashes.length,1);
+ p.advance(180000);const second=p.activityRequests().at(-1).data.requestId;p.advance(11000);p.reply(second);assert.equal(p.slashes.length,1);
+});
+test('Ausstehende Bestätigung darf Stop und einen neuen Wiedergabeversuch nicht überleben',()=>{
+ const p=playbackHarness();p.ack('hold');p.play();p.advance(182000);const id=p.activityRequests()[0].data.requestId;
+ p.stop();p.play();p.reply(id);assert.equal(p.slashes.length,0);p.advance(182000);assert.equal(p.slashes.length,0);
+ p.reply(p.activityRequests().at(-1).data.requestId);p.advance(1000);assert.equal(p.slashes.length,1);
+});
+test('Verspätete gültige Bestätigung verkürzt nicht den Abstand tatsächlicher Slash-Aufrufe',()=>{
+ const p=playbackHarness();p.ack('hold');p.play();p.advance(182000);p.advance(7000);
+ p.reply(p.activityRequests()[0].data.requestId);p.advance(1000);assert.equal(p.slashes.length,1);
+ const count=p.activityRequests().length;p.advance(179000);assert.equal(p.activityRequests().length,count);
+ p.advance(1000);p.reply(p.activityRequests().at(-1).data.requestId);p.advance(1000);assert.equal(p.slashes.length,2);
+ assert.ok(p.slashes[1].at-p.slashes[0].at>=180000);
+});
+test('Verlust der Knuddels-Antworten beendet Heartbeats trotz weiterlaufendem Audio',()=>{
+ const p=playbackHarness();p.play();p.advance(182000);p.ack('none');p.advance(600000);
+ assert.equal(p.slashes.length,1);assert.equal(p.audio.paused,false);assert.equal(p.model.connected(),false);
+});
+test('Verdeckte Radioleiste erhält nur bei laufendem Audio ihre Channelbestätigung',()=>{
+ const p=playbackHarness();p.document.hidden=true;p.play();p.advance(546000);assert.equal(p.slashes.length,3);
+ p.stop();const count=p.requests.length;p.advance(300000);assert.equal(p.requests.length,count);assert.equal(p.slashes.length,3);
+});
+test('Fehlende oder werfende Slash-API beeinflusst weder Ton noch Oberfläche',()=>{
+ const p=playbackHarness();delete p.bridge.executeSlashCommand;p.play();p.advance(360000);
+ assert.equal(p.slashes.length,0);assert.equal(p.activityRequests().length,0);assert.equal(p.audio.paused,false);
+ const q=playbackHarness();q.throwSlash(true);q.play();q.advance(182000);assert.equal(q.slashes.length,0);assert.equal(q.audio.paused,false);assert.deepEqual(q.errors,[]);
+});
 function station(){const h=createHarness();configureStream(h.config);const user=h.user(1,'Otterchen','owner');return h.state(user,h.open(user)).station;}
 function client(respond){
  const requests=[];let factory;

@@ -5,6 +5,7 @@ MischWerkUI.define('presentation', function (dependencies) {
   var dom = dependencies.dom;
   var signals = dependencies.signals;
   var broadcast = {};
+  var DEFAULT_TOPIC = 'MischWerk Radio Show';
   function updateMetadataLayout() {
     var root = document.documentElement;
     var title = !dom.el('track-title').hidden;
@@ -33,8 +34,8 @@ MischWerkUI.define('presentation', function (dependencies) {
   
   function renderTopic() {
     var topic = model.current() && typeof model.current().topic === 'string' ? model.current().topic.trim() : '';
-    document.documentElement.classList.toggle('has-topic', !!topic);
-    dom.setText('show-topic', topic); dom.el('radio-topic').hidden = !topic;
+    document.documentElement.classList.add('has-topic');
+    dom.setText('show-topic', topic || DEFAULT_TOPIC); dom.el('radio-topic').hidden = false;
     updateMetadataLayout();
   }
   function renderOnAirStatus() {
@@ -46,14 +47,15 @@ MischWerkUI.define('presentation', function (dependencies) {
     var mix = confirmedMode && broadcast.isLive === false;
     var live = confirmedMode && broadcast.isLive === true;
     var paused = broadcast.status === 'stopped' && fresh(broadcast.statusAt);
-    var label = mix ? 'MischWerk übernimmt' : live ? 'Live-Moderation' : paused ? 'Sendepause' :
-      moderator && !active ? 'Moderation unbestätigt' : active ? 'Moderation' : 'Radio MischWerk';
-    var description = mix ? 'MischWerk übernimmt: STREAMPANEL bestätigt die automatische Musikstrecke.' :
-      live ? 'STREAMPANEL bestätigt eine Live-Sendung.' : paused ? 'STREAMPANEL meldet eine Sendepause.' : 'Der Sendemodus ist derzeit nicht bestätigt.';
-    if (active && !mix && !paused) { description += ' ' + moderator.nick + ' ist im Studio als Moderation angemeldet.'; }
+    var label = active ? 'Es moderiert' : mix ? 'MischWerk am Pult' : live ? 'MischWerk spielt live' : paused ? 'Sendepause' :
+      moderator ? 'Moderation unbestätigt' : 'Radio MischWerk';
+    var description = mix ? 'Radio Mischwerk bestätigt die automatische Musikstrecke.' :
+      live ? 'Radio Mischwerk bestätigt eine Live-Sendung.' : paused ? 'Radio Mischwerk meldet eine Sendepause.' : 'Der Sendemodus ist derzeit nicht bestätigt.';
+    if (active) { description += ' Es moderiert ' + moderator.nick + ', durch die Studioanmeldung bestätigt.'; }
     if (moderator && !active) { description += ' Die Moderationsanmeldung ist bei fehlender Channelverbindung unbestätigt.'; }
-    var mode = mix ? 'mix' : live ? 'live' : 'unconfirmed';
-    var showName = active && !mix && !paused;
+    var mode = live ? 'live' : active ? 'moderation' : mix ? 'mix' : 'unconfirmed';
+    // Die bestätigte Moderation besitzt die Hauptanzeige; der tatsächliche Sendemodus bleibt getrennt.
+    var showName = active;
     var presenter = document.querySelector('.presenter');
     var changed = presenter.getAttribute('data-mode') !== mode || dom.el('on-air-sign').textContent !== label || dom.el('host-name').hidden === showName;
     document.body.classList.toggle('moderator-on-air', active);
@@ -62,13 +64,35 @@ MischWerkUI.define('presentation', function (dependencies) {
     dom.el('on-air-sign').title = description;
     dom.setText('on-air-sign', label);
     dom.el('host-name').hidden = !showName;
+    dom.el('host-name').setAttribute('data-prefix', '');
+    dom.el('host-name').setAttribute('aria-label', active ? moderator.nick : '');
     if (changed) { signals.emit('radio-layout'); }
     var positions = model.current() && model.current().wishPositions;
     dom.el('own-wish-position').hidden = !positions || !positions.available || !positions.total;
     document.body.classList.toggle('has-own-wish', !dom.el('own-wish-position').hidden);
     var validPosition = positions && Number.isInteger(positions.nextPosition) && positions.nextPosition > 0;
-    dom.setText('own-wish-position', positions && positions.total ? !model.connected() || !validPosition ? 'Wunschposition unbestätigt' :
-      (positions.total > 1 ? 'Dein nächster Wunsch: Platz ' : 'Dein Wunsch: Platz ') + positions.nextPosition : '');
+    var confirmedPosition = model.connected() && validPosition;
+    var wishLabel = positions && positions.total ? 'Dein Wunsch:' : '';
+    var wishRank = positions && positions.total && confirmedPosition ? 'Platz ' + positions.nextPosition : '';
+    var next = positions && positions.nextItem;
+    if (!next || next.position !== positions.nextPosition) {
+      next = positions && Array.isArray(positions.items) ? positions.items.filter(function (item) {
+        return item.position === positions.nextPosition;
+      })[0] : null;
+    }
+    var text = next && typeof next.text === 'string' ? next.text : '';
+    var stage = !confirmedPosition ? 'Status unbestätigt' : next && next.stage === 'playing' ? 'Läuft gerade' :
+      next && next.stage === 'preparing' ? 'In Vorbereitung' : next && next.stage === 'queued' ? 'Wartet' : '';
+    var more = positions && positions.total > 1 ? positions.total - 1 : 0;
+    dom.setText('own-wish-label', wishLabel); dom.setText('own-wish-rank', wishRank);
+    dom.el('own-wish-rank').hidden = !wishRank;
+    dom.setText('own-wish-title', text); dom.el('own-wish-title').hidden = !text;
+    dom.el('own-wish-title').title = text;
+    dom.setText('own-wish-stage', stage); dom.el('own-wish-stage').hidden = !stage;
+    dom.el('own-wish-stage').setAttribute('data-stage', confirmedPosition && next ? next.stage : 'unknown');
+    dom.setText('own-wish-more', more ? '+' + more : ''); dom.el('own-wish-more').hidden = !more;
+    dom.el('own-wish-more').setAttribute('aria-label', more + (more === 1 ? ' weiterer offener Wunsch' : ' weitere offene Wünsche'));
+    dom.el('own-wish-position').title = [wishLabel, wishRank, text, stage, more ? more + ' weitere offen' : ''].filter(Boolean).join(' · ');
   }
   signals.on('broadcast-status', function (value) { broadcast = value; renderOnAirStatus(); });
   document.addEventListener('visibilitychange', renderOnAirStatus);

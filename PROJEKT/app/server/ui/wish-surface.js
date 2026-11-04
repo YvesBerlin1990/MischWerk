@@ -12,7 +12,9 @@ MischWerkModules.attachWishSurface = function (runtime) {
         })[0];
     }
     function send(view, type, data) {
-        view.content.getSessions().forEach(function (session) { runtime.send(session, type, data); });
+        var sent = false;
+        view.content.getSessions().forEach(function (session) { sent = runtime.send(session, type, data) || sent; });
+        return sent;
     }
     runtime.handleWishSurfaceEvent = function (user, type, data, session) {
         var view = find(user, session);
@@ -28,10 +30,13 @@ MischWerkModules.attachWishSurface = function (runtime) {
                 feedback: typeof data.feedback === 'string' ? data.feedback.slice(0, 800) : '',
                 feedbackHidden: data.feedbackHidden !== false, error: data.error === true, pending: data.pending === true,
                 hint: typeof data.hint === 'string' ? data.hint.slice(0, 400) : '' };
+            var key = JSON.stringify(view.wishPresentation);
             runtime.getViews().forEach(function (surface) {
                 if (surface.kind === 'wishes' && surface.radioContent === view.content && surface.userId === view.userId &&
                     surface.surfaceId === data.surfaceId) {
-                    send(surface, 'mw:wishes.presentation', { surfaceId: surface.surfaceId, state: view.wishPresentation });
+                    if (surface.presentationKey !== key && send(surface, 'mw:wishes.presentation', {
+                        surfaceId: surface.surfaceId, state: view.wishPresentation
+                    })) { surface.presentationKey = key; }
                 }
             });
             return;

@@ -41,7 +41,7 @@ test('Wunschregie zeigt Status privat, erhält Plätze bis Abschluss und speiche
   h.advance(70000);
   const accepted=h.event(a,as,'mw:wish.submit',{text:'Auch bei abgelaufenem Plancache'}).find(e=>e.type==='mw:wish.receipt').data;
   assert.equal(accepted.accepted,true);assert.equal(reads,0,'Wunschbroadcast lädt niemals Planpersistenz');
-  assert.equal(os.events.findLast(e=>e.type==='mw:state').data.assistant.unavailable,true);
+  assert.equal('assistant' in os.events.findLast(e=>e.type==='mw:state').data,false);
   h.store.getObject=read;
 });
 
@@ -60,6 +60,23 @@ test('Wunschregie verwirft veraltete, fremde und ungültige Aktionen; nur Platz 
   assert.equal(change(first,'playing','preparing').ok,true);
   assert.equal(change(first,'queued','playing').ok,true);
   assert.equal(h.state(owner,os).queueTotal,2);
+});
+
+test('Dreizeilige Wunschliste bleibt privat, begrenzt und verändert weder Einzelauswahl noch Empfangsschutz',()=>{
+  const {h,owner,a,os,as}=fixture();
+  for(let i=0;i<8;i++)h.event(a,as,'mw:wish.submit',{text:'Listenwunsch '+i});
+  const first=h.state(owner,os),middle=h.state(owner,os,4),last=h.state(owner,os,7);
+  assert.equal(first.queueWindow.length,3);assert.equal(first.queueStart,0);assert.equal(first.queue.length,1);
+  assert.deepEqual(Array.from(middle.queueWindow,item=>item.text),['Listenwunsch 3','Listenwunsch 4','Listenwunsch 5']);
+  assert.equal(middle.queueStart,3);assert.equal(middle.queue[0].text,'Listenwunsch 4');assert.equal(middle.pages,8);
+  assert.equal(last.queueWindow.length,2);assert.equal(last.queueStart,6);
+  assert.equal(h.state(a,as).queueWindow.length,0);
+  h.event(owner,os,'mw:openStudio');const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  h.event(owner,studio,'mw:refresh',{page:0});
+  assert.equal(result(h.event(owner,studio,'mw:ackRequest',{id:first.queueWindow[1].id})).ok,false,'Vorschau ist keine bestätigte Einzelauswahl');
+  h.event(owner,studio,'mw:refresh',{page:1});h.event(owner,studio,'mw:ackRequest',{id:first.queueWindow[1].id});
+  assert.equal(h.state(owner,studio,1).queue[0].delivery.nick,'Otterchen');
+  assert.equal(h.state(owner,studio,0).queue[0].delivery,null);
 });
 
 test('Übergabenotizen bleiben privat, überstehen fehlgeschlagene Annahme und bleiben während der übernommenen Sendung lesbar',()=>{
@@ -100,35 +117,6 @@ test('Übergabenotizen prüfen Länge, verhindern stilles Überschreiben und ver
   h.app.onUserDeleted(owner.id);assert.equal(h.state(dj,ds).handover.receivedNotes,null);
   const restarted=createHarness(h.store), newDj=restarted.user(dj.id,dj.nick);
   assert.equal(restarted.state(newDj,restarted.open(newDj)).handover.receivedNotes,null);
-});
-
-test('Sendungsassistent verbindet Studiozeit mit Berliner Sendeplan und nächster Moderation, ohne Planrechte zu ändern',()=>{
-  const f=fixture(),{h,owner,dj,a,os,ds,as}=f;at(f,'2026-11-02T19:30:00Z');
-  schedule(f,'2026-11-02','20:00','22:00',owner.nick);schedule(f,'2026-11-02','22:00','23:00',dj.nick,'Nächste Sendung');
-  h.event(owner,os,'mw:onAir');const started=h.state(owner,os).moderator.since;
-  const assistant=h.state(owner,os).assistant;
-  assert.equal(assistant.current.startAt,Date.parse('2026-11-02T19:00:00Z'));
-  assert.equal(assistant.current.endAt,Date.parse('2026-11-02T21:00:00Z'));
-  assert.equal(assistant.next.nick,dj.nick);assert.equal(assistant.startedAt,started);
-  assert.equal('userId' in assistant.current,false);assert.equal(h.state(a,as).assistant,null);
-  assert.equal(h.state(dj,ds).assistant.current.topic,'Geplantes Thema');
-  assert.equal(h.state(owner,os).topic,'','Lesender Assistent übernimmt kein Thema automatisch');
-  h.advance(60000);h.event(owner,os,'mw:onAir');assert.equal(h.state(owner,os).assistant.startedAt,started);
-  at(f,'2026-11-02T21:05:00Z');
-  assert.equal(h.state(owner,os).assistant.current.endAt,assistant.current.endAt,'Überziehung bleibt bis zur tatsächlichen Übergabe sichtbar');
-  assert.equal(h.state(owner,os).assistant.next.nick,dj.nick);
-});
-
-test('Sendungsassistent liest Fortsetzung am Montag, zukünftige eigene Sendung und meldet Speicherfehler unabhängig von Wünschen',()=>{
-  const f=fixture(),{h,owner,a,os,as}=f;at(f,'2026-11-02T00:30:00Z');
-  schedule(f,'2026-11-01','23:00','02:00',owner.nick,'Über Mitternacht');
-  assert.equal(h.state(owner,os).assistant.current.endAt,Date.parse('2026-11-02T01:00:00Z'));
-  h.advance(3600000);schedule(f,'2026-11-03','20:00','22:00',owner.nick,'Morgen');
-  assert.equal(h.state(owner,os).assistant.current.topic,'Morgen');
-  const read=h.store.getObject;h.store.getObject=(key,fallback)=>{if(key.startsWith('mischwerk.schedule.'))throw Error('offline');return read(key,fallback);};
-  assert.equal(h.state(owner,os).assistant.unavailable,true);
-  h.event(a,as,'mw:wish.submit',{text:'Unabhängiger Wunsch'});
-  assert.equal(h.state(owner,os).queueTotal,1);assert.ok(h.logs.some(x=>x.message.includes('ASSISTANT_PLAN')));
 });
 
 test('Berliner Sendungszeit berücksichtigt Sommerzeit, Winterzeit, doppelte Stunde und ausgelassene Uhrzeit',()=>{

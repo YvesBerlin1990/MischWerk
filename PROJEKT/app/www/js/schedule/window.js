@@ -43,7 +43,7 @@ MischWerkUI.define('scheduleWindow', function (dependencies) {
     timer = setTimeout(fitWindow, 40);
   }
   function start() {
-    if (!model.shared && model.view !== 'schedule') { return; }
+    if (model.view !== 'schedule') { return; }
     pages.start();
     signals.on('schedule-content', function (data) { pages.capture(data.week); lastKey = null; request(); });
     signals.on('schedule-layout', function (initial) { if (initial === true) { clearTimeout(timer); fitWindow(true); } else { request(); } });

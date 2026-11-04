@@ -86,6 +86,7 @@ function createHarness(existingPersistence, options = {}) {
       info(message) { logs.push({ level: 'info', message }); }
     }),
       getChannel: () => ({ getOnlineUsers: () => [...users.values()].filter(user => user.online) }),
+      ...(options.serverMethods || {}),
       getAppAccess: () => ({ getOwnInstance: () => ({ getRootInstance: () => rootInstance }) }),
       getUserAccess: () => ({
         exists(nick) { return [...users.values()].some(person => person.nick.toLowerCase() === String(nick).toLowerCase()); },
@@ -111,10 +112,13 @@ function createHarness(existingPersistence, options = {}) {
     const target = path.resolve(appRoot, file);
     if (!target.startsWith(appRoot + path.sep)) { throw new Error('Loader ausserhalb der App'); }
     loadedFiles.push(file);
-    return vm.runInContext(fs.readFileSync(target, 'utf8'), context, { filename: file });
+    const result = vm.runInContext(fs.readFileSync(target, 'utf8'), context, { filename: file });
+    if (file === 'server/app.js' && options.configureModules) { options.configureModules(context); }
+    return result;
   }
   runFile('main.js');
   const app = context.App;
+  let sessionSequence = 0;
   function user(id, nick, role = 'listener') {
     if (users.has(id)) { return users.get(id); }
     const person = {
@@ -129,8 +133,10 @@ function createHarness(existingPersistence, options = {}) {
       canSendAppContent() { return this.capable; },
       sendPrivateMessage(message) { this.messages.push(message); },
       sendAppContent(content) {
-        this.sessions.slice().filter(session => session.content.viewMode === content.viewMode).forEach(session => session.remove());
+        this.sessions.slice().filter(session => session.content.viewMode === content.viewMode).forEach(session => session.nativeClose(true));
+        const openedAt = timestamp + ++sessionSequence;
         const session = {
+          getOpenTimestamp() { return new Date(openedAt); },
           user: this, content, activeView:content.htmlFile.pageData.view, viewRevision:1, events: [], removed: false,
           getUser() { return this.user; }, getAppContent() { return this.content; },
           sendEvent(type, data) {
@@ -141,11 +147,12 @@ function createHarness(existingPersistence, options = {}) {
             if (options.onEvent) { options.onEvent(this, { type, data: clone(data) }); }
             if (this.events.length > 100) { this.events.shift(); }
           },
-          remove() {
+          remove() { this.nativeClose(false); },
+          nativeClose(replacing) {
             if (this.removed) { return; } this.removed = true;
             this.content.sessions = this.content.sessions.filter(item => item !== this);
             this.user.sessions = this.user.sessions.filter(item => item !== this);
-            this.content.closeListeners.forEach(callback => callback(this.user, this.content, false));
+            this.content.closeListeners.forEach(callback => callback(this.user, this.content, replacing));
           }
         };
         content.sessions.push(session); this.sessions.push(session); return session;

@@ -4,20 +4,11 @@ MischWerkUI.define('history', function (dependencies) {
   var bridge = dependencies.bridge, model = dependencies.model, dom = dependencies.dom;
   var signals = dependencies.signals, api = dependencies.data, commands = dependencies.commands, view = dependencies.view;
   var initial = bridge && bridge.pageData && bridge.pageData.overlayState;
-  var selected = !!(initial && initial.studioHistory === true);
+  var selected = !!(initial && (initial.studioTab === 'history' || initial.studioHistory === true));
   var cached = [], page = 0, key = null, generation = 0, job = null, timer, midnight;
-  var shownDay = api.day(Date.now()), message = '', failed = false, ended = false, entered = false;
+  var shownDay = api.day(Date.now()), message = '', failed = false, ended = false;
   function permitted() { var state = model.current(); return !!(state && state.user && state.user.canModerate === true); }
   function visible() { return !ended && selected && permitted() && model.view === 'studio' && !document.hidden; }
-  function showSelection() {
-    dom.el('studio-programme-tabs').hidden = !permitted();
-    dom.el('studio-programme').hidden = selected; dom.el('history-panel').hidden = !selected;
-    ['studio-programme-tab', 'studio-history-tab'].forEach(function (id, index) {
-      var active = selected === (index === 1), button = dom.el(id);
-      button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1;
-    });
-    document.documentElement.classList.toggle('history-open', selected && model.view === 'studio');
-  }
   function stop() {
     clearTimeout(timer); clearTimeout(midnight); timer = null; midnight = null; generation += 1;
     if (job) { job.cancel(); } job = null;
@@ -60,7 +51,6 @@ MischWerkUI.define('history', function (dependencies) {
       stop(); selected = false; cached = []; page = 0; message = ''; failed = false; view.clear();
       if (focused && !dom.el('close-overlay').hidden) { dom.el('close-overlay').focus({ preventScroll:true }); }
     }
-    showSelection();
     var next = model.current() ? JSON.stringify(model.current().station) : null;
     if (key !== next) { stop(); cached = []; page = 0; key = next; message = ''; failed = false; }
     render();
@@ -68,35 +58,13 @@ MischWerkUI.define('history', function (dependencies) {
     if (!midnight) { midnight = setTimeout(function () { stop(); cached = []; page = 0; synchronize(); }, api.nextDay(Date.now()) - Date.now()); }
     if (!job && !timer) { poll(); }
   }
-  function select(value) {
-    selected = value === true && permitted();
-    synchronize(); signals.emit('queue-visible');
-    if (!selected) { signals.emit('studio-layout'); }
-  }
   function start() {
-    ['studio-programme-tab', 'studio-history-tab'].forEach(function (id, index) {
-      var button = dom.el(id);
-      button.addEventListener('click', function () { select(index === 1); });
-      button.addEventListener('keydown', function (event) {
-        if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].indexOf(event.key) === -1) { return; }
-        event.preventDefault(); var next = event.key === 'Home' ? false : event.key === 'End' ? true : !selected;
-        select(next); dom.el(selected ? 'studio-history-tab' : 'studio-programme-tab').focus();
-      });
-    });
+    signals.on('studio-selection',function(data){selected=data.tab==='history';synchronize();});
     dom.el('history-refresh').addEventListener('click', function () {
       if (!model.connected()) { commands.send('mw:refresh', {}); } poll();
     });
-    [['history-previous', -1], ['history-next', 1]].forEach(function (entry) {
+    [['history-previous', 1], ['history-next', -1]].forEach(function (entry) {
       dom.el(entry[0]).addEventListener('click', function () { if (!this.disabled) { page += entry[1]; render(); } });
-    });
-    signals.on('overlay-capture', function (state) { if (model.view === 'studio' && permitted()) { state.studioHistory = selected; } });
-    signals.on('overlay-restore', function (state) { if (model.view === 'studio') { select(state.studioHistory === true); } });
-    signals.on('view-changed', function () {
-      if (model.view === 'studio' && !entered) {
-        entered = true; var state = model.current().overlayState;
-        if (state) { select(state.studioHistory === true); }
-      }
-      synchronize();
     });
     signals.on('snapshot', synchronize);
     signals.on('history-layout', function () { if (visible()) { render(); } });
@@ -104,7 +72,7 @@ MischWerkUI.define('history', function (dependencies) {
     window.addEventListener('resize', function () { if (visible()) { render(); } });
     window.addEventListener('pagehide', function () { ended = true; stop(); });
     window.addEventListener('pageshow', function () { ended = false; synchronize(); });
-    select(selected);
+    synchronize();
   }
   return { start:start };
 });

@@ -39,6 +39,11 @@ MischWerkUI.define('schedule', function (dependencies) {
     dom.el('schedule-save').disabled = !owner || !live || busy || !data || !editor.ready(data.week);
     dom.el('schedule-form').hidden = !owner || !editor.isOpen();
     dom.el('schedule-days').hidden = owner && editor.isOpen();
+    var message = dom.el('schedule-feedback');
+    if (owner && editor.isOpen()) { dom.el('schedule-form').appendChild(message); }
+    else { dom.el('schedule-calendar').insertBefore(message, dom.el('schedule-days')); }
+    dom.el('schedule-save').setAttribute('aria-busy', String(!!mutation));
+    dom.el('schedule-refresh').setAttribute('aria-busy', String(!!reading));
     if (editor.isOpen()) { dom.el('schedule-pagination').hidden = true; }
     document.querySelectorAll('.schedule-edit').forEach(function (button) {
       button.hidden = !owner;
@@ -141,10 +146,7 @@ MischWerkUI.define('schedule', function (dependencies) {
       if (model.view !== 'schedule') { return; }
       if (typeof state.scheduleWeek === 'string' && calendar.week(state.scheduleWeek)) { selectedWeek = state.scheduleWeek; reload(); }
     });
-    if ((!model.shared && model.view !== 'schedule') || !bridge) { return; }
-    signals.on('view-changed', function () {
-      if (model.view !== 'schedule') { clearTimeout(readTimer); reading = null; batch = null; }
-    });
+    if (model.view !== 'schedule' || !bridge) { return; }
     bridge.addEventListener('mw:schedule.data', receive);
     bridge.addEventListener('mw:schedule.result', result);
     bridge.addEventListener('mw:schedule.changed', function () { if (!mutation && !reading) { reload(); } });

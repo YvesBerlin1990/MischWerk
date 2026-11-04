@@ -10,7 +10,7 @@ MischWerkUI.define('viewport', function (dependencies) {
   function resize(initial) {
     if ((!root.classList.contains('mw-ready') && initial !== true) || model.view !== 'radio' || (document.readyState === 'loading' && initial !== true) ||
         !Array.from(document.querySelectorAll('link[rel=stylesheet]')).every(function (link) { return !!link.sheet; })) { return; }
-    var small = window.innerWidth < 700;
+    var small = window.innerWidth <= 1350;
     var focused = document.activeElement;
     var constrained = small && window.innerHeight < 360;
     root.classList.toggle('radio-constrained', constrained);

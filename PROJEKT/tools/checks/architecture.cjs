@@ -10,11 +10,14 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 function checkArchitecture() {
   const backend = Object.fromEntries(modules.map(file => [file, read('src/backend/' + file)]));
   const allBackend = Object.values(backend).join('\n');
+  assert.doesNotMatch(allBackend, /attachWebsite|registerWebsite|submitWebsiteWish|getWebHookAccess|mischwerk-web/, 'Pausierte Website ist nicht Teil der Radio-App');
   for (const method of ['sendAppContent', 'overlayContent', 'headerbarContent', 'remove']) {
     assert.equal((allBackend.match(new RegExp('\\.' + method + '\\s*\\(', 'g')) || []).length, 1, 'Genau ein nativer Lebenszykluspfad: ' + method);
   }
   assert.equal((allBackend.match(/new\s+HTMLFile\s*\(/g) || []).length, 1, 'Genau eine HTMLFile-Erzeugung');
   assert.doesNotMatch(allBackend, /toggleWishSurface|newSurfaceId|runtime\.prepareView|entry\.switching/, 'Abgelöste Öffnungs-/Ersetzungswege');
+  assert.doesNotMatch(backend['ui/sessions.js'], /\.replacing\s*=|previousRadio|closeView\(previous\)/, 'Ersetzen bleibt bei sendAppContent, ohne eigenen Nachschließweg');
+  assert.match(backend['ui/sessions.js'], /entry\.session\s*=\s*user\.sendAppContent\(content\)/, 'Native Rückgabesitzung besitzt den Schließweg');
   assert.doesNotMatch(backend['ui/wish-surface.js'], /runtime\.(?:openView|closeView)\s*\(|AppContent\./, 'Wunschrelay besitzt keine Fenster');
   const providers = {};
   for (const [file, text] of Object.entries(backend)) {
@@ -49,6 +52,17 @@ function checkArchitecture() {
     assert.ok(!/Client\.includeJS|factories\./.test(source), 'Fachmodule dürfen keine anderen Module laden: ' + file);
   }
   const frontend = frontendFiles.filter(file => file.endsWith('.js')).map(file => read('app/www/' + file)).join('\n');
+  assert.doesNotMatch(frontend, /sharedViews|model\.shared|switchView|view-select|view-changed|enterView|dialogLimit|studioHostTimer|mw:view/, 'Alte gemeinsame Navigation und automatische Overlaygrößen entfernt');
+  assert.doesNotMatch(read('app/www/js/ui/layout.js'), /getHostFrame|setSize|setMinSize|setMaxSize|setResizable/, 'Overlaylayout verändert keine nativen Fenstermaße');
+  const wishWindow = read('app/www/js/wishes/window.js');
+  assert.doesNotMatch(wishWindow, /setMinSize|setMaxSize|setResizable|setTimeout|setInterval|screen\./, 'Wunschhöhe ohne alte Grenzen-/Warte-/Wiederholungsmechanik');
+  assert.equal((wishWindow.match(/\.setSize\(/g) || []).length, 1, 'Ein dokumentierter Größenpfad für die Wunschbestätigung');
+  const studioWindow=read('app/www/js/studio/window.js');
+  assert.doesNotMatch(studioWindow,/setMinSize|setMaxSize|setResizable|setTimeout|setInterval/,'Studiohöhe ohne parallele Fenster-/Wiederholungsmechanik');
+  assert.equal((studioWindow.match(/\.setSize\(/g)||[]).length,1,'Ein dokumentierter Größenpfad für die ausdrücklich gewünschte kompakte Moderation');
+  for (const view of ['radio','wishes','studio','team','schedule']) {
+    assert.equal(frontendFilesForView(view).includes('js/wishes/window.js'), view === 'wishes', 'Native Wunschhöhe nur im Wunsch-Ladeplan');
+  }
   assert.doesNotMatch(frontend, /(?:bridge|Client)\.close\s*\(|window\.open\s*\(|location\.(?:assign|replace)\s*\(/, 'Fensteraktionen müssen den gemeinsamen Ereignisweg verwenden');
   assert.doesNotMatch(read('tools/preview/channel.html') + read('tools/preview/bridge.js'), /preview-wishes/, 'Ein gemeinsamer Vorschau-Overlayweg');
   const start = read('app/www/js/start.js');
@@ -69,17 +83,14 @@ function checkArchitecture() {
   }
   assert.deepEqual([...composed].sort(), Object.keys(factories).sort(), 'Unverdrahtete Frontendkomponenten');
   const used = new Set();
-  for (const [view, sharedViews] of [
-    ...['radio', 'wishes', 'studio', 'team', 'schedule'].map(view => [view, false]),
-    ...['wishes', 'studio', 'team', 'schedule'].map(view => [view, true])
-  ]) {
+  for (const view of ['radio', 'wishes', 'studio', 'team', 'schedule']) {
     const loaded = [], built = [], scope = { window: {}, document: {
       documentElement: { getAttribute: () => view }
-    }, Client: { pageData: { view, sharedViews }, includeJS: file => loaded.push(file) } };
+    }, Client: { pageData: { view }, includeJS: file => loaded.push(file) } };
     vm.runInNewContext(start, scope);
     scope.MischWerkUI = scope.window.MischWerkUI;
     vm.runInNewContext(composition, scope);
-    const expected = frontendFilesForView(view, sharedViews).filter(file => file.endsWith('.js') &&
+    const expected = frontendFilesForView(view).filter(file => file.endsWith('.js') &&
       file !== 'js/start.js');
     assert.deepEqual([...loaded].sort(), [...expected].sort(), 'Ladeplan: ' + view);
     for (const file of loaded.filter(file => file !== 'js/ui/composition.js')) {

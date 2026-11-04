@@ -17,11 +17,11 @@
     pageData: boot.pageData,
     includeCSS: function (file) { var link = document.createElement('link'); link.rel = 'stylesheet'; link.href = file; document.head.appendChild(link); },
     includeJS: function (file) { var script = document.createElement('script'); script.src = file; document.head.appendChild(script); },
-    isK3Client: function () { return true; },
+    isK3Client: function () { return !boot.publicRadio; },
     getHostFrame: function () { return { setTitle: function () {},
       setSize: function (width, height) {
-        if (boot.pageData.overlay && window.parent !== window) {
-          parent.postMessage({ type:'preview-wish-size', kind:boot.pageData.view, width:width, height:height }, location.origin);
+        if (window.parent !== window) {
+          parent.postMessage({ type:boot.pageData.overlay ? 'preview-wish-size' : 'preview-radio-size', kind:boot.pageData.view, width:width, height:height }, location.origin);
         }
       } }; },
     addEventListener: function (type, callback) { (handlers[type] || (handlers[type] = [])).push(callback); },

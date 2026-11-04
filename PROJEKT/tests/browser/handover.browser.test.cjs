@@ -6,6 +6,7 @@ const path = require('node:path');
 const { chromium } = require('playwright');
 const { createHarness } = require('../support/knuddels.cjs');
 const root = path.resolve(__dirname, '../..');
+const {reveal,readText,fits:studioFits}=require('../support/studio-browser.cjs');
 let browser;
 test.before(async () => { browser = await chromium.launch({ headless: true, channel: 'msedge' }); });
 test.after(async () => { await browser?.close(); });
@@ -75,13 +76,13 @@ async function fits(page) {
   }
 }
 async function request(source, target) {
-  await source.locator('#handover-open').click();
-  await source.locator('#handover-target').selectOption({ index: 0 });
-  await source.locator('#handover-request').click();
+  await reveal(source,'#handover-open','studio');await source.locator('#handover-open').click();
+  await reveal(source,'#handover-target','handover');await source.locator('#handover-target').selectOption({ index: 0 });
+  await reveal(source,'#handover-request','handover');await source.locator('#handover-request').click();
   await source.locator('#handover-cancel').waitFor();
-  await target.locator('#handover-open').filter({ hasText: 'Übergabe ansehen' }).waitFor();
-  await target.locator('#handover-open').click();
-  await target.locator('#handover-accept').waitFor();
+  await reveal(target,'#handover-open');
+  await reveal(target,'#handover-open','studio');await target.locator('#handover-open').click();
+  await reveal(target,'#handover-accept','handover');
 }
 
 test('Bestätigte Übergabe im Browser: Auswahl, Warten, Annahme mit Thema und genau eine gemeinsame Botansage', async t => {
@@ -90,14 +91,14 @@ test('Bestätigte Übergabe im Browser: Auswahl, Warten, Annahme mit Thema und g
   await request(source, target);
   await fits(source); await fits(target);
   assert.equal(h.bot.messages.length, 1);
-  await target.locator('#handover-topic').fill('Die nächste Sendung');
+  await reveal(target,'#handover-topic','handover');await target.locator('#handover-topic').fill('Die nächste Sendung');
   if (process.env.MISCHWERK_CAPTURE_HANDOVER) {
     const folder = path.join(require('node:os').tmpdir(), 'MischWerk-Pruefbilder', 'studio'); fs.mkdirSync(folder, { recursive: true });
     await source.screenshot({ path: path.join(folder, 'Uebergabe-Warten.png') });
     await target.screenshot({ path: path.join(folder, 'Uebergabe-Annehmen.png') });
   }
-  await target.locator('#handover-accept').click();
-  await target.locator('#on-air').filter({ hasText: 'Anmeldung verlängern' }).waitFor();
+  await reveal(target,'#handover-accept','handover');await target.locator('#handover-accept').click();
+  await reveal(target,'#on-air');await target.locator('#on-air').filter({ hasText: 'Anmeldung verlängern' }).waitFor();
   await source.locator('#studio-host').filter({ hasText: 'Nächster DJ ist am Mikrofon' }).waitFor();
   assert.equal(await target.locator('#studio-topic').inputValue(), 'Die nächste Sendung');
   assert.equal(await target.locator('#handover-panel').isVisible(), false);
@@ -109,9 +110,9 @@ test('Schmale Übergabe erhält Themenentwurf bei Fehler und Refresh; Abbrechen 
   const { h, source, target, owner, records, flush, errors } = await setup(t, 320);
   await request(source, target);
   await fits(source); await fits(target);
-  await target.locator('#handover-topic').fill('Mein erhaltenes Thema');
+  await reveal(target,'#handover-topic','handover');await target.locator('#handover-topic').fill('Mein erhaltenes Thema');
   const save = h.store.setObject; h.store.setObject = () => { throw new Error('storage-failed'); };
-  await target.locator('#handover-accept').click();
+  await reveal(target,'#handover-accept','handover');await target.locator('#handover-accept').click();
   await target.locator('#notice.error').waitFor();
   assert.equal(await target.locator('#handover-topic').inputValue(), 'Mein erhaltenes Thema');
   const old = h.state(records[1].user, records[1].session); await flush();
@@ -119,7 +120,7 @@ test('Schmale Übergabe erhält Themenentwurf bei Fehler und Refresh; Abbrechen 
   assert.equal(h.state(owner, records[0].session).moderator.nick, owner.nick); await flush();
   await fits(target);
   h.store.setObject = save;
-  await source.locator('#handover-cancel').click();
+  await reveal(source,'#handover-cancel','handover');await source.locator('#handover-cancel').click();
   await target.locator('#handover-panel').waitFor({ state: 'hidden' });
   await target.evaluate(state => window.__emit('mw:state', state), old);
   assert.equal(await target.locator('#handover-open').isVisible(), false);
@@ -129,41 +130,41 @@ test('Schmale Übergabe erhält Themenentwurf bei Fehler und Refresh; Abbrechen 
 test('Ablehnen beendet nur die Anfrage; 320px-Studio bleibt mit Übergabeaktion und maximalem Nick bedienbar', async t => {
   const { h, source, target, errors } = await setup(t, 320, true);
   await request(source, target);
-  await target.locator('#handover-decline').click();
+  await reveal(target,'#handover-decline','handover');await target.locator('#handover-decline').click();
   await target.locator('#handover-panel').waitFor({ state: 'hidden' });
   await source.locator('#handover-request-form').waitFor();
   await fits(source); await fits(target);
   assert.equal(h.bot.messages.length, 1);
   assert.equal(await source.locator('#on-air').isVisible(), false, 'Übergabebereich bleibt getrennt vom Studio');
-  await source.locator('#handover-back').click();
-  await source.locator('#on-air').waitFor(); await fits(source);
+  await reveal(source,'#handover-back','handover');await source.locator('#handover-back').click();
+  await reveal(source,'#on-air');await source.locator('#on-air').waitFor(); await fits(source);
   assert.deepEqual(errors, []);
 });
 
 test('Private Übergabenotizen erscheinen im echten Browserablauf vor und nach Annahme und bleiben bei Speicherfehler erhalten',async t=>{
   const {h,owner,source,target,errors}=await setup(t,320);
   const notes='Bitte nach dem nächsten Song die Geburtstagsgrüße vorlesen. '.repeat(8).slice(0,500).trim();
-  await source.locator('#handover-open').click();
-  await source.locator('#handover-notes').fill(notes);
+  await reveal(source,'#handover-open','studio');await source.locator('#handover-open').click();
+  await reveal(source,'#handover-notes','handover');await source.locator('#handover-notes').fill(notes);
   assert.equal(await source.locator('#handover-notes-count').textContent(),notes.length+' / 500');
-  await source.locator('#handover-request').click();
+  await reveal(source,'#handover-request','handover');await source.locator('#handover-request').click();
   await source.locator('#handover-cancel').waitFor();
-  assert.equal(await source.locator('#handover-note-text').textContent(),notes);
-  await target.locator('#handover-open').click();
-  assert.equal(await target.locator('#handover-note-text').textContent(),notes);
-  await target.locator('#handover-topic').fill('Meine neue Sendung');
+  assert.equal(await readText(source,'#handover-note-text','handover'),notes);
+  await reveal(target,'#handover-open','studio');await target.locator('#handover-open').click();
+  assert.equal(await readText(target,'#handover-note-text','handover'),notes);
+  await reveal(target,'#handover-topic','handover');await target.locator('#handover-topic').fill('Meine neue Sendung');
   const write=h.store.setObject;h.store.setObject=()=>{throw Error('storage-failed');};
-  await target.locator('#handover-accept').click();await target.locator('#notice.error').waitFor();
-  assert.equal(await target.locator('#handover-note-text').textContent(),notes);
+  await reveal(target,'#handover-accept','handover');await target.locator('#handover-accept').click();await target.locator('#notice.error').waitFor();
+  assert.equal(await readText(target,'#handover-note-text','handover'),notes);
   assert.equal(await target.locator('#handover-topic').inputValue(),'Meine neue Sendung');
   h.store.setObject=write;
-  await target.locator('#handover-accept').click();await target.locator('#handover-panel').waitFor({state:'hidden'});
-  await target.locator('#assistant-notes').waitFor();
-  assert.equal(await target.locator('#assistant-notes-text').textContent(),notes);
-  assert.equal(await target.locator('#studio-assistant').evaluate(n=>n.open),true);
+  await reveal(target,'#handover-accept','handover');await target.locator('#handover-accept').click();await target.locator('#handover-panel').waitFor({state:'hidden'});
+  await reveal(target,'#studio-received-notes');
+  assert.equal(await readText(target,'#studio-notes-text'),notes);
+  assert.equal(await target.locator('#studio-assistant').count(),0);
   owner.online=false;h.app.onUserLeft(owner);
-  assert.equal(await target.locator('#assistant-notes-text').textContent(),notes);
-  await target.locator('#assistant-notes-text').scrollIntoViewIfNeeded();
+  assert.equal(await readText(target,'#studio-notes-text'),notes);
+  await target.locator('#studio-notes-text').scrollIntoViewIfNeeded();
   assert.equal(await target.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   if(process.env.MISCHWERK_CAPTURE_STUDIO_FEATURES)await target.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/moderation-320.png'),fullPage:true});
   assert.equal(h.bot.messages.length,2);assert.deepEqual(errors,[]);

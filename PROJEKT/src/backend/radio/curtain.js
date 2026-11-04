@@ -1,4 +1,4 @@
-/* Gemeinsamer Vorhangzustand; Bedienrecht und Ausnahmen aus dem authentifizierten Nutzer. */
+/* Gemeinsamer Vorhangzustand und Chatbedienung mit authentifiziertem Inhaberrecht. */
 MischWerkModules.attachCurtain = function (runtime, config) {
     'use strict';
     runtime.curtainState = function (user) {
@@ -16,6 +16,9 @@ MischWerkModules.attachCurtain = function (runtime, config) {
         }
         if (data.previousClosed !== runtime.state.curtainClosed) {
             throw runtime.failure('Der Vorhang wurde inzwischen geändert. Bitte erneut prüfen.');
+        }
+        if (data.closed === runtime.state.curtainClosed) {
+            return data.closed ? 'Der Vorhang ist bereits geschlossen.' : 'Der Vorhang ist bereits geöffnet.';
         }
         var next = runtime.copy(runtime.state);
         next.curtainClosed = data.closed;

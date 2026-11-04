@@ -20,12 +20,12 @@ KnuddelsServer.execute('server/schedule/calendar.js');
 KnuddelsServer.execute('server/schedule/storage.js');
 KnuddelsServer.execute('server/schedule/programme.js');
 KnuddelsServer.execute('server/schedule/transport.js');
-KnuddelsServer.execute('server/radio/assistant.js');
 KnuddelsServer.execute('server/ui/snapshot.js');
+KnuddelsServer.execute('server/ui/session-state.js');
 KnuddelsServer.execute('server/transport/views.js');
+KnuddelsServer.execute('server/ui/loading.js');
 KnuddelsServer.execute('server/ui/sessions.js');
 KnuddelsServer.execute('server/ui/wish-surface.js');
-KnuddelsServer.execute('server/ui/navigation.js');
 KnuddelsServer.execute('server/ui/overlays.js');
 KnuddelsServer.execute('server/maintenance.js');
 KnuddelsServer.execute('server/lifecycle.js');
@@ -53,12 +53,11 @@ MischWerkModules.createApp = function (config) {
     MischWerkModules.attachScheduleStorage(runtime);
     MischWerkModules.attachScheduleProgramme(runtime);
     MischWerkModules.attachScheduleTransport(runtime);
-    MischWerkModules.attachStudioAssistant(runtime);
     MischWerkModules.attachSnapshot(runtime, config);
+    MischWerkModules.attachSessionState(runtime);
     MischWerkModules.attachViewTransport(runtime, config);
     MischWerkModules.attachSessions(runtime, config);
     MischWerkModules.attachWishSurface(runtime);
-    MischWerkModules.attachNavigation(runtime);
     MischWerkModules.attachOverlays(runtime);
     MischWerkModules.attachMaintenance(runtime, config);
     MischWerkModules.attachLifecycle(runtime, config);
@@ -70,6 +69,7 @@ MischWerkModules.createApp = function (config) {
         onUserLeft: runtime.userLeft,
         onUserDeleted: runtime.userDeleted,
         onEventReceived: runtime.handleEvent,
-        chatCommands: { mischwerk: runtime.open, update: runtime.requestUpdate }
+        chatCommands: { mischwerk: runtime.open, update: runtime.requestUpdate,
+            vorhang: runtime.curtainCommand }
     };
 };

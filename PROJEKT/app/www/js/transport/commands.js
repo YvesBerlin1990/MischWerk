@@ -52,13 +52,12 @@ MischWerkUI.define('commands', function (dependencies) {
     if (!bridge || (mutation && !model.connected())) { layout.notify('Die Verbindung zum Channel fehlt. Bitte öffne MischWerk erneut.', true); return; }
     if (mutation && (pending || manualRefresh)) { return; }
     data = data || {};
-    if (model.shared && model.current()) { data.view = model.view; data.viewRevision = model.current().viewRevision; }
+    if (model.view !== 'radio' && model.current()) { data.view = model.view; data.viewRevision = model.current().viewRevision; }
     var requestId;
     if (mutation) {
       if (type === 'mw:onAir' || type === 'mw:offAir') { data.expectedModerator = model.current().moderator ? model.current().moderator.sessionKey || String(model.current().moderator.since) : null; }
       if (type === 'mw:setTopic') { data.previousTopic = model.current().topic; }
       if (type === 'mw:setRequests') { data.previousEnabled = model.current().requestsEnabled; }
-      if (type === 'mw:setCurtain') { data.previousClosed = model.current().curtain.closed; }
       if (type === 'mw:addRadioModerator' || type === 'mw:removeRadioModerator') { data.expectedRadioModeratorRevision = model.current().radioModeratorRevision; }
       requestId = nextId('mw');
       data.requestId = requestId;
@@ -69,7 +68,7 @@ MischWerkUI.define('commands', function (dependencies) {
       pendingTimer = setTimeout(function () {
         pending = null; refreshControls();
         if (type === 'mw:setTopic') { signals.emit('topic-error', 'Noch keine Bestätigung. Bitte erneut prüfen und speichern.'); }
-        else { layout.notify('Noch keine Bestätigung erhalten. Bitte aktualisiere vor einem erneuten Versuch.', true); }
+        else { layout.notify('Noch keine Bestätigung erhalten. Bitte aktualisiere vor einem erneuten Versuch.', true, type); }
         send('mw:refresh', {}, false);
       }, 15000);
     }
@@ -78,7 +77,7 @@ MischWerkUI.define('commands', function (dependencies) {
       if (mutation && pending && pending.requestId === requestId) { pending = null; clearTimeout(pendingTimer); }
       refreshControls();
       if (type === 'mw:setTopic') { signals.emit('topic-error', 'Speichern nicht bestätigt. Bitte erneut versuchen.'); }
-      else { layout.notify('Verbindung unterbrochen. Bitte erneut öffnen.', true); }
+      else { layout.notify('Verbindung unterbrochen. Bitte erneut öffnen.', true, type); }
     }
   }
   
@@ -93,7 +92,9 @@ MischWerkUI.define('commands', function (dependencies) {
     refreshControls();
     if (response.action !== 'mw:setTopic' && (!response.ok ||
         (response.action !== 'mw:openWishes' && response.action !== 'mw:openStudio' && response.action !== 'mw:openRadioTeam' && response.action !== 'mw:openSchedule'))) {
-      layout.notify(response.message, !response.ok);
+      if (response.action !== 'mw:removeRadioModerator' || response.ok || !document.getElementById('team-removal-confirm')) {
+        layout.notify(response.message, !response.ok, response.action);
+      }
     }
   }
   function start() {

@@ -10,19 +10,29 @@ MischWerkUI.define('scheduleView', function (dependencies) {
     if (key === rendered) { return; }
     rendered = key;
     dom.setText('schedule-range', calendar.range(data.week));
+    dom.setText('schedule-summary', data.entries.length ?
+      data.entries.length + (data.entries.length === 1 ? ' Sendung in dieser Woche' : ' Sendungen in dieser Woche') :
+      'Noch keine Sendungen eingetragen.');
     var list = dom.el('schedule-days');
     list.textContent = '';
     data.days.forEach(function (day) {
       var section = dom.element('section', 'schedule-day');
       section.dataset.scheduleDate = day;
       if (day === data.today) { section.classList.add('is-today'); }
-      var heading = dom.element('h2', 'schedule-day-label', calendar.day(day));
+      var heading = dom.element('h2', 'schedule-day-label');
+      var number = dom.element('span', 'schedule-day-number', day.slice(8));
+      number.setAttribute('aria-hidden', 'true'); heading.appendChild(number);
+      var date = dom.element('span', 'schedule-day-heading');
+      date.appendChild(dom.element('span', 'schedule-day-name', calendar.day(day).split(',')[0] + ', '));
+      var fullDate = dom.element('time', 'schedule-day-date', calendar.label(day));
+      fullDate.dateTime = day; date.appendChild(fullDate); heading.appendChild(date);
       if (day === data.today) { heading.appendChild(dom.element('span', 'schedule-today', 'Heute')); }
       section.appendChild(heading);
       var entries = data.entries.filter(function (entry) {
         return entry.date === day || (entry.end < entry.start && entry.end !== '00:00' && calendar.shift(entry.date, 1) === day);
       });
-      if (!entries.length) { section.appendChild(dom.element('p', 'schedule-empty', 'Keine Sendung geplant.')); }
+      section.classList.add(entries.length ? 'has-shows' : 'is-empty');
+      if (!entries.length) { section.appendChild(dom.element('p', 'schedule-empty', 'Keine Sendung eingetragen')); }
       entries.forEach(function (entry) {
         var row = dom.element('article', 'schedule-show');
         row.dataset.scheduleKey = entry.week + ':' + entry.id + ':' + day;
@@ -31,8 +41,8 @@ MischWerkUI.define('scheduleView', function (dependencies) {
           entry.start + ' – ' + entry.end + ' Uhr' + (entry.end < entry.start ? ' · Ende am Folgetag' : '');
         var copy = dom.element('div', 'schedule-show-copy');
         copy.appendChild(dom.element('strong', 'schedule-time', time));
-        copy.appendChild(dom.element('p', 'schedule-topic', entry.topic));
         copy.appendChild(dom.element('span', 'schedule-presenter', 'Mit ' + entry.nick));
+        copy.appendChild(dom.element('p', 'schedule-topic', entry.topic));
         row.appendChild(copy);
         if (data.canManage && entry.week === data.week) {
           var edit = dom.element('button', 'secondary-button schedule-edit', 'Bearbeiten');

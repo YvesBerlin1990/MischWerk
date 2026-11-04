@@ -1,31 +1,18 @@
-/* Ruhiges Radiogehäuse; weißer Lichtkern weiterhin nur an der spielenden Musikkarte. */
-html[data-view=radio],html[data-view=radio] body { background:#242424; }
-.radio-bar { border-radius:0; background-color:#2b2b2b; background-image:radial-gradient(ellipse at 8% 0%,#ffce611f,transparent 44%),radial-gradient(ellipse at 100% 100%,#f6f0df08,transparent 46%),repeating-linear-gradient(0deg,#ffffff02 0 1px,transparent 1px 4px),linear-gradient(180deg,#383632 0%,#2b2b2b 46%,#212121 100%); box-shadow:none; }
-.radio-panel-face { border:1px solid var(--line); border-radius:12px; box-shadow:inset 0 1px 0 #ffffff0c,0 3px 8px #0003; }
-.radio-program-face { position:relative; z-index:0; overflow:hidden; background-color:#272828; background-image:radial-gradient(ellipse at 50% 50%,#242525f2 0%,#242525d9 24%,#24252500 68%),radial-gradient(ellipse at 0% 80%,#d3a44440,transparent 48%),radial-gradient(ellipse at 100% 10%,#acbbc32e,transparent 46%),repeating-linear-gradient(115deg,#ffffff06 0 1px,transparent 1px 9px),linear-gradient(110deg,#39352d,#262929 52%,#343b3e); }
-.radio-program-face::before,.radio-program-face::after { content:""; position:absolute; top:50%; border-radius:50%; transform:translateY(-50%); pointer-events:none; }
-.radio-program-face::before { left:0; width:clamp(132px,35%,360px); aspect-ratio:1; transform:translate(-35%,-50%); opacity:.65; background:radial-gradient(circle,#15161680 0 8.5%,#e3b95766 9% 17.5%,#1b1b1b99 18% 22.5%,transparent 23%),repeating-radial-gradient(circle,transparent 0 7px,#e8d4a426 8px 9px,transparent 10px 17px); }
-.radio-program-face::after { right:0; width:clamp(180px,45%,560px); aspect-ratio:1; transform:translate(45%,-50%); opacity:.65; background:repeating-radial-gradient(circle,transparent 0 29px,#dbe7eb29 30px 31px,transparent 32px 58px); }
-.radio-metadata { z-index:1; }
-.playing .radio-program-face { border-color:#f5f5f5; box-shadow:0 0 3px #ffffff99,inset 0 0 3px #ffffff66,0 0 7px #ffffff66,inset 0 0 7px #ffffff4d; }
-.play-button { --play-light:#f1d799; --play-shade:#c3a35a; border:1px solid #e8d6a0; border-bottom-color:#a08243; background-color:#dfbd76; background-image:linear-gradient(145deg,var(--play-light),var(--play-shade)); box-shadow:none; color:#292a23; }
-.play-button:hover:enabled { --play-light:#f4db9b; --play-shade:#dcb651; border-color:#fff0c0 #d2b46c #a68b49; }
-.playing .play-button { border-color:#f2d994 #c6a052 #9d7a31; }
-.play-button:active:enabled { --play-light:#cda64d; --play-shade:#eed38e; border-color:#9d7a31 #c6a052 #f2d994; }
-.play-button.is-offline:disabled { opacity:1; background-color:#666; background-image:linear-gradient(160deg,#797971,#595a54); color:var(--muted); border-color:var(--line); box-shadow:none; transition:none; }
+/* Statisches Vinyl, dunkle Deckfläche und an echte Wiedergabe gebundene Kontur. */
+html[data-view=radio],html[data-view=radio] body,.radio-bar { background:var(--canvas); }
+.radio-program-face { overflow:hidden; border:1px solid #3a3a3a; border-radius:24px; background:#141414; box-shadow:none; }
+.radio-program-face::before { content:""; position:absolute; left:-44px; top:50%; width:200px; height:200px; transform:translateY(-50%); border:2px solid #b9bdc3; border-radius:50%; background:radial-gradient(circle,#a4a9b0 0 39px,transparent 40px),repeating-radial-gradient(circle,#050505 0 9px,#262626 10px 11px,#050505 12px 20px); }
+.playing .radio-program-face { border-color:#e9eaec; box-shadow:0 0 0 1px #e9eaec33; }
+.play-button { border:0; background:#e9eaec; box-shadow:0 0 0 10px #a4a9b0; }
+.play-button:hover:enabled { background:#fff; }
+.play-button:active:enabled { background:#cfd2d6; }
+.play-button.is-offline:disabled { opacity:1; background:#555; color:#b4b4b0; box-shadow:0 0 0 10px #333; transition:none; }
 #play-icon { filter:none; }
-#radio-panel svg { stroke-width:1.6; }
-#play-icon .play-symbol { stroke:currentColor; }
-.volume-control.is-high { --volume-thumb:#f16f65; }
-.volume-control #mute-button { border-color:#6d6654; border-radius:10px; background:#2d2d28; color:var(--gold-ink); box-shadow:inset 0 1px 0 #ffffff0d; }
-.volume-control #mute-button svg { width:16px; height:16px; }
-.volume-control #mute-button:hover:enabled { background:#3a372e; border-color:#a58c52; }
-.volume-control #mute-button[aria-pressed=true] { background:#383226; border-color:var(--gold-ink); }
-.volume-control.is-high output { color:#ffb0a8; border-color:#a95e57; background:#382927; padding-inline:1px; }
+#radio-panel svg { stroke-width:1.8; }
+.volume-control.is-high { --volume-thumb:#ff8a7e; }
+.volume-control #mute-button { border-color:transparent; border-radius:8px; background:transparent; color:var(--muted); box-shadow:none; }
+.volume-control #mute-button svg { width:18px; height:18px; }
+.volume-control #mute-button:hover:enabled { background:#252525; border-color:#444; }
+.volume-control #mute-button[aria-pressed=true] { background:#252525; border-color:#b9bdc3; }
+.volume-control.is-high output { color:#ff9a8f; border-color:#ff8a7e; background:#2a1613; padding-inline:1px; }
 .volume-control.is-high output::before { content:"!"; display:inline-grid; place-items:center; width:12px; height:12px; flex-shrink:0; margin-right:4px; border:1px solid currentColor; border-radius:50%; font-size:12px; line-height:1; }
-@media (min-width:1400px) {
-  .radio-bar { isolation:isolate; border-radius:0; background:radial-gradient(ellipse at 0 0,#494334 0,transparent 45%),linear-gradient(115deg,#302f2a,#242625 65%,#292d2e); box-shadow:none; }
-  .radio-bar::before { content:""; position:absolute; z-index:-1; inset:8px 0; border-radius:0; background:#2b2b28; pointer-events:none; }
-  #radio-actions .studio-link:focus-visible,#radio-actions .curtain-toggle:focus-visible { outline-offset:-3px; }
-  .radio-panel-face { box-shadow:none; }
-}

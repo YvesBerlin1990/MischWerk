@@ -23,7 +23,7 @@ const frontendApi = read('references/api/knuddels-webapp-frontend-api.js');
 for (const name of ['KnuddelsServer.getPersistence', 'KnuddelsServer.getDefaultLogger', 'KnuddelsServer.getChannel', 'KnuddelsServer.getUserAccess', 'Channel.prototype.getOnlineUsers', 'UserAccess.prototype.exists', 'UserAccess.prototype.getUserId', 'UserAccess.prototype.getNick', 'UserType.Human', 'Logger.prototype.warn', 'Logger.prototype.info', 'AppContent.headerbarContent', 'AppContent.prototype.getSessions', 'AppContent.prototype.setAllowJFXBrowser', 'User.prototype.isChannelOwner', 'User.prototype.sendAppContent', 'AppContentSession.prototype.getAppContent', 'AppContentSession.prototype.sendEvent', 'Persistence.prototype.getObject', 'Persistence.prototype.setObject']) {
   assert.ok(backendApi.includes(name), 'Fehlende Backend-Referenz: ' + name);
 }
-for (const name of ['Client.sendEvent', 'Client.addEventListener', 'Client.includeCSS', 'Client.includeJS', 'Client.isK3Client', 'Client.getHostFrame']) {
+for (const name of ['Client.sendEvent', 'Client.addEventListener', 'Client.includeCSS', 'Client.includeJS', 'Client.isK3Client', 'Client.getHostFrame', 'Client.executeSlashCommand']) {
   assert.ok(frontendApi.includes(name), 'Fehlende Frontend-Referenz: ' + name);
 }
 // Vollstaendiges Inventar der zusaetzlichen verwendeten Hooks und Instanzmethoden.

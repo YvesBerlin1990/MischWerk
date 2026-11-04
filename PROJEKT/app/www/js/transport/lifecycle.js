@@ -12,42 +12,60 @@ MischWerkUI.define('lifecycle', function (dependencies) {
   var signals = dependencies.signals;
   var initialLayoutTimer;
   var initialLayoutFinished = false;
-  var assets = [], warmed = {}, assetTimer, disposed = false;
-  function prepareAssets(scripts, styles, styleViews) {
-    assets = scripts.map(function (entry) { return { file:'js/' + entry[1], views:entry[2], as:'script' }; });
-    styles.forEach(function (file) { assets.push({ file:file, views:styleViews[file], as:'style' }); });
+  var activityInterval = 180000;
+  var activityPosition = null;
+  var activitySampleAt = 0;
+  var activityProgressAt = 0;
+  var activityDueAt = 0;
+  var activityRequest = null;
+  var disposed = false;
+
+  function resetPlaybackActivity() {
+    activityPosition = null; activitySampleAt = 0; activityProgressAt = 0;
+    activityDueAt = 0; activityRequest = null;
   }
-  function assetURL(file, kind) {
-    var anchor = kind === 'script' ? 'js/start.js' : 'css/foundation.css';
-    var elements = document.querySelectorAll(kind === 'script' ? 'script[src]' : 'link[rel=stylesheet][href]');
-    for (var index = 0; index < elements.length; index++) {
-      var url = new URL(kind === 'script' ? elements[index].src : elements[index].href, document.baseURI);
-      if (url.origin !== location.origin || !url.pathname.endsWith('/' + anchor)) { continue; }
-      // Den tatsächlich vom SDK erzeugten Pfad samt Cachekennung übernehmen, keine Parameternamen erfinden.
-      url.pathname = url.pathname.slice(0, -anchor.length) + file;
-      return url.href;
+  function playbackPosition() {
+    return !disposed && player && navigator.onLine !== false ? player.playbackPosition() : null;
+  }
+  function samplePlaybackActivity() {
+    var position = playbackPosition(), now = Date.now();
+    if (position === null || !model.connected() || !bridge || typeof bridge.executeSlashCommand !== 'function') {
+      resetPlaybackActivity(); return;
     }
-    return null;
+    var elapsed = (now - activitySampleAt) / 1000, advanced = false;
+    if (activityPosition === null || elapsed <= 0 || elapsed > 15 || position < activityPosition ||
+        position - activityPosition > elapsed * 2 + 1) {
+      resetPlaybackActivity(); activityDueAt = now + activityInterval;
+    } else if (position > activityPosition) { activityProgressAt = now; advanced = true; }
+    activityPosition = position; activitySampleAt = now;
+    if (!activityDueAt) { activityDueAt = now + activityInterval; }
+    if (!activityProgressAt || now - activityProgressAt > 5000) {
+      activityRequest = null; activityDueAt = now + activityInterval; return;
+    }
+    if (activityRequest && now > activityRequest.expiresAt) { activityRequest = null; }
+    if (!advanced) { activityRequest = null; return; }
+    if (activityRequest && activityRequest.confirmed && position > activityRequest.position) {
+      activityRequest = null; activityDueAt = now + activityInterval;
+      // Öffentliche Client-Methode; /confirm ist im aktuellen OR-Radio-Player nachgewiesen.
+      try { bridge.executeSlashCommand('/confirm'); } catch (error) { resetPlaybackActivity(); }
+      return;
+    }
+    if (now < activityDueAt || activityRequest) { return; }
+    activityDueAt = now + activityInterval;
+    activityRequest = { id:commands.nextId('playback'), expiresAt:now + 10000, position:position, confirmed:false };
+    commands.send('mw:refresh', { requestId:activityRequest.id });
   }
-  function warmOverlays() {
-    var state = model.current(), connection = navigator.connection;
-    if (disposed || model.view !== 'radio' || document.hidden || !model.connected() || !state ||
-        !document.documentElement.classList.contains('mw-ready') || (connection && connection.saveData)) { return; }
-    var allowed = ['radio', 'schedule'];
-    if (state.requestsEnabled) { allowed.push('wishes'); }
-    if (state.user.canModerate) { allowed.push('studio'); }
-    if (state.user.canManageRadioModerators) { allowed.push('team'); }
-    assets.forEach(function (asset) {
-      if (!asset.views || !asset.views.split(' ').some(function (view) { return allowed.indexOf(view) !== -1; }) ||
-          asset.views.split(' ').indexOf('radio') !== -1) { return; }
-      var url = assetURL(asset.file, asset.as);
-      if (!url || warmed[url]) { return; }
-      var hint = document.createElement('link'); hint.rel = 'prefetch'; hint.as = asset.as; hint.href = url;
-      hint.setAttribute('data-mw-prefetch', ''); document.head.appendChild(hint); warmed[url] = true;
-    });
+  function confirmPlaybackActivity(change) {
+    if (!activityRequest || activityRequest.confirmed || change.refreshRequestId !== activityRequest.id) { return; }
+    var position = playbackPosition();
+    if (Date.now() > activityRequest.expiresAt || position === null || !model.connected() ||
+        !activityProgressAt || Date.now() - activityProgressAt > 5000) { activityRequest = null; return; }
+    activityRequest.position = position;
+    activityRequest.confirmed = true;
   }
-  function queueWarmup() { clearTimeout(assetTimer); assetTimer = setTimeout(warmOverlays, 0); }
+
   function finishInitialLayout() {
+    if (typeof startupBroken !== 'undefined' && startupBroken) { clearInterval(initialLayoutTimer); return; }
     if (initialLayoutFinished || !Array.from(document.querySelectorAll('link[rel=stylesheet]')).every(function (link) { return !!link.sheet; })) { return; }
     initialLayoutFinished = true;
     clearInterval(initialLayoutTimer);
@@ -57,31 +75,31 @@ MischWerkUI.define('lifecycle', function (dependencies) {
     layout.resizeDialog(true);
     document.documentElement.classList.add('mw-ready');
     signals.emit('queue-visible');
-    queueWarmup();
   }
   function refreshVisible() {
     commands.send('mw:refresh', {});
     if (provider && provider.hasStation()) { provider.poll(); }
   }
   function start(components) {
-    signals.on('snapshot', queueWarmup);
     components.forEach(function (component) { if (component) { component.start(); } });
     if (bridge) {
+      signals.on('playback-reset', resetPlaybackActivity);
+      signals.on('snapshot', confirmPlaybackActivity);
+      window.addEventListener('offline', resetPlaybackActivity);
       bridge.addEventListener('mw:state', function (event) { model.receive(event.data); });
       if (wishes) { bridge.addEventListener('mw:wish.receipt', wishes.receipt); }
       bridge.addEventListener('mw:result', function (event) { commands.result(event.data); });
-      if (model.view === 'studio' || model.shared) { bridge.addEventListener('mw:schedule.changed', function () { if (model.view === 'studio') { refreshVisible(); } }); }
       if (bridge.pageData && bridge.pageData.user) { model.receive(bridge.pageData); }
       try {
         var frame = bridge.getHostFrame();
         frame.setTitle(model.view === 'wishes' ? 'MischWerk · Wunschbox' : model.view === 'studio' ?
-          'MischWerk · Moderation' : model.view === 'team' ? 'MischWerk · Radio-Team' : model.view === 'schedule' ? 'MischWerk · Sendeplan' : 'MischWerk · Radio');
+          'MischWerk · Moderation' : model.view === 'team' ? 'MischWerk · Verwaltung' : model.view === 'schedule' ? 'MischWerk · Sendeplan' : 'MischWerk · Radio');
       } catch (error) { /* Optionale Beschriftung darf den Player nicht blockieren. */ }
       layout.resizeBar();
       commands.send('mw:ready');
-      setInterval(function () { if (!document.hidden) { commands.send('mw:refresh', {}); } }, 20000);
-      setInterval(function () { signals.emit('controls'); }, 1000);
-      document.addEventListener('visibilitychange', function () { if (!document.hidden) { refreshVisible(); queueWarmup(); } });
+      setInterval(function () { if (!disposed && (!document.hidden || playbackPosition() !== null)) { commands.send('mw:refresh', {}); } }, 20000);
+      setInterval(function () { samplePlaybackActivity(); signals.emit('controls'); }, 1000);
+      document.addEventListener('visibilitychange', function () { if (!document.hidden) { refreshVisible(); } });
     } else {
       if (wishes) {
         dom.setText('wish-hint', 'Öffne diese App in Knuddels mit /mischwerk oder starte die lokale Vorschau aus dem Projektordner.');
@@ -90,8 +108,7 @@ MischWerkUI.define('lifecycle', function (dependencies) {
       if (provider) { dom.setText('metadata-status', 'Diese Oberfläche benötigt die Verbindung zum Knuddels-MyChannel.'); }
     }
     window.addEventListener('pagehide', function () {
-      disposed = true; clearTimeout(assetTimer);
-      document.querySelectorAll('link[data-mw-prefetch]').forEach(function (hint) { hint.remove(); });
+      disposed = true; resetPlaybackActivity();
       if (player) { player.stop(); }
       if (provider) { provider.dispose(); }
     });
@@ -100,7 +117,9 @@ MischWerkUI.define('lifecycle', function (dependencies) {
     window.addEventListener('load', finishInitialLayout, { once:true });
     window.addEventListener('resize', function () { layout.resizeBar(); if (wishes) { wishes.fitText(); } });
     layout.resizeDialog();
-    window.addEventListener('pageshow', function (event) { if (event.persisted && bridge) { disposed = false; refreshVisible(); queueWarmup(); } });
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted && bridge) { disposed = false; resetPlaybackActivity(); refreshVisible(); }
+    });
   }
-  return { start: start, prepareAssets: prepareAssets };
+  return { start: start };
 });

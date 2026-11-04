@@ -8,7 +8,7 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         runtime.loadWishes();
         try { runtime.refreshUiCache(); }
         catch (error) { runtime.warn('APP_UI_CACHE', error); }
-        KnuddelsServer.getDefaultLogger().info('MischWerk ' + config.version + ': Radioleiste mit Channel-Overlays für Moderation, Radio-Team, Wunschbox und Sendeplan gestartet. ' +
+        KnuddelsServer.getDefaultLogger().info('MischWerk ' + config.version + ' (Build ' + config.buildNumber + '): Radioleiste mit Channel-Overlays für Moderation, Verwaltung, Wunschbox und Sendeplan gestartet. ' +
             (runtime.station().configured ? 'STREAMPANEL ist konfiguriert.' : 'STREAMPANEL-Hörerstream ist noch nicht konfiguriert.'));
         KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).forEach(function (user) {
             try { runtime.open(user, true); } catch (error) { runtime.warn(); }
@@ -47,7 +47,6 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         runtime.loadWishes();
         runtime.removeWishesForUser(userId);
         userId = runtime.numericUserId(userId);
-        runtime.removeAssistantUser(userId);
         runtime.dropHandoverForUser(userId, true);
         var next = runtime.copy(runtime.state);
         if (next.moderator && next.moderator.userId === userId) { next.moderator = null; }

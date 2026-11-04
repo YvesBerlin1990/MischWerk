@@ -1,9 +1,8 @@
-/* Globaler Vorhang, ausschließlich lokaler Werbeklick und private Bedienung durch Otterchen. */
+/* Globaler Vorhang und ausschließlich lokaler Werbeklick; Verwaltung erfolgt im Chat. */
 MischWerkUI.define('curtain', function (dependencies) {
   'use strict';
   var model = dependencies.model;
   var dom = dependencies.dom;
-  var commands = dependencies.commands;
   var signals = dependencies.signals;
   var player = dependencies.player;
   var audio = dependencies.audio;
@@ -44,7 +43,6 @@ MischWerkUI.define('curtain', function (dependencies) {
   function render() {
     var state = model.current(), curtain = state && state.curtain;
     var closed = !!(curtain && curtain.closed === true && curtain.exempt !== true);
-    var canManage = !!(curtain && curtain.canManage === true);
     var panel = dom.el('radio-panel'), overlay = dom.el('radio-curtain'), focused = document.activeElement;
     var hadFocus = document.hasFocus();
     if (closed && !covered && panel.contains(focused)) { previousFocus = focused; }
@@ -52,13 +50,6 @@ MischWerkUI.define('curtain', function (dependencies) {
     panel.inert = closed;
     if (closed) { panel.setAttribute('aria-hidden', 'true'); } else { panel.removeAttribute('aria-hidden'); }
     overlay.hidden = !closed;
-    var toggle = dom.el('curtain-toggle');
-    toggle.hidden = !canManage;
-    toggle.disabled = !canManage || !model.connected() || commands.pending();
-    dom.el('radio-actions').classList.toggle('has-curtain-control', canManage);
-    var label = curtain && curtain.closed ? 'Vorhang öffnen' : 'Vorhang schließen';
-    dom.setText('curtain-toggle-label', label); toggle.setAttribute('aria-label', label + ' – für alle Hörer');
-    toggle.title = label + ' – für alle Hörer';
     if (closed !== covered && hadFocus) {
       if (closed && panel.contains(focused)) { dom.el('curtain-ad').focus({ preventScroll:true }); }
       else if (!closed && overlay.contains(focused)) {
@@ -71,12 +62,6 @@ MischWerkUI.define('curtain', function (dependencies) {
   }
   function start() {
     dom.el('curtain-ad').addEventListener('click', playAdvertisement);
-    dom.el('curtain-toggle').addEventListener('click', function () {
-      var state = model.current();
-      if (!this.disabled && state && state.curtain && state.curtain.canManage) {
-        commands.send('mw:setCurtain', { closed:!state.curtain.closed }, true);
-      }
-    });
     advertisement.addEventListener('playing', function () { if (wanted) { message('Werbung läuft.'); } });
     advertisement.addEventListener('ended', stopAdvertisement);
     advertisement.addEventListener('error', function () { failed(attempt); });

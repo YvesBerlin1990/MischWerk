@@ -1,5 +1,6 @@
 {
-  "version": "0.1.146",
+  "version": "0.1.202",
+  "buildNumber": 202,
   "files": [
     {
       "path": "MischWerk/www/img/mischwerk-logo.png",
@@ -15,6 +16,21 @@
       "path": "MischWerk/www/audio/werbung.mp3",
       "bytes": 685677,
       "sha256": "2F28DEBD9E454D332A93FB55B18ED8105EA132AB800221177EFA6EF6FB9D9495"
+    },
+    {
+      "path": "MischWerk/www/fonts/inter-latin.woff2",
+      "bytes": 48256,
+      "sha256": "3100E775E8616CD2611BEECFA23A4263D7037586789B43F035236A2E6FBD4C62"
+    },
+    {
+      "path": "MischWerk/www/fonts/outfit-latin.woff2",
+      "bytes": 32292,
+      "sha256": "6C18D579FD87C3776BE068B762CBC83FDE3ACB543D49EABD3ADE842EB987E887"
+    },
+    {
+      "path": "MischWerk/www/fonts/fraunces-latin.woff2",
+      "bytes": 67304,
+      "sha256": "7234ED860A9CC83045413C4FAEE63C960A8F2D1917ADCF728119307D56E0D783"
     }
   ]
 }

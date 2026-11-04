@@ -54,7 +54,7 @@ MischWerkModules.attachScheduleProgramme = function (runtime) {
             if (!access.exists(nick)) { throw runtime.failure('Dieser Knuddels-Nick existiert nicht.'); }
             var userId = runtime.numericUserId(access.getUserId(nick));
             if (userId !== runtime.userId(user) && runtime.state.radioModeratorUserIds.indexOf(userId) === -1) {
-                throw runtime.failure('Bitte diesen Moderator zuerst im Radio-Team ernennen.');
+                throw runtime.failure('Bitte diesen Moderator zuerst in der Verwaltung ernennen.');
             }
             var entry = { id: id || saved.nextId, date: data.date, start: data.start, end: data.end,
                 userId: userId, nick: runtime.text(String(access.getNick(userId)), 50, true),

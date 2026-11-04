@@ -30,25 +30,24 @@ MischWerkModules.attachMaintenance = function (runtime, config) {
                 return;
             }
             if (!user.isAppManager()) {
-                user.sendPrivateMessage('Nur Appmanager von MischWerk dürfen /update verwenden.');
+                user.sendPrivateMessage('Nur Appmanager dürfen /update verwenden.');
                 return;
             }
             if (params && String(params).replace(/^\s+|\s+$/g, '')) {
-                user.sendPrivateMessage('Bitte verwende /update ohne weitere Angaben.');
+                user.sendPrivateMessage('Bitte gib nur /update ein.');
                 return;
             }
             if (updateRequested || runtime.shuttingDown) {
-                user.sendPrivateMessage('Das MischWerk-Update ist bereits angefordert. Bitte warte auf den Neustart.');
+                user.sendPrivateMessage(runtime.shuttingDown ?
+                    'MischWerk wird gerade beendet. Bitte warte, bis die App wieder verfügbar ist.' :
+                    'Ein Update ist bereits vorgemerkt. Bitte warte auf den Neustart.');
                 return;
             }
             root = KnuddelsServer.getAppAccess().getOwnInstance().getRootInstance();
             rememberFiles(root.updateAppFiles());
             root.invalidateClientCache();
             if (!pendingFiles.length) {
-                user.sendPrivateMessage('Keine neuen MischWerk-Dateien auf dem Server gefunden. Es erfolgt kein Neustart. ' +
-                    'Laufende Version: ' + config.version + '. Der Oberflächen-Cache wurde erneuert. ' +
-                    'Bitte die Statuszentrale schließen und erneut öffnen. Fehlt die Änderung weiterhin, ' +
-                    'das aktuelle Paket vollständig nach /ftp/MischWerk übertragen.');
+                user.sendPrivateMessage('Keine neuen Dateien gefunden. Version ' + config.version + ' läuft ohne Neustart weiter.');
                 return;
             }
             seconds = root.updateApp('MischWerk wird aktualisiert und steht gleich wieder zur Verfügung.',
@@ -56,13 +55,12 @@ MischWerkModules.attachMaintenance = function (runtime, config) {
             updateRequested = true;
         } catch (error) {
             runtime.warn('APP_UPDATE', error);
-            user.sendPrivateMessage('Das MischWerk-Update konnte nicht angefordert werden. Bitte versuche es erneut.');
+            user.sendPrivateMessage('Update fehlgeschlagen. Bitte versuche /update erneut.');
             return;
         }
         var estimate = typeof seconds === 'number' && isFinite(seconds) && seconds >= 0 ?
-            ' Voraussichtlich in ' + Math.ceil(seconds) + ' Sekunden.' : '';
-        user.sendPrivateMessage(pendingFiles.length + (pendingFiles.length === 1 ? ' neue Datei wurde' : ' neue Dateien wurden') +
-            ' übernommen. MischWerk-Update bei Knuddels angefordert.' + estimate +
-            ' Die App wird neu gestartet; offene Wünsche werden dabei geleert.');
+            (seconds === 0 ? ' Neustart voraussichtlich in Kürze.' :
+                ' Neustart voraussichtlich in ' + Math.ceil(seconds) + (seconds <= 1 ? ' Sekunde.' : ' Sekunden.')) : '';
+        user.sendPrivateMessage('Update vorgemerkt.' + estimate + ' Offene Musikwünsche werden beim Neustart gelöscht.');
     };
 };

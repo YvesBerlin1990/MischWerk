@@ -34,7 +34,7 @@ test('Sendeplan öffnet für Hörer trotz deaktivierter Wunschbox als eigenes Po
   assert.equal(result.find(item => item.type === 'mw:result').data.ok, true);
   assert.equal(f.listenerRadio.removed, false);
   const popup = f.listener.sessions.find(item => item.content.htmlFile.pageData.view === 'schedule');
-  assert.equal(popup.content.width, 820); assert.equal(popup.content.height, 660);
+  assert.equal(popup.content.width, 820); assert.equal(popup.content.height, 630);
   assert.equal(popup.content.allowJFXBrowser, false);
   const data = read(f, week, 0, f.listener, popup);
   assert.equal(data.canManage, false);
@@ -133,6 +133,10 @@ test('Defektes Sendeplanfenster erzeugt nach erfolgreichem Speichern keine zweit
   f.h.event(observer, observerRadio, 'mw:openSchedule');
   const observerPopup = observer.sessions.find(item => item.content.viewMode === 'Overlay');
   observerPopup.events = [];
+  const moderator=f.h.user(4,'Studiobeobachtung');
+  f.h.event(f.owner,f.radio,'mw:addRadioModerator',{nick:moderator.nick});
+  const moderatorRadio=f.h.open(moderator);f.h.event(moderator,moderatorRadio,'mw:openStudio');
+  const studio=moderator.sessions.find(item=>item.content.htmlFile.pageData.view==='studio');studio.events=[];
   const events = event(f, 'mw:schedule.save', { week, expectedRevision: 0,
     date: week, start: '19:00', end: '21:00', nick: f.owner.nick, topic: 'Gespeicherte Sendung' });
   const receipts = events.filter(item => item.type === 'mw:schedule.result');
@@ -140,6 +144,7 @@ test('Defektes Sendeplanfenster erzeugt nach erfolgreichem Speichern keine zweit
   assert.equal(receipts[0].data.ok, true);
   assert.equal(read(f).entries[0].topic, 'Gespeicherte Sendung');
   assert.equal(observerPopup.events.some(item => item.type === 'mw:schedule.changed'), true);
+  assert.equal(studio.events.some(item=>item.type==='mw:schedule.changed'),false,'Keine ungenutzten Kalenderhinweise mehr an Moderation');
   assert.equal(f.h.logs.some(item => item.message.includes('[SCHEDULE_NOTIFY]')), true);
   assert.doesNotMatch(JSON.stringify(f.h.logs), /Private Sitzungsdetails/);
 });

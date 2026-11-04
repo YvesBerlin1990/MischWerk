@@ -41,7 +41,7 @@ var UserType = { Human: 'human' };
 function HTMLFile(asset, data) { this.data = copy(data); }
 var Color = { fromHexString: function (hex) { return { asHexString: function () { return hex; } }; } };
 function content(html, mode) {
-    var loading = {};
+    var loading = { enabled:true };
     return { html: html, mode: mode, sessions: [], closeListeners: [], loading: loading,
         getLoadConfiguration: function () { return {
             setBackgroundColor: function (color) { loading.background = color.asHexString(); },
@@ -55,9 +55,9 @@ function content(html, mode) {
     };
 }
 var AppContent = {
-    headerbarContent: function (html) { return content(html, 'radio'); },
-    popupContent: function (html) { return content(html, html.data.view); },
-    overlayContent: function (html) { return content(html, html.data.view); }
+    headerbarContent: function (html) { return content(html, 'Headerbar'); },
+    popupContent: function (html) { return content(html, 'Popup'); },
+    overlayContent: function (html) { return content(html, 'Overlay'); }
 };
 function person(id, nick, owner) {
     var user = { sessions: [], getUserId: function () { return id; }, getNick: function () { return nick; },
@@ -66,15 +66,18 @@ function person(id, nick, owner) {
         equals: function (other) { return !!other && other.getUserId() === id; },
         canSendAppContent: function () { return true; }, sendPrivateMessage: function () {},
         sendAppContent: function (view) {
+            user.sessions.slice().filter(function (previous) { return previous.getAppContent().mode === view.mode; })
+                .forEach(function (previous) { previous.nativeClose(true); });
             var session = { events: [], getUser: function () { return user; },
                 getAppContent: function () { return view; },
                 sendEvent: function (type, data) {
                     check(JSON.stringify(data).length < 10000, 'Eventlimit');
                     this.events.push({ type: type, data: copy(data) }); eventOrder.push(type);
                 },
-                remove: function () { view.sessions = view.sessions.filter(function (item) { return item !== session; }); user.sessions = user.sessions.filter(function (item) { return item !== session; }); view.closeListeners.forEach(function (callback) { callback(user, view, false); }); }
+                remove: function () { session.nativeClose(false); },
+                nativeClose: function (replacing) { view.sessions = view.sessions.filter(function (item) { return item !== session; }); user.sessions = user.sessions.filter(function (item) { return item !== session; }); view.closeListeners.forEach(function (callback) { callback(user, view, replacing); }); }
             };
-            view.sessions.push(session); this.sessions.push(session); return true;
+            view.sessions.push(session); this.sessions.push(session); return session;
         }
     };
     people.push(user); return user;
@@ -95,11 +98,18 @@ var listenerSession = listener.sessions[0];
 var ownerSession = owner.sessions[0];
 App.onEventReceived(owner, 'mw:openStudio', {}, ownerSession);
 var studio = owner.sessions[owner.sessions.length - 1];
-check(studio.getAppContent().mode === 'studio', 'Moderationsfenster geoeffnet');
-check(studio.getAppContent().loading.background === '#242424', 'Native Ladeflaeche vor dem HTML dunkel vorbereitet');
+check(studio.getAppContent().mode === 'Overlay' && studio.getAppContent().html.data.view === 'studio', 'Moderationsfenster geoeffnet');
+check(studio.getAppContent().loading.background === '#0a0a0a', 'Native Ladeflaeche vor dem HTML dunkel vorbereitet');
+check(studio.getAppContent().loading.text === '' && studio.getAppContent().loading.enabled === true, 'Aktive dunkle Abdeckung ohne nativen Ladetext');
+check(studio.getAppContent().loading.foreground === '#0a0a0a', 'Native Ladefarben identisch');
+check(ownerSession.getAppContent().loading.background === '#0a0a0a' && ownerSession.getAppContent().loading.enabled === false, 'Eigenstaendige Radioleiste unveraendert');
 App.onEventReceived(owner, 'mw:openStudio', { requestId: 'rhino-focus' }, ownerSession);
 App.onEventReceived(owner, 'mw:openStudio', { requestId: 'rhino-focus' }, ownerSession);
-check(owner.sessions[owner.sessions.length - 1] === studio, 'Doppelte Fokus-Anfrage behaelt dieselbe Ansicht');
+App.onEventReceived(owner, 'mw:overlay.ready', { token:latest(studio, 'mw:overlay.prepare').token, state:{}, revision:1 }, studio);
+var previousStudio = studio; studio = owner.sessions[owner.sessions.length - 1];
+check(studio !== previousStudio, 'Bewusster nativer Aufruf erzeugt frische Sitzung');
+App.onEventReceived(owner, 'mw:openStudio', { requestId:'rhino-focus' }, ownerSession);
+check(owner.sessions[owner.sessions.length - 1] === studio, 'Doppelte Anfrage erzeugt kein zweites Fenster');
 check(latest(ownerSession, 'mw:result').ok, 'Doppelte Fokus-Anfrage bestaetigt ohne erneutes Oeffnen');
 // Nach der Initialisierung darf kein Wunsch die Persistenz aufrufen.
 store.getObject = function () { throw new Error('Keine Persistenz im Wunschweg'); };
@@ -163,8 +173,8 @@ KnuddelsServer.getUserAccess = function () { return {
 App.onEventReceived(owner, 'mw:openSchedule', {}, ownerSession);
 App.onEventReceived(owner, 'mw:overlay.ready', { token: latest(studio, 'mw:overlay.prepare').token, state: {}, revision: 1 }, studio);
 var scheduleSession = owner.sessions[owner.sessions.length - 1];
-check(scheduleSession === studio && latest(scheduleSession, 'mw:view').view === 'schedule', 'Sendeplan im vorhandenen Overlay');
-check(scheduleSession.getAppContent().loading.enabled === false, 'Native Ladeansicht deaktiviert');
+check(scheduleSession !== studio && scheduleSession.getAppContent().html.data.view === 'schedule', 'Sendeplan in eigener nativer Sitzung');
+check(scheduleSession.getAppContent().loading.enabled === true, 'Native dunkle Abdeckung aktiv');
 App.onEventReceived(owner, 'mw:schedule.get', { requestId: 'schedule-read', week: '2026-10-26' }, scheduleSession);
 var programme = latest(scheduleSession, 'mw:schedule.data');
 check(programme && programme.days.length === 7 && programme.days[6] === '2026-11-01', 'Sieben Kalenderdaten in Rhino');
@@ -208,7 +218,8 @@ check(latest(listenerSession, 'mw:state').moderator.nick === 'Musikfreund', 'Neu
 check(latest(listenerSession, 'mw:state').topic === 'Neue Sendung', 'Neues Thema gemeinsam gespeichert');
 check(latest(listenerSession, 'mw:state').handover.receivedNotes === incoming.notes, 'Hinweis nach Uebernahme erhalten');
 check(latest(ownerSession, 'mw:state').handover.receivedNotes === null, 'Uebernommener Hinweis nur beim Empfaenger');
-check(typeof latest(listenerSession, 'mw:state').assistant.startedAt === 'number', 'Sendungsassistent hat bestaetigte Studiozeit');
+check(typeof latest(listenerSession, 'mw:state').moderator.since === 'number', 'Bestaetigte Studiozeit bleibt erhalten');
+check(!('assistant' in latest(listenerSession, 'mw:state')), 'Entfernter Sendungsassistent bleibt aus dem Snapshot');
 check(publicMessages.length === 4 && publicMessages[3].indexOf('Otterchen macht Platz im Studio') !== -1, 'Eine gemeinsame Uebergabemeldung');
 App.onEventReceived(owner, 'mw:onAir', {}, ownerSession);
 check(!latest(ownerSession, 'mw:result').ok && publicMessages.length === 4, 'Keine direkte Uebernahme ohne Bestaetigung');
@@ -245,4 +256,14 @@ App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
 check(latest(ownerSession, 'mw:state').refreshRequestId === undefined, 'Automatische Aktualisierung ohne fremde Quittung');
 App.onEventReceived(owner, 'mw:refresh', { requestId: '<invalid>' }, ownerSession);
 check(!latest(ownerSession, 'mw:result').ok, 'Ungueltige Aktualisierungs-ID abgewiesen');
+App.chatCommands.vorhang(owner, 'öffnen');
+check(latest(listenerSession, 'mw:state').curtain.closed === false, 'Vorhang oeffnen per Chat in Rhino');
+App.chatCommands.vorhang(listener, 'schließen');
+App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
+check(latest(ownerSession, 'mw:state').curtain.closed === false, 'Hoerer darf Vorhang nicht schliessen');
+App.chatCommands.vorhang(owner, 'schließen');
+check(latest(listenerSession, 'mw:state').curtain.closed === true, 'Vorhang schliessen per Chat in Rhino');
+App.chatCommands.vorhang(owner, 'toggle');
+App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
+check(latest(ownerSession, 'mw:state').curtain.closed === true, 'Ungueltige Chatangabe erhaelt Vorhang');
 print('Rhino-Wunschweg OK: ' + assertions + ' Pruefungen, 125 Wuensche, ' + links.length + ' abgewiesene Links; Sendeplan und Studio-Meldungen ebenfalls geprueft.');

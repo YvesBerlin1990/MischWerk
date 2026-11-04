@@ -40,15 +40,17 @@ MischWerkModules.attachOverlays = function (runtime) {
         var radio = find(user, session), kind = actions[action];
         if (!radio || radio.kind !== 'radio' || !kind) { throw runtime.failure('Bitte öffne die Ansicht in der Radioleiste.'); }
         var existing = runtime.getViews().filter(function (view) { return view.kind !== 'radio' && view.userId === radio.userId; })[0];
-        if (existing && existing.kind !== kind) { runtime.selectOverlay(user, radio, existing, kind); }
-        else if (existing) { runtime.closeView(existing); }
-        else {
+        if (existing) {
+            if (!radio.overlaySelections) { radio.overlaySelections = {}; }
+            radio.overlaySelections[existing.kind] = { page:existing.page, myPage:existing.myPage, queueId:existing.queueId, radioModeratorPage:existing.radioModeratorPage };
+        }
+        {
             var presentation = radio.wishPresentation;
-            if (presentation) { presentation.sequence = 0; }
             var initial = presentation ? JSON.parse(JSON.stringify(presentation)) : null;
-            if (initial) { initial.disabled = true; }
-            runtime.openView(user, kind, false, { radioContent:radio.content,
+            if (initial) { initial.sequence = 0; initial.disabled = true; }
+            runtime.openView(user, kind, false, { radioContent:radio.content, previousContent:existing && existing.content,
                 presentation:initial });
+            if (presentation && radio.wishPresentation === presentation) { presentation.sequence = 0; }
         }
         remember(radio, action, requestId);
         runtime.result(session, true, 'Ansicht geöffnet.', action, requestId);
@@ -67,21 +69,15 @@ MischWerkModules.attachOverlays = function (runtime) {
         }
         var existing = runtime.getViews().filter(function (view) { return view.kind !== 'radio' && view.userId === radio.userId; })[0];
         if (!existing) { perform(user, session, action, requestId); return; }
-        if (existing.kind === kind && kind !== 'wishes') {
-            existing.content.getSessions().forEach(function (active) { runtime.send(active, 'mw:overlay.focus', {}); });
-            remember(radio, action, requestId);
-            runtime.result(session, true, 'Ansicht ist bereits geöffnet.', action, requestId); return;
-        }
         if (existing.transition && existing.transition.expires > Date.now()) {
             if (existing.transition.requestId === requestId && existing.transition.action === action) { return; }
             throw runtime.failure('Die bisherige Ansicht wird noch übernommen. Bitte kurz warten.');
         }
-        if (!user.canSendAppContent(existing.content)) { throw runtime.failure('Dieser Client unterstützt diese Channelansicht nicht. Die bisherige Ansicht bleibt geöffnet.'); }
         var token = ++sequence;
         existing.transition = { token:token, action:action, requestId:requestId, expires:Date.now() + 14000,
-            cancel:function () {
+            cancel:function (message) {
                 existing.content.getSessions().forEach(function (active) { runtime.send(active, 'mw:overlay.resume', { token:token }); });
-                runtime.result(session, false, 'Der Ansichtswechsel wurde unterbrochen. Bitte erneut öffnen.', action, requestId);
+                runtime.result(session, false, message || 'Der Ansichtswechsel wurde unterbrochen. Bitte erneut öffnen.', action, requestId);
             } };
         existing.transition.finish = function () { perform(user, session, action, requestId); };
         existing.content.getSessions().forEach(function (active) { runtime.send(active, 'mw:overlay.prepare', { token:token }); });
@@ -109,7 +105,6 @@ MischWerkModules.attachOverlays = function (runtime) {
             return;
         }
         if (view.kind === 'radio') { return; }
-        if (view.viewRevision > 1 && (data.viewRevision !== view.viewRevision || data.view !== view.kind)) { return; }
         if (type === 'mw:overlay.draft') { save(user, view, data.state, data.revision); return; }
         if (type === 'mw:overlay.dismiss') {
             var owner = parent(view);
@@ -130,7 +125,7 @@ MischWerkModules.attachOverlays = function (runtime) {
         }
         try { transition.finish(); }
         catch (error) {
-            transition.cancel();
+            transition.cancel(error.publicMessage);
             if (!error.publicMessage) { runtime.warn('OVERLAY_OPEN'); }
         }
     };

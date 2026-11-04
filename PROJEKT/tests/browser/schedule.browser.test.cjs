@@ -78,6 +78,28 @@ test('Fensteröffnung: Sendeplan behält seine passende Anfangsgröße ohne nach
   await scheduleReachable(owner);
   assert.deepEqual(errors,[]);
 });
+test('Leere Sendeplanwoche verteilt den freien Rahmen auf sieben gleichmäßige Tageszeilen',async t=>{
+ const {owner,listener,errors}=await setup(t);
+ for(const page of [owner,listener])for(const height of [630,800]){
+  await page.setViewportSize({width:820,height});await page.waitForTimeout(150);
+  const layout=await page.evaluate(()=>{
+   const rows=[...document.querySelectorAll('.schedule-day')].map(n=>n.getBoundingClientRect());
+   return {heights:rows.map(r=>r.height),bottom:innerHeight-rows.at(-1).bottom,
+    overflow:document.documentElement.scrollHeight>innerHeight||document.documentElement.scrollWidth>innerWidth,
+    paged:!document.getElementById('schedule-pagination').hidden};
+  });
+  assert.equal(layout.heights.length,7);assert.equal(layout.paged,false);assert.equal(layout.overflow,false);
+  assert.ok(Math.max(...layout.heights)-Math.min(...layout.heights)<1,JSON.stringify(layout));
+  assert.ok(layout.heights.every(h=>h>=50),JSON.stringify(layout));
+  assert.ok(layout.bottom>=(height<=700?16:24)&&layout.bottom<=(height<=700?17:25),JSON.stringify(layout));
+ }
+ await owner.locator('#schedule-new').click();await owner.locator('#schedule-topic').fill('Mein Wochenentwurf');
+ assert.equal(await owner.locator('body').evaluate(n=>getComputedStyle(n).display),'block','Editor erhält seine natürliche Anordnung');
+ await owner.locator('#schedule-cancel').click();
+ await owner.waitForTimeout(150);assert.equal(await owner.locator('.schedule-day').count(),7);
+ assert.deepEqual(errors,[]);
+});
+
 async function newShow(page, topic = '80er und 90er') {
   await page.locator('#schedule-new').click();
   await page.locator('#schedule-topic').fill(topic);
@@ -125,7 +147,7 @@ test('Sendeplan: Anlegen, Bearbeiten und Löschen durch den Besitzer; Hörer seh
   await listener.locator('.schedule-topic').filter({ hasText: '80er und 90er' }).waitFor();
   assert.equal(await listener.locator('.schedule-edit').count(), 0);
   assert.match(await listener.locator('.schedule-time').first().textContent(), /19:00 – 21:00/);
-  assert.match(await listener.locator('.schedule-presenter').first().textContent(), /Otterchen/);
+  assert.match(await listener.locator('.schedule-presenter').first().textContent(), /Testleitung/);
   for (const [page, width] of [[owner, 820], [listener, 320]]) {
     await page.setViewportSize({ width, height: width === 820 ? 680 : 640 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
@@ -232,7 +254,7 @@ test('Sendeplan bleibt bei geschlossener Wunschbox aktiv und öffnet als separat
     await radio.setViewportSize({ width, height: 186 });
     // mw-ready bleibt nach dem ersten Laden gesetzt; der Resize-Handler folgt separat.
     await radio.waitForFunction(expectedWidth => document.documentElement.classList.contains('mw-ready') &&
-      innerWidth === expectedWidth && document.documentElement.classList.contains('radio-constrained') === (expectedWidth < 700), width);
+      innerWidth === expectedWidth && document.documentElement.classList.contains('radio-constrained') === (expectedWidth <= 1350), width);
     const plan = await radio.locator('#open-schedule').boundingBox(), wish = await radio.locator('#open-wishes').boundingBox();
     assert.ok(plan.y+plan.height<=186&&wish.y+wish.height<=186,'Hauptaktionen bleiben vollständig im Header bei '+width);
     assert.ok(Math.abs(plan.height-wish.height)<.05, 'Gleiche feste Höhe');
@@ -299,6 +321,8 @@ test('Mehr als ein Paket wird vollständig als Woche dargestellt; Sendungstexte 
   assert.equal(await owner.locator('#schedule-days img').count(), 0);
   assert.equal(await owner.evaluate(() => window.__bad), undefined);
   assert.ok((await owner.locator('#schedule-days').textContent()).includes('Sendung 25'));
+  // Erst die fertige Pagination verwenden; der kurz sichtbare Rohplan ist noch keine Seite.
+  await owner.locator('#schedule-pagination').waitFor({ state: 'visible' });
   while (!(await owner.locator('.schedule-edit').last().isVisible())) {
     await owner.locator('#schedule-page-next:not([disabled])').click();
   }
@@ -330,7 +354,7 @@ test('Sendeplan behält den Rahmen bei neuen und gelöschten Sendungen; alle Ein
   for (let i = 0; i < 3; i++) {
     const events = await scheduleCall(owner, 'mw:schedule.save', { week: first.week, date: first.week,
       expectedRevision: i, start: String(i).padStart(2, '0') + ':00',
-      end: String(i + 1).padStart(2, '0') + ':00', nick: 'Otterchen (Demo)', topic: 'Zusätzliche Sendung ' + i });
+      end: String(i + 1).padStart(2, '0') + ':00', nick: 'Testleitung', topic: 'Zusätzliche Sendung ' + i });
     assert.equal(events.find(e => e.type === 'mw:schedule.result').data.ok, true);
   }
   await owner.locator('#schedule-refresh').click();
@@ -381,7 +405,7 @@ test('Feste K3-Höhe: alle Einträge über sichtbare Seiten erreichbar, auch ein
   for (let i = 0; i < 12; i++) {
     const events = await scheduleCall(owner, 'mw:schedule.save', { week: first.week, date: first.week,
       expectedRevision: i, start: String(i).padStart(2, '0') + ':00',
-      end: String(i + 1).padStart(2, '0') + ':00', nick: 'Otterchen (Demo)',
+      end: String(i + 1).padStart(2, '0') + ':00', nick: 'Testleitung',
       topic: i === 0 ? 'Kalenderprüfung 0'.padEnd(80, 'W') : 'Kalenderprüfung ' + i });
     assert.equal(events.find(e => e.type === 'mw:schedule.result').data.ok, true);
   }
@@ -433,7 +457,7 @@ test('Neue Sendungen lassen sich direkt im Kalender für nächste Woche, später
   const next = futureWeek(initial.week, 7), year = Number(initial.today.slice(0, 4)) + 1;
   const targets = [next, year + '-01-06', year + '-04-14'];
   const seed = (await scheduleCall(owner, 'mw:schedule.save', { week: next, date: next, expectedRevision: 0,
-    start: '16:00', end: '17:00', nick: 'Otterchen (Demo)', topic: 'Bereits geplante Sendung' })).find(e => e.type === 'mw:schedule.result').data;
+    start: '16:00', end: '17:00', nick: 'Testleitung', topic: 'Bereits geplante Sendung' })).find(e => e.type === 'mw:schedule.result').data;
   assert.equal(seed.ok, true);
   const writes = [];
   owner.on('request', request => { if (request.url().endsWith('/api/event')) { const body = request.postDataJSON(); if (body?.type === 'mw:schedule.save') writes.push(body.data); } });
@@ -539,7 +563,7 @@ test('Fehler beim Laden einer Zukunftswoche erhält den Entwurf; Aktualisieren b
   assert.equal(await owner.locator('#schedule-date').inputValue(), target);
   assert.equal(await owner.locator('#schedule-topic').inputValue(), 'Entwurf in vier Wochen');
   const parallel = (await scheduleCall(owner, 'mw:schedule.save', { week: target, date: target, expectedRevision: 0,
-    start: '10:00', end: '11:00', nick: 'Otterchen (Demo)', topic: 'Parallele Sendung' })).find(e => e.type === 'mw:schedule.result').data;
+    start: '10:00', end: '11:00', nick: 'Testleitung', topic: 'Parallele Sendung' })).find(e => e.type === 'mw:schedule.result').data;
   assert.equal(parallel.ok, true);
   await owner.locator('#schedule-refresh').click(); await waitScheduleReady(owner);
   await owner.locator('#schedule-save').click();

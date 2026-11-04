@@ -10,7 +10,7 @@ class TestUsers {
     const key = nick.toLocaleLowerCase('de');
     if (this.users.has(key)) return this.users.get(key);
     const state = { nick, id: definition.id || 1000 + this.users.size, role: definition.role || 'listener',
-      online: false, connection: null, client: definition.client || 'k3',
+      online: false, connection: null, sendingContent: false, client: definition.client || 'k3',
       capabilities: { Headerbar: true, Popup: true, Overlay: true, ...definition.capabilities } };
     if (!['owner', 'listener', 'manager', 'developer', 'cm'].includes(state.role)) throw new Error('Ungültige Testrolle.');
     const runtime = this.runtime;
@@ -25,11 +25,13 @@ class TestUsers {
       isConnectedWithK3Client: () => state.online && state.client === 'k3',
       getClientType: () => runtime.enums.ClientType[state.client === 'android' ? 'Android' : state.client === 'ios' ? 'IOS' : state.client === 'jfx' ? 'Applet' : 'Browser'],
       canShowAppViewMode: mode => state.online && state.capabilities[mode.toString()] === true,
-      canSendAppContent: content => state.online && state.capabilities[content.getAppViewMode().toString()] === true &&
+      canSendAppContent: content => state.online && !state.sendingContent && state.capabilities[content.getAppViewMode().toString()] === true &&
         !(state.client === 'jfx' && !content.isAllowJFXBrowser()),
       sendAppContent: content => {
         if (!user.canSendAppContent(content)) return null;
-        return runtime.contents.open(user, content);
+        state.sendingContent = true;
+        try { return runtime.contents.open(user, content); }
+        finally { state.sendingContent = false; }
       },
       getAppContentSessions: mode => [...runtime.contents.sessions.values()].filter(session =>
         session.getUser() === user && (!mode || session.getAppViewMode() === mode)),

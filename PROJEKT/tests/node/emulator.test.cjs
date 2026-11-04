@@ -9,6 +9,17 @@ const { TestPersistence } = require('../../tools/emulator/runtime/persistence.cj
 const { createEmulator } = require('../../tools/emulator/server.cjs');
 const { profiles, defaults } = require('../../tools/emulator/config.cjs');
 const project = path.resolve(__dirname, '../..');
+test('Ladekonfiguration bleibt auch deaktiviert samt Text und Farben im Plattformmodell erhalten', () => {
+  const { TestContents } = require('../../tools/emulator/runtime/content.cjs');
+  const model = new TestContents({ enums:{AppViewMode:{Overlay:'Overlay'}}, clock:{Date}, emit(){} });
+  const content = model.create({getAssetPath:()=>'index.html',getPageData:()=>({view:'wishes'})},'Overlay',560,340);
+  const loading = content.getLoadConfiguration();
+  loading.setEnabled(false);loading.setText('Lädt...');
+  loading.setForegroundColor({asHexString:()=>'#000000'});loading.setBackgroundColor({asHexString:()=>'#FFFFFF'});
+  model.open({getNick:()=>'Test'},content);
+  assert.deepEqual(model.describe([...model.sessions.keys()][0]).loading,
+    {enabled:false,text:'Lädt...',foreground:'#000000',background:'#FFFFFF'});
+});
 function scratch(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'MischWerk-Emulator-Test-'));
   t.after(() => { assert.ok(path.basename(directory).startsWith('MischWerk-Emulator-Test-')); fs.rmSync(directory, { recursive: true, force: true }); });
@@ -23,6 +34,15 @@ function setup(t) {
   const state = (nick, id) => { runtime.event(nick, id, 'mw:refresh', {}); return events.findLast(event => event.kind === 'sessionEvent' && event.sessionId === id && event.eventType === 'mw:state').eventData; };
   return { runtime, events, faults, join, state };
 }
+
+test('Plattformbefehl /confirm wird nur protokolliert, ohne erfundenen nativen Idle-Erfolg',t=>{
+ const {runtime,events,join,state}=setup(t);assert.throws(()=>runtime.command('Otterchen','/confirm'),/Channelbeitritt/);
+ const id=join('Otterchen'),before=state('Otterchen',id),count=events.length;
+ runtime.command('Otterchen','/confirm');
+ assert.deepEqual(events.slice(count),[{kind:'platformCommand',nick:'Otterchen',command:'/confirm',idleEffect:'not-modelled'}]);
+ assert.equal(state('Otterchen',id).revision,before.revision);
+ assert.throws(()=>runtime.command('Otterchen','/unbekannt'),/Unbekannter/);
+});
 test('Plattformrollen bleiben getrennt; Besitzer und echte Teamernennung steuern Apprechte', t => {
   const { runtime, join, state } = setup(t), owner = join('Otterchen');
   assert.equal(state('Otterchen', owner).user.canManageRadioModerators, true);
@@ -112,6 +132,27 @@ test('AppContent entspricht dokumentierten Größen, Defaults und Close-Listener
   session.remove();
   assert.equal(argumentsSeen[0], user); assert.equal(argumentsSeen[1], popup); assert.equal(argumentsSeen[2], false);
 });
+test('sendAppContent ersetzt nur den eigenen ViewMode und meldet replacing statt einer eigenen remove-Aktion', t => {
+  const {runtime,join}=setup(t);join('Otterchen');join('Testhoerer');
+  const user=runtime.users.find('Otterchen').user, other=runtime.users.find('Testhoerer').user;
+  const html=new runtime.context.HTMLFile('index.html');
+  const old=runtime.context.AppContent.overlayContent(html), next=runtime.context.AppContent.overlayContent(html);
+  const session=user.sendAppContent(old), foreign=other.sendAppContent(old);
+  let removeCalls=0, closed, duringReplacement;
+  session.remove=()=>{removeCalls++;};
+  old.addCloseListener((...args)=>{closed=args;duringReplacement=user.canSendAppContent(next);});
+  const result=user.sendAppContent(next);
+  assert.equal(result.getAppContent(),next);assert.equal(result.getUser(),user);
+  assert.equal(removeCalls,0,'Ersetzen ist eine Plattformaktion, kein AppContentSession.remove-Aufruf');
+  assert.deepEqual(closed,[user,old,true]);
+  assert.equal(duringReplacement,false,'Kein weiterer Versand aus einem nativen Ersetzungslistener');
+  assert.equal(user.canSendAppContent(next),true,'Nach dem Versand wieder verfügbar');
+  assert.deepEqual(old.getSessions(),[foreign]);
+  assert.equal(user.getAppContentSessions().length,2,'Headerbar und Overlay bleiben getrennt');
+  assert.equal(user.getAppContentSession(runtime.enums.AppViewMode.Overlay),result);
+  result.remove();assert.deepEqual(next.getSessions(),[]);
+});
+
 test('Persistenzwerte werden kopiert und fehlgeschlagene Schreibvorgänge sind atomar', t => {
   let fail = false;
   const store = new TestPersistence(scratch(t), () => fail), api = store.api(), object = { list: [1] };

@@ -6,7 +6,7 @@ function payload(value) {
   return JSON.parse(serialized);
 }
 class TestContents {
-  constructor(runtime) { this.runtime = runtime; this.sessions = new Map(); this.records = new WeakMap(); }
+  constructor(runtime) { this.runtime = runtime; this.sessions = new Map(); this.records = new WeakMap(); this.closers = new WeakMap(); }
   create(htmlFile, mode, width, height) {
     if (mode === 'Headerbar' && (!Number.isInteger(height) || height < 20 || height > 500)) throw new Error('Headerbarhöhe: Ganzzahl von 20 bis 500.');
     const minimum = mode === 'Overlay' ? 20 : 50;
@@ -50,15 +50,23 @@ class TestContents {
         this.runtime.emit('sessionEvent', { nick: user.getNick(), sessionId: id, eventType: type, eventData: payload(data) });
       },
       remove: () => {
-        if (!active) return;
-        active = false; this.sessions.delete(id);
-        record.sessions = record.sessions.filter(item => item !== session);
-        this.runtime.emit('contentRemove', { nick: user.getNick(), sessionId: id });
-        record.listeners.slice().forEach(listener => {
-          try { this.runtime.invokeFunction(listener, [user, content, false]); } catch { /* Fehler wurde bereits als Appfehler erfasst. Andere Listener weiter ausführen. */ }
-        });
+        if (!active) { this.runtime.emit('sessionRemoveRepeated', { nick:user.getNick(), sessionId:id }); return; }
+        close(false);
       }
     };
+    const close = replacing => {
+      if (!active) return;
+      active = false; this.sessions.delete(id);
+      record.sessions = record.sessions.filter(item => item !== session);
+      this.runtime.emit('contentRemove', { nick: user.getNick(), sessionId: id, replacing });
+      record.listeners.slice().forEach(listener => {
+        try { this.runtime.invokeFunction(listener, [user, content, replacing]); } catch { /* Fehler wurde bereits als Appfehler erfasst. Andere Listener weiter ausführen. */ }
+      });
+    };
+    // Plattformersetzung betrifft nur denselben Nutzer und ViewMode, nicht seine Headerbar.
+    [...this.sessions.values()].filter(previous => previous.getUser() === user && previous.getAppViewMode() === session.getAppViewMode())
+      .forEach(previous => this.closers.get(previous)(true));
+    this.closers.set(session, close);
     this.sessions.set(id, session); record.sessions.push(session);
     this.runtime.emit('contentShow', this.describe(id));
     return session;
@@ -68,11 +76,13 @@ class TestContents {
     const content = session.getAppContent(), record = this.records.get(content);
     return { sessionId: id, nick: session.getUser().getNick(), mode: record.mode,
       width: record.width, height: record.height, responsive: record.responsive, allowJFX: record.jfx,
+      // Konfiguration vollständig bewahren; nur die aktivierte Abdeckung zeichnet ihre Farben.
       loading: copy(record.loading),
       htmlPath: record.htmlFile.getAssetPath(), pageData: copy(record.htmlFile.getPageData()) };
   }
   owned(id, user) { const session = this.sessions.get(id); return session?.getUser() === user ? session : null; }
-  removeUser(user) { [...this.sessions.values()].filter(session => session.getUser() === user).forEach(session => session.remove()); }
-  clear() { [...this.sessions.values()].forEach(session => session.remove()); }
+  // Native Bereinigung besitzt ihren eigenen Schließweg wie die native Ersetzung.
+  removeUser(user) { [...this.sessions.values()].filter(session => session.getUser() === user).forEach(session => this.closers.get(session)(false)); }
+  clear() { [...this.sessions.values()].forEach(session => this.closers.get(session)(false)); }
 }
 module.exports = { TestContents, payload };

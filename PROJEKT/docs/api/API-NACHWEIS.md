@@ -1,4 +1,183 @@
-# MischWerk – API-Nachweis 0.1.146
+# MischWerk – API-Nachweis 0.1.202 · Build 202
+
+Aktueller lokaler Stand **0.1.202 · Build 202**. Der äußerste Hintergrund der Appleiste entspricht mit **#0F1114 (RGB 15, 17, 20)** der dominierenden Grundfarbe am oberen Rand des vorhandenen Channelbilds medien/mychannel/Hintergrund_MischWerk_Knuddels.png. Radio-HTML, Body und äußerer Leistenuntergrund verwenden dieselbe Canvas-Farbe bereits beim frühen HTML-Aufbau. Die Playerkarte bleibt #141414, Overlays und native Ladefarben bleiben unverändert. Platzverteilung 201, Originalbild/-Logos, Controller und Funktionen erhalten. Vollständiger fester Desktop-UPLOAD mit 106 Laufzeitdateien lokal bereitgestellt; keine Live-Aktion.
+
+Platzverteilung aus 201: Die Appleiste verteilt die Mitte ab 1200 px proportional auf Musik/Lautstärke, Thema/Sendestatus und gegebenenfalls den eigenen Wunsch. Ohne Wunsch nutzen die zwei übrigen Informationsbereiche den Platz. Gemeinsame Oberkante, ruhige Trennlinien, passende Innenabstände, eine bis 440 px nutzbare Lautstärkegruppe und ein an der Übergangsbreite angepasster 20–24-px-Titel ersetzen die überbreite Musikspalte mit rechts zusammengedrängten Informationen. Die schmalen Raster unter 1200 px, sämtliche Controller, Fachlogik, Audio und Overlaygestaltung bleiben unverändert. Vollständiger fester Desktop-UPLOAD mit 106 Laufzeitdateien lokal bereitgestellt; keine Live-Aktion.
+
+Versionsstand 200: Ausschließlich Versions- und Buildkennung gegenüber 199 erhöht; Gestaltung und Funktionen sind bytegleich erhalten. Backendkonfiguration, App-Konfiguration, Einstieg und alle fünf Manifeste tragen dieselbe neue Kennung. Vollständiger fester Desktop-UPLOAD mit 106 Laufzeitdateien lokal neu bereitgestellt; keine Live-Aktion. Die nachfolgenden Gestaltungs-/Browsernachweise stammen aus dem unveränderten Stand 199.
+
+Unverändert aus Build 199: Die bestätigten ZIP-Designs sind in der gewünschten Reihenfolge übernommen: Appleiste nach B · Vinyl Deck, anschließend Moderation, Verwaltung, Wunschbox und Sendeplan nach MischWerk_Alle_Menues. Schwarze Flächen, silberne Aktionen, statisches Vinylmotiv und lokal geladene Outfit-/Fraunces-Schriften bilden die gemeinsame Gestaltung. Sämtliche Menüüberschriften sind mittig; die Original-Logos stehen links vor dem ruhigen Kopfzeilenhintergrund ohne abgesetzte schwarze Kachel, das Vinylmotiv rechts und das X bleibt rechts bedienbar. Responsive Appleiste mit direktem Zugriff auf öffentliche und berechtigte private Aktionen, lange Informationen im vorhandenen nativen Lesebereich. Rollen, private Wunschinformation, Entwürfe, Chronologie 197/198, Event-/Sitzungskorrektur und Startabsicherung sind erhalten. **106 Laufzeitdateien, 100 Texte, 31 Backendmodule, 73 Browserdateien, 44 Komponenten, 17 Stylesheets, fünf Manifeste.** Ausschließlich fester Desktop-UPLOAD; keine Live-Aktion.
+
+Build 199 führt keine neue Knuddels- oder Anbieter-Schnittstelle ein. IDs, Nachrichtenverträge, Rollen und native Anfangsmaße bleiben unverändert. configureLoading ändert ausschließlich die beiden Farbliterale auf #0a0a0a; optionale Eigenschaftsbehandlung und Enabled-Zustände sind erhalten. Neue Fonts sind lokale statische Dateien mit OFL-Lizenzen. Audio, Heartbeat, Startwächter und geschützte Wunsch-/Sitzungsdateien sind per SHA-256 gegen Build 198 gesichert.
+
+Erhalten aus Build 198: Die Seitenzählung in Heute gespielt folgt ebenfalls der Zeit: älteste Titel auf Seite 1, neueste auf der letzten Seite. Beim Öffnen werden weiterhin die neuesten Titel auf der letzten Seite gezeigt. Zurück verringert die Seitenzahl, Weiter erhöht sie. Internen Cursor, Sortierung, Navigation und Seitenanker erhalten; ausschließlich die sichtbare Zahl ist angepasst. Frühere Wunsch-, Start-, Event-/Sitzungs- und Audiokorrekturen bleiben erhalten. Nur lokal bereitgestellt, weiterhin 102 Laufzeitdateien; keine Live-Aktion.
+
+Build 197: In Heute gespielt folgt die Navigation der Uhrzeit: Zurück zeigt ältere Titel, Weiter neuere. Auf der neuesten Seite ist Weiter gesperrt, auf der ältesten Zurück. Die neuesten Titel stehen weiterhin oben; Seitennummerierung, Textfortsetzungen und Gestaltung bleiben erhalten. Wunschübersichtsentfernung, Event-/Sitzungskorrektur und Startabsicherung bleiben erhalten. Ausschließlich lokal bereitgestellt, unverändert 102 Laufzeitdateien; keine Live-Aktion.
+
+Build 196: Die doppelte Rubrik Deine offenen Wünsche entfällt vollständig aus der Wunschbox samt Aktualisieren, Liste und Seitennavigation. Nach Abgabe bleiben die kurze Fünf-Sekunden-Bestätigung und Weiteren Wunsch eingeben; Titel, Platz und Bearbeitungsstatus stehen ausschließlich im vorhandenen privaten Wunschbereich der Appleiste. Eingabe, Entwürfe, Fokus, Versand, Radioaudio und natürliche Wunschhöhe bleiben erhalten. Event-/Sitzungskorrektur aus 194 und Startabsicherung aus 195 sind erhalten. Ausschließlich lokale Bereitstellung mit 102 Laufzeitdateien; keine Live-Aktion.
+
+Build 195: Die leere Appleiste direkt nach Beitritt/Aktualisierung ist auf einen öffentlich nachgewiesenen Auslieferungsmischstand zurückgeführt: Ladeplan aktuell, 13 Frontenddateien älter und drei benötigte Dateien nicht vorhanden. Startfehler werden bereits vor der ersten SDK-Dateieinbindung abgesichert und bei fehlenden Pflichtdateien sofort sichtbar gemeldet. Vollständiger Desktop-UPLOAD mit 103 Laufzeitdateien lokal bereitgestellt; die Event-/Sitzungskorrektur aus Build 194 bleibt erhalten. Keine Live-Aktivierung oder Übertragung ausgeführt.
+
+Build 194: Wunschbox-Abgleich gegen das gemeldete Eventlimit korrigiert: Entwürfe lokal sofort anzeigen, Serverabgleich bündeln und identische Rückmeldungen unterdrücken. Vor Schließen/Absenden/Overlaywechsel wird die letzte Eingabe übertragen. Sitzungen werden nur noch aktuell und höchstens einmal geschlossen, auch bei verzögertem Close-Listener und neuen Plattformwrappern. Ausschließlich lokale Bereitstellung; die vorübergehend abgeschaltete Knuddels-App wird nicht automatisch aktiviert oder aktualisiert.
+
+Build 193: Der vorhandene Bereich Dein Wunsch in der Appleiste zeigt Platz, nächsten eigenen Songtitel und Bearbeitungsstatus, bei mehreren Wünschen ergänzt um einen kleinen Zähler. Am Wunschbox-Button entstehen keine Zusatzangaben. Die Detailansicht ordnet Platz/Status über dem vollständigen Titel; der zusätzliche Moderationshinweis entfällt. Erfolgsfeedback verschwindet nach fünf Sekunden, Fehler und laufender Versand bleiben sichtbar.
+
+API-Abgleich am 04.11.2026 für den Sitzungsfix: [AppContent.getSessions](https://developer.knuddels.de/docs/classes/AppContent.html#method_getSessions) liefert die aktuell zugehörigen offenen Sitzungen. [AppContentSession.getOpenTimestamp](https://developer.knuddels.de/docs/classes/AppContentSession.html#method_getOpenTimestamp) liefert eine Date-Öffnungszeit; damit bleibt die Prüfung auch bei neu erzeugten JavaScriptwrappern mit gleichem authentifiziertem Nutzer möglich. [remove](https://developer.knuddels.de/docs/classes/AppContentSession.html#method_remove) gehört ausschließlich zur gezielt zu schließenden aktiven Sitzung. Keine dokumentierte isClosed-Methode voraussetzen. Der bestehende replacing-Parameter und die tatsächliche Rückgabesitzung von sendAppContent bleiben erhalten. Dokumentationsstand 20260311-092723, aktuell abgerufen. Die 50 Events/5 s stammen aus dem Nutzerlog; kein universeller Grenzwert oder serverinterner Limit-Algorithmus wird aus der API-Dokumentation abgeleitet.
+
+Intern bleibt der Eingabe-/Quittungsvertrag erhalten. wishes/relay besitzt nur den radioseitigen Darstellungsabgleich; wishes/drawer bündelt Entwurfssynchronisation für 400 ms und überträgt die letzte Sequenz vor X/Escape, Submit und bestätigtem Wechsel. ui/wish-surface unterdrückt identische Darstellungen je tatsächlichem Zielfenster. Unterschiedliche Sequenzen und neue Fenster bekommen weiterhin Bestätigungen; fehlgeschlagene Sends werden nicht als erfolgreich gespiegelt gespeichert. Pflichtquittungen und Fehlerantworten werden weiterhin unmittelbar gesendet.
+
+
+Privates wishPositions.nextItem enthält ausschließlich den ersten bereits nach authentifizierter Absenderidentität gefilterten eigenen Wunsch (id, text, position, stage) oder null. Die serverseitige Seitenwahl verändert diese Zusammenfassung nicht; seit Build 196 bietet die Wunschbox keine eigene Detailliste oder Seitennavigation mehr. Der öffentliche Datenumfang anderer Hörer bleibt unverändert; zusätzliche Anbieter-/Timerabfragen entfallen. wishes/feedback ändert ausschließlich die sichtbare Erfolgsquittung nach fünf Sekunden, deren verborgener Zustand über den vorhandenen Wunschrelay gespiegelt wird. wishes/wishbox und Backend wishes/transport bleiben bytegleich.
+
+Build 192: Der Menüpunkt heißt jetzt Verwaltung, einschließlich Tooltip, Screenreaderbeschriftung, frühem und fertigem Dialogtitel sowie nativem Fenstertitel. Überschrift und Leitspruch stehen mittig in der Kopfkarte, Logo links und Schließen-X rechts. Funktionen und Berechtigungen der Teamverwaltung bleiben erhalten.
+
+Build 191: Vollständig leere Wochen verteilen den verfügbaren unteren Platz gleichmäßig auf ihre sieben Tageszeilen. Bestehende Mindesthöhe, Schrift und Kalenderfunktionen bleiben erhalten. Gefüllte Wochen, Pagination und Editor behalten ihre natürliche Anordnung; keine neue Fenstersteuerung.
+
+Build 190: Die Statuszentrale ist vollständig entfernt: Anzeige, Reiter, Prüftaste, Detailseiten und eigene Anbieterabfragen. Radio-Team öffnet direkt die Mitgliederverwaltung. Ernennen/Entziehen, Aktualisieren, Rechte, Entwürfe und feste native Maße bleiben erhalten. Die unabhängige Anbieterprüfung und Wiedergabe der Radioleiste bleiben unverändert.
+
+Build 189 entfernt „Deine Sendezeiten“ vollständig aus der Moderation, einschließlich Kalenderabruf, Aktualisieren und eigenem Modul. Die natürliche Fensterhöhe richtet sich nach den verbleibenden Bediengruppen. Öffentlicher Sendeplan und gespeicherte Termine bleiben erhalten.
+
+Build 188 zentriert Moderation und Leitspruch in der gesamten Kopfkarte. Das Original-Logo bleibt links, das Schließen-X rechts mit 44-px-Bedienfläche. Normale und kompakte Ansicht sowie früher HTML-Kopf sind berücksichtigt; Studiofunktionen, natürliche Höhe und andere Overlays bleiben erhalten.
+
+Build 187 zentriert Sendeplan und Leitspruch in der gesamten Kopfkarte. Das Original-Logo bleibt links, das Schließen-X rechts. Die Ausrichtung gilt bereits für den frühen HTML-Kopf; Kalender, Anfangsmaße, Funktionen und andere Overlays bleiben erhalten.
+
+Build 186 zentriert die Wunschbox-Kopfüberschrift als „MischWerk Wunschbox“ über die gesamte Kopfbreite. Der Schließen-Button bleibt rechts; schmal kann der Titel auf zwei Zeilen umbrechen. Flaches Formular, native Anfangshöhe und Wunsch-/Audiofunktionen bleiben erhalten.
+
+Build 185 entfernt die zusätzliche Kartenfläche um das Wunschformular. Das Formular bleibt funktional erhalten; Textfeld und Sendebutton nutzen die volle Inhaltsbreite. Die eigene Textfeldumrandung bleibt bestehen, das Textfeld erhält mehr Platz. Native Anfangsgröße, Versand, Entwürfe und Quittungen sind unverändert.
+
+Build 184 fasst die Lautstärkebedienung zusammen: Lautstärke steht vor der Stummschalttaste, die jetzt direkt neben dem Regler liegt. Abstände regulär 6 px, kompakt weiterhin 4 px. Native 44-px-Bedienflächen, Prozentfeld, Warnung und sämtliche Audiocontroller bleiben erhalten.
+
+Build 183 vergrößert Schrift und Symbole der öffentlichen Buttons Sendeplan/Wunschbox auf 16/22 px. Schmale Ansichten verwenden passende 14/20 px; begrenzte Verwaltungsrahmen bleiben bedienbar. Die Buttonhöhe bleibt 44 px, einschließlich deaktivierter Wunschbox. Alle Browsercontroller und Audiofunktionen sind unverändert.
+
+Build 182 ändert die AutoDJ-Beschriftung in „MischWerk am Pult“. Die vorhandene Moderations-/Sendemodusprüfung, Gestaltung und Wiedergabe einschließlich Heartbeat bleiben erhalten. Keine neue Plattform- oder Anbieterschnittstelle.
+
+Build 181 ergänzt einen an tatsächlichen Audiofortschritt gebundenen Wiedergabe-Heartbeat in der Radioleiste: alle drei Minuten /confirm über die dokumentierte Client.executeSlashCommand-Methode, erst nach passender frischer mw:refresh-Antwort. Stop, Pause, Nachladen, Fehler, Seitenende und fehlende Verbindung sperren weitere Aufrufe. Im Hintergrund bleibt der bestehende Channel-Leseweg nur bei laufendem Radio aktiv. Gestaltung, vier getrennte Overlays, Rollen, Entwürfe und Wunschtransport bleiben erhalten. Der aktuelle öffentliche OR-Radio-Player belegt diesen Ansatz; eine echte native MischWerk-Timeoutabnahme steht weiterhin aus.
+
+Build 179 nutzt den freien unteren Sendeplanbereich für besser lesbare Tageszeilen: Wochentag 16 px, Datum und Leerhinweis 14 px, Tageszahl 26 px; vollständig leere Wochen nutzen mindestens 50 px hohe Zeilen. Bei vorhandenen Sendungen werden leere Zwischenzeilen kompakter ab 40 px gehalten. Im breiten 820-×-630-Rahmen bleiben alle sieben leeren Tage auf einer Seite; der freie Unterrand sinkt lokal von 118 auf 17 px. An der Oberfläche ausschließlich schedule.css geändert; Farben, vollständige Sendungsinhalte, Pagination, Editor, Rechte und alle JavaScriptmodule bleiben erhalten. Keine neue Hostgrößensteuerung.
+
+
+Themenbearbeitung in Build 178: Eingabe, Zähler, Speichern, Fehler, Bestätigung und Verwerfen behalten feste Feld-/Button-/Folgeabschnittsmaße. Hilfe und Rückmeldung teilen einen festen Statusplatz; Verwerfen wird ohne Layoutänderung sichtbar. Bei diesen Vorgängen erfolgt kein neuer Hostgrößenauftrag. Eine schon sichtbare Studio-Statusmeldung behält während der Themenbearbeitung ihren Platz auch nach ihrem regulären Ausblenden; bewusste Bereichs-/Steuerungswechsel geben ihn frei. Die bestätigte automatische Verkürzung bei anderen Inhalts- und Reiterwechseln bleibt erhalten.
+
+Seit Build 178 passt studio/window ausschließlich die vorhandene Moderationsfensterhöhe an den vollständigen Inhalt an. Die anfangs verfügbare Clienthöhe bleibt die feste Obergrenze. Leere Sendezeiten, wenige Wünsche und kurze Historienlisten hinterlassen keine große untere Leerreserve; mehr Inhalt wächst innerhalb dieser Grenze und bleibt danach paginiert. Die Senderzeit-Fußzeile der Historie entfällt. Ihre tatsächlichen Zeitstempel und Berliner Tagesregeln bleiben erhalten. Größenabhängige Kompaktgestaltung richtet sich nach der anfänglichen Clientgrenze, damit die eigene Verkürzung keine weitere Schrumpfkaskade auslöst. Andere Overlays und die Radioleiste sind davon unabhängig.
+
+Build 177 modernisiert ausschließlich die Moderationsoberfläche in der Farbpalette des Sendeplans. Deine Sendung, Musikwünsche und Heute gespielt besitzen eigene Reiter. Sendestatus mit Anmeldung, Abmeldung und Übergabe, danach Thema, Wunschbox und eigene Sendezeiten stehen untereinander, ohne Kartenraster. Eine separate Übergabezeile entfällt; ein Notizbereich erscheint nur bei tatsächlich empfangenen privaten Hinweisen. Ganze Bediengruppen und vollständige lange Texte werden im vorhandenen Rahmen auf Seiten verteilt. Die Wunschliste zeigt bis zu drei Einträge und eine vollständige, bedienbare Auswahl. Nur die Auswahl wird über den unveränderten Empfangstransport quittiert. Der Sendungsassistent ist aus Backend, Snapshot, Ladeplan und Oberfläche entfernt. Eigene Sendezeiten stammen lesend aus dem vorhandenen mw:schedule-Protokoll. Native Anfangsmaße, getrennte Overlays und eigenständige Headerbar bleiben erhalten.
+
+Farbkorrektur 0.1.176: ausschließlich schedule.css an die tatsächlich berechneten Farben und Materialverläufe der Radioleiste angeglichen. Keine neue Schnittstelle, JavaScript-Laufzeitänderung oder native Fensteraktion. Der Sendeplan bleibt ein getrenntes Overlay mit unverändertem SDK-/Cacheweg.
+
+## Wiedergabe-Heartbeat · 04.11.2026
+
+Die geöffnete Windows-STAPP-Oberfläche von OR Radio wurde ausschließlich lesend über ihre Accessibility-Dokumentadresse zugeordnet. Die darin eingebundene öffentliche Quelle [js/box.js](https://apps9.knuddels.biz/apps/de474394/js/box.js) antwortete HTTP 200; SHA-256 82214066c3f1203831a7ac882b06697185ecbd53b565a186ea33a421612d8943. Dort ist ein 180000-ms-Intervall mit Client.executeSlashCommand und dem Befehl /confirm bei gesetztem Wiedergabeflag nachgewiesen. Keine fremden Quelldateien übernommen, keine OR-Chataktion und kein eigener nativer Langzeittest ausgeführt.
+
+[Client.executeSlashCommand](https://developer.knuddels.de/docs/classes/Client.html#method_executeSlashCommand) ist in der unveränderten Referenz dokumentiert. Die aktuelle Dokumentation garantiert /confirm jedoch nicht ausdrücklich in ihrer Whitelist. Der [offizielle Änderungsbericht von 2015](https://knuddelsenterpriseblog.wordpress.com/user-apps/changelog-2015/) nennt dessen damalige Android-Freigabe. Der aktuelle OR-Code ist damit ein konkreter Implementierungsnachweis, keine allgemeine Plattformfreigabe oder native MischWerk-Abnahme.
+
+MischWerk prüft zusätzlich tatsächlichen Medienfortschritt und fordert unmittelbar vor jedem Slash-Aufruf eine eigene, korrelierte Antwort über den bereits bestehenden authentifizierten mw:refresh-Weg an. Nur ein vom Modell angenommener passender Snapshot innerhalb zehn Sekunden darf den Aufruf freigeben; vor dem Aufruf muss die Medienzeit auch nach der Bestätigung weiter fortschreiten. Kein privates ui.active, kein parent-DOM-Zugriff, keine gefälschte Eingabe und kein eigener Chatbefehl. Ein Verbindungsabbruch ist ohne ausdrückliches Clientereignis erst über ausbleibende Bestätigung feststellbar; ohne passende Antwort erfolgt kein weiterer Heartbeat. Browserdrosselung, serverseitige Whitelist und wirklicher Idle-Timeout bleiben native Abnahmegrenzen.
+
+## Hörerorientierter Sendeplan · 0.1.175
+
+Reine Browserdarstellung und anfängliche Seitenwahl geändert. Keine neue Knuddels-Methode: [Client.includeJS/includeCSS](https://developer.knuddels.de/docs/classes/Client.html) behalten ihren parserzeitigen SDK-/Cacheweg; das bestehende [AppContent.overlayContent](https://developer.knuddels.de/docs/classes/AppContent.html#method_overlayContent) bleibt bei 820 × 630 ohne nachträglichen Hostaufruf. Aktuelle Dokumentation 20260311-092723 und unveränderte Referenzstubs am 04.11.2026 abgeglichen. Backend, mw:schedule-Protokoll, Rollen, Wochen-/Revisionsschutz, Zukunftsdatum und Nachtfortsetzungen unverändert. Otterchen/Polaroid sind ein vom Nutzer gelieferter redaktioneller Hinweis, keine neue Berechtigungsquelle. Die Screenshot-Sendungen existieren ausschließlich in isolierten lokalen Tests.
+
+## API-Abgleich des vollständigen Öffnungswegs · 04.11.2026
+
+Geprüft gegen die aktuellen Klassen (Dokumentationsversion 20260311-092723) und references/api/knuddels-userapp-backend-api.js: Alle vier Buttons werden einmal in transport/commands gebunden, der authentifizierte Serverweg führt über ui/overlays nach ui/sessions. Keine parallele Browseröffnung, geteilte Overlaynavigation oder Header-Einbettung vorhanden.
+
+[User.sendAppContent](https://developer.knuddels.de/docs/classes/User.html#method_sendAppContent) übernimmt das (Er)setzen und liefert AppContentSession oder null. sessions speichert diese Rückgabesitzung für ausdrücklich gewünschtes Schließen. Der nachgelagerte closeView(previous)-Aufruf, previousRadio und das eigene replacing-Flag sind entfernt. [AppContent.addCloseListener](https://developer.knuddels.de/docs/classes/AppContent.html#method_addCloseListener) liefert replacing als dritten Parameter; nur echtes Schließen meldet den Fokus zurück. Der [Versandhinweis](https://developer.knuddels.de/docs/classes/User.html#method_canSendAppContent) untersagt einen weiteren sendAppContent während eines Versands, insbesondere im Close-Listener. Dort wird deshalb kein neuer AppContent gesendet; der Emulator prüft dies nun ebenfalls.
+
+[overlayContent](https://developer.knuddels.de/docs/classes/AppContent.html#method_overlayContent), Anfangsmaße und responsive/JFX-Prüfung bleiben unverändert. [AppContentSession.remove](https://developer.knuddels.de/docs/classes/AppContentSession.html#method_remove) schließt ausschließlich die gespeicherte eigene Sitzung. Die eigene mw:overlay.prepare/ready-Quittung sichert Eingaben vor dem nativen Wechsel; sie ist kein Knuddels-Erstanstrichsignal und wird nicht zur künstlichen Sichtbarkeitsverzögerung benutzt.
+
+[replaceWithAppContent](https://developer.knuddels.de/docs/classes/AppContent.html#method_replaceWithAppContent) ersetzt einen Inhalt bei allen seinen Nutzern desselben ViewMode, garantiert keine blitzfreie native Wiederverwendung und deckt die Erstöffnung nicht ab. Kein zusätzlicher Ersetzungsweg eingeführt. [HostFrame.setBackgroundColor](https://developer.knuddels.de/docs/classes/Client.HostFrame.html#method_setBackgroundColor) ist nur für Android dokumentiert. Es gibt in den geprüften öffentlichen Schnittstellen keinen dokumentierten versteckt-öffnen/dann-zeigen- oder First-Paint-Auftrag für Windows-STAPP. Der genaue Zeitpunkt nativer Close-Callbacks ist nicht zugesichert; lokale synchrone Modelle belegen keine native Pixelreihenfolge.
+
+Diese Bereinigung entfernt eigene Fenstermechanik. Der weiterhin gemeldete weiße Blitz, insbesondere bei Erstöffnung ohne Vorgängersitzung, wird damit nicht als ursächlich behoben ausgegeben.
+
+## Weißer Loader-Unterbau · 04.11.2026
+
+Nutzerbefund zu Build 172: Windows-STAPP, nur weißer Blitz, kein Ladetext. Der [öffentliche Knuddels-Lader](https://chatproxy.knuddels.de/apps/apploader/app-loader.html) erzeugt seine Ladeabdeckung nur bei enabled=true; deaktiviert greift ihre Hintergrundfarbe nicht. tools/checks/loader.cjs bestätigt dieses Verhalten mit der isolierten Originalkomponente in Edge. Deshalb vier Overlays aktiv, leer und #242424; Radio weiter deaktiviert. Die dokumentierte [LoadConfiguration](https://developer.knuddels.de/docs/classes/LoadConfiguration.html) bleibt der einzige verwendete native Weg.
+
+Der Prüfer ist explizit lesend und kein Teil der UserApp oder automatischen Paketprüfung. Kein Zugriff auf echte Sitzungen, keine Bridgeverbindung. Der Zeitpunkt vor Eintreffen der Loaderkonfiguration ist durch diese isolierte Prüfung nicht abgenommen. Keine Übernahme interner bg-/supportsDarkMode-Parameter in die App. Build 173 wurde inzwischen in Windows-STAPP getestet: Der weiße Blitz ist kürzer, aber weiterhin sichtbar.
+
+Die frühere Aussage, deaktivierte Ladefarben würden bereits den Frame dunkel halten, ist zurückgenommen. Die folgenden Absätze zu Build 172 beschreiben den widerlegten Ansatz und keine aktuelle native Freigabe.
+
+
+## Vorgehen Build 172 – durch nativen Weißblitz widerlegt
+
+Der Nutzer bestätigt rote DIAGNOSE in allen vier echten Overlays und App-Log 0.1.171 / Build 171. Der Konfigurationsweg kommt an. Die offizielle [LoadConfiguration](https://developer.knuddels.de/docs/classes/LoadConfiguration.html) dokumentiert Abschaltung, Text und beide Farben; einen präzisen Ausblendzeitpunkt garantiert sie nicht. Vor canSendAppContent/sendAppContent deshalb alle vier Felder setzen: false, leerer Text und zweimal #242424. Jede Eigenschaft einzeln optional behandeln; Color-Ausfälle und fehlende getLoadConfiguration verhindern keine Ansicht. Der zustandslose Helfer ui/loading wird im Backendstart vor ui/sessions geladen. Keine neue Knuddels-Methode.
+
+[MDN color-scheme](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/color-scheme) beschreibt die Auswirkung auf den Browsercanvas und das frühe Meta gegen Ladeblitze. Meta dark und erster Inline-Stil color-scheme:dark mit html/body #242424 ersetzen dark light. Der statische Overlaykopf wird vor den parserblockierenden Appskripten geparst; Bedienelemente und vollständiges Layout behalten die Freigabe durch mw-ready. Native Readiness, Eltern-DOM und SDK-Listener werden nicht verändert.
+
+Das [WebKit-Issue 1517](https://github.com/bulwarkmail/webmail/issues/1517) beschreibt zusätzlich ein weißes initiales about:blank vor dem ersten Antwortbyte bei abweichendem Framefarbschema. Dessen Hostmechanismus ist belegt, aber nicht als konkrete Ursache im Knuddels-Client nachgewiesen. App-HTML kann vor seinem ersten Byte nicht wirken; dafür bleibt die bestätigte native LoadConfiguration zuständig. Lokale Erstbilder prüfen beide Ebenen getrennt.
+
+Bündel ändern ausschließlich die Auslieferung. Client.includeJS/includeCSS bleiben parserzeitig und verwenden bisherige Dateinamen samt regulärer SDK-Cachekennung. Keine eigene Cachequery, nachträgliche SDK-Injektion oder Vorladefunktion. Vollständige benachbarte Quellmodule werden unverändert verbunden, für dieselben Ansichten geladen und nie doppelt registriert. Quell-Ladeplan und Architekturprüfung bleiben gültig.
+
+
+## Befristete Overlay-Ladediagnose · früherer Stand vor Nutzerbestätigung
+
+Die aktuelle offizielle [LoadConfiguration-Dokumentation](https://developer.knuddels.de/docs/classes/LoadConfiguration.html) und die unveränderten lokalen Referenzstubs bestätigen setEnabled(Boolean), setText(String), setBackgroundColor(Color) und setForegroundColor(Color). Textstandard ist Lädt..., Hintergrund weiß, Vordergrund schwarz; der Ausblendzeitpunkt ist nicht zugesichert. Die Diagnose setzt in prepareView vor canSendAppContent/sendAppContent für alle vier getrennten Overlays ausdrücklich enabled=true, Text DIAGNOSE, Hintergrund #FF0000 und Vordergrund #F6F0DF. Headerbar-Konfiguration unverändert. Keine neue Plattformmethode oder SDK-Manipulation.
+
+Die öffentliche www-Auslieferung passt vor dieser Änderung in 65/65 HTML-/JS-/CSS-Dateien bytegenau zum lokalen Ausgangsstand 0.1.170. Backenddateien liefern unter dieser öffentlichen Basis HTTP 404; weder deren Bytes noch die gestartete Backendversion sind so nachgewiesen. Lokal aktiviert 0.1.170 die Overlayladefläche und setzt keinen eigenen Ladetext; nur die Radioleiste verwendet setEnabled(false). Native Diagnose und endgültige Absicherung stehen in der beauftragten Reihenfolge noch aus.
+
+## Private Updateantworten · 0.1.170 / Build 170
+
+Geprüft am 04.11.2026 gegen unveränderte lokale Referenz und offizielle [RootAppInstance-Dokumentation](https://developer.knuddels.de/docs/classes/RootAppInstance.html#method_updateAppFiles): updateAppFiles() hat keine Parameter und liefert Dateinamen; ein Schalter zum Unterdrücken der privaten App-Logs ist nicht dokumentiert. Die technische Screenshotzeile ist im eigenen Appcode nicht als Ausgabe vorhanden. Keine globale Logunterdrückung oder fremde Loggeränderung verwenden. Die eigenen User.sendPrivateMessage-Texte wurden gekürzt.
+
+updateApp(message, logMessage) und sein öffentlicher Neustarthinweis bleiben erhalten. Eine erfolgreiche Rückkehr dieses Aufrufs bestätigt nur die Vormerkung, nicht den bereits abgeschlossenen Neustart. Gültige nichtnegative endliche Sekunden als voraussichtliche Zeit verwenden; sonst keine Zeit erfinden. Cacheinvalidierung und Reihenfolge bleiben unverändert.
+
+Websiteabkapselung 0.1.169 / Build 169: Kein WebHookAccess-Aufruf und kein Website-Chatbefehl in der aktiven Radio-App. Frühere vorbereitete Websiteadapter und ihre Quellenbelege liegen ausschließlich unter ../../website/integration und ../../website/docs/ANBINDUNG.md. Die übrigen dokumentierten Plattformwege bleiben erhalten.
+
+Die am 03.11.2026 erneut gelesene offizielle [App.chatCommands-Dokumentation](https://developer.knuddels.de/docs/classes/App.html#property_chatCommands) und die unveränderte lokale Referenz bestätigen commandName: function(user, params, command). vorhang ist der Befehl; öffnen und schließen sind Parameter. Authentifizierten User prüfen und über User.sendPrivateMessage privat antworten. transport/events besitzt die Chatbehandlung, radio/curtain die Fachänderung. Kein Frontend-Slashaufruf; frühere mw:setCurtain-UI-Aufträge werden abgelehnt.
+
+Vorhang ausschließlich per Chat: /vorhang öffnen und /vorhang schließen. Der bisherige Button, sein Binding und seine Styles entfallen; Inhaberprüfung, globale Speicherung, Hörerausnahmen, Fokus, Werbung und Audio bleiben erhalten.
+
+
+## Webradio-Sendungsinformation · 0.1.158
+
+Bestehendes Radio-Markup, reine Textbindung in radio/presentation und metadata-layout.css gliedern Sendungsangaben und Wunschplatz neu. Dieselben geprüften Daten, Originaltexte und Statusbedeutungen; keine neue Knuddels-/Anbieter-API, kein Schriftabruf und keine native Größenänderung. Ein unbestätigter Platz erhält keinen hervorgehobenen Zahlenwert.
+
+## Zentriertes Kreismotiv · 0.1.157
+
+Ausschließlich radio-surface.css zentriert die linke Hintergrunddekoration der breiten Appleiste am vorhandenen Playbutton. Keine neue API, Größensteuerung, Komponente oder Controlleränderung.
+
+## Rahmenlose Radioinformation · 0.1.156
+
+Ausschließlich zwei Radio-Stylesheets entfernen Flächen/Umrandungen und passen lokale Schriftfamilie, Größe und Gewicht an. Keine neue Plattform- oder Anbieter-API, kein Schriftabruf, Controller oder native Größenänderung.
+
+## Dezentere Lautstärke · 0.1.155
+
+Ausschließlich Breite und Darstellung der bestehenden Lautstärkebedienung ändern sich per CSS. Keine neue API, kein Controller- oder Audioverhalten und keine native Größenänderung.
+
+## Breite Sendungsinformation · 0.1.154
+
+Ausschließlich metadata-layout.css ergänzt ab 1800 px größere Schrift und eine kompakte matte Informationsfläche. Native Fenster, Daten, Controller, API und Anbieterabfragen bleiben unverändert.
+
+## Informationslayout der Radioleiste · 0.1.153
+
+Ausschließlich CSS-Anordnung, Schrift und Textbegrenzung des Radio-Informationsbereichs ändern sich. Keine neue Knuddels- oder Anbieter-API, kein Controller, kein Fenster und keine neue Höhensteuerung. Vollständige Texte bleiben in den bestehenden DOM-Knoten sowie den bereits gesetzten nativen Titelhinweisen. Die in 0.1.152 beauftragte native Wunschhöhe bleibt unverändert.
+
+## Native Wunschhöhe nach Bestätigung · 0.1.152
+
+Am 03.11.2026 erneut anhand der offiziellen [HostFrame.setSize-Dokumentation](https://developer.knuddels.de/docs/classes/Client.HostFrame.html#method_setSize) geprüft: Die Methode ist für AppViewMode.Overlay dokumentiert. Die Bedeutung von 0 als unverändert ist ausschließlich für STAPP zugesichert. Das neue Modul wishes/window übergibt deshalb stets die positive aktuelle Breite und die aufgerundete natürliche Inhaltshöhe.
+
+Der Nutzerauftrag erlaubt diese konkrete Ausnahme vom Reset: erst nach vorhandenem bestätigtem eigenen Wunsch beziehungsweise erfolgreicher Quittung, ausschließlich in der nativen Wunschoberfläche. Dieselbe AppContent-Sitzung und das Radio bleiben erhalten. Ein ResizeObserver erkennt den veränderten Inhalt; ein einzelner requestAnimationFrame bündelt Layoutänderungen. Unveränderte Zielgeometrie wird nicht erneut angefordert. Keine Min-/Max-/Resizable-Methode, kein Größen-Warte-/Wiederholungstimer und keine Änderung des nativen Öffnungswegs. Native Clientgrenzen oder ignorierte Größenannahmen bleiben durch erreichbaren Inhalt abgesichert. Die folgenden älteren Verbote nachträglicher Größenaufrufe gelten seit diesem Auftrag nur außerhalb dieser Wunsch-Ausnahme.
+
+## Overlaygestaltung · 0.1.151
+
+CSS-Materialien, Buttons und lokale Rückmeldungsplätze wurden vereinheitlicht. Keine neue API oder Anbieterabfrage. Nach erneuter Inhaltsmessung gelten native Anfangsmaße 560 × 340, 780 × 730, 560 × 630 und 820 × 630 px für Wünsche, Moderation, Team und Sendeplan. Der nachfolgend belegte native Öffnungsweg bleibt unverändert; keine spätere Größenanforderung. Die folgenden älteren Maße sind historische Nachweise.
+
+## Gemessene Anfangsmaße · 0.1.150
+
+Ausschließlich die Höhenparameter des vorhandenen nativen Overlaykonstruktors ändern sich: Wünsche 340, Moderation 730 und Radio-Team 650 px; Sendeplan bleibt bei 660 px. Keine neue Signatur, Plattformmethode, Anbieterabfrage oder nachträgliche Fenstersteuerung. Die Grundlage sind lokale Inhaltsmessungen außerhalb der App; Quellen und Grenzen des unveränderten nativen Öffnungswegs stehen nachfolgend.
+
+## Native Overlayöffnung · 0.1.149
+
+Am 03.11.2026 erneut anhand der offiziellen Dokumentation und der unveränderten lokalen Referenzstubs geprüft:
+
+- [AppContent.overlayContent](https://developer.knuddels.de/docs/classes/AppContent.html#method_overlayContent): HTMLFile und ganzzahlige Anfangsmaße von 20 bis 1000 px; Lage oben rechts im Channel. Die parameterlose Größenvariante hat 200 × 350 px. Die App verwendet die dokumentierte Variante mit Anfangsmaßen pro Bereich.
+- [User.canSendAppContent / sendAppContent](https://developer.knuddels.de/docs/classes/User.html#method_sendAppContent): Eignung des konkreten Zielinhalts prüfen und anschließend senden. null ist kein erfolgreicher Öffnungsnachweis. Die frühere eigene Nachschließaktion ist seit Build 174 entfernt; die Plattform übernimmt das Ersetzen.
+- [AppContentSession.remove](https://developer.knuddels.de/docs/classes/AppContentSession.html#method_remove): genau die betreffende Sitzung schließen; kein Eingriff in Eltern-DOM oder fremde Appfenster.
+- [Client.HostFrame](https://developer.knuddels.de/docs/classes/Client.HostFrame.html): setSize ist auch für Overlays dokumentiert, wird von MischWerk-Overlays nach dem Reset jedoch nicht verwendet. setResizable gilt für Applet-Popups, setMinSize/setMaxSize für Popup/Global. Die Nullbreite zum Beibehalten ist nur für STAPP dokumentiert. Keine K3-Sondermethode oder freie Positionierungs-API ableiten.
+- [LoadConfiguration](https://developer.knuddels.de/docs/classes/LoadConfiguration.html#method_setEnabled): native Ladeansicht ist standardmäßig aktiv. Die Overlays schalten sie nicht mehr ab; vorhandene Hintergrund-/Textfarben bleiben passend zur App.
+- setResponsive(true) erlaubt Anpassung an tatsächlich verfügbare Pixel; setAllowJFXBrowser(false) und die echte Fähigkeitsprüfung bleiben erhalten. K3 wird über die dokumentierte HTMLUI und nicht über eine private Bridge bedient. Native Geometrie ist weiter getrennt abzunehmen.
+
+Gelöscht: Backend und Frontend ui/navigation, gemeinsame Ladepläne, mw:view/switchView, gespeicherte Fokus-/Scrollwiederherstellung, automatische Overlay-Höhenmessung samt Grenz-/Wartetimern, Größenaufrufe beim Bereichswechsel und Browser-prefetch. Wiederholungsschutz und bestätigte Eingabeübernahme bleiben als Schutz laufender Fachaktionen erhalten.
+
 
 ## Bestätigter AutoDJ-/LIVE-Modus · 0.1.146
 
@@ -26,7 +205,7 @@ Die Radio-Senderidentität schließt ausschließlich historyUrl/historyIgnoredTi
 
 ## Hörerzahl entfernt · 0.1.138
 
-Auf ausdrücklichen Nutzerauftrag entfallen Anzeige, eigener Timer, radio/listeners, fetchListeners sowie listeners-Konfiguration und Snapshotfelder. Radioleiste und Statuszentrale enthalten keine Hörerplatzhalter. Die bestehende SPCast-Statistik bleibt für den unveränderten Übertragungsstatus einschließlich leerer bestätigter Stopantwort erhalten. Keine Knuddels-/K3-Signatur verändert, keine neue API. Frühere öffentliche Hörerbefunde unten sind historische Messungen und werden nicht mehr als Appfunktion verwendet.
+Auf ausdrücklichen Nutzerauftrag entfallen Anzeige, eigener Timer, radio/listeners, fetchListeners sowie listeners-Konfiguration und Snapshotfelder. Die Radioleiste enthält keine Hörerplatzhalter; die Statuszentrale ist seit Build 190 vollständig entfernt. Die bestehende SPCast-Statistik bleibt für den unveränderten Übertragungsstatus einschließlich leerer bestätigter Stopantwort erhalten. Keine Knuddels-/K3-Signatur verändert, keine neue API. Frühere öffentliche Hörerbefunde unten sind historische Messungen und werden nicht mehr als Appfunktion verwendet.
 
 ## Eingebaute Tageshistorie 0.1.136 · 03.11.2026
 
@@ -56,7 +235,7 @@ Die bisher fehlende Statistikroute ist im offiziellen [SPCast-Update 0.9.9.094](
 
 radio/api ordnet dieses spezifische öffentliche Antwortformat über statusFormat=spcast-statistics zu. Kennung, Pfad und Stationsidentität bestimmen den Eintrag unabhängig von seiner Arrayposition. Statuswerte streng numerisch 1/0, aktive Backupquelle und Anzahl aktiver Einträge prüfen. Widersprüchliche, fremde, doppelte oder fehlende Werte ergeben keinen bestätigten Stopp. Explizit leere Liste mit activestreams=0 und currentlisteners=0 bestätigt eine Sendepause. Die Hörerzahl stammt aus currentlisteners des passenden Streams; ausdrücklich gelieferte Null bleibt Null. Allgemeine bestehende JSON-Zuordnungen funktionieren weiterhin.
 
-Der im eigenen [Player-Skript](https://scripts.streampanel.net/spcast/player/default/js/scripts.min.js) tatsächlich verwendete [whoIsLive.php-Dienst](https://mischwerk.sp.radio.fm/scripts/whoIsLive.php) liefert aktuell autodj mit HTTP 200 und CORS *. Die interne Boolean-Darstellung wird ausschließlich aus den exakten bekannten Werten autodj=false und live=true gebildet. relay, autodj_live, andere Antworten und Fehler bleiben unbekannt; keine Ableitung aus der Knuddels-Studioanmeldung. Die ergänzende Modusquelle ersetzt nicht den unabhängigen Übertragungsstatus. Die Statuszentrale zeigt den tatsächlichen Quellenbezug als Sendemodus; allgemeine Titel-Boolean-Zuordnungen bleiben unterstützt.
+Der im eigenen [Player-Skript](https://scripts.streampanel.net/spcast/player/default/js/scripts.min.js) tatsächlich verwendete [whoIsLive.php-Dienst](https://mischwerk.sp.radio.fm/scripts/whoIsLive.php) liefert aktuell autodj mit HTTP 200 und CORS *. Die interne Boolean-Darstellung wird ausschließlich aus den exakten bekannten Werten autodj=false und live=true gebildet. relay, autodj_live, andere Antworten und Fehler bleiben unbekannt; keine Ableitung aus der Knuddels-Studioanmeldung. Die ergänzende Modusquelle ersetzt nicht den unabhängigen Übertragungsstatus. Die Radioleiste verwendet diese Quelle weiterhin für den bestätigten Sendemodus; allgemeine Titel-Boolean-Zuordnungen bleiben unterstützt. Die frühere Statuszentrale entfällt seit Build 190 vollständig.
 
 Zusätzlicher tatsächlicher Headless-Edge-CORS-Test um 12:38 Uhr Europe/Berlin aus lokalem Browserursprung: Übertragung started, Hörerzahl 0 und isLive=false erfolgreich gelesen. Parallele Status-/Hörerleser teilen dabei einen einzigen Statistikabruf; insgesamt drei Datenabrufe einschließlich Titel- und Modusquelle, kein Audioprobezugriff. Die Titelquelle liefert weiterhin currentSong=null und currentArtist=Unknown; ein realer Titelwechsel ist nicht nachgewiesen.
 
@@ -187,7 +366,7 @@ Anbieterfälle verwenden ausschließlich emulator.mischwerk.invalid als eindeuti
 
 Die frühere Textsuche nach vermeintlich fehlenden Rhino-Funktionen wird nicht weiterverwendet. Der separate Knopf und pnpm run test:emulator rufen tools/checks/rhino.cjs auf: vorhandene Backendfälle in echten Rhino-Engines, getrennt von der Node-VM und ihren simulierten Plattformobjekten. Aktuelle Engineangabe: [offizielle Knuddels-FAQ](https://github.com/knuddelsgmbh/UserApps/wiki/FAQ). Eine vollständige native Knuddels-Ausführung wird damit nicht behauptet.
 
-## Moderationserweiterung 0.1.118
+## Moderationserweiterung 0.1.118 · historisch, Assistent seit 177 entfernt
 
 Keine neue Plattformmethode. Wünsche ändern ihren manuellen Status über das sitzungs- und rollengeprüfte mw:setWishStage; vorherige Stufe schützt parallele Änderungen. App.onEventReceived, Client.sendEvent und AppContentSession.sendEvent wurden erneut mit offiziellen Signaturen und unveränderten Referenzen abgeglichen. Zusätzliches stage in privaten wishPositions und im berechtigten Queueeintrag; keine internen IDs/Nicks fremder Hörer und keine Wunschpersistenz.
 
@@ -224,3 +403,25 @@ Ausschließlich die lokale DOM-Fokusführung in studio/handover korrigiert. Kein
 ## Sichtbare Wunschinformation 0.1.124
 
 Offizielle AppContent-/HostFrame-Dokumentation erneut mit den unveränderten Referenzstubs verglichen: overlayContent erlaubt je 20–1000 px; HostFrame.setSize gilt ausdrücklich auch für OVERLAY. Kein Popup-setResizable und keine neue Plattformmethode. Die bestehende ui/layout-Komponente misst am natürlichen wishes-panel statt am display:contents-Dialog. Stabile Höhengrenze und Zielvergleich vermeiden Rückkopplung; STAPP erhält Breite 0, K3 die positive aktuelle Breite. Dokumentierte Quellen: [Overlay](https://developer.knuddels.de/docs/classes/AppContent.html#method_overlayContent), [Größenänderung](https://developer.knuddels.de/docs/classes/Client.HostFrame.html#method_setSize). Native Annahme im neuen Stand bleibt separat offen. Ein eigener Wunsch pro Seite ändert nur die bestehende private Lesepagination, keine Einreihung, Quittung oder Transportkennung.
+
+
+Webradio-Layout 0.1.159 (03.11.2026): Keine Knuddels-, SPCast- oder Transport-Schnittstelle geändert. Der vorhandene Radio-Viewport verwendet weiterhin ausschließlich die dokumentierte Header-Höhenanforderung; nur die Schwelle des visuellen Fallbacks folgt jetzt der ersten Vorlagenstufe. Inter und OFL werden als lokale statische Medien ausgeliefert; keine externe Schrift-/Demo-Anbindung. Radio-/Wunsch-/Sendeplan- und Rechtecontroller bleiben fachlich unverändert.
+
+
+Moderatorname 0.1.160 (03.11.2026): Keine neue API oder Providerabfrage. radio/presentation verwendet ausschließlich das vorhandene authentifizierte moderator-Feld und die bestehende Channelverbindungsprüfung. Seine Sichtbarkeit ist von der weiterhin streng geprüften Provider-Modusanzeige getrennt. Backend-/Studioanmeldung und Berechtigungen bleiben unverändert.
+
+
+Gemeinsame LIVE-/Nickanzeige 0.1.161 (03.11.2026): Zusammensetzung ausschließlich aus dem vorhandenen frischen broadcast-status-Signal und dem authentifizierten moderator-Feld des bestätigten Channelzustands. Es gibt keine zusätzliche Anbieterabfrage, keine neue Plattformmethode und keine Ableitung von LIVE aus einem Studio-Login. Die vorhandene Anmeldung aktiviert die Identität; ohne bestätigte LIVE-Übertragung wird sie ausdrücklich als Studioanmeldung bezeichnet.
+
+
+Öffentliche Texte 0.1.162 (03.11.2026): Anbietername ausschließlich aus öffentlichen Hinweisen, Tooltips und zugänglichen Beschriftungen der Radioleiste entfernt. Der LIVE-Hinweis lautet Radio Mischwerk bestätigt eine Live-Sendung. Identifikatoren, URLs, Schnittstellen, Providerabfragen, Zustandsprüfung und Berechtigungen unverändert.
+
+Versionsabschluss 0.1.163 / Build 163 (03.11.2026): Keine neue Plattform- oder Anbieterschnittstelle. buildNumber ist ausschließlich eigene Backendkonfiguration und Entwicklungsmetadatum. app.config enthält dazu einen Kommentar; kein zusätzlicher Knuddels-Schlüssel. Das bestehende interne Logger.info gibt Version und Buildnummer aus. Öffentliche UI, Audio und Transport bleiben unverändert.
+
+Textfarben 0.1.164 / Build 164 (03.11.2026): Ausschließlich CSS-Farbwerte durch vorhandene App-Variablen ersetzt; keine neue oder geänderte Plattform-/Anbieterschnittstelle. Sämtliche Frontendcontroller, Protokolle, Berechtigungen und Datenprüfungen sind bytegleich zu 0.1.163.
+
+Flächennutzung 0.1.165 / Build 165 (03.11.2026): Ausschließlich CSS-Raster und äußere Breitenbegrenzung geändert. Vorhandene hidden-Zustände dienen der inhaltsabhängigen Verteilung; keine neue Schnittstelle, Abfrage, Rollen- oder Transportänderung. Sämtliche Frontendcontroller und Backend-Fachmodule bytegleich zu 0.1.164.
+
+Moderationspriorität 0.1.166 / Build 166 (03.11.2026): radio/presentation priorisiert ausschließlich das vorhandene authentifizierte moderator-Feld bei gültiger Channelverbindung. data-mode=moderation ist nur ein eigener CSS-Darstellungszustand; keine neue Plattform-/Anbieterfunktion. Provider, Abfragen, Backendanmeldung, Rollen, Wunschtransport und Audiocontroller bleiben bytegleich. LIVE-Bestätigung und Play-Sperre verwenden weiterhin die tatsächlichen getrennten Providerdaten.
+
+Dauerhafte Themenanzeige (03.11.2026): Ausschließlich radio/markup und radio/presentation ändern die leere Themenansicht. MischWerk Radio Show ist lokaler Anzeigetext; das vorhandene topic-Feld bleibt unverändert und kein Speicherauftrag wird dadurch ausgelöst. Keine zusätzliche Plattform-/Anbieterfunktion. Die parallel beauftragte Website-Anbindung ist ein eigener Änderungsbereich.

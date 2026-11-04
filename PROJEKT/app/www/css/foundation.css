@@ -1,5 +1,7 @@
 @charset "UTF-8";
-:root { --canvas:#404040; --bg:#404040; --surface:#202020; --raised:#292929; --input:#161616; --line:#595959; --text:#f6f0df; --muted:#c4c1b5; --gold:#ffbe2e; --gold-ink:#ffce61; --live:#ff6b5f; --error:#ffc1b9; --radio-height:160px; color:var(--text); background:var(--canvas); font-family:"Segoe UI",Arial,sans-serif; font-synthesis:none; color-scheme:dark; }
+@font-face { font-family:Outfit; font-style:normal; font-weight:400 800; font-display:swap; src:url(../fonts/outfit-latin.woff2) format("woff2"); }
+@font-face { font-family:Fraunces; font-style:normal; font-weight:400 800; font-display:swap; src:url(../fonts/fraunces-latin.woff2) format("woff2"); }
+:root { --canvas:#0a0a0a; --bg:#141414; --surface:#141414; --raised:#1f1f1f; --input:#101010; --line:#3a3a3a; --text:#f5f5f2; --muted:#b4b4b0; --gold:#e9eaec; --gold-ink:#cfd2d6; --live:#ff9a8f; --error:#ff9a8f; --radio-height:160px; color:var(--text); background:var(--canvas); font-family:Outfit,"Segoe UI",system-ui,sans-serif; font-synthesis:none; color-scheme:dark; }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--canvas); font-size:14px; line-height:1.45; }
 html.mw-ready body > * { visibility:visible; }

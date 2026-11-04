@@ -1,3 +1,4 @@
+const {previewCurtain}=require('../support/preview-command.cjs');
 // Channel und natives Overlay getrennt modellieren: kein zusätzlicher Headerbereich.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -30,8 +31,7 @@ async function setup(t,{width=1200,surfaceK3=true}={}){
   const errors=[],sent=[];
   context.on('page',page=>{page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().endsWith('/api/event'))sent.push(r.postDataJSON());});});
   const owner=await context.newPage();await owner.goto(base+'/preview?role=moderator');
-  await owner.locator('#curtain-toggle:not([disabled])').click();
-  await owner.locator('#curtain-toggle-label').filter({hasText:'Vorhang schließen'}).waitFor();
+  await previewCurtain(owner);
   const page=await context.newPage();await page.goto(base+'/channel.html');
   const radio=await(await page.locator('#radio-frame').elementHandle()).contentFrame();
   await radio.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));
@@ -65,7 +65,8 @@ test('Native Wunschbox überlagert den Channel ohne Leerbereich und erhält Entw
   assert.equal(await surface.locator('#wish-text').inputValue(),'Dieser Entwurf bleibt in der Radio-Sitzung');
   await surface.locator('#submit-wish').click();
   await surface.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
-  await surface.locator('.wish-position-value').filter({hasText:'Platz 3'}).waitFor();
+  await radio.locator('#own-wish-rank').filter({hasText:'Platz 3'}).waitFor();
+  assert.equal(await surface.locator('#wish-positions').count(),0);
   assert.equal(await surface.locator('#wish-text').inputValue(),'');
   const submits=sent.filter(e=>e.type==='mw:wish.submit');
   assert.equal(submits.length,1);assert.equal(submits[0].sessionId,await radio.evaluate(()=>MischWerkDemoData.sessionId));
@@ -80,7 +81,8 @@ test('Wunsch-Overlay bleibt bei 320 und 2290 Pixeln auf seine Fläche begrenzt u
     const surface=await open();
     const native=await page.locator('#overlay-frame').boundingBox();
     assert.ok(native.width<=560&&native.x>=0&&native.x+native.width<=width);
-    assert.equal(native.y,160);assert.equal((await page.locator('#channel').boundingBox()).y,160);
+    const radioBox=await page.locator('#radio-frame').boundingBox();
+    assert.equal(native.y,radioBox.y+radioBox.height);assert.equal((await page.locator('#channel').boundingBox()).y,native.y);
     assert.equal(await surface.locator('#wishes-panel').evaluate(n=>n.getBoundingClientRect().top),0);
     assert.equal(await surface.locator('#submit-wish').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),true);
     assert.equal(await surface.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
@@ -89,11 +91,13 @@ test('Wunsch-Overlay bleibt bei 320 und 2290 Pixeln auf seine Fläche begrenzt u
     await surface.locator('#submit-wish').scrollIntoViewIfNeeded();
     assert.equal(await surface.locator('#submit-wish').isVisible(),true);
     await surface.locator('#submit-wish').click();
-    await surface.locator('.wish-position-value').filter({hasText:'Platz 3'}).waitFor();
-    await surface.waitForFunction(()=>document.body.scrollHeight<=innerHeight+1);
-    assert.equal(await surface.locator('#wish-form').isVisible(),false,'Leeres Formular weicht der dauerhaften Wunschinformation');
+    await radio.locator('#own-wish-rank').filter({hasText:'Platz 3'}).waitFor();
+  assert.equal(await surface.locator('#wish-positions').count(),0);
+    await surface.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
+
+    assert.equal(await surface.locator('#wish-form').isVisible(),false,'Leeres Formular weicht der Aktion für einen weiteren Wunsch');
     assert.equal(await surface.locator('#wish-compose-open').isVisible(),true);
-    assert.equal(await surface.locator('.wish-position-text').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),true);
+    assert.equal(await surface.locator('#wish-compose-open').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),true);
     if(process.env.MISCHWERK_CAPTURE_OVERLAY){
       await surface.waitForTimeout(250);
       await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/wunschbox-'+width+'.png')});
@@ -162,46 +166,51 @@ test('Linkprüfung und Versandfehler bleiben im ursprünglichen Wunschcontroller
 });
 
 test('Wunschplätze rücken im echten Overlay-Roundtrip nach; Radio und Moderation bleiben getrennt',async t=>{
-  const {base,context,page,open,errors}=await setup(t);const surface=await open();
+  const {base,context,page,radio,open,errors}=await setup(t);const surface=await open();
   await surface.locator('#wish-text').fill('Unser Song im Channel-Overlay');await surface.locator('#submit-wish').click();
-  await surface.locator('.wish-position-value').filter({hasText:'Platz 3'}).waitFor();
+  await radio.locator('#own-wish-rank').filter({hasText:'Platz 3'}).waitFor();
+  assert.equal(await surface.locator('#wish-positions').count(),0);
   const mod=await context.newPage();await mod.goto(base+'/preview?role=moderator&view=studio');
+  await mod.locator('#studio-queue-tab').click();
   for(const [outcome,rank] of [['done',2],['discarded',1]]){
     await mod.locator('[data-outcome='+outcome+']').click();
-    await surface.locator('.wish-position-value').filter({hasText:'Platz '+rank}).waitFor();
+    await radio.locator('#own-wish-rank').filter({hasText:'Platz '+rank}).waitFor();
   }
   await mod.locator('.request-text').filter({hasText:'Unser Song im Channel-Overlay'}).waitFor();
   await surface.locator('#close-wishes').click();await page.locator('#overlay-frame').waitFor({state:'hidden'});
-  const reopened=await open();await reopened.locator('.wish-position-value').filter({hasText:'Platz 1'}).waitFor();
-  await reopened.locator('#refresh-wish-positions').focus();
+  const reopened=await open();await radio.locator('#own-wish-rank').filter({hasText:'Platz 1'}).waitFor();
+  assert.equal(await reopened.locator('#wish-positions').count(),0);
+  await reopened.locator('#wish-compose-open').focus();
   await mod.locator('[data-outcome=done]').click();
-  await reopened.locator('#wish-positions').waitFor({state:'hidden'});
+  await radio.locator('#own-wish-position').waitFor({state:'hidden'});
   await reopened.waitForFunction(()=>document.activeElement===document.getElementById('wish-text'),{},{timeout:2000});
   assert.equal(await reopened.locator('#wish-text').evaluate(n=>document.activeElement===n),true,'Nach Bearbeitung des letzten Wunsches bleibt ein sichtbares Fokusziel');
   assert.deepEqual(errors,[]);
 });
 
 test('Wunschregie überträgt Vorbereitung und laufenden Song privat an den Hörer und rückt erst beim Abschluss nach',async t=>{
-  const {base,context,open,errors,sent}=await setup(t);const surface=await open();
+  const {base,context,radio,open,errors,sent}=await setup(t);const surface=await open();
   await surface.locator('#wish-text').fill('Unser Wunsch mit sichtbarem Status');await surface.locator('#submit-wish').click();
-  await surface.locator('.wish-position-value').filter({hasText:'Platz 3'}).waitFor();
+  await radio.locator('#own-wish-rank').filter({hasText:'Platz 3'}).waitFor();
+  assert.equal(await surface.locator('#wish-positions').count(),0);
   const mod=await context.newPage();await mod.goto(base+'/preview?role=moderator&view=studio');
+  await mod.locator('#studio-queue-tab').click();
   for(const rank of [2,1]){
     await mod.locator('[data-outcome=done]').click();
-    await surface.locator('.wish-position-value').filter({hasText:'Platz '+rank}).waitFor();
+    await radio.locator('#own-wish-rank').filter({hasText:'Platz '+rank}).waitFor();
   }
   await surface.locator('#wish-compose-open').click();
   await surface.locator('#wish-text').fill('Mein nächster Entwurf bleibt');
   await mod.locator('[data-stage=preparing]').click();
-  await surface.locator('.wish-position-stage').filter({hasText:'In Vorbereitung'}).waitFor();
-  assert.equal(await surface.locator('.wish-position-value').textContent(),'Platz 1');
+  await radio.locator('#own-wish-stage').filter({hasText:'In Vorbereitung'}).waitFor();
+  assert.equal(await radio.locator('#own-wish-rank').textContent(),'Platz 1');
   await mod.locator('[data-stage=playing]').click();
-  await surface.locator('.wish-position-stage').filter({hasText:'Läuft gerade'}).waitFor();
-  assert.equal(await surface.locator('.wish-position-value').textContent(),'Platz 1');
+  await radio.locator('#own-wish-stage').filter({hasText:'Läuft gerade'}).waitFor();
+  assert.equal(await radio.locator('#own-wish-rank').textContent(),'Platz 1');
   assert.equal(await surface.locator('#wish-text').inputValue(),'Mein nächster Entwurf bleibt');
   assert.equal(sent.filter(e=>e.type==='mw:wish.submit').length,1);
   await mod.locator('[data-outcome=done]').click();
-  await surface.locator('#wish-positions').waitFor({state:'hidden'});
+  await radio.locator('#own-wish-position').waitFor({state:'hidden'});
   assert.equal(await surface.locator('#wish-text').inputValue(),'Mein nächster Entwurf bleibt');
   assert.deepEqual(errors,[]);
 });
@@ -216,7 +225,7 @@ test('Deaktivierte Annahme und Vorhang erhalten Entwurf und geben den Tastaturfo
   assert.equal(await radio.locator('#open-schedule').evaluate(n=>document.activeElement===n),true);
   await action(owner,'mw:setRequests',{enabled:true,previousEnabled:false});surface=await open();
   assert.equal(await surface.locator('#wish-text').inputValue(),'Mein gespeicherter Entwurf');
-  await action(owner,'mw:setCurtain',{closed:true,previousClosed:false});
+  await previewCurtain(owner,'schließen');
   await page.locator('#overlay-frame').waitFor({state:'hidden'});
   assert.equal(await radio.locator('#curtain-ad').evaluate(n=>document.activeElement===n),true);
   assert.equal(await radio.locator('#wish-text').inputValue(),'Mein gespeicherter Entwurf');assert.deepEqual(errors,[]);
@@ -242,13 +251,13 @@ test('Verzögertes Overlay-CSS erhält den langen Entwurf und misst das Textfeld
   assert.equal(await radio.locator('#wishes-panel').isVisible(),false);assert.deepEqual(errors,[]);
 });
 
-test('STAPP-Wunschoberfläche passt nur ihre Höhe an; Wunschinformation bleibt ohne Scrollen erreichbar',async t=>{
+test('STAPP-Wunschoberfläche passt nach Bestätigung ihre native Höhe vollständig an',async t=>{
   const {page,open,errors}=await setup(t,{surfaceK3:false});const surface=await open();
   await surface.locator('#wish-text').fill('Test im STAPP-Overlay');await surface.locator('#submit-wish').click();
   await surface.locator('#wish-feedback.success').waitFor();
-  await surface.waitForFunction(()=>document.body.scrollHeight<=innerHeight+1);
+  await surface.waitForFunction(()=>document.getElementById('wishes-panel').getBoundingClientRect().height<=innerHeight&&document.body.scrollHeight<=document.body.clientHeight+1);
   const calls=await surface.evaluate(()=>__overlayHostCalls);
-  assert.ok(calls.length>0&&calls.every(call=>call.method==='setSize'&&call.width===0&&call.height<=1000));
-  assert.equal(await surface.locator('.wish-position-text').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),true);
+  assert.ok(calls.length>0);assert.ok(calls.every(c=>c.method==='setSize'&&c.width>0&&c.height>0));
+  assert.equal(await surface.locator('#wish-compose-open').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),true);
   assert.equal((await page.locator('#radio-frame').boundingBox()).height,160);assert.deepEqual(errors,[]);
 });

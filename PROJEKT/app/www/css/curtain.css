@@ -12,28 +12,10 @@ html[data-curtain=closed] #radio-panel { visibility:hidden; pointer-events:none;
 .curtain-ad svg { width:18px; height:18px; }
 #curtain-message { max-width:270px; margin:6px 0 0; font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
 #curtain-message.error { color:var(--error); }
-.curtain-toggle { display:flex; align-items:center; justify-content:center; gap:6px; grid-column:1 / -1; width:100%; min-height:44px; height:auto; border-color:#9e8b55 #796b44 #504b35; color:#e7bd55; background:linear-gradient(180deg,#35362f,#2e302c 58%,#292d2e); box-shadow:none; text-shadow:none; font-size:13px; font-weight:600; }
-.curtain-toggle svg { width:20px; height:20px; flex-shrink:0; }
-.curtain-toggle:hover:enabled { border-color:#c9ac65 #9b844c #6c603d; background:linear-gradient(180deg,#45463b,#383b34 58%,#303332); }
-.curtain-toggle:active:enabled { border-color:#504b35 #796b44 #b59c5a; background:linear-gradient(180deg,#252824,#30332e 58%,#383b32); }
-.has-curtain-control.radio-actions-panel { padding:0; gap:6px; }
-.has-curtain-control .bar-utility-links { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:6px; }
-@media (min-width:700px) and (max-width:1099px) {
-  .has-curtain-control .curtain-toggle { padding:3px 6px; line-height:1.25; }
-  .has-curtain-control .bar-actions { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:4px; }
-  .has-curtain-control .public-action-icon { display:none; }
-  .has-curtain-control .wish-button { padding:3px; }
-  .has-curtain-control .wish-button-copy strong { font-size:12px; }
-}
 @media (max-width:699px) {
   .curtain-content { display:grid; grid-template-columns:auto minmax(0,1fr); gap:8px 12px; padding:10px 12px; }
   .curtain-logo { width:48px; height:48px; }
   .curtain-copy h2 { font-size:22px; }
   .curtain-ad-controls { grid-column:1 / -1; margin:0; }
   .curtain-ad { padding:8px 12px; }
-  .radio-constrained .has-curtain-control .bar-utility-links { display:flex; gap:6px; }
-  .radio-constrained .curtain-toggle { flex:none; width:44px; padding:10px; }
-  .radio-constrained #curtain-toggle-label { display:none; }
-  .radio-constrained .has-curtain-control .wish-button { padding:3px; }
-  .radio-constrained .has-curtain-control .wish-button-copy strong { font-size:12px; }
 }

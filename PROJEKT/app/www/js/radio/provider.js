@@ -35,7 +35,7 @@ MischWerkUI.define('provider', function (dependencies) {
       if (!current()) { return; }
       presentation.renderSong(song); lastSong = song;
       broadcastMode = typeof song.isLive === 'boolean' ? song.isLive : null; modeAt = Date.now(); publishBroadcast();
-      dom.setText('metadata-status', 'Titelanzeige von STREAMPANEL · zuletzt aktualisiert um ' + dom.time(Date.now()) + '. Titel und Audio können zeitversetzt sein.');
+      dom.setText('metadata-status', 'Titelanzeige von Radio Mischwerk · zuletzt aktualisiert um ' + dom.time(Date.now()) + '. Titel und Audio können zeitversetzt sein.');
     }).catch(function () {
       if (!current()) { return; }
       retry = STATUS_INTERVAL;
@@ -60,7 +60,7 @@ MischWerkUI.define('provider', function (dependencies) {
       clearTimeout(metadataTimer); metadataRevision += 1; metadataRequest = null;
       lastSong = null; presentation.renderSong(null);
       broadcastMode = null; modeAt = 0;
-      dom.setText('metadata-status', 'Sender bei STREAMPANEL gestoppt. Automatische Prüfung alle 30 Sekunden.');
+      dom.setText('metadata-status', 'Radio Mischwerk meldet eine Sendepause. Automatische Prüfung alle 30 Sekunden.');
     } else if (previous === 'checking' || previous === 'stopped') { pollMetadata(); }
     publishBroadcast();
   }

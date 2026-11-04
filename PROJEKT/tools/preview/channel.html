@@ -2,47 +2,15 @@
 <html lang="de">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MischWerk – lokale Channel-Vorschau</title>
-<style>
-* { box-sizing:border-box; }
-body { margin:0; background:#1b2830; color:#f6f0df; font:16px/1.5 "Segoe UI",Arial,sans-serif; }
-#radio-frame { display:block; width:100%; height:160px; border:0; }
-#channel { position:relative; min-height:calc(100vh - 160px); padding:20px; background:repeating-linear-gradient(0deg,#ffffff03 0 1px,transparent 1px 48px),#1b2830; }
-#channel p { max-width:700px; margin:0 0 20px; }
-#overlay-frame { position:absolute; top:0; right:0; width:min(560px,100%); height:600px; border:0; border-radius:12px; background:transparent; }
-#overlay-frame[hidden] { display:none; }
-</style>
+<title>MischWerk Knuddels-App · Lokaler Test</title>
+<link rel="stylesheet" href="/preview.css"><script src="/channel.js" defer></script>
 </head>
-<body>
-<iframe id="radio-frame" title="MischWerk Radio"></iframe>
+<body class="channel-page">
+<header class="site-header channel-header"><a class="wordmark" href="/">MischWerk<span>APP-TEST</span></a><nav aria-label="Vorschau wechseln"><a href="/">Startseite</a><a href="/channel.html?radio=public">Öffentlicher Streamtest</a><a class="test-only" href="/channel.html?role=listener">Hörer-Test</a><a class="test-only" href="/channel.html?role=moderator">Studio-Test</a></nav></header>
+<iframe id="radio-frame" title="MischWerk Radio" allow="autoplay"></iframe>
 <main id="channel">
-<p>Lokale Channel-Vorschau · Ersatzdaten · keine Knuddels-Verbindung</p>
-<p>Der Channel beginnt direkt unter der Radioleiste. Die Wunschbox liegt beim Öffnen rechts über diesem Bereich.</p>
-<p>Musikfreund: Einen schönen Abend zusammen!</p>
-<p>Klangwelle: Ich freue mich auf die nächste Sendung.</p>
-<iframe id="overlay-frame" title="MischWerk Channelansicht" hidden></iframe>
+  <div class="channel-copy"><p class="eyebrow mode-label" id="mode-label">Lokale Testansicht</p><h1 id="mode-title">Ein Blick hinter die Regler.</h1><p id="mode-description">Hier kannst du die Bedienung ausprobieren.</p><p class="demo-note" id="mode-note">Wünsche, Sendeplan und Studio sind lokale Tests. Es gibt keine Verbindung zum Radiobetrieb.</p><a class="button secondary" href="/">Zur Startseite</a></div>
+  <iframe id="overlay-frame" title="Lokale Testansicht" hidden></iframe>
 </main>
-<script>
-var radio = document.getElementById('radio-frame'), overlay = document.getElementById('overlay-frame');
-radio.src = '/preview?embedded=1&role=' + (new URLSearchParams(location.search).get('role') === 'moderator' ? 'moderator' : 'listener');
-window.addEventListener('message', function (event) {
-  if (event.origin !== location.origin || !event.data) { return; }
-  if (event.source === overlay.contentWindow && event.data.type === 'preview-wish-size') {
-    overlay.style.height = Math.max(50, Math.min(1000, event.data.height)) + 'px';
-    if (event.data.width > 0) { overlay.style.width = 'min(' + event.data.width + 'px,100%)'; }
-    return;
-  }
-  if (event.source !== radio.contentWindow || event.data.type !== 'preview-overlay') { return; }
-  if (!event.data.open) {
-    overlay.hidden = true; overlay.removeAttribute('src'); return;
-  }
-  var kind = event.data.kind;
-  var target = overlay;
-  target.style.width = 'min(' + (kind === 'schedule' ? 820 : kind === 'studio' ? 780 : 560) + 'px,100%)';
-  target.style.height = (kind === 'schedule' ? 660 : kind === 'team' ? 560 : 600) + 'px';
-  target.src = '/preview?view=' + kind + '&sourceSession=' + encodeURIComponent(event.data.sessionId);
-  target.hidden = false;
-});
-</script>
 </body>
 </html>

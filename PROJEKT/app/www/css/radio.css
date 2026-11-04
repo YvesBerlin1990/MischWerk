@@ -1,49 +1,32 @@
-/* Radiogrundraster: Musik und Details teilen sich dieselben Bedienelemente. */
+/* Vinyl Deck: vorhandene Radiobedienung in einer gemeinsamen dunklen Fläche. */
 html[data-view=radio] .radio-bar { display:grid; }
-.radio-bar { position:relative; width:100%; margin:0; min-width:0; height:160px; padding:12px; grid-template-columns:144px 112px minmax(0,1fr) 336px; grid-template-rows:56px 36px 44px; column-gap:12px; align-items:center; background:var(--bg); }
-.radio-panel-face { grid-row:1 / -1; align-self:stretch; min-width:0; margin-block:-4px; pointer-events:none; }
-.radio-program-face { grid-column:3; }
-.radio-brand { min-width:0; grid-column:1; grid-row:1 / -1; justify-self:center; }
+.radio-bar { --text:#f5f5f2; --muted:#b4b4b0; --gold:#e9eaec; --gold-ink:#cfd2d6; --line:#3a3a3a; --live:#ff9a8f; position:relative; isolation:isolate; width:100%; min-width:0; min-height:160px; margin:0; padding:18px 20px; grid-template-columns:170px 120px minmax(300px,1fr) 178px 112px; gap:0 20px; align-items:center; font-family:Outfit,system-ui,sans-serif; }
+.radio-program { display:contents; }
+.radio-panel-face { position:absolute; inset:18px 20px; z-index:-1; pointer-events:none; }
+.radio-brand { grid-column:2; grid-row:1; width:120px; min-width:0; padding-right:19px; border-right:1px solid var(--line); }
 .radio-brand > span { display:none; }
-.bar-logo { display:block; width:128px; height:128px; object-fit:contain; background:transparent; mix-blend-mode:lighten; }
-.transport { grid-column:2; grid-row:1 / -1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; }
-.play-button { --play-symbol-size:40px; display:grid; place-items:center; width:100px; height:100px; padding:0; border:2px solid #2a2a2a; border-radius:50%; background:var(--gold); color:var(--surface); flex-shrink:0; }
+.bar-logo { display:block; width:100px; height:100px; object-fit:contain; background:transparent; mix-blend-mode:lighten; }
+.transport { position:relative; grid-column:1; grid-row:1; justify-self:start; margin-left:26px; display:flex; align-items:center; justify-content:center; width:60px; min-width:0; z-index:1; }
+.play-button { --play-symbol-size:24px; display:grid; place-items:center; flex-shrink:0; width:60px; height:60px; padding:0; border-radius:50%; color:#141414; }
 .play-button span { display:block; width:var(--play-symbol-size); height:var(--play-symbol-size); }
 #play-icon svg { width:var(--play-symbol-size); height:var(--play-symbol-size); fill:currentColor; stroke:none; }
 #play-icon .pause-symbol { display:none; }
 .play-button[aria-pressed=true] #play-icon .play-symbol { display:none; }
 .play-button[aria-pressed=true] #play-icon .pause-symbol { display:block; }
-.now-playing { grid-column:3; grid-row:1; min-width:0; min-height:0; padding:0 12px; }
-.track-copy { display:flex; flex-direction:column; gap:0; min-width:0; }
-#track-title { display:block; white-space:normal; overflow-wrap:anywhere; font-size:26px; line-height:1.2; font-weight:700; letter-spacing:.02em; color:var(--text); }
-#track-artist { display:block; overflow-wrap:anywhere; white-space:normal; font-size:18px; font-weight:500; letter-spacing:.025em; color:#d3cebf; line-height:1.3; }
-.radio-context { grid-column:3; grid-row:2; display:flex; flex-direction:column; justify-content:center; gap:0; min-width:0; min-height:0; padding:0 12px; }
-.topic-display { min-width:0; overflow-wrap:anywhere; line-height:20px; }
-.topic-label { display:inline; font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-right:8px; }
-#show-topic { display:inline; overflow-wrap:anywhere; font-size:16px; font-weight:600; line-height:1.3; letter-spacing:.01em; color:var(--gold-ink); }
-.volume-control { grid-column:3; grid-row:3; display:flex; align-items:center; gap:8px; min-width:0; width:calc(100% - 24px); max-width:500px; margin:0 12px; height:44px; }
+.now-playing { min-width:0; min-height:0; }
+.track-copy { display:flex; flex-direction:column; min-width:0; gap:3px; }
+.track-eyebrow { font-size:11px; line-height:13px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:#b9bdc3; }
+#track-title { display:block; font-family:Fraunces,Georgia,serif; font-size:24px; font-weight:700; letter-spacing:0; line-height:1.15; color:var(--text); white-space:normal; overflow-wrap:anywhere; }
+#track-artist { display:block; font-size:15px; font-weight:500; line-height:1.2; color:var(--muted); white-space:normal; overflow-wrap:anywhere; }
+.volume-control { display:flex; align-items:center; gap:6px; min-width:0; height:44px; color:var(--muted); }
+.volume-control label { display:none; }
+.volume-control output { display:flex; align-items:center; justify-content:center; flex-shrink:0; width:64px; min-width:64px; height:26px; padding:0 4px; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--muted); font-size:12px; font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .mute-cross { display:none; }
 #mute-button[aria-pressed=true] .sound-waves { display:none; }
 #mute-button[aria-pressed=true] .mute-cross { display:block; }
-.volume-control label { font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); flex-shrink:0; }
-.volume-control output { display:flex; align-items:center; justify-content:center; width:64px; min-width:64px; height:30px; padding:0 4px; border:1px solid #ffbe2e40; border-radius:8px; background:#292821; color:var(--gold-ink); white-space:nowrap; font-size:14px; font-weight:600; letter-spacing:.02em; font-variant-numeric:tabular-nums; }
-input[type=range] { --volume-low:10%; --volume-high:60%; --volume-warning-start:60%; appearance:none; -webkit-appearance:none; min-width:40px; width:144px; flex:1; height:44px; padding:18px 0; margin:0; border:0; border-radius:4px / 22px; background:linear-gradient(to right,var(--gold) 0%,var(--gold) var(--volume-low),#77766b var(--volume-low),#77766b var(--volume-warning-start),#f16f65 var(--volume-warning-start),#f16f65 var(--volume-high),#a95e57 var(--volume-high),#a95e57 100%) center / 100% 8px no-repeat; background-origin:content-box; background-clip:content-box; cursor:pointer; }
+input[type=range] { --volume-low:10%; --volume-high:60%; --volume-warning-start:60%; appearance:none; -webkit-appearance:none; min-width:40px; width:170px; flex:1; height:44px; padding:18px 0; margin:0; border:0; border-radius:4px / 22px; background:linear-gradient(to right,#cfd2d6 0%,#cfd2d6 var(--volume-low),#333 var(--volume-low),#333 var(--volume-warning-start),#ff8a7e var(--volume-warning-start),#ff8a7e var(--volume-high),#63413c var(--volume-high),#63413c 100%) center / 100% 8px no-repeat; background-origin:content-box; background-clip:content-box; cursor:pointer; }
 input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:transparent; }
 input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:transparent; }
-input[type=range]::-webkit-slider-thumb { appearance:none; width:24px; height:24px; margin-top:-8px; background:linear-gradient(145deg,#ffffff59,transparent 65%),var(--volume-thumb,var(--gold)); border-radius:50%; border:2px solid var(--text); box-shadow:0 2px 4px #0008,inset 0 1px 0 #ffffff66; }
-input[type=range]::-moz-range-thumb { width:24px; height:24px; background:linear-gradient(145deg,#ffffff59,transparent 65%),var(--volume-thumb,var(--gold)); border-radius:50%; border:2px solid var(--text); box-shadow:0 2px 4px #0008,inset 0 1px 0 #ffffff66; }
+input[type=range]::-webkit-slider-thumb { appearance:none; box-sizing:border-box; width:18px; height:18px; margin-top:-5px; background:var(--volume-thumb,#e9eaec); border-radius:50%; border:2px solid #141414; box-shadow:none; }
+input[type=range]::-moz-range-thumb { box-sizing:border-box; width:18px; height:18px; background:var(--volume-thumb,#e9eaec); border-radius:50%; border:2px solid #141414; box-shadow:none; }
 .radio-bar > .sr-only { left:0; top:0; }
-.own-wish-position { margin:0; padding:2px 0; color:var(--gold-ink); font-size:12px; line-height:18px; overflow-wrap:anywhere; }
-.radio-status-row { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px 14px; min-width:0; max-width:100%; }
-@media (min-width:700px) {
-  .has-own-wish .radio-context { flex-direction:row; flex-wrap:wrap; align-items:center; column-gap:10px; }
-  .has-own-wish .topic-display { flex-basis:100%; }
-}
-/* Freigegebene breite Studioreferenz: ruhige Seiten, drei Bereiche in der Musikkarte. */
-@media (min-width:1400px) {
-  .radio-bar { padding:8px 0; grid-template-columns:160px minmax(108px,1fr) minmax(200px,500px) minmax(392px,1fr) 160px; grid-template-rows:minmax(140px,1fr); column-gap:24px; }
-  .radio-program-face { grid-column:2 / 5; margin:0 -8px; }
-  .bar-logo { width:140px; height:140px; }
-  .transport { position:relative; z-index:1; justify-self:center; }
-  .play-button { width:108px; height:108px; }
-}

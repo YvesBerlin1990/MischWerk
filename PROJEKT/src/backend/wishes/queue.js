@@ -65,6 +65,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
         page = Math.max(0, Math.min(pages - 1, Math.floor(Number(page) || 0)));
         return { available: !!senderKey, generation: queue.generation, revision: queue.revision,
             nextPosition: own.length ? own[0].position : null,
+            nextItem: own.length ? own[0] : null,
             items: own.slice(page, page + 1), total: own.length, page: page, pages: pages };
     };
     runtime.submitWish = function (user, data) {

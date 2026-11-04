@@ -8,14 +8,19 @@ MischWerkUI.define('schedulePages', function (dependencies) {
   var anchor = null;
   var week = null;
   var generation = 0;
+  var navigated = false;
   function capture(nextWeek) {
-    if (nextWeek !== week) { selected = 0; anchor = null; }
+    if (nextWeek !== week) { selected = 0; anchor = null; navigated = false; }
     week = nextWeek;
     generation += 1;
     days = Array.prototype.map.call(dom.el('schedule-days').children, function (node) {
       return { node: node, heading: node.firstElementChild,
         items: Array.prototype.slice.call(node.children, 1) };
     });
+    if (!navigated && !anchor) {
+      var firstShow = dom.el('schedule-days').querySelector('.schedule-show');
+      anchor = firstShow ? firstShow.dataset.scheduleKey : null;
+    }
   }
   function restore() {
     var list = dom.el('schedule-days');
@@ -89,8 +94,8 @@ MischWerkUI.define('schedulePages', function (dependencies) {
     }
   }
   function start() {
-    dom.el('schedule-page-previous').addEventListener('click', function () { select(selected - 1); });
-    dom.el('schedule-page-next').addEventListener('click', function () { select(selected + 1); });
+    dom.el('schedule-page-previous').addEventListener('click', function () { navigated = true; select(selected - 1); });
+    dom.el('schedule-page-next').addEventListener('click', function () { navigated = true; select(selected + 1); });
   }
   return { capture: capture, restore: restore, fit: fit, reveal: reveal, start: start,
     revision: function () { return generation; } };

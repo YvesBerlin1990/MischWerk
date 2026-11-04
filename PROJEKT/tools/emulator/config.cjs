@@ -12,7 +12,7 @@ const profiles = Object.freeze([
 const defaults = Object.freeze({
   clientDelayMs: 0, serverDelayMs: 0, duplicateNext: false, clientEventType: 'mw:wish.submit',
   dropClient: 0, dropServer: 0, dropServerType: '',
-  failPersistence: false, resourceDelayMs: 0, resourceFailure: '',
+  failPersistence: false, ignoreLoadingDisabled: false, resourceDelayMs: 0, resourceFailure: '',
   hostSizing: 'normal', loader: 'parser', provider: 'unconfigured'
 });
 function validateFaults(value, current = defaults) {
@@ -24,7 +24,7 @@ function validateFaults(value, current = defaults) {
       if (!Number.isInteger(item) || item < 0 || item > 10000) throw new Error('Verzögerung muss zwischen 0 und 10000 ms liegen.');
     } else if (['dropClient', 'dropServer'].includes(key)) {
       if (!Number.isInteger(item) || item < 0 || item > 100) throw new Error('Paketanzahl muss zwischen 0 und 100 liegen.');
-    } else if (['duplicateNext', 'failPersistence'].includes(key)) {
+    } else if (['duplicateNext', 'failPersistence', 'ignoreLoadingDisabled'].includes(key)) {
       if (typeof item !== 'boolean') throw new Error('Boolescher Wert erforderlich.');
     } else if (key === 'hostSizing') {
       if (!['normal', 'ignored', 'delayed', 'stepped'].includes(item)) throw new Error('Ungültiger Fenstermodus.');

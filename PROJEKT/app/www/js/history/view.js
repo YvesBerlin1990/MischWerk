@@ -2,16 +2,16 @@
 MischWerkUI.define('historyView', function (dependencies) {
   'use strict';
   var dom = dependencies.dom, pages = [], layoutKey = '', previousRows = '';
+  var signals=dependencies.signals;
   dom.mount('history-placeholder', `
     <section id="history-panel" role="tabpanel" aria-labelledby="studio-history-tab" hidden>
-      <div class="list-heading"><h2 id="history-heading">Heute gespielt</h2><button id="history-refresh" class="secondary-button" type="button">Aktualisieren</button></div>
+      <div class="list-heading"><div><h2 id="history-heading">Heute gespielt</h2><span id="history-count" class="fine-print"></span></div><button id="history-refresh" class="secondary-button" type="button">Aktualisieren</button></div>
       <p id="history-feedback" class="history-feedback" role="status" aria-live="polite"></p>
       <p id="history-empty" class="empty-copy">Für heute liegen noch keine Titelmeldungen vor.</p>
       <ol id="history-list" class="history-list" aria-label="Heutige Titelmeldungen, neueste zuerst"></ol>
       <nav id="history-pagination" class="pagination" aria-label="Seiten der Titelhistorie" hidden>
-        <button id="history-previous" class="secondary-button" type="button">Zurück</button><span id="history-page" role="status"></span><button id="history-next" class="secondary-button" type="button">Weiter</button>
+        <button id="history-previous" class="secondary-button" type="button" title="Ältere Titel">Zurück</button><span id="history-page" role="status"></span><button id="history-next" class="secondary-button" type="button" title="Neuere Titel">Weiter</button>
       </nav>
-      <p class="fine-print">Senderzeit in deutscher Ortszeit. Ton und Titel können zeitversetzt sein.</p>
     </section>
   `);
   function item(row, time) {
@@ -26,17 +26,16 @@ MischWerkUI.define('historyView', function (dependencies) {
     rows.forEach(function (row, index) {
       var letters = Array.from(row.text), offset = 0;
       while (offset < letters.length) {
-        if (current.length === 6) { next(); }
         var part = {timestamp:row.timestamp, text:letters.slice(offset).join(''), offset:offset, index:index};
         var node = item(part, time); list.appendChild(node);
-        if (list.getBoundingClientRect().height <= available) { current.push(part); offset = letters.length; continue; }
+        if (list.scrollHeight <= available + 1) { current.push(part); offset = letters.length; continue; }
         node.remove();
         if (current.length) { next(); continue; }
         list.appendChild(node);
         var low = 1, high = letters.length - offset;
         while (low < high) {
           var middle = Math.ceil((low + high) / 2); node.lastChild.textContent = letters.slice(offset, offset + middle).join('');
-          if (list.getBoundingClientRect().height <= available) { low = middle; } else { high = middle - 1; }
+          if (list.scrollHeight <= available + 1) { low = middle; } else { high = middle - 1; }
         }
         part.text = letters.slice(offset, offset + low).join(''); current.push(part); offset += low; next();
       }
@@ -47,9 +46,15 @@ MischWerkUI.define('historyView', function (dependencies) {
     if (!dom.el('history-panel').getClientRects().length) { return selected; }
     var list = dom.el('history-list'), pagination = dom.el('history-pagination');
     var anchor = pages[selected] && pages[selected][0];
-    list.replaceChildren(); dom.el('history-empty').hidden = rows.length > 0; pagination.hidden = false;
-    var shell = document.querySelector('.dialog-shell');
-    var available = Math.max(1, Math.floor(innerHeight - shell.getBoundingClientRect().bottom + list.getBoundingClientRect().height - 2));
+    list.replaceChildren(); dom.el('history-empty').hidden = rows.length > 0; pagination.hidden = true;
+    rows.forEach(function(row){list.appendChild(item(row,time));});
+    var last=list.lastElementChild||dom.el('history-empty');
+    var natural=last.getBoundingClientRect().bottom+parseFloat(getComputedStyle(document.querySelector('.dialog-shell')).paddingBottom);
+    signals.emit('studio-natural-height',{tab:'history',height:natural});
+    pagination.hidden=list.scrollHeight<=list.clientHeight+1;
+    var available = Math.max(1,list.clientHeight);
+    list.replaceChildren();
+    dom.setText('history-count',rows.length+' Titelmeldungen heute');
     var serialized = JSON.stringify(rows);
     var key = [innerWidth, innerHeight, list.getBoundingClientRect().width, available, serialized].join('|');
     if (key !== layoutKey) {
@@ -65,13 +70,14 @@ MischWerkUI.define('historyView', function (dependencies) {
     selected = Math.max(0, Math.min(selected, pages.length - 1)); list.replaceChildren();
     pages[selected].forEach(function (row) { list.appendChild(item(row, time)); });
     pagination.hidden = pages.length === 1;
-    dom.setText('history-page', 'Seite ' + (selected + 1) + ' / ' + pages.length);
-    dom.el('history-previous').disabled = selected === 0; dom.el('history-next').disabled = selected === pages.length - 1;
+    dom.setText('history-page', 'Seite ' + (pages.length - selected) + ' / ' + pages.length);
+    dom.el('history-previous').disabled = selected === pages.length - 1; dom.el('history-next').disabled = selected === 0;
     return selected;
   }
   function clear() {
     pages = []; layoutKey = ''; previousRows = '';
     dom.el('history-list').replaceChildren(); dom.el('history-pagination').hidden = true;
+    dom.setText('history-count','');dom.setText('history-page','');
   }
   return { render:render, clear:clear };
 });

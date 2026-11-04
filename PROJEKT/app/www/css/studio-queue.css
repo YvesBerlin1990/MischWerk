@@ -1,0 +1,57 @@
+/* Musikwunschliste, ausgewählter Volltext und dessen Aktionen. */
+.studio-window-measure #request-queue,.studio-window-measure .queue-item.selected,.studio-window-measure .queue-copy { flex:none; }
+.studio-window-measure :is(.queue-copy,.queue-toolbar,.queue-item:not(.selected)) { display:flex!important; }
+.studio-window-measure #queue-detail-toggle { display:none!important; }
+.studio-window-measure #queue-refresh-feedback { display:block!important; }
+.studio-window-measure .studio-queue-heading h2 { font-size:18px!important; }
+.studio-queue { display:flex; flex-direction:column; padding:0; }
+#queue-detail-toggle { display:none; }
+.queue-header-actions { display:flex; gap:8px; }
+.studio-queue-heading { flex:none; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--line); margin-bottom:12px; }
+.studio-queue-heading .count-badge { color:var(--gold); font-size:14px; }
+#request-queue { flex:0 1 auto; min-height:0; display:flex; flex-direction:column; }
+.queue-item { display:flex; flex-direction:column; flex:none; min-height:0; border-bottom:1px solid #3a3a3a; }
+.queue-item.selected { flex:0 1 auto; padding:12px 12px 16px; border-left:2px solid var(--gold); background:#191919; border-radius:18px; }
+.queue-copy { display:flex; flex-direction:column; flex:1; min-height:0; }
+.queue-copy h3 { flex:0 1 auto; min-height:24px; max-height:120px; margin:0; font-size:16px; line-height:1.5; font-weight:500; }
+.queue-meta { display:flex; flex-wrap:wrap; gap:4px 16px; flex:none; margin-top:8px; }
+.request-sender { margin:0; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+.request-stage { margin:0; color:var(--gold); font-size:12px; }
+.queue-toolbar { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; flex:none; margin-top:12px; }
+.queue-stage-actions,.queue-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.request-pick { display:grid; grid-template-columns:24px minmax(0,1fr) 110px; align-items:center; gap:12px; width:100%; min-height:60px; padding:10px 12px; border:0; background:transparent; text-align:left; }
+.request-pick:hover:enabled { background:#ffffff08; }
+.request-number { color:var(--gold); font-size:13px; font-variant-numeric:tabular-nums; }
+.request-preview { overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; font-size:14px; line-height:1.4; overflow-wrap:anywhere; }
+.request-preview-sender { color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+#queue-pagination { flex:none; margin-top:10px; padding-top:8px; border-top:1px solid var(--line); }
+.pagination.single-page { justify-content:center; min-height:28px; }
+.pagination.single-page button { display:none; }
+.queue > .empty-copy { display:grid; place-items:center; flex:1; min-height:188px; padding:24px 16px; border:1px solid var(--line); border-radius:18px; background:#191919; text-align:center; font-size:15px; }
+html.studio-height-limited .queue > .empty-copy { min-height:88px; padding:12px; }
+
+@media (max-width:659px) {
+ .studio-queue { padding:8px 0 0; }
+ .queue-toolbar { justify-content:flex-start; }
+ .request-pick { grid-template-columns:20px minmax(0,1fr); gap:4px 8px; }
+ .request-preview-sender { grid-column:2; }
+}
+html.studio-height-limited .studio-queue-heading { padding-bottom:6px; margin-bottom:8px; }
+html.studio-height-limited .queue-item { padding-bottom:8px; }
+html.studio-height-limited .queue-toolbar { margin-top:8px; }
+.studio-queue-tight #queue-detail-toggle { display:inline-flex; }
+.studio-queue-tight #queue-refresh-feedback { display:none; }
+.studio-queue-tight .studio-queue-heading h2 { font-size:16px; }
+#studio-requests.studio-queue-tight[data-detail=copy] .queue-toolbar,#studio-requests.studio-queue-tight[data-detail=actions] .queue-copy { display:none; }
+.studio-queue-tight .queue-item:not(.selected) { display:none; }
+@media (max-height:550px) {
+ .studio-queue-tight .queue-item.selected { padding:6px; }
+ .studio-queue-tight .queue-meta { margin-top:4px; }
+ .studio-queue-tight .text-pagination { margin-top:4px; }
+ .studio-queue-tight .studio-queue-heading { row-gap:4px; }
+ .studio-queue-tight .workspace-heading .eyebrow { display:none; }
+ .studio-queue { padding-top:0; }
+ .studio-queue-tight .studio-queue-heading { padding-bottom:4px; margin-bottom:6px; }
+ .studio-queue-tight .studio-queue-heading h2 { margin:0; }
+ .studio-queue-tight .studio-queue-heading .count-badge { height:20px; min-width:20px; }
+}

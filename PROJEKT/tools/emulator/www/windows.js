@@ -20,7 +20,9 @@ export class AppWindows {
     iframe.title = description.nick + ' · ' + description.mode + ' · ' + (description.pageData.view || '');
     iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
     const entry = { ...description, iframe, queue: [], loaded: false, min: { width: 0, height: 0 }, max: { width: 3840, height: 1000 } };
-    if (description.loading) iframe.style.backgroundColor = description.loading.background;
+    // Der öffentliche Knuddels-Lader besitzt selbst einen weißen Unterbau.
+    // LoadConfiguration gestaltet ausschließlich seine aktivierte Abdeckung.
+    if (description.mode !== 'Headerbar') iframe.style.backgroundColor = '#ffffff';
     if (description.mode === 'Headerbar') {
       entry.element = iframe; iframe.style.height = description.height + 'px';
       document.querySelector('#headerbars').append(iframe);
@@ -29,6 +31,7 @@ export class AppWindows {
       element.className = 'app-window ' + (description.mode === 'Overlay' ? 'overlay' : 'popup');
       element.dataset.session = description.sessionId;
       entry.element = element;
+      element.style.backgroundColor = '#ffffff';
       if (description.mode !== 'Overlay') {
         const title = document.createElement('div'); title.className = 'window-title';
         const label = document.createElement('span'); label.textContent = description.pageData.view || 'App';
@@ -39,7 +42,7 @@ export class AppWindows {
         element.addEventListener('pointerdown', () => { element.style.zIndex = ++this.z; });
       }
       element.append(iframe);
-      if (description.loading && description.loading.enabled) {
+      if (description.loading && (description.loading.enabled || this.getFaults().ignoreLoadingDisabled)) {
         const loading = document.createElement('div'); loading.className = 'app-loading';
         loading.style.backgroundColor = description.loading.background; loading.style.color = description.loading.foreground;
         loading.textContent = description.loading.text; loading.setAttribute('role', 'status');

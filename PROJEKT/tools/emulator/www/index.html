@@ -16,7 +16,7 @@
 <button id="apply-role">Rolle übernehmen</button>
 <button id="delete-user">Diesen Testnutzer löschen</button>
 <details><summary>Weiteren Testnutzer anlegen</summary><label for="new-nick">Nickname</label><input id="new-nick" maxlength="40" placeholder="Weiterer Hörer"><button id="register">Testnutzer hinzufügen</button></details>
-<p class="hint">Radiomoderatoren ernennst du über das echte Radio-Team der App.</p><div id="users" class="users"></div></section>
+<p class="hint">Radiomoderatoren ernennst du über die echte Verwaltung der App.</p><div id="users" class="users"></div></section>
 <section><h2>Channel & Fenster</h2>
 <label for="width">Channelbreite in Pixeln</label><div class="width-row"><input id="width" type="number" min="320" max="3840" value="1280"><select id="width-preset" aria-label="Breitenvorlage"><option value="1280">Desktop</option><option value="320">320</option><option value="390">390</option><option value="700">700</option><option value="1100">1100</option><option value="2290">2290</option><option value="3840">3840</option></select></div>
 <label for="hostSizing">Größenantwort des Hosts</label><select id="hostSizing" data-fault><option value="normal">Sofort annehmen</option><option value="delayed">Verzögert annehmen</option><option value="stepped">In Zwischenschritten melden</option><option value="ignored">Größenwünsche ignorieren</option></select>
@@ -25,6 +25,7 @@
 </section>
 <section><h2>Fehler gezielt auslösen</h2>
 <label for="loader">Ressourceneinbindung · neue Frames</label><select id="loader" data-fault><option value="parser">Knuddels-Parsermodus</option><option value="async">Zusätzlicher asynchroner Stresstest</option></select>
+<label for="ignoreLoadingDisabled">Native Ladeansicht trotz setEnabled(false) zeichnen</label><input id="ignoreLoadingDisabled" data-fault type="checkbox">
 <label for="resourceDelayMs">JS/CSS/Bild verzögern · ms</label><input id="resourceDelayMs" data-fault type="number" min="0" max="10000" value="0">
 <label for="resourceFailure">Datei ausfallen lassen · Teilpfad</label><input id="resourceFailure" data-fault placeholder="z. B. js/radio/player.js" maxlength="160">
 <label for="clientDelayMs">Client → Server · ms</label><input id="clientDelayMs" data-fault type="number" min="0" max="10000" value="0">

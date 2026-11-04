@@ -6,18 +6,15 @@ MischWerkUI.define('overlays', function (dependencies) {
   var wishDrawer = dependencies.wishDrawer;
   var enabled = bridge && bridge.pageData && (bridge.pageData.overlay || bridge.pageData.wishSurface);
   var revision = 0, restored = false, restoring = false, timer, saveTimer, closeTimer;
-  var restoredViews = {};
   var lockedToken = null, lastToken = 0, lockedFocus = null;
   var entries = { wishes:'open-wishes', studio:'studio-tab', team:'team-tab', schedule:'open-schedule' };
   function capture() {
     var state = {};
     signals.emit('overlay-capture', state);
-    state.focus = document.activeElement && document.activeElement.id || '';
-    state.scroll = Math.max(0, Math.round(document.scrollingElement.scrollTop));
     return state;
   }
   function send(type, data) {
-    if (model.shared && model.current()) { data.view = model.view; data.viewRevision = model.current().viewRevision; }
+    if (model.view !== 'radio' && model.current()) { data.view = model.view; data.viewRevision = model.current().viewRevision; }
     try { bridge.sendEvent(type, data); return true; }
     catch (error) { layout.notify('Die Verbindung antwortet nicht. Deine Eingabe bleibt hier erhalten.', true); return false; }
   }
@@ -58,16 +55,10 @@ MischWerkUI.define('overlays', function (dependencies) {
   function restore() {
     if (restored || !model.current()) { return; }
     restored = true; restoring = true;
-    var state = model.shared ? model.current().overlayState : bridge.pageData.overlayState;
+    var state = bridge.pageData.overlayState;
     if (state && typeof state === 'object') {
-      if (!model.shared || !restoredViews[model.view]) { signals.emit('overlay-restore', state); }
-      requestAnimationFrame(function () {
-        var target = typeof state.focus === 'string' && document.getElementById(state.focus);
-        if (target && !target.disabled && target.getClientRects().length) { target.focus({ preventScroll:true }); }
-        window.scrollTo(0, Number(state.scroll) || 0);
-      });
+      signals.emit('overlay-restore', state);
     }
-    restoredViews[model.view] = true;
     restoring = false;
   }
   function start() {
@@ -87,7 +78,7 @@ MischWerkUI.define('overlays', function (dependencies) {
     }
     if (!enabled) { return; }
     document.documentElement.setAttribute('data-overlay', 'true');
-    if (model.view !== 'wishes' || model.shared) {
+    if (model.view !== 'wishes') {
       document.querySelector('.dialog-shell').setAttribute('role', 'dialog');
       document.querySelector('.dialog-shell').setAttribute('aria-labelledby', 'dialog-title');
       dom.el('close-overlay').hidden = model.view === 'wishes';
@@ -104,17 +95,6 @@ MischWerkUI.define('overlays', function (dependencies) {
       var panel = model.view === 'wishes' ? dom.el('wishes-panel') : document.querySelector('.dialog-content');
       panel.inert = false; panel.removeAttribute('aria-busy');
       if (lockedFocus && !lockedFocus.disabled && lockedFocus.getClientRects().length) { lockedFocus.focus({ preventScroll:true }); }
-    });
-    bridge.addEventListener('mw:overlay.focus', function () {
-      var target = document.activeElement;
-      if (!target || target === document.body || !target.getClientRects().length) { target = dom.el(model.view === 'wishes' ? 'close-wishes' : 'close-overlay'); }
-      if (target.getClientRects().length) { target.focus({ preventScroll:true }); }
-    });
-    signals.on('view-changed', function () {
-      clearTimeout(timer); clearTimeout(closeTimer); lockedToken = null; restored = false;
-      [dom.el('wishes-panel'), document.querySelector('.dialog-content')].forEach(function (panel) {
-        panel.inert = false; panel.removeAttribute('aria-busy');
-      });
     });
     signals.on('snapshot', restore);
     document.addEventListener('input', save);

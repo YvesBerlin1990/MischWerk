@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
+const { readRelease, checkAppConfig, checkBackendConfig } = require('../lib/release-identity.cjs');
 const root = path.resolve(__dirname, '../..');
 const sourceRoot = path.join(root, 'src', 'backend');
 const appRoot = path.join(root, 'app');
@@ -10,8 +11,8 @@ const modules = [
   'config.js', 'core/runtime.js', 'core/diagnostics.js', 'users/identity.js',
   'core/validation.js', 'state/persistence.js', 'radio/station.js', 'radio/team.js',
   'radio/moderation.js', 'radio/announcements.js', 'radio/handover.js', 'state/initialization.js', 'radio/show.js', 'radio/curtain.js', 'wishes/queue.js', 'wishes/transport.js',
-  'schedule/calendar.js', 'schedule/storage.js', 'schedule/programme.js', 'schedule/transport.js', 'radio/assistant.js',
-  'ui/snapshot.js', 'transport/views.js', 'ui/sessions.js', 'ui/wish-surface.js', 'ui/navigation.js', 'ui/overlays.js', 'maintenance.js',
+  'schedule/calendar.js', 'schedule/storage.js', 'schedule/programme.js', 'schedule/transport.js',
+  'ui/snapshot.js', 'ui/session-state.js', 'transport/views.js', 'ui/loading.js', 'ui/sessions.js', 'ui/wish-surface.js', 'ui/overlays.js', 'maintenance.js',
   'lifecycle.js', 'transport/events.js', 'app.js'
 ];
 function source(file) {
@@ -21,12 +22,15 @@ function source(file) {
   return value.trimEnd() + '\n';
 }
 function entry() {
-  const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
-  return '/* MischWerk ' + version + ' - Einstieg. Fachlogik liegt unter server/. */\n' +
+  const release = readRelease(root);
+  return '/* MischWerk ' + release.version + ' | Build ' + release.buildNumber + ' - Einstieg. Fachlogik liegt unter server/. */\n' +
     "KnuddelsServer.execute('server/app.js');" +
     '\nvar App = MischWerkModules.createApp(MischWerkConfig);\n';
 }
 function buildBackend() {
+  const release = readRelease(root);
+  checkAppConfig(path.join(appRoot, 'app.config'), release);
+  checkBackendConfig(path.join(sourceRoot, 'config.js'), release);
   for (const file of modules) {
     const target = path.join(appRoot, 'server', file);
     fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -42,10 +46,9 @@ function listFiles(directory, prefix = '') {
   });
 }
 function checkBackend() {
-  const configScope = {};
-  new vm.Script(source('config.js')).runInNewContext(configScope);
-  assert.equal(configScope.MischWerkConfig.version, JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version,
-    'Backend-Konfiguration und Paketversion muessen uebereinstimmen');
+  const release = readRelease(root);
+  checkAppConfig(path.join(appRoot, 'app.config'), release);
+  checkBackendConfig(path.join(sourceRoot, 'config.js'), release);
   assert.equal(fs.readFileSync(path.join(appRoot, 'main.js'), 'utf8'), entry(), 'Backend-Einstieg veraltet: build:backend ausfuehren.');
   for (const file of modules) {
     assert.equal(fs.readFileSync(path.join(appRoot, 'server', file), 'utf8'), source(file), 'Servermodul veraltet: ' + file);

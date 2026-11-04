@@ -2,98 +2,81 @@
 
 # MischWerk
 
-Radio-App für den Knuddels-Channel **MischWerk**. Aktueller lokaler Stand **0.1.146** mit Tageshistorie ausschließlich für den Channelinhaber und ernannte Radiomoderatoren unter **Moderation → Heute gespielt**: verfügbare heutige Titelmeldungen ohne die bekannten Senderjingles, mit Senderuhrzeit und passenden Seiten ohne Scrollen. Öffentlicher SPCast-Stream, Titelquelle, Übertragungsstatus und Sendemodus bleiben erhalten. MischWerk übernimmt erscheint ausschließlich bei bestätigtem AutoDJ; bestätigtes LIVE zeigt die Live-Kapsel und den im Studio angemeldeten Moderatornamen. Bestätigter Sendestopp sperrt Play; Rückkehr startet keinen Ton automatisch. Der tatsächliche LIVE-Stand ergibt sich aus dem Knuddels-App-Log.
+Radio-App für den Knuddels-MyChannel **MischWerk**. Aktueller Quellstand: **0.1.202 · Build 202**.
 
-## Schnell finden
+Die App verbindet Radiohören, Musikwünsche, Moderation und Sendeplanung. Die Appleiste und die vier nativen Channel-Overlays verwenden ein gemeinsames Vinyl-Deck-Design mit lokal eingebundenen Outfit-/Fraunces-Schriften. Der äußere Leistenhintergrund **#0F1114** ist auf das vorhandene Channelbild abgestimmt.
 
-| Gesucht | Ablage |
-| --- | --- |
-| Fertige Dateien für einen späteren Upload | **C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/** |
-| Installation, Betrieb und STREAMPANEL-Einrichtung | [Betriebsanleitung](PROJEKT/docs/betrieb/INBETRIEBNAHME.md) |
-| Entwicklung, Ordner und Befehle | [Technische Übersicht](PROJEKT/README.md) |
-| Interaktive Appprüfung mit gezielten Fehlerfällen | [Testlabor starten und bedienen](PROJEKT/README.md#app-im-testlabor-prüfen) |
-| Zusätzliche Logos und MyChannel-Hintergrund | [Projektmedien](PROJEKT/README.md#logos-und-mychannel-hintergrund) |
-| Aktueller Prüfstand | [Prüfbericht](PROJEKT/docs/pruefung/PRUEFBERICHT.md) |
-| Verbindliche Projektregeln | [PROJEKT/AGENTS.md](PROJEKT/AGENTS.md) |
+![Lokale Vorschau der MischWerk-Appleiste](PROJEKT/docs/pruefung/oberflaeche/webradio-verwaltung.png)
+
+*Vorschau aus dem integrierten Testlabor mit lokalen Beispieldaten; kein Nachweis des aktuellen Live-Stands in Knuddels.*
 
 ## Funktionen
 
-- Radioleiste mit Play/Stop, Lautstärke, Mute, Titel/Interpret, Moderation und Thema.
-- Wunschbox als natives Overlay oben rechts im Channel: Versandbestätigung und ausschließlich eigene offene Wunschplätze; Erledigt/Verwerfen in der Moderation lässt Folgeplätze nachrücken.
-- Moderation mit Studio-Anmeldung, Sendungsthema, manueller Wunschregie, Sendungsassistent und bestätigter Übergabe mit privaten Notizen.
-- Freigegebenes Radio-Logo rechts in der breiten Leiste für Hörer ohne Verwaltungsaktionen.
-- Radio-Team und Statuszentrale für den tatsächlichen Channelinhaber.
-- Sendeplan für alle zum Lesen, für den Channelinhaber zum Bearbeiten.
-- Globaler Vorhang und getrennt nach eigenem Klick abspielbare Radio-Werbung.
+- **Radio:** Play/Stop, Lautstärke, Mute, Titel und Interpret sowie bestätigte Moderation und Sendungsthema. Ein bestätigter Senderstopp beendet die Wiedergabe; die Rückkehr startet keinen Ton automatisch.
+- **Wunschbox:** ein Textfeld mit bis zu 300 Zeichen. Titel, Platz und Bearbeitungsstatus eigener offener Wünsche stehen im privaten Wunschbereich der Appleiste. Nach dem Absenden erscheinen eine kurze Bestätigung und „Weiteren Wunsch eingeben“.
+- **Moderation:** die Reiter „Deine Sendung“, „Musikwünsche“ und „Heute gespielt“; Studioanmeldung, Thema, manuelle Wunschregie und bestätigte Übergabe mit privaten Notizen.
+- **Historie:** heutige Titelmeldungen mit Senderzeit und vollständigen Textseiten. Älteste Titel stehen auf Seite 1, neueste auf der letzten Seite; beim Öffnen werden die neuesten angezeigt. „Zurück“ führt zu älteren, „Weiter“ zu neueren Titeln.
+- **Verwaltung:** Radiomoderatoren ernennen und ihren Zugriff entziehen, ausschließlich für den tatsächlichen Channelinhaber.
+- **Sendeplan:** Wochenplan für alle zum Lesen; Eintragen und Bearbeiten für den Channelinhaber. Leere Wochen nutzen den vorhandenen Platz gleichmäßig.
+- **Vorhang:** globale Steuerung über die freigegebenen Chatbefehle; getrennte Werbewiedergabe erst nach eigenem Klick.
 
-Studiozugriff haben der tatsächliche Channelinhaber und ausdrücklich ernannte Radiomoderatoren. Channelmoderatoren und Appmanager erhalten dadurch keine zusätzlichen Radiorechte. Ein tatsächlicher App-Neustart leert die bewusst flüchtigen offenen Wünsche.
+Studiozugriff haben der tatsächliche Channelinhaber und ausdrücklich ernannte Radiomoderatoren. Channelmoderatoren und Appmanager erhalten dadurch keine zusätzlichen Radiorechte. Offene Musikwünsche sind bewusst flüchtig und werden bei einem tatsächlichen App-Neustart geleert.
 
-## Ordnerstruktur
+## Aktueller Stand
 
-```text
-MischWerk/
-├── README.md
-├── AGENTS.md
-├── PROJEKT/
-│   ├── app/                      Browseroberfläche und erzeugte Knuddels-Laufzeit
-│   ├── src/backend/              Gepflegte Backendquellen
-│   ├── medien/                   Original-Logos und MyChannel-Hintergrund
-│   ├── deployment/
-│   │   ├── live.json             Zielkonfiguration ohne Passwort
-│   │   └── manifests/            Fünf geprüfte Dateimanifeste
-│   ├── tools/
-│   │   ├── build/                Backend und Uploadbereitstellung
-│   │   ├── checks/               Projekt-, Upload-, Rhino- und Anbieterprüfungen
-│   │   ├── emulator/             Integriertes Testlabor mit Fehlerfällen
-│   │   ├── lib/                  Gemeinsames Browserinventar
-│   │   └── preview/              Lokale Vorschau
-│   ├── tests/                    Node, Browser, Rhino, Fixtures und Ersatzobjekte
-│   ├── docs/                     Architektur, Schnittstellen, Betrieb und Prüfung
-│   └── references/api/           Unveränderte Knuddels-Referenzen
-└── UPLOAD/MischWerk/              Verbindlicher Upload im Desktopprojekt
-```
+- Responsive Appleiste für **320–3840 px** mit gleichmäßiger Platzverteilung für Musik, Sendungsinformationen und eigenen Wunsch. Ohne offenen Wunsch nutzen die beiden übrigen Bereiche den Platz.
+- Mittige Menüüberschriften und Original-Logos ohne abgesetzten schwarzen Hintergrund; alle Aktionen bleiben über vorhandene Tasten, Bereichs- oder Textseiten erreichbar.
+- Wunschbox-Abgleich gebündelt und identische Darstellungen dedupliziert; Schließaufträge auf aktuelle Sitzungen begrenzt. Der dokumentierte Schreibvergleich sank von **108 auf 18 Servernachrichten**.
+- Frühe Startfehler werden sichtbar gemeldet. Ein vollständiger, zusammengehöriger Dateistand ist für die Bereitstellung erforderlich.
 
-Im Codex-Worktree gibt es keine zweite Uploadkopie. Auch ein dort gestarteter Build aktualisiert ausschließlich **C:/Users/Yves/Desktop/MischWerk/UPLOAD**. Es werden keine ZIP-Dateien erstellt. Die Dateimanifeste liegen im Arbeits- und Desktopprojekt unter PROJEKT/deployment/manifests.
+Die vollständigen Ursachenbefunde, Grenzen und aktuellen Ergebnisse stehen im [Prüfbericht](PROJEKT/docs/pruefung/PRUEFBERICHT.md).
 
-## Lokal arbeiten
+## Lokal starten
 
-Node.js ab 20, pnpm 11.25.0, Edge für Browserprüfungen und Java 11+ für Rhino. Alle Befehle aus PROJEKT/:
+Entwicklungsumgebung: **Node.js ab 20**, **pnpm 11.25.0**, Microsoft Edge für Browserprüfungen und Java 11+ für Rhino.
 
-```text
-pnpm install --frozen-lockfile
-pnpm run preview
-pnpm run emulator
-pnpm test
-pnpm run test:browser
-pnpm run test:emulator
-pnpm run check
-pnpm run prepare:upload
-pnpm run check:upload
-```
-
-Vorschau: http://127.0.0.1:8765, mit lokalen Ersatzdaten und ohne echten Senderzugriff. Details zu optionalen Prüfungen und Rhino stehen in der [technischen Übersicht](PROJEKT/README.md).
-
-## Integrierter Emulator
-
-Das Testlabor liegt vollständig unter [PROJEKT/tools/emulator](PROJEKT/tools/emulator). Der MischWerk-Projektordner genügt für die Entwicklung und den Zugriff durch Codex; Start- und Prüfwege stehen in den [Projektregeln](PROJEKT/AGENTS.md#codex-zugriff-auf-den-integrierten-emulator). Eine separate Emulator-ZIP oder ein zweiter Projektordner wird nicht benötigt.
-
-Direkt aus dem MischWerk-Hauptordner starten:
+Aus dem MischWerk-Hauptordner:
 
 ```powershell
 pnpm --dir PROJEKT install --frozen-lockfile
 pnpm --dir PROJEKT run emulator
 ```
 
-Anschließend http://127.0.0.1:8776 öffnen; Strg+C beendet den Server. Die automatische Emulatorprüfung läuft mit `pnpm --dir PROJEKT run test:emulator`.
+Das integrierte Testlabor öffnet unter **http://127.0.0.1:8776**. Es verwendet den echten lokalen Appcode in getrennten Frames für Radioleiste und Overlays. Mehrere Testnutzer, Rollenwechsel, verzögerte oder doppelte Nachrichten, Ressourcenfehler und lokale Anbieterantworten lassen sich gezielt prüfen. Testdaten bleiben im System-Tempordner; Radio startet erst nach Play.
 
-Der Emulator lädt den echten lokalen Appcode und stellt Radioleiste, Wunsch-Overlay und Verwaltungsfenster in getrennten Frames dar. Mehrere Testnutzer, Rollenwechsel, verlorene oder doppelte Nachrichten, Verzögerungen, Speicherfehler und lokale Anbieterantworten lassen sich gezielt prüfen. Testdaten liegen getrennt im System-Tempordner; Appdateien und Upload werden vom Emulator nur gelesen.
+Eine separate Emulator-ZIP oder ein zweiter Projektordner ist nicht erforderlich. Die [Bedienhilfe](PROJEKT/tools/emulator/www/help.html) und der [Codex-Einstieg](PROJEKT/AGENTS.md#codex-zugriff-auf-den-integrierten-emulator) beschreiben Betrieb und Grenzen.
 
-Die [Bedienhilfe](PROJEKT/tools/emulator/www/help.html) erklärt die Fehlerfälle und Diagnose. Die Plattform wird lokal simuliert; echte Knuddels-/K3-/STAPP-/iOS-Prüfungen bleiben separat erforderlich. Öffentliche SPCast-Anschlüsse wurden zusätzlich im HTTP-/Edge-Test geprüft. Ergebnisse stehen im [aktuellen Prüfbericht](PROJEKT/docs/pruefung/PRUEFBERICHT.md).
+## Prüfen und lokal bereitstellen
 
-## Knuddels-Bereitstellung
+```powershell
+pnpm --dir PROJEKT test
+pnpm --dir PROJEKT run test:browser
+pnpm --dir PROJEKT run check
+pnpm --dir PROJEKT run check:rhino
+pnpm --dir PROJEKT run prepare:upload
+pnpm --dir PROJEKT run check:upload
+```
 
-Die lokale Bereitstellung führt keinen FTP-Upload, kein Knuddels-Update und keinen Neustart aus. Nach gesondertem Auftrag gehört der Ordner MischWerk aus dem Desktop-UPLOAD nach /ftp. Installation und kontrolliertes Update sind in der [Betriebsanleitung](PROJEKT/docs/betrieb/INBETRIEBNAHME.md#installation-und-upload) beschrieben.
+Für die erste Rhino-Prüfung können die geprüften JARs mit `node PROJEKT/tools/checks/rhino.cjs --download` im lokalen Temp-Cache bereitgestellt werden.
 
-Passwörter, Tokens und Encoder-Zugangsdaten gehören nicht in die App oder Git. Git-Verwaltung und installierte Abhängigkeiten bleiben an ihren vorgesehenen Stellen; UPLOAD und node_modules sind per .gitignore ausgeschlossen.
+Der aktuelle Paketbau umfasst **236 Nodefälle**, beide Rhino-Engines mit **je 802 Prüfungen** sowie Architektur-, Syntax-, Kennungs-, Längen- und Uploadkontrollen. Die vollständige Browserabnahme von Build 201 umfasst **234 Fälle**. Für die Hintergrundanpassung in Build 202 wurden **14 relevante Browserfälle** einschließlich der **456 Geometriefälle** und der frühen Ladewege erneut geprüft. Die lokalen Modelle ersetzen keine native Knuddels-Abnahme.
 
-[Bedienung der Moderationserweiterungen](PROJEKT/docs/betrieb/INBETRIEBNAHME.md#moderation-verwenden).
+Der Paketbau erzeugt **106 Laufzeitdateien** und fünf konsistente Dateimanifeste. Jede ausgelieferte Textdatei und jedes Manifest bleibt strikt unter **9500 Zeichen**. Vollständige Quellmodule werden ausschließlich für die Auslieferung reproduzierbar gebündelt.
+
+Das feste lokale Ziel ist **C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/**, konfiguriert in [deployment/live.json](PROJEKT/deployment/live.json). Dieser erzeugte Ordner ist per Gitignore vom Repository ausgeschlossen. Der Build führt keinen FTP-Upload, kein Knuddels-Update und keinen Neustart aus. Für eine spätere Knuddels-Bereitstellung alle Dateien einschließlich Unterordnern gemeinsam übertragen; siehe [Betriebsanleitung](PROJEKT/docs/betrieb/INBETRIEBNAHME.md#installation-und-upload).
+
+## Projektaufbau und Dokumentation
+
+| Bereich | Ablage |
+| --- | --- |
+| Laufzeit der Knuddels-App | [PROJEKT/app](PROJEKT/app) |
+| Gepflegte Backendquellen | [PROJEKT/src/backend](PROJEKT/src/backend) |
+| Integriertes Testlabor | [PROJEKT/tools/emulator](PROJEKT/tools/emulator) |
+| Build, Prüfungen und Tests | [PROJEKT/tools](PROJEKT/tools) · [PROJEKT/tests](PROJEKT/tests) |
+| Originalmedien und Channelbild | [PROJEKT/medien](PROJEKT/medien) |
+| Technischer Einstieg | [Projektübersicht](PROJEKT/README.md) |
+| Verbindliche Projektregeln | [PROJEKT/AGENTS.md](PROJEKT/AGENTS.md) |
+| Architektur und Gestaltung | [Architektur](PROJEKT/docs/architektur/ARCHITEKTUR.md) · [Frontend](PROJEKT/docs/architektur/ARCHITEKTUR-FRONTEND.md) · [Design](PROJEKT/docs/architektur/DESIGN.md) |
+| API, Betrieb und Abnahme | [API-Nachweis](PROJEKT/docs/api/API-NACHWEIS.md) · [Betrieb](PROJEKT/docs/betrieb/INBETRIEBNAHME.md) · [Native Abnahme](PROJEKT/docs/betrieb/LIVE-ABNAHME.md) |
+
+Der eigenständige [Websiteentwurf](PROJEKT/website/README.md) ist **pausiert**. Er gehört weder zur aktiven App noch zum Upload; normaler Start, Mailversand und Appanbindung bleiben deaktiviert. Private Konfigurationen, Zugangsdaten und Entwicklungsabhängigkeiten werden nicht in Git aufgenommen.

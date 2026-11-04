@@ -1,3 +1,4 @@
+const {previewCurtain}=require('../support/preview-command.cjs');
 // Optional: Playwright/Edge mit lokalem Testton und eigener Werbe-MP3, ohne echte Sender-/Knuddels-Verbindungen.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -6,58 +7,95 @@ const path = require('node:path');
 const { chromium } = require(process.env.MISCHWERK_PLAYWRIGHT || 'playwright');
 const { createHarness } = require('../support/knuddels.cjs');
 const { configureStream } = require('../fixtures/stream.cjs');
+const {reveal:revealStudio,readText:readStudioText,fits:studioFits,settle:studioSettle}=require('../support/studio-browser.cjs');
 const root = path.resolve(__dirname, '../..');
+const browserSource=process.env.MISCHWERK_TEST_UPLOAD?path.resolve(process.env.MISCHWERK_TEST_UPLOAD,'www'):path.join(root,'app/www');
 let browser;
+// Tatsächlichen lokalen Ladeplan prüfen, einschließlich reproduzierbarer Uploadbündel.
+function selectedFiles(view){
+ const vm=require('node:vm'),files=[],document={readyState:'loading',addEventListener(){},documentElement:{getAttribute:()=>view,setAttribute(){}}};
+ const Client={pageData:{view},includeJS:f=>files.push(f),includeCSS:f=>files.push(f)};
+ vm.runInNewContext(fs.readFileSync(path.join(browserSource,'index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1],{Client,document,setTimeout(){}});
+ vm.runInNewContext(fs.readFileSync(path.join(browserSource,'js/start.js'),'utf8'),{Client,document,window:{}});
+ return ['js/start.js',...files];
+}
+function deliveredFile(view,file){
+ if(!process.env.MISCHWERK_TEST_UPLOAD||file==='js/start.js')return file;
+ const original=fs.readFileSync(path.join(root,'app/www',file),'utf8');
+ const delivered=selectedFiles(view).find(f=>f.endsWith(path.extname(file))&&fs.readFileSync(path.join(browserSource,f),'utf8').includes(original));
+ assert.ok(delivered,'Vollständige Quelldatei im Ladeplan vorhanden: '+file);return delivered;
+}
 
-test('Zentrierung und Studiokartenhintergrund bleiben beim Wechsel aller Leistenbreiten erhalten',async t=>{
-  const rows=[];
-  const widths=[1490,1599,1600,1601,1360,1100,1099,1024,868,760,759,700,699,640,390,320,1920,2560,3440,3840];
-  try {
-    for(const deviceScaleFactor of [1,1.25,1.5,2])for(const role of ['listener','owner']) {
-      const {page,state,errors}=await setup(t,{role,deviceScaleFactor,station:true,viewport:{width:1490,height:160}});
-      await page.route('https://stats.example.com/widget/radio/test-radio/track/current',route=>route.fulfill({json:{title:'You Might Think',artist:'The Cars'}}));
-      await page.reload();await page.waitForFunction(()=>document.getElementById('track-title').textContent==='You Might Think');
-      await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,topic:'',moderator:null}),state);
-      for(const [width,height] of [...widths.map(width=>[width,160]),[320,600],[390,600],[699,600]]) {
-        await resizeViewport(page,{width,height});
-        await page.waitForFunction(({width,height})=>document.documentElement.classList.contains('radio-constrained')===(width<700&&height<360),{width,height});
-        const row=await page.evaluate(()=>{
-          const face=document.querySelector('.radio-program-face'),f=face.getBoundingClientRect(),m=document.getElementById('radio-metadata');
-          function textCenter(id){const r=document.createRange();r.selectNodeContents(document.getElementById(id));const b=r.getBoundingClientRect();return b.x+b.width/2;}
-          const volume=document.querySelector('.volume-control').getBoundingClientRect();
-          const before=getComputedStyle(face,'::before'),after=getComputedStyle(face,'::after');
-          return {faceVisible:getComputedStyle(face).display!=='none',faceX:f.x,faceY:f.y,faceWidth:f.width,faceHeight:f.height,center:m.getBoundingClientRect().x+m.getBoundingClientRect().width/2,
-            titleCenter:textCenter('track-title'),artistCenter:textCenter('track-artist'),volumeCenter:volume.x+volume.width/2,
-            metadataAlign:getComputedStyle(m).textAlign,horizontalOverflow:document.documentElement.scrollWidth>innerWidth||m.scrollWidth>m.clientWidth,
-            grooves:{width:parseFloat(before.width),height:parseFloat(before.height)},arcs:{width:parseFloat(after.width),height:parseFloat(after.height)}};
-        });
-        rows.push({width,height,role,deviceScaleFactor,...row});
-        if(process.env.MISCHWERK_LAYOUT_BEFORE&&width===1490&&deviceScaleFactor===1&&role==='listener')await captureDesign(page,'Breitenfehler-Vorher-1490');
-        assert.ok(row.faceVisible&&row.faceWidth>0&&row.faceHeight>0,'Musikkartenhintergrund bleibt sichtbar bei '+width+' × '+height);
-        for(const field of ['titleCenter','artistCenter','volumeCenter'])assert.ok(Math.abs(row[field]-row.center)<1.5,field+' bleibt zur Musikkarte zentriert bei '+width+' × '+height+'; Abweichung '+(row[field]-row.center));
-        assert.equal(row.horizontalOverflow,false,'Keine horizontale Überbreite bei '+width+' × '+height);
-        for(const pattern of [row.grooves,row.arcs]) {
-          assert.ok(Math.abs(pattern.width-pattern.height)<1,'Rillen und Bogenlinien bleiben kreisförmig');
-          assert.ok(pattern.width<=Math.max(180,row.faceWidth*.8),'Dekoration passt sich schmalen Musikkarten an');
-        }
-        if(deviceScaleFactor===1&&role==='owner'&&[320,390,699,700,1024,1360,1490,1599,1600,1920].includes(width))await captureDesign(page,'Breiten-Korrektur-'+width+'-'+height);
-      }
-      await page.evaluate(state=>window.__emit('mw:state',{...state,revision:3,topic:'S'.repeat(80),moderator:{nick:'EinSehrLangerModeratornameMitWeiteremZusatz'}}),state);
-      for(const [width,height] of [[320,160],[700,160],[1490,160],[1599,160],[390,600]]) {
-        await resizeViewport(page,{width,height});
-        await page.locator('#show-topic').scrollIntoViewIfNeeded();await page.locator('#host-name').scrollIntoViewIfNeeded();
-        assert.equal(await page.locator('#radio-metadata').evaluate(n=>n.scrollWidth>n.clientWidth),false,'Lange Themen und Nicks bleiben vollständig umbrechend');
-      }
-      assert.deepEqual(errors,[]);await page.context().close();
-    }
-  } finally {
-    if(process.env.MISCHWERK_LAYOUT_RESULTS)fs.writeFileSync(process.env.MISCHWERK_LAYOUT_RESULTS,JSON.stringify(rows,null,2)+'\n');
-  }
+
+for(const k3 of [true,false])test('Wiedergabe-Heartbeat in '+(k3?'K3':'STAPP')+' bleibt an Medienfortschritt und frische Channelantwort gebunden',async t=>{
+ const {page,state,errors}=await setup(t,{station:true,clock:true,activityAudio:true,k3});
+ await page.evaluate(state=>{
+  let revision=state.revision;window.__activityAck=true;
+  const original=Client.sendEvent;Client.sendEvent=function(type,data){
+   original.call(this,type,data);
+   if(type==='mw:refresh'&&(!data.requestId||window.__activityAck))window.__emit('mw:state',{...state,revision:++revision,refreshRequestId:data.requestId});
+  };
+ },state);
+ await page.clock.runFor(200000);assert.equal(await page.evaluate(()=>window.__slashCommands.length),0);
+ await page.locator('#play-button').click();await page.clock.runFor(180000);
+ assert.equal(await page.evaluate(()=>window.__slashCommands.length),0);
+ await page.clock.runFor(2000);assert.deepEqual(await page.evaluate(()=>window.__slashCommands.map(s=>s.command)),['/confirm'],JSON.stringify(await page.evaluate(()=>({sent:window.__sent.slice(-5),label:document.getElementById('stream-label').textContent,position:document.getElementById('radio-audio').currentTime,paused:document.getElementById('radio-audio').paused,ready:document.getElementById('radio-audio').readyState,now:Date.now()}))));
+ await page.evaluate(()=>Object.defineProperty(document,'hidden',{configurable:true,value:true}));
+ await page.clock.runFor(182000);assert.equal(await page.evaluate(()=>window.__slashCommands.length),2);
+ await page.evaluate(()=>{window.__activityAck=false;});await page.clock.runFor(180000);
+ assert.equal(await page.evaluate(()=>window.__slashCommands.length),2,'Keine Aktivität allein aus laufendem Ton oder beliebigen Snapshots');
+ const pending=await page.evaluate(()=>window.__sent.filter(e=>e.data?.requestId?.startsWith('playback-')).at(-1).data.requestId);
+ await page.locator('#play-button').click();
+ await page.evaluate(({state,pending})=>window.__emit('mw:state',{...state,revision:9999,refreshRequestId:pending}),{state,pending});
+ await page.clock.runFor(600000);assert.equal(await page.evaluate(()=>window.__slashCommands.length),2);
+ assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);assert.deepEqual(errors,[]);
 });
+
+test('Vinyl Deck bleibt über alle Leistenbreiten, Rollen und Pixeldichten erreichbar',async t=>{
+ const rows=[],widths=[320,360,374,375,390,560,561,640,641,699,700,701,850,899,900,901,1024,1100,1199,1200,1201,1280,1350,1351,1360,1490,1600,1920,2290,2560,3440,3840];
+ try{
+  for(const deviceScaleFactor of [1,1.25,1.5,2])for(const role of ['listener','radioModerator','owner']){
+   const {page,state,errors,requests}=await setup(t,{role,deviceScaleFactor,station:true,viewport:{width:1280,height:160}});
+   await page.evaluate(()=>document.fonts.ready);
+   for(const [width,height] of [...widths.map(w=>[w,160]),[320,360],[390,600],[700,600],[701,600],[1199,600],[1200,600]]){
+    await resizeViewport(page,{width,height});
+    const row=await page.evaluate(()=>{
+     const m=document.getElementById('radio-metadata'),face=document.querySelector('.radio-program-face'),f=face.getBoundingClientRect();
+     const controls=['play-button','open-schedule','open-wishes','studio-tab','team-tab'].map(id=>document.getElementById(id)).filter(n=>n?.getClientRects().length).map(n=>({id:n.id,...n.getBoundingClientRect().toJSON()}));
+     const music=document.querySelector('.now-playing').getBoundingClientRect(),topic=document.querySelector('.radio-context').getBoundingClientRect();
+     return {canvases:[document.documentElement,document.body,document.getElementById('radio-panel')].map(n=>getComputedStyle(n).backgroundColor),musicShare:music.width/m.clientWidth,topicShare:topic.width/m.clientWidth,faceWidth:f.width,faceHeight:f.height,horizontalOverflow:document.documentElement.scrollWidth>innerWidth||m.scrollWidth>m.clientWidth,controls,
+      background:getComputedStyle(face).backgroundColor,vinyl:getComputedStyle(face,'::before').backgroundImage,titleFont:getComputedStyle(document.getElementById('track-title')).fontFamily,uiFont:getComputedStyle(document.body).fontFamily};
+    });
+    rows.push({width,height,role,deviceScaleFactor,...row});
+    const detail=JSON.stringify({width,height,role,deviceScaleFactor,...row});
+    assert.ok(row.faceWidth>0&&row.faceHeight>0,detail);assert.equal(row.horizontalOverflow,false,detail);
+    if(width>=1200){assert.ok(row.musicShare<=.6&&row.topicShare>=.35,'Musik und Thema teilen die Breite ausgewogen: '+detail);}
+    assert.deepEqual(row.canvases,Array(3).fill('rgb(15, 17, 20)'),'Äußerer Untergrund entspricht dem Channelbild: '+detail);
+    assert.equal(row.background,'rgb(20, 20, 20)');assert.match(row.vinyl,/repeating-radial-gradient/);assert.match(row.titleFont,/Fraunces/);assert.match(row.uiFont,/Outfit/);
+    assert.equal(row.controls.length,role==='owner'?5:role==='radioModerator'?4:3,detail);
+    for(const c of row.controls){assert.ok(c.width>=44&&c.height>=44,detail);assert.ok(c.x>=0&&c.x+c.width<=width+.5,detail);if(height===160)assert.ok(c.y>=0&&c.y+c.height<=160.5,detail);}
+    for(const id of ['mute-button','volume','volume-value']){await page.locator('#'+id).scrollIntoViewIfNeeded();const c=await page.locator('#'+id).boundingBox();assert.ok(c.x>=0&&c.x+c.width<=width+.5,detail);}
+    if(deviceScaleFactor===1&&role==='owner'&&[320,700,1280,2290].includes(width)&&height===160)await captureDesign(page,'Vinyl-Deck-'+width);
+   }
+   const text='Langer vollständiger Musikwunsch '.repeat(10).slice(0,300);
+   await page.evaluate(({state,text})=>window.__emit('mw:state',{...state,revision:3,topic:'S'.repeat(80),moderator:{nick:'EinSehrLangerModeratornameMitWeiteremZusatz'},wishPositions:{available:true,generation:'vinyl-test',revision:1,nextPosition:2,items:[{id:1,text,position:2,stage:'queued'}],total:1,page:0,pages:1,nextItem:{id:1,text,position:2,stage:'queued'}}}),{state,text});
+   for(const width of [320,700,701,900,901,1199,1200,1280,3840]){
+    await resizeViewport(page,{width,height:160});
+    for(const id of ['show-topic','host-name','own-wish-rank','own-wish-title','mute-button'])await page.locator('#'+id).scrollIntoViewIfNeeded();
+    assert.equal(await page.locator('#radio-metadata').evaluate(n=>n.scrollWidth>n.clientWidth),false,'Lange Inhalte bei '+width);
+    assert.equal(await page.locator('#own-wish-title').getAttribute('title'),text);
+    if(width>=1200){const portions=await page.evaluate(()=>{const m=document.getElementById('radio-metadata');return ['.now-playing','.radio-context','#own-wish-position'].map(s=>document.querySelector(s).getBoundingClientRect().width/m.clientWidth);});assert.ok(Math.max(...portions)<=.45&&Math.min(...portions)>=.23,'Mit Wunsch teilen alle drei Bereiche die Breite: '+JSON.stringify({width,role,portions}));}
+   }
+   assert.ok(requests.every(url=>!url.includes('fonts.googleapis.com')&&!url.includes('fonts.gstatic.com')),'Schriften ausschließlich lokal');
+   assert.deepEqual(errors,[]);await page.context().close();
+  }
+ }finally{if(process.env.MISCHWERK_LAYOUT_RESULTS)fs.writeFileSync(process.env.MISCHWERK_LAYOUT_RESULTS,JSON.stringify(rows,null,2)+'\n');}
+});
+
 test.before(async () => { browser = await chromium.launch({ headless: true, channel: 'msedge' }); });
 test.after(async () => { await browser?.close(); });
 function radioSong(song) { return song ? {title:song.title,artist:typeof song.artist==='string'?song.artist:song.artist?.name} : null; }
-async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight, role = 'owner', curtainClosed = false, nick, parserIncludes = false, deviceScaleFactor = 1, station = false, delayedSong = false, delayedStatus = false, providerStatus = 'started', throwingPlay = false, clock = false, k3 = true, realAudio = false, cors = true, savedVolume, loadingDelay, loadingPause = 0, initialRequest = false, view = 'radio', viewport = { width: 960, height: 760 } } = {}) {
+async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight, role = 'owner', curtainClosed = false, nick, parserIncludes = false, deviceScaleFactor = 1, station = false, delayedSong = false, delayedStatus = false, providerStatus = 'started', throwingPlay = false, clock = false, k3 = true, realAudio = false, activityAudio = false, cors = true, savedVolume, loadingDelay, loadingPause = 0, initialRequest = false, view = 'radio', overlayState, viewport = { width: 960, height: 760 } } = {}) {
   const h = createHarness(); configureStream(h.config, station ? 'test-radio' : '');
   const owner=h.user(1,'Otterchen','owner'),ownerSession=h.open(owner);
   const user=role==='owner'?owner:h.user(2,role==='radioModerator'?'RadioMod':'Musikfreund',role==='channelModerator'?'moderator':role==='manager'?'manager':'listener');
@@ -65,6 +103,7 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
   const session=role==='owner'?ownerSession:h.open(user);
   if(nick){user.nick=nick;}
   const state = h.state(user, session); state.view = view; state.curtain.closed=curtainClosed;
+  if(overlayState){state.overlay=true;state.overlayState=overlayState;}
   if (initialRequest) { state.queue = [{id:201,nick:'Hörer',text:'a-ha – Take On Me',createdAt:Date.now()}]; state.queueTotal=1; state.pages=1; }
   const context = await browser.newContext({ viewport, deviceScaleFactor });
   t.after(() => context.close());
@@ -91,13 +130,13 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
   let loadingSnapshot = null;
   page.on('pageerror', error => errors.push(error.message));
   if (clock) { await page.clock.install(); }
-  await page.addInitScript(({ state, throwingPlay, k3, realAudio, savedVolume, parserIncludes, nativeSizing, screenHeight }) => {
+  await page.addInitScript(({ state, throwingPlay, k3, realAudio, activityAudio, savedVolume, parserIncludes, nativeSizing, screenHeight }) => {
     if(savedVolume!==undefined){localStorage.setItem('mischwerk.volume.v1',String(savedVolume));}
     window.__sizeStates=[];
     if(screenHeight!==undefined||nativeSizing)Object.defineProperty(screen,'availHeight',{configurable:true,get(){
       return nativeSizing&&window.__sizes.length?innerHeight:(screenHeight??1080);
     }});
-    window.__sent = []; window.__handlers = {}; window.__rejects = []; window.__adRejects = []; window.__adPlays = []; window.__sizes = []; window.__inclusions = [];
+    window.__slashCommands = []; window.__sent = []; window.__handlers = {}; window.__rejects = []; window.__adRejects = []; window.__adPlays = []; window.__sizes = []; window.__inclusions = [];
     window.__emit = (type, data) => (window.__handlers[type] || []).forEach(callback => callback({ type, data }));
     window.Client = {
       pageData: state,
@@ -112,6 +151,7 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
         const script = document.createElement('script'); script.src = file; (document.body||document.head).appendChild(script);
       },
       sendEvent(type, data) { window.__sent.push({ type, data }); },
+      executeSlashCommand(command) { window.__slashCommands.push({command,at:Date.now()}); },
       addEventListener(type, callback) { (window.__handlers[type] || (window.__handlers[type] = [])).push(callback); },
       getHostFrame() { return { setTitle() {}, setResizable() {}, setSize(width, height) { window.__sizes.push([width, height]);
         window.__sizeStates.push({width,height,visible:document.documentElement.classList.contains('mw-ready')});
@@ -121,6 +161,16 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
     window.__contexts=[];
     window.AudioContext=window.webkitAudioContext=function(){window.__contexts.push('unexpected');throw new Error('Keine Audioanalyse vorgesehen');};
     if(realAudio){return;}
+    if(activityAudio){
+      const states=new WeakMap();function media(node){if(!states.has(node))states.set(node,{paused:true,began:Date.now()});return states.get(node);}
+      Object.defineProperty(HTMLMediaElement.prototype,'currentTime',{configurable:true,get(){const s=media(this);return s.paused?0:(Date.now()-s.began)/1000;}});
+      Object.defineProperty(HTMLMediaElement.prototype,'paused',{configurable:true,get(){return media(this).paused;}});
+      Object.defineProperty(HTMLMediaElement.prototype,'readyState',{configurable:true,get(){return media(this).paused?0:4;}});
+      HTMLMediaElement.prototype.load=function(){};
+      HTMLMediaElement.prototype.pause=function(){media(this).paused=true;};
+      HTMLMediaElement.prototype.play=function(){Object.assign(media(this),{paused:false,began:Date.now()});this.dispatchEvent(new Event('playing'));return Promise.resolve();};
+      return;
+    }
     HTMLMediaElement.prototype.load = function () {};
     HTMLMediaElement.prototype.pause = function () {};
     HTMLMediaElement.prototype.play = function () {
@@ -131,7 +181,7 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
       if (throwingPlay) { throw new Error('Playback not supported'); }
       return new Promise((resolve, reject) => window.__rejects.push(reject));
     };
-  }, { state, throwingPlay, k3, realAudio, savedVolume, parserIncludes, nativeSizing, screenHeight });
+  }, { state, throwingPlay, k3, realAudio, activityAudio, savedVolume, parserIncludes, nativeSizing, screenHeight });
   if(realAudio){
     const body=require('../fixtures/audio.cjs').audioFixture();
     await page.route('https://stream.example.com/test-radio',route=>{
@@ -156,8 +206,8 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
   await page.route('http://mischwerk.test/**', async route => {
     const url = new URL(route.request().url());
     const file = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
-    const absolute = path.resolve(root, 'app/www', file);
-    if (!absolute.startsWith(path.join(root, 'app', 'www') + path.sep) || !fs.existsSync(absolute)) { await route.fulfill({ status: 404 }); return; }
+    const absolute = path.resolve(browserSource, file);
+    if (!absolute.startsWith(browserSource + path.sep) || !fs.existsSync(absolute)) { await route.fulfill({ status: 404 }); return; }
     const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.mp3': 'audio/mpeg' };
     if(file.endsWith('.mp3')){
       const body=fs.readFileSync(absolute),match=(route.request().headers().range||'').match(/bytes=(\d+)-(\d*)/);
@@ -165,11 +215,10 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
       return route.fulfill({status:match?206:200,contentType:'audio/mpeg',headers:{'Accept-Ranges':'bytes',
         ...(match?{'Content-Range':'bytes '+start+'-'+end+'/'+body.length}:{})},body:body.subarray(start,end+1)});
     }
-    if ((['css','parallel'].includes(loadingDelay) && file === 'css/foundation.css') || (loadingDelay === 'script' && file === 'js/start.js') ||
-        (loadingDelay === 'module' && file === ({studio:'js/studio/queue.js',team:'js/team/management.js'}[view] || 'js/radio/player.js')) ||
-        (loadingDelay === 'stylesheet' && file === ({studio:'css/studio.css',team:'css/team.css',wishes:'css/wishbox.css'}[view] || 'css/radio-surface.css')) ||
-        (loadingDelay === 'logo' && file === 'img/mischwerk-logo.png') ||
-        (loadingDelay === 'actions' && file === 'css/radio-actions.css')) { await layoutGate; }
+    const delayedFile=loadingDelay==='module'?({studio:'js/studio/queue.js',team:'js/team/management.js'}[view]||'js/radio/player.js'):
+      loadingDelay==='stylesheet'?({studio:'css/studio.css',team:'css/team.css',wishes:'css/wishbox.css'}[view]||'css/radio-surface.css'):
+      ({css:'css/foundation.css',parallel:'css/foundation.css',script:'js/start.js',logo:'img/mischwerk-logo.png',actions:'css/radio-actions.css'}[loadingDelay]);
+    if (delayedFile&&file===(delayedFile.startsWith('img/')?delayedFile:deliveredFile(view,delayedFile))) { await layoutGate; }
     await route.fulfill({ contentType: types[path.extname(file)], body: fs.readFileSync(absolute) });
   });
   const metadataRequested=station&&view==='radio'&&!delayedStatus&&providerStatus!=='stopped'?page.waitForRequest('https://stats.example.com/widget/radio/test-radio/track/current'):null;
@@ -202,7 +251,7 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
 function radioHeight() { return 160; }
 async function showStudioPane(page, queue) {
   if (!await page.locator(queue ? '#studio-requests' : '#studio-setup').isVisible()) {
-    await page.locator(queue ? '#studio-queue-tab' : '#studio-controls-tab').click();
+    await page.locator(queue ? '#studio-queue-tab' : '#studio-programme-tab').click();
   }
 }
 
@@ -260,9 +309,9 @@ test('Tageshistorie zeigt heute nach Senderzeit, erhält Wiederholungen und stel
     historyRow('2026-11-03T13:00:00Z','Noch nicht gespielt'),historyRow('2026-11-03T10:00:00Z','Unknown'));
   const {page,state,requests,source,errors}=await historySetup(t,r=>r.fulfill({json:entries}));
   assert.equal(requests.includes(source),false);
-  const sizes=await page.evaluate(()=>__sizes.slice());
   await page.locator('#studio-history-tab').click();await page.locator('#history-list li').first().waitFor();
-  assert.ok((await page.locator('#history-list li').count())>0 && (await page.locator('#history-list li').count())<=6);
+  const sizes=await page.evaluate(()=>__sizes.slice());
+  assert.ok((await page.locator('#history-list li').count())>0 && (await page.locator('#history-list li').count())<=entries.length);
   assert.equal(await page.locator('#history-list li').first().textContent(),'12:30:00<img src=x onerror=alert(1)>');
   assert.equal(await page.locator('#history-list img').count(),0);
   assert.equal(await page.locator('#history-heading').textContent(),'Heute · 03.11.2026');
@@ -270,18 +319,35 @@ test('Tageshistorie zeigt heute nach Senderzeit, erhält Wiederholungen und stel
   const calendarReads=await page.evaluate(()=>__sent.filter(e=>e.type==='mw:schedule.get').length);
   await page.evaluate(state=>__emit('mw:state',{...state,revision:3}),state);
   assert.equal(await page.evaluate(()=>__sent.filter(e=>e.type==='mw:schedule.get').length),calendarReads);
+  assert.equal(await page.locator('#history-next').isDisabled(),true,'Auf der neuesten Seite gibt es zeitlich kein Weiter');
+  assert.equal(await page.locator('#history-previous').isDisabled(),false,'Zurück führt zu älteren Titeln');
+  const numbering=async()=> (await page.locator('#history-page').textContent()).match(/\d+/g).map(Number);
+  const [latestPage,totalPages]=await numbering();
+  assert.ok(totalPages>1);
+  assert.equal(latestPage,totalPages,'Beim Öffnen liegen die neuesten Titel auf der letzten Seite');
+  const latest=await page.locator('#history-list time').first().getAttribute('datetime');
+  const newestTexts=await page.locator('#history-list li span').allTextContents();
+  await page.locator('#history-previous').click();
+  assert.deepEqual(await numbering(),[totalPages-1,totalPages],'Zurück zählt in Richtung Seite 1');
+  assert.ok(Date.parse(await page.locator('#history-list time').first().getAttribute('datetime'))<Date.parse(latest),'Zurück verringert die angezeigte Uhrzeit');
+  await page.locator('#history-next').click();
+  assert.deepEqual(await numbering(),[totalPages,totalPages],'Weiter zählt wieder zur neuesten letzten Seite');
+  assert.equal(await page.locator('#history-list time').first().getAttribute('datetime'),latest,'Weiter führt wieder zu neueren Uhrzeiten');
+  assert.deepEqual(await page.locator('#history-list li span').allTextContents(),newestTexts);
   const texts=[...(await page.locator('#history-list li span').allTextContents())];
-  while(!await page.locator('#history-next').isDisabled()) { await page.locator('#history-next').click();texts.push(...await page.locator('#history-list li span').allTextContents()); }
+  while(!await page.locator('#history-previous').isDisabled()) { await page.locator('#history-previous').click();texts.push(...await page.locator('#history-list li span').allTextContents()); }
+  assert.equal(await page.locator('#history-next').isDisabled(),false,'Auf der ältesten Seite führt Weiter wieder zu neueren Titeln');
+  assert.deepEqual(await numbering(),[1,totalPages],'Die ältesten Titel liegen auf Seite 1');
   assert.equal(texts.filter(text=>text==='Band – Titel 0').length,2);
   assert.ok(!texts.some(text=>['Gestern','Noch nicht gespielt','Unknown'].includes(text)));
   for(const width of [320,390,820]){
     await page.setViewportSize({width,height:660});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     for(const control of await page.locator('#history-panel button:visible').all())await control.scrollIntoViewIfNeeded();
   }
-  assert.deepEqual(await page.evaluate(()=>__sizes),sizes);
+  await validDialogSizes(page);
   await page.locator('#studio-history-tab').focus();await page.keyboard.press('ArrowLeft');
-  assert.equal(await page.locator('#studio-programme').isVisible(),true);
-  assert.equal(await page.locator('#studio-programme-tab').evaluate(n=>n===document.activeElement),true);
+  assert.equal(await page.locator('#studio-requests').isVisible(),true);
+  assert.equal(await page.locator('#studio-queue-tab').evaluate(n=>n===document.activeElement),true);
   assert.deepEqual(errors,[]);
 });
 test('Tageshistorie blendet konfigurierte Senderjingles aus und erhält ähnliche Musiktitel unverändert',async t=>{
@@ -295,7 +361,9 @@ test('Tageshistorie blendet konfigurierte Senderjingles aus und erhält ähnlich
   assert.equal(await page.locator('#history-pagination').isVisible(),false);
   await page.evaluate(state=>__emit('mw:state',{...state,revision:3,station:{...state.station,historyIgnoredTitles:[]}}),state);
   await page.locator('#history-refresh:not([disabled])').waitFor();
-  assert.equal(await page.locator('#history-list li').count(),6);assert.equal(await page.locator('#history-page').textContent(),'Seite 1 / 2');
+  assert.equal(await page.locator('#history-count').textContent(),'8 Titelmeldungen heute');
+  await page.setViewportSize({width:820,height:800});await studioSettle(page);
+  assert.ok(await page.locator('#history-list li').count()>6,'Verfügbarer Platz ersetzt die frühere Sechsergrenze');
   await page.evaluate(state=>__emit('mw:state',{...state,revision:4}),state);await page.locator('#history-refresh:not([disabled])').waitFor();
   assert.equal(await page.locator('#history-list li').count(),4);
   entries=entries.slice(0,4);await page.locator('#history-refresh').click();
@@ -311,21 +379,21 @@ test('Historie passt ihre Seiten ohne Scrollen an den Overlayrahmen an und erhä
   await page.locator('#studio-history-tab').click();await page.locator('#history-feedback').filter({hasText:'Aktualisiert'}).waitFor();
   for(const [width,height] of [[820,660],[390,480],[320,400]]){
     await page.setViewportSize({width,height});
-    let guard=0;while(!await page.locator('#history-previous').isDisabled()){
-      assert.ok(guard++<100);await page.locator('#history-previous').click();
+    let guard=0;while(!await page.locator('#history-next').isDisabled()){
+      assert.ok(guard++<100,JSON.stringify(await page.evaluate(()=>({width:innerWidth,height:innerHeight,page:document.getElementById('history-page').textContent,list:document.getElementById('history-list').clientHeight,header:document.querySelector('.dialog-header').getBoundingClientRect().height}))));await page.locator('#history-next').click();
     }
     const recovered=new Map();guard=0;
     for(;;){
       const geometry=await page.evaluate(()=>({height:document.documentElement.scrollHeight,width:document.documentElement.scrollWidth,controls:document.getElementById('history-pagination').getBoundingClientRect().bottom,
         shell:document.querySelector('.dialog-shell').getBoundingClientRect().bottom,body:document.body.getBoundingClientRect().bottom,
-        list:document.getElementById('history-list').getBoundingClientRect().height,footer:document.querySelector('#history-panel .fine-print').getBoundingClientRect().bottom}));
+        list:document.getElementById('history-list').getBoundingClientRect().height}));
       assert.ok(geometry.height<=height+1,JSON.stringify({width,height,...geometry}));assert.ok(geometry.width<=width);
       assert.ok(geometry.controls<=height+1);
       for(const row of await page.locator('#history-list li').evaluateAll(nodes=>nodes.map(n=>({key:n.querySelector('time').dateTime,text:n.querySelector('span').textContent})))){
         recovered.set(row.key,(recovered.get(row.key)||'')+row.text);
       }
-      if(await page.locator('#history-next').isDisabled())break;
-      assert.ok(guard++<100);await page.locator('#history-next').click();
+      if(await page.locator('#history-previous').isDisabled())break;
+      assert.ok(guard++<100);await page.locator('#history-previous').click();
     }
     assert.equal(recovered.size,entries.length);for(const row of entries)assert.equal(recovered.get(new Date(row.timestamp*1000).toISOString()),row.metadata.song);
   }
@@ -435,100 +503,111 @@ for (const view of ['studio','team']) {
 }
 async function validDialogSizes(page) {
   const sizes=await page.evaluate(()=>window.__sizes);
-  assert.ok(sizes.every(([width,height])=>(width===0||(width>=50&&width<=1000))&&height>=260&&height<=1000));
+  if(await page.locator('html').getAttribute('data-view')==='studio'){assert.ok(sizes.every(([w,h])=>w>0&&h>=20&&h<=1000));}else assert.deepEqual(sizes,[], 'Andere Verwaltungsfenster behalten ihre festen Maße');
 }
 
-test('Moderationsfenster nimmt vor Sichtbarkeit genau seine Inhaltshöhe an und bleibt nach Hostantworten ruhig',async t=>{
+test('Moderationshöhe wächst bei mehr Inhalt, schrumpft wieder und bleibt beim Lesen langer Textseiten stabil',async t=>{
   for(const k3 of [true,false]){
-    const {page,state,errors,loadingSnapshot}=await setup(t,{view:'studio',k3,nativeSizing:true,hostSteps:true,
-      loadingDelay:'stylesheet',loadingPause:120,viewport:{width:780,height:600}});
-    assert.deepEqual(loadingSnapshot.sizes,[]);
-    await page.waitForFunction(()=>__sizes.length===1&&innerHeight===__sizes[0][1]);
-    const first=await page.evaluate(()=>({sizes:__sizes.slice(),states:__sizeStates.slice(),natural:Math.ceil(document.querySelector('.dialog-shell').getBoundingClientRect().height)}));
-    assert.equal(first.sizes[0][1],first.natural);
-    assert.ok(first.natural>=560&&first.natural<=740,'Passende Inhaltshöhe einschließlich des kompakten Sendungsassistenten');
-    assert.equal(first.states[0].visible,false);
-    assert.equal(await page.locator('#studio-panel').evaluate(n=>n.classList.contains('fit-tabs')),false);
-    await page.waitForTimeout(1250);
-    await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1}),state);
-    await page.waitForTimeout(120);
-    assert.deepEqual(await page.evaluate(()=>__sizes),first.sizes,'Identischer Zustand und Hostantwort erzeugen keine Folgehöhe');
-    assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight+1),false);
-    if(k3&&process.env.MISCHWERK_CAPTURE_STUDIO_HEIGHT) {
-      await page.locator('#refresh-queue').click();
-      await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1,refreshRequestId:__sent.findLast(e=>e.type==='mw:refresh').data.requestId}),state);
-      await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/moderation-780.png')});
-    }
-    assert.deepEqual(errors,[]);
+    const {page,state,errors}=await setup(t,{view:'studio',k3,nativeSizing:true,hostSteps:true,viewport:{width:780,height:730}});
+    await page.waitForTimeout(250);const empty=page.viewportSize().height;assert.ok(empty<650);
+    const active={...state,revision:2,moderator:{nick:'Otterchen',since:state.serverTime,expiresAt:state.serverTime+3600000,sessionKey:'compact'},user:{...state.user,isOnAir:true,canEndModeration:true}};
+    await page.evaluate(s=>__emit('mw:state',s),active);await page.waitForTimeout(250);
+    assert.ok(page.viewportSize().height>empty&&page.viewportSize().height<=730);
+    const text=('Ein vollständiger Musikwunsch mit Originaltext 🎵. ').repeat(7).slice(0,300);
+    const item={id:71,text,nick:'Hörer',createdAt:state.serverTime,stage:'queued'};
+    await page.evaluate(({s,item})=>__emit('mw:state',{...s,revision:3,queue:[item],queueWindow:[item],queueStart:0,queueTotal:1,page:0,pages:1}),{s:active,item});
+    await page.locator('#studio-queue-tab').click();await page.waitForTimeout(250);
+    await page.setViewportSize({width:320,height:page.viewportSize().height});await page.waitForTimeout(250);
+    await page.evaluate(()=>document.fonts.ready);
+    await page.waitForFunction(()=>innerHeight===window.__sizes.at(-1)[1]);await studioSettle(page);
+    await page.waitForFunction(()=>innerHeight===window.__sizes.at(-1)[1]);
+    const height=page.viewportSize().height,requests=await page.evaluate(()=>__sizes.length);assert.equal(await readStudioText(page,'.request-text'),text);
+    assert.equal(await page.evaluate(()=>__sizes.length),requests,'Lesen erzeugt keinen neuen Größenauftrag');
+    await page.waitForTimeout(250);assert.equal(page.viewportSize().height,height,'Kurze letzte Textseite verkürzt das Fenster nicht weiter');
+    await studioFits(page);assert.deepEqual(errors,[]);
   }
 });
 
-test('Moderationshöhe wächst mit Anmeldung und langen Inhalten und schrumpft danach ohne Entwurfs- oder Fokusverlust',async t=>{
-  const {page,state,errors}=await setup(t,{view:'studio',nativeSizing:true,hostSteps:true,viewport:{width:780,height:600}});
-  await page.waitForFunction(()=>__sizes.length&&innerHeight===__sizes.at(-1)[1]);
-  await page.locator('#studio-topic').fill('Mein Themenentwurf bleibt');
-  await page.waitForFunction(()=>innerHeight===__sizes.at(-1)[1]&&Math.ceil(document.querySelector('.dialog-shell').getBoundingClientRect().height)===innerHeight);
-  const initial=page.viewportSize().height;
-  await page.evaluate(s=>__emit('mw:state',{...s,revision:2,moderator:{nick:'Eine lange Moderationsbezeichnung '.repeat(3),since:Date.now(),expiresAt:Date.now()+3600000,sessionKey:'local-size'},
-    user:{...s.user,isOnAir:true,canEndModeration:true},queueTotal:1,pages:1,
-    queue:[{id:81,nick:'Ein Hörer',text:'Ein langer Wunsch '.repeat(17),createdAt:Date.now()}]}),state);
-  await page.waitForFunction(h=>innerHeight>h&&innerHeight===__sizes.at(-1)[1],initial);
-  assert.equal(await page.locator('#studio-topic').inputValue(),'Mein Themenentwurf bleibt');
-  assert.equal(await page.locator('#studio-topic').evaluate(n=>document.activeElement===n),true);
-  await page.evaluate(s=>__emit('mw:state',{...s,revision:3}),state);
-  await page.waitForFunction(h=>innerHeight===h,initial);
-  const sizes=await page.evaluate(()=>__sizes.slice());await page.waitForTimeout(160);
-  assert.deepEqual(await page.evaluate(()=>__sizes),sizes);
-  assert.equal(await page.locator('#studio-topic').inputValue(),'Mein Themenentwurf bleibt');
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight+1),false);assert.deepEqual(errors,[]);
-});
-
-test('Schmale Moderation passt ihre Höhe je Reiter an, während kleine oder ignorierte Hostrahmen bedienbar bleiben',async t=>{
-  const {page,errors}=await setup(t,{view:'studio',nativeSizing:true,hostSteps:true,viewport:{width:320,height:600}});
-  await page.waitForFunction(()=>__sizes.length&&innerHeight===__sizes.at(-1)[1]);
-  const controls=page.viewportSize().height;
-  await page.locator('#studio-queue-tab').click();
-  await page.waitForFunction(h=>innerHeight<h&&innerHeight===__sizes.at(-1)[1],controls);
-  await page.locator('#studio-controls-tab').click();await page.waitForFunction(h=>innerHeight===h,controls);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
-});
-
-test('Fensteröffnung: Radio-Team bleibt mit angewendeten animierten Hostgrößen ohne Schrumpfschleife stabil',async t=>{
-  for(const k3 of [true,false])for(const width of [320,560]){
-    const {page,state,errors}=await setup(t,{view:'team',k3,nativeSizing:true,hostSteps:true,loadingDelay:'stylesheet',loadingPause:120,viewport:{width,height:560}});
-    await page.waitForFunction(()=>__sizes.length===1&&innerHeight===__sizes[0][1]);
-    const first=await page.evaluate(()=>({sizes:__sizes.slice(),states:__sizeStates.slice(),natural:Math.ceil(document.querySelector('.dialog-shell').getBoundingClientRect().height)}));
-    assert.equal(first.sizes[0][1],first.natural,'Einmal direkt auf die fertige Inhaltshöhe');
-    assert.equal(first.states[0].visible,false,'Erste Messung vor Freigabe der Oberfläche');
-    await page.waitForTimeout(1400);
-    assert.deepEqual(await page.evaluate(()=>__sizes),first.sizes,'Hostantwort, Observer und Sekundentakt lösen keine neue Größe aus');
-    await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1}),state);
-    await page.waitForTimeout(100);
-    assert.deepEqual(await page.evaluate(()=>__sizes),first.sizes,'Unveränderter Push erzeugt keinen Größenwechsel');
-    assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight+1),false);
-    const geometry=await page.locator('.team-tabs').boundingBox();
-    if(k3&&width===560&&process.env.MISCHWERK_CAPTURE_TEAM_TABS) {
-      await page.locator('#refresh-radio-team').click();
-      await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1,refreshRequestId:__sent.findLast(e=>e.type==='mw:refresh').data.requestId}),state);
-      await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/radio-team-560.png')});
-    }
-    for(const selector of ['#team-status-tab','#team-members-tab','#team-status-tab','#team-members-tab']){
-      await page.locator(selector).click();await page.waitForTimeout(160);
-      assert.deepEqual(await page.evaluate(()=>__sizes),first.sizes,'Reiterwechsel ändert die gemeinsame Höhe nicht');
-      assert.deepEqual(await page.locator('.team-tabs').boundingBox(),geometry,'Kopf und Reiter bleiben an derselben Stelle');
-      if(k3&&width===560&&selector==='#team-status-tab'&&process.env.MISCHWERK_CAPTURE_TEAM_TABS)await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/statuszentrale-560.png')});
-    }
-    assert.deepEqual(errors,[]);
+test('Themenbearbeitung behält beim Tippen, Speichern, Fehler und Verwerfen dieselbe Overlaygeometrie',async t=>{
+  for(const width of [780,320])for(const k3 of [true,false]){
+    const {page,state,errors}=await setup(t,{view:'studio',k3,nativeSizing:true,hostSteps:true,viewport:{width,height:730}});
+    await page.waitForTimeout(500);await revealStudio(page,'#studio-topic');await page.waitForTimeout(200);
+    const geometry=()=>page.evaluate(()=>({size:[innerWidth,innerHeight],requests:__sizes.length,
+      boxes:['.dialog-header','#studio-programme-tabs','#studio-topic','#save-topic','.studio-topic-section','.wishes-control-card'].map(selector=>{
+        const r=document.querySelector(selector).getBoundingClientRect();return [r.x,r.y,r.width,r.height];
+      }),scroll:[document.documentElement.scrollTop,document.getElementById('studio-setup').scrollTop]}));
+    const before=await geometry();
+    async function unchanged(phase){await page.waitForTimeout(180);assert.deepEqual(await geometry(),before,phase+' bei '+width+' px / '+(k3?'K3':'STAPP'));}
+    await page.locator('#studio-topic').focus();await unchanged('Fokus');
+    await page.locator('#studio-topic').pressSequentially('Musik zum Feierabend',{delay:10});await unchanged('Eingabe');
+    assert.equal(await page.locator('#studio-topic').evaluate(n=>n===document.activeElement),true);
+    await page.locator('#studio-topic').fill('N'.repeat(80));await unchanged('80 Zeichen');
+    await page.locator('#save-topic').click();await unchanged('Speichern läuft');
+    let request=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:setTopic'));
+    await page.evaluate(r=>__emit('mw:result',{action:r.type,requestId:r.data.requestId,ok:false,message:'Das Thema wurde inzwischen geändert. Dein Entwurf bleibt erhalten.'}),request);
+    await unchanged('Fehlerantwort');
+    await page.locator('#save-topic').click();request=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:setTopic'));
+    await page.evaluate(({r,s})=>{__emit('mw:result',{action:r.type,requestId:r.data.requestId,ok:true,message:'Thema gespeichert.'});__emit('mw:state',{...s,revision:2,topic:r.data.topic});},{r:request,s:state});
+    await unchanged('Bestätigtes Speichern');
+    await page.locator('#studio-topic').fill('');await unchanged('Leeren');await page.locator('#reset-topic').click();await unchanged('Verwerfen');
+    await studioFits(page);assert.deepEqual(errors,[]);await page.context().close();
   }
+});
+
+test('Moderation misst ihre kompakte Höhe erst nach verzögertem CSS',async t=>{
+ for(const k3 of [true,false]){const {page,state,errors,loadingSnapshot}=await setup(t,{view:'studio',k3,nativeSizing:true,hostSteps:true,loadingDelay:'stylesheet',loadingPause:120,viewport:{width:780,height:600}});assert.deepEqual(loadingSnapshot.sizes,[]);await page.waitForTimeout(400);await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1}),state);await validDialogSizes(page);assert.equal(page.viewportSize().width,780);assert.ok(page.viewportSize().height<=600);await page.locator('#studio-topic').fill('Nativer Rahmen');assert.equal(await page.locator('#studio-topic').inputValue(),'Nativer Rahmen');assert.deepEqual(errors,[]);}
+});
+
+test('Eine auslaufende Statusmeldung verschiebt die begonnene Themenbearbeitung auch nach dem Speichern nicht',async t=>{
+  const {page,state,errors}=await setup(t,{view:'studio',nativeSizing:true,hostSteps:true,viewport:{width:780,height:730}});
+  await page.locator('#on-air').click();const request=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:onAir'));
+  await page.evaluate(({r,s})=>{__emit('mw:state',{...s,revision:2,moderator:{nick:'Otterchen',sessionKey:'editing',since:s.serverTime,expiresAt:s.serverTime+3600000},user:{...s.user,isOnAir:true,canEndModeration:true}});__emit('mw:result',{action:r.type,requestId:r.data.requestId,ok:true,message:'Studio-Anmeldung bestätigt.'});},{r:request,s:state});
+  await page.waitForFunction(()=>{
+    const target=window.__sizes.at(-1);return target&&innerWidth===target[0]&&innerHeight===target[1];
+  });await page.locator('#studio-topic').focus();
+  const geometry=()=>page.evaluate(()=>({size:[innerWidth,innerHeight],sizes:__sizes.length,rect:document.getElementById('studio-topic').getBoundingClientRect().toJSON()}));
+  const before=await geometry();await page.locator('#studio-topic').fill('Meine Sendung');
+  await page.waitForTimeout(6200);assert.deepEqual(await geometry(),before,'Ausblenden nach sechs Sekunden verschiebt die Eingabe nicht');
+  await page.locator('#save-topic').click();const topic=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:setTopic'));
+  await page.evaluate(r=>__emit('mw:result',{action:r.type,requestId:r.data.requestId,ok:true,message:'Thema gespeichert.'}),topic);
+  await page.waitForTimeout(200);assert.deepEqual(await geometry(),before,'Auch nach Bestätigung bleibt die Geometrie erhalten');
+  await page.locator('#studio-queue-tab').click();assert.equal(await page.locator('#notice').getAttribute('data-topic-reserved'),null,'Bewusster Bereichswechsel gibt den vorübergehend erhaltenen Platz frei');assert.deepEqual(errors,[]);
+});
+
+test('Anmeldung und lange Inhalte erhalten native Moderationsmaße, Entwurf und Fokus',async t=>{
+ const {page,state,errors}=await setup(t,{view:'studio',nativeSizing:true,hostSteps:true,viewport:{width:780,height:600}});await page.locator('#studio-topic').fill('Mein Entwurf');await page.evaluate(s=>__emit('mw:state',{...s,revision:2,moderator:{nick:'Lange Moderation '.repeat(5),since:Date.now(),expiresAt:Date.now()+3600000,sessionKey:'native'},user:{...s.user,isOnAir:true,canEndModeration:true}}),state);assert.equal(await page.locator('#studio-topic').inputValue(),'Mein Entwurf');assert.equal(await page.locator('#studio-topic').evaluate(n=>n===document.activeElement),true);await page.evaluate(s=>__emit('mw:state',{...s,revision:3}),state);await validDialogSizes(page);assert.equal(page.viewportSize().width,780);assert.ok(page.viewportSize().height<=600);assert.deepEqual(errors,[]);
+});
+
+test('Schmale Moderationsreiter verwenden denselben nativen Rahmen',async t=>{
+ const {page,errors}=await setup(t,{view:'studio',nativeSizing:true,viewport:{width:320,height:600}});await page.locator('#studio-queue-tab').click();assert.equal(await page.locator('#studio-requests').isVisible(),true);await page.locator('#studio-programme-tab').click();await revealStudio(page,'#studio-topic');assert.equal(await page.locator('#studio-topic').isVisible(),true);await validDialogSizes(page);assert.equal(page.viewportSize().width,320);assert.ok(page.viewportSize().height<=600);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
+});
+
+test('Radio-Team öffnet direkt die Verwaltung und behält native Maße und Kopfposition',async t=>{
+ for(const k3 of [true,false])for(const width of [320,560]){
+  const {page,state,errors}=await setup(t,{view:'team',k3,nativeSizing:true,hostSteps:true,loadingDelay:'stylesheet',loadingPause:120,viewport:{width,height:560}});
+  const before=await page.locator('.dialog-header').boundingBox();
+  assert.equal(await page.locator('#dialog-title').textContent(),'Verwaltung');
+  assert.ok(await page.locator('#dialog-title').evaluate(n=>{const r=document.createRange();r.selectNodeContents(n);const t=r.getBoundingClientRect(),h=n.closest('.dialog-header').getBoundingClientRect();return Math.abs(t.x+t.width/2-h.x-h.width/2)<1;}));
+  assert.equal(await page.locator('#radio-moderator-form').isVisible(),true);
+  assert.equal(await page.locator('.team-tabs').count(),0);
+  await page.locator('#refresh-radio-team').click();
+  await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1}),state);
+  assert.deepEqual(await page.locator('.dialog-header').boundingBox(),before);
+  assert.deepEqual(await page.evaluate(()=>__sizes),[]);
+  assert.deepEqual(page.viewportSize(),{width,height:560});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  assert.deepEqual(errors,[]);
+ }
 });
 
 test('Fensteröffnung: Moderation ist vor Sichtbarkeit eingeteilt, auch wenn das Logo verspätet lädt',async t=>{
   const {page,loadingSnapshot,errors}=await setup(t,{view:'studio',loadingDelay:'logo',loadingPause:150,initialRequest:true,viewport:{width:780,height:400}});
   assert.equal(loadingSnapshot.initialized,true);
   assert.ok(loadingSnapshot.sizes.length<=1,'Höchstens eine initiale Inhaltsmessung');
-  assert.equal(await page.locator('#studio-panel').evaluate(n=>n.classList.contains('fit-tabs')),true);
-  assert.equal(await page.locator('#studio-controls-tab').isVisible(),true);
+  assert.equal(await page.locator('#studio-programme-tabs [role=tab]').count(),3);
+  assert.equal(await page.locator('#studio-programme-tab').isVisible(),true);
   await page.locator('#studio-queue-tab').click();
+  await revealStudio(page,'[data-outcome=done]');
   assert.equal(await page.locator('[data-outcome=done]').isVisible(),true);
   assert.deepEqual(errors,[]);
 });
@@ -562,21 +641,41 @@ test('Knuddels-Einbindung per document.write erhält den HTML-Aufbau in allen Fe
     assert.deepEqual(errors,[]);
   }
 });
-test('Fehlendes Startmodul zeigt einen verständlichen Hinweis statt dauerhaft leerer Fläche',async t=>{
+test('Fehlendes Startmodul meldet den Dateipfad sofort und erholt sich nach vollständiger Auslieferung',async t=>{
   const {page}=await setup(t,{station:true,clock:true});
-  const missing='http://mischwerk.test/js/radio/curtain.js';
+  const missing='http://mischwerk.test/js/wishes/relay.js';
   await page.route(missing,route=>route.abort());
   await page.reload();
   assert.equal(await page.locator('html').evaluate(n=>n.classList.contains('mw-ready')),false);
+  assert.equal(await page.locator('#startup-error').isVisible(),true,'Ein fehlendes Pflichtmodul bleibt nicht 15 Sekunden stumm');
+  assert.match(await page.locator('#startup-error').textContent(),/wishes\/relay\.js/);
   await page.clock.fastForward(15001);
   assert.equal(await page.locator('#startup-error').isVisible(),true);
-  assert.match(await page.locator('#startup-error').textContent(),/vollständige App-Upload/);
+  assert.match(await page.locator('#startup-error').textContent(),/vollständigen? App-Upload/);
   assert.equal(await page.locator('#play-button').count(),0,'Keine halbfertige bedienbare Oberfläche');
   await page.unroute(missing);
   await page.reload();
   await page.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));
   assert.equal(await page.locator('#startup-error').isVisible(),false);
   assert.equal(await page.locator('#play-button').isVisible(),true);
+});
+
+test('Fehlendes Pflichtstylesheet zeigt ohne CSS und ohne Nachladen sofort einen Starthinweis',async t=>{
+ const {page}=await setup(t,{station:true,clock:true});
+ await page.route('http://mischwerk.test/css/foundation.css',r=>r.abort());await page.reload();
+ assert.equal(await page.locator('#startup-error').isVisible(),true,JSON.stringify(await page.evaluate(()=>({classes:document.documentElement.className,broken:startupBroken,ready:document.readyState,error:getComputedStyle(document.getElementById('startup-error')).cssText,links:[...document.querySelectorAll('link')].map(l=>({href:l.href,sheet:!!l.sheet}))}))));
+ assert.equal(await page.locator('html').evaluate(n=>n.classList.contains('mw-ready')),false);
+ assert.equal(await page.locator('#radio-panel').isVisible(),false);
+});
+
+test('Fehler der SDK-Stylesheet-Einbindung kann den bereits registrierten Starthinweis nicht überspringen',async t=>{
+ const {page}=await setup(t,{station:true,clock:true});
+ const html=fs.readFileSync(path.join(browserSource,'index.html'),'utf8').replace('Client.includeCSS(file);',"throw new Error('Test: SDK CSS include failed');");
+ await page.route('http://mischwerk.test/',r=>r.fulfill({contentType:'text/html',body:html}));await page.reload();
+ assert.equal(await page.locator('#startup-error').isVisible(),true);
+ assert.equal(await page.evaluate(()=>__sent.length),0,'Nach gescheiterter CSS-Einbindung startet keine halbfertige App');
+ await page.unroute('http://mischwerk.test/');await page.reload();await page.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));
+ assert.equal(await page.locator('#startup-error').isVisible(),false);
 });
 
 test('Vorhang verhüllt nur die Radioleiste, lädt Werbung erst auf Klick und bleibt bis zur Freigabe geschlossen',async t=>{
@@ -620,34 +719,14 @@ test('Vorhang verhüllt nur die Radioleiste, lädt Werbung erst auf Klick und bl
   assert.equal(await page.locator('#radio-audio').getAttribute('src'),null,'Bewusster Werbeklick beendet Radio statt zwei Tonquellen zu mischen');
   assert.deepEqual(errors,[]);
 });
-test('Vorhang lässt Otterchen und Polaroid frei und zeigt die globale Steuerung nur Otterchen',async t=>{
-  for(const [role,nick,manage,exempt] of [['owner','Otterchen',true,true],['listener','Polaroid',false,true],['owner','AndererInhaber',false,false]]){
+test('Vorhangausnahmen bleiben erhalten; keine Rolle erhält einen Vorhangbutton',async t=>{
+  for(const [role,nick,exempt] of [['owner','Otterchen',true],['listener','Polaroid',true],['owner','AndererInhaber',false]]){
     const {page,state,errors}=await setup(t,{role,nick,curtainClosed:true,station:true,viewport:{width:1360,height:160}});
     assert.equal(await page.locator('#radio-curtain').isVisible(),!exempt);
-    assert.equal(await page.locator('#curtain-toggle').isVisible(),manage);
-    if(manage){
-      for(const width of [320,390,700,960,1360]){
-        await resizeViewport(page,{width,height:160});
-        await page.waitForFunction(w=>document.documentElement.classList.contains('radio-constrained')===(w<700),width);
-        const box=await page.locator('#curtain-toggle').boundingBox();
-        assert.ok(box.width>=44&&box.height>=44&&box.x>=0&&box.y>=0&&box.x+box.width<=width+.5&&box.y+box.height<=160.5,JSON.stringify({width,box}));
-        if(width===1360&&process.env.MISCHWERK_CURTAIN_SCREENSHOTS){
-          await page.screenshot({path:path.join(process.env.MISCHWERK_CURTAIN_SCREENSHOTS,'Otterchen-Steuerung.png')});
-        }
-      }
-      await page.locator('#curtain-toggle').click();
-      const event=await page.evaluate(()=>window.__sent.find(e=>e.type==='mw:setCurtain'));
-      assert.equal(event.data.closed,false);assert.equal(event.data.previousClosed,true);
-      assert.equal(await page.locator('#curtain-toggle').isDisabled(),true);
-      assert.equal(await page.locator('#curtain-toggle-label').textContent(),'Vorhang öffnen');
-      await page.evaluate(({event,state})=>{
-        window.__emit('mw:result',{ok:true,action:event.type,requestId:event.data.requestId,message:'Vorhang geöffnet.'});
-        window.__emit('mw:state',{...state,revision:2,curtain:{...state.curtain,closed:false}});
-      },{event,state});
-      assert.equal(await page.locator('#curtain-toggle-label').textContent(),'Vorhang schließen');
-      assert.equal(await page.locator('#curtain-toggle').isEnabled(),true);
-      assert.equal(await page.locator('#radio-curtain').isVisible(),false);
-    }
+    assert.equal(await page.locator('#curtain-toggle').count(),0);
+    await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,curtain:{...state.curtain,closed:false}}),state);
+    assert.equal(await page.locator('#radio-curtain').isVisible(),false);
+    assert.equal(await page.evaluate(()=>window.__sent.some(e=>e.type==='mw:setCurtain')),false);
     assert.deepEqual(errors,[]);
   }
 });
@@ -686,222 +765,38 @@ test('Eigene unveränderte Werbe-MP3 spielt nach Klick im nativen Audioelement',
   assert.deepEqual(errors,[]);
 });
 
-async function statusReady(page) {
-  await page.waitForFunction(() => !document.getElementById('refresh-status').disabled &&
-    document.getElementById('status-transmission-value').textContent !== 'Prüfe …');
-}
-async function statusRefresh(page) {
-  await page.locator('#refresh-status').click(); await statusReady(page);
-}
-
-test('Statuszentrale trennt STREAMPANEL-LIVE/AutoDJ und Studio-ON-AIR und zeigt bestätigte Funktionszustände', async t => {
-  const {page,state,errors}=await setup(t,{view:'team',station:true,k3:false,viewport:{width:560,height:560}});
-  let isLive=false;
-  await page.route('https://stats.example.com/widget/radio/test-radio/track/current',route=>route.fulfill({json:{title:'A < B',artist:'Interpret',is_live:isLive}}));
-  await page.locator('#team-status-tab').click(); await statusReady(page);
-  assert.equal(await page.locator('#team-members').isVisible(),false);
-  assert.equal(await page.locator('#status-mode-value').textContent(),'AutoDJ');
-  assert.match(await page.locator('#status-mode-detail').textContent(),/STREAMPANEL-Titelkennzeichnung/);
-  assert.equal(await page.locator('#status-studio-value').textContent(),'Kein ON AIR');
-  assert.equal(await page.locator('#status-transmission-value').textContent(),'Sendet');
-  assert.equal(await page.locator('#status-app-value').textContent(),'Verbunden');
-  assert.equal(await page.locator('#status-mode-warning').isVisible(),false);
-  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,requestsEnabled:false,queueTotal:8,topic:'<img src=x>',moderator:{nick:'<b>Stimme</b>',expiresAt:Date.now()+60000}}),state);
-  assert.equal(await page.locator('#status-wishes-value').textContent(),'Deaktiviert');
-  assert.equal(await page.locator('#status-queue-value').textContent(),'8 offen');
-  assert.equal(await page.locator('#status-topic-detail').textContent(),'<img src=x>');
-  assert.equal(await page.locator('#status-studio-value').textContent(),'ON AIR · <b>Stimme</b>');
-  assert.equal(await page.locator('#team-status img, #team-status b').count(),0);
-  assert.match(await page.locator('#status-mode-warning').textContent(),/Encoderverbindung prüfen/);
-  isLive=true;await statusRefresh(page);
-  assert.equal(await page.locator('#status-mode-value').textContent(),'LIVE');
-  assert.equal(await page.locator('#status-mode-warning').isVisible(),false);
-  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:3,moderator:null}),state);
-  assert.match(await page.locator('#status-mode-warning').textContent(),/niemand ON AIR/);
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
-  if(await page.locator('html').getAttribute('data-view')==='team'){await validDialogSizes(page);}else{assert.deepEqual(await page.evaluate(()=>window.__sizes),[]);}
-  assert.equal(await page.evaluate(()=>window.__sent.some(e=>/onAir|offAir|setRequests/.test(e.type))),false);
-  assert.deepEqual(errors,[]);
-});
-
-test('Statuszentrale erfindet aus fehlenden, falschen oder gesperrten Daten keinen AutoDJ-Status',async t=>{
-  const {page,errors}=await setup(t,{view:'team',station:true});
-  let song={title:'Titel',artist:'Interpret',is_live:false},info={slug:'test-radio',stream_status:'started'};
-  await page.route('**/test-radio/track/current',r=>r.fulfill({json:song}));
-  await page.route('**/test-radio',r=>r.fulfill({json:info}));
-  await page.locator('#team-status-tab').click();await statusReady(page);
-  for(const flag of [undefined,null,'false',0,{},'true']){
-    song={title:'Titel',artist:'Interpret',is_live:flag};await statusRefresh(page);
-    assert.equal(await page.locator('#status-mode-value').textContent(),'Status unbekannt');
-  }
-  song={title:'Titel',artist:'Interpret',is_live:false};info={slug:'wrong-radio',stream_status:'started'};
-  await statusRefresh(page);
-  assert.equal(await page.locator('#status-mode-value').textContent(),'Status unbekannt');
-  assert.equal(await page.locator('#status-transmission-value').textContent(),'Nicht erreichbar');
-  info={slug:'test-radio',status:'active',live:true};await statusRefresh(page);
-  assert.equal(await page.locator('#status-transmission-value').textContent(),'Status unbekannt');
-  assert.equal(await page.locator('#status-mode-value').textContent(),'Status unbekannt');
-  info={slug:'test-radio',stream_status:'started'};song=null;await statusRefresh(page);
-  assert.equal(await page.locator('#status-metadata-value').textContent(),'Keine Titelangaben');
-  assert.equal(await page.locator('#status-mode-value').textContent(),'Status unbekannt');
-  assert.deepEqual(errors,[]);
-});
-
-test('Statuszentrale prüft Sendepausen ohne Audio oder Titelabruf und erholt sich nach HTTP-Fehlern',async t=>{
-  const {page,errors}=await setup(t,{view:'team',station:true,providerStatus:'stopped'});let titles=0;
-  await page.route('**/test-radio/track/current',r=>{titles++;return r.fulfill({status:404,json:{error:'unavailable'}});});
-  await page.locator('#team-status-tab').click();await statusReady(page);
-  assert.equal(await page.locator('#status-mode-value').textContent(),'Sendepause');
-  assert.equal(await page.locator('#status-metadata-value').textContent(),'Sendepause');assert.equal(titles,0);
-  await page.route('**/test-radio',r=>r.fulfill({json:{slug:'test-radio',stream_status:'started'}}));await statusRefresh(page);
-  assert.equal(await page.locator('#status-transmission-value').textContent(),'Sendet');
-  assert.equal(await page.locator('#status-metadata-value').textContent(),'Nicht erreichbar');
-  assert.equal(await page.locator('#status-mode-value').textContent(),'Status unbekannt');
-  await page.route('**/test-radio/track/current',r=>r.fulfill({json:{title:'Wieder da',is_live:false}}));await statusRefresh(page);
-  assert.equal(await page.locator('#status-mode-value').textContent(),'AutoDJ');
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);assert.deepEqual(errors,[]);
-});
-
-test('Statuszentrale pollt 30/60 Sekunden nur im sichtbaren Reiter und beendet Abfragen bei Seitenende',async t=>{
-  const {page,state,requests,errors}=await setup(t,{view:'team',station:true,clock:true});let failed=false,calls=0;
-  await page.route('**/test-radio',r=>{calls++;return r.fulfill({status:failed?503:200,json:{slug:'test-radio',stream_status:'started'}});});
-  const pulse=()=>page.evaluate(state=>window.__emit('mw:state',state),state);
-  await page.locator('#team-status-tab').click();await statusReady(page);assert.equal(calls,1);
-  await page.clock.runFor(29900);assert.equal(calls,1);
-  failed=true;await page.clock.runFor(200);await statusReady(page);assert.equal(calls,2);
-  await pulse();await page.clock.runFor(59000);assert.equal(calls,2);
-  await pulse();failed=false;await page.clock.runFor(1200);await statusReady(page);assert.equal(calls,3);
+test('Radio-Team entfernt Statuszentrale, Anbieterquellen und Prüftimer vollständig',async t=>{
+ for(const k3 of [true,false]){
+  const {page,state,requests,errors}=await setup(t,{view:'team',station:true,k3,clock:true,viewport:{width:560,height:630}});
+  assert.equal(await page.locator('#radio-moderator-form').isVisible(),true);
+  assert.equal(await page.locator('#team-status,#team-status-tab,#team-members-tab,#refresh-status,#status-details,.team-tabs,.team-workspace').count(),0);
+  assert.equal(await page.getByText('Statuszentrale',{exact:true}).count(),0);
+  await page.locator('#radio-moderator-nick').fill('Mein Team-Entwurf');
+  await page.evaluate(s=>__emit('mw:state',{...s,revision:2,moderator:{nick:'Langer Moderationsname'},queueTotal:8,topic:'Thema'}),state);
+  await page.clock.runFor(61000);
   await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
-  await page.clock.runFor(31000);assert.equal(calls,3);
-  await pulse();await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});
-  await statusReady(page);assert.equal(calls,4);
-  await page.locator('#team-members-tab').click();await page.clock.runFor(31000);assert.equal(calls,4);
-  await pulse();await page.locator('#team-status-tab').click();await statusReady(page);assert.equal(calls,5);
-  const count=requests.filter(u=>u.startsWith('https://stats.example.com/')).length;
-  await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pagehide')));await page.clock.runFor(61000);
-  assert.equal(requests.filter(u=>u.startsWith('https://stats.example.com/')).length,count);assert.deepEqual(errors,[]);
+  await page.clock.runFor(61000);
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});
+  await page.evaluate(s=>__emit('mw:state',{...s,revision:3}),state);
+  await page.locator('#refresh-radio-team').click();
+  assert.equal(await page.evaluate(()=>__sent.at(-1).type),'mw:refresh');
+  assert.equal(await page.locator('#radio-moderator-nick').inputValue(),'Mein Team-Entwurf');
+  assert.equal(requests.some(u=>u.startsWith('https://stats.example.com/')||/\/(?:team\/status[^/]*\.js|radio\/api\.js|css\/team-status\.css)(?:\?|$)/.test(u)),false);
+  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
+  assert.deepEqual(errors,[]);
+ }
 });
 
-test('Statuszentrale verwirft verspätete Senderantworten, begrenzt Parallelabfragen und stoppt bei Rechteverlust',async t=>{
-  const {page,state,requests,errors}=await setup(t,{view:'team',station:true});let release,calls=0;
-  const gate=new Promise(resolve=>{release=resolve;});
-  await page.route('**/test-radio',async r=>{calls++;await gate;return r.fulfill({json:{slug:'test-radio',stream_status:'stopped'}});});
-  const requested=page.waitForRequest('**/test-radio');
-  await page.locator('#team-status-tab').click();await requested;
-  assert.equal(await page.locator('#refresh-status').isDisabled(),true);
-  await page.locator('#refresh-status').evaluate(b=>{b.click();b.dispatchEvent(new MouseEvent('click',{bubbles:true}));});assert.equal(calls,1);
-  await page.route('**/other-radio/track/current',r=>r.fulfill({json:{title:'Neuer Sender',is_live:true}}));
-  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,station:{...state.station,stationId:'other-radio',streamUrl:'https://stream.example.com/other-radio',metadataUrl:'https://stats.example.com/widget/radio/other-radio/track/current',statusUrl:'https://stats.example.com/widget/radio/other-radio'}}),state);
-  await statusReady(page);release();await page.waitForTimeout(30);
-  assert.equal(await page.locator('#status-mode-value').textContent(),'LIVE');
-  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:3,user:{...state.user,canManageRadioModerators:false}}),state);
+test('Radio-Team bleibt ausschließlich für den tatsächlichen Channelinhaber bedienbar',async t=>{
+ for(const role of ['listener','radioModerator','channelModerator','manager']){
+  const {page,requests,errors}=await setup(t,{view:'team',role,station:true,clock:true});
   assert.equal(await page.locator('#team-panel').isVisible(),false);
-  const count=requests.length;await page.locator('#team-status-tab').evaluate(b=>b.click());await page.waitForTimeout(20);
-  assert.equal(requests.length,count);assert.deepEqual(errors,[]);
-});
-
-test('Statuszentrale blendet veraltete Appzustände aus und bleibt ohne Senderkonfiguration bedienbar',async t=>{
-  const {page,state,errors,requests}=await setup(t,{view:'team',clock:true});
-  await page.locator('#team-status-tab').click();
-  assert.equal(await page.locator('#status-mode-value').textContent(),'Nicht eingerichtet');
+  assert.equal(await page.locator('#radio-moderator-nick').isDisabled(),true);
+  assert.equal(await page.locator('#team-status-tab,#team-status,#refresh-status').count(),0);
+  await page.clock.runFor(61000);
   assert.equal(requests.some(u=>u.startsWith('https://stats.example.com/')),false);
-  await page.clock.runFor(66000);
-  assert.equal(await page.locator('#status-app-value').textContent(),'Verbindung fehlt');
-  assert.equal(await page.locator('#status-wishes-value').textContent(),'Status unbekannt');
-  assert.equal(await page.locator('#refresh-status').isEnabled(),true);
-  await page.locator('#refresh-status').click();assert.equal(await page.evaluate(()=>window.__sent.at(-1).type),'mw:refresh');
-  await page.evaluate(state=>window.__emit('mw:state',state),state);
-  assert.equal(await page.locator('#status-app-value').textContent(),'Verbunden');assert.deepEqual(errors,[]);
-});
-
-test('Statuszentrale bleibt bei 320–780 Pixeln erreichbar und fordert passende Fenstermaße an',async t=>{
-  for(const k3 of [true,false]){
-    const {page,state,errors}=await setup(t,{view:'team',station:true,k3,viewport:{width:560,height:560}});
-    await page.route('**/test-radio/track/current',r=>r.fulfill({json:{title:'T'.repeat(300),artist:'I'.repeat(100),is_live:false}}));
-    await page.locator('#team-status-tab').click();await statusReady(page);
-    await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,topic:'S'.repeat(80),moderator:{nick:'N'.repeat(50)}}),state);
-    for(const width of [320,390,560,780]){
-      await page.setViewportSize({width,height:360});
-      for(const selector of ['#refresh-status','.status-provider-link','#team-members-tab']){
-        if(selector==='.status-provider-link'){await page.locator('#status-details > summary').click();}
-        await page.locator(selector).scrollIntoViewIfNeeded();
-        assert.ok(await page.locator(selector).evaluate(n=>{const r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight+1;}));
-      }
-      await page.locator('#status-details').evaluate(n=>{n.open=false;});
-      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-    }
-    await page.setViewportSize({width:560,height:560});await page.evaluate(()=>window.scrollTo(0,0));
-    if(k3)await captureDesign(page,'Statuszentrale-560');
-    await page.setViewportSize({width:320,height:560});await page.evaluate(()=>window.scrollTo(0,0));
-    if(k3)await captureDesign(page,'Statuszentrale-320');
-    await page.locator('#team-members-tab').click();assert.equal(await page.locator('#radio-moderator-form').isVisible(),true);
-    await validDialogSizes(page);assert.deepEqual(errors,[]);
-  }
-});
-
-test('Statuszentrale bleibt dem tatsächlichen Channelinhaber vorbehalten und berührt andere Popups nicht',async t=>{
-  for(const role of ['listener','radioModerator','channelModerator','manager']){
-    const {page,requests,errors}=await setup(t,{view:'team',role,station:true,clock:true});
-    await page.locator('#team-status-tab').evaluate(b=>b.click());await page.clock.runFor(31000);
-    assert.equal(await page.locator('#team-status').isVisible(),false);
-    assert.equal(requests.some(u=>u.startsWith('https://stats.example.com/')),false);assert.deepEqual(errors,[]);
-  }
-});
-
-test('Gemeinsames Teamfenster zeigt alle acht Statuswerte bei 320 bis 780 Pixeln ohne Scrollen',async t=>{
-  const {page,errors}=await setup(t,{view:'team',station:true,k3:false,nativeSizing:true,screenHeight:1200,viewport:{width:560,height:560}});
-  await page.route('**/test-radio/track/current',r=>r.fulfill({json:{title:'American Pie',artist:'Don McLean',is_live:false}}));
-  await page.locator('#team-status-tab').click();await statusReady(page);
-  const measurements=[];
-  for(const width of [560,320,390,480,481,780]){
-    await page.setViewportSize({width,height:page.viewportSize().height});await page.evaluate(()=>window.scrollTo(0,0));
-    await page.waitForFunction(()=>Math.abs(innerHeight-Math.ceil(document.querySelector('.dialog-shell').getBoundingClientRect().height))<=1);
-    const result=await page.evaluate(()=>{
-      const ids=['mode','transmission','studio','app','wishes','queue','metadata','topic'];
-      return {width:innerWidth,viewportHeight:innerHeight,height:document.querySelector('.dialog-shell').getBoundingClientRect().height,
-        overflow:document.documentElement.scrollWidth>innerWidth||document.documentElement.scrollHeight>innerHeight,
-        detailsOpen:document.getElementById('status-details').open,
-        values:ids.map(id=>{const n=document.getElementById('status-'+id+'-value'),r=n.getBoundingClientRect();return {id,text:n.textContent,top:r.top,bottom:r.bottom,font:parseFloat(getComputedStyle(n).fontSize)};}),
-        controlHeights:['#refresh-status','#team-members-tab','#team-status-tab','#status-details > summary'].map(s=>document.querySelector(s).getBoundingClientRect().height)};
-    });
-    measurements.push(result);
-    assert.equal(result.overflow,false,JSON.stringify(result));assert.equal(result.detailsOpen,false);
-    for(const value of result.values){assert.ok(value.text&&value.top>=0&&value.bottom<=result.viewportHeight&&value.font>=16,JSON.stringify(value));}
-    assert.ok(result.controlHeights.every(height=>height>=44));
-    if(width===560||width===320)await captureDesign(page,'Statuszentrale-'+width);
-  }
-  console.log('Statuskompakt-Messung: '+JSON.stringify(measurements.map(({width,height})=>({width,height}))));
-  await validDialogSizes(page);assert.deepEqual(errors,[]);
-});
-
-test('Statusdetails bleiben vollständig erreichbar und bei Aktualisierungen geöffnet; Warnungen sind sofort sichtbar',async t=>{
-  const {page,state,errors}=await setup(t,{view:'team',station:true,viewport:{width:320,height:560}});
-  const title='T'.repeat(300),artist='Interpret '+ 'I'.repeat(100),nick='N'.repeat(50),topic='S'.repeat(80);
-  await page.route('**/test-radio/track/current',r=>r.fulfill({json:{title,artist,is_live:false}}));
-  await page.locator('#team-status-tab').click();await statusReady(page);
-  await page.evaluate(({state,nick,topic})=>window.__emit('mw:state',{...state,revision:2,moderator:{nick,expiresAt:Date.now()+60000},topic}),{state,nick,topic});
-  assert.equal(await page.locator('#status-mode-warning').isVisible(),true);
-  assert.equal(await page.locator('#status-details').getAttribute('open'),null);
-  assert.equal(await page.locator('#status-studio-value').textContent(),'ON AIR · '+nick);
-  const summary=page.locator('#status-details > summary');await summary.focus();await page.keyboard.press('Enter');
-  assert.equal(await page.locator('#status-details').getAttribute('open'),'');
-  for(const name of ['mode','transmission','studio','metadata','app','wishes','queue','topic']){
-    assert.ok((await page.locator('#status-'+name+'-detail').textContent()).length);
-  }
-  assert.match(await page.locator('#status-metadata-detail').textContent(),new RegExp(title));
-  assert.match(await page.locator('#status-metadata-detail').textContent(),new RegExp(artist));
-  assert.equal(await page.locator('#status-topic-detail').textContent(),topic);
-  assert.match(await page.locator('#status-mode-detail').textContent(),/Geprüft um/);
-  await page.locator('.status-provider-link').scrollIntoViewIfNeeded();assert.equal(await page.locator('.status-provider-link').isVisible(),true);
-  await summary.focus();
-  await page.evaluate(({state,nick,topic})=>window.__emit('mw:state',{...state,revision:3,moderator:{nick},topic}),{state,nick,topic});
-  assert.equal(await summary.evaluate(n=>document.activeElement===n),true);
-  await statusRefresh(page);
-  assert.equal(await page.locator('#status-details').getAttribute('open'),'');
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-  await summary.focus();await page.keyboard.press('Space');assert.equal(await page.locator('#status-details').getAttribute('open'),null);
-  await page.locator('#team-members-tab').click();assert.equal(await page.evaluate(()=>document.documentElement.classList.contains('status-central-open')),false);
-  assert.equal(await page.locator('#radio-moderator-form').isVisible(),true);assert.deepEqual(errors,[]);
+  assert.deepEqual(errors,[]);
+ }
 });
 
 test('Hörerzahl bleibt in allen Rollen und Ansichten ohne Anzeige und ohne Abfragetimer entfernt',async t=>{
@@ -926,7 +821,6 @@ test('Hörerzahl bleibt in allen Rollen und Ansichten ohne Anzeige und ohne Abfr
  }
  for(const view of ['wishes','studio','team','schedule']){
   const {page,requests,errors}=await setup(t,{station:true,view,clock:true});
-  if(view==='team'){await page.locator('#team-status-tab').click();await statusReady(page);}
   await page.clock.runFor(61000);
   assert.equal(await page.locator('#listener-count,#status-listeners,#status-listeners-detail').count(),0);
   assert.equal(requests.some(url=>url.endsWith('/listener')),false);assert.deepEqual(errors,[]);
@@ -961,9 +855,13 @@ async function captureDesign(page, name) {
 }
 
 test('Gemeinsame Dialogköpfe, sichtbarer Zeichenzähler und lange Eingaben bleiben auf schmalen Flächen lesbar',async t=>{
-  for(const [view,width,height] of [['wishes',320,568],['studio',780,860],['team',560,600]]) {
+  for(const [view,width,height] of [['wishes',320,568],['studio',780,860],['team',560,600],['schedule',820,630]]) {
     const {page,state,errors}=await setup(t,{view,viewport:{width,height}});
-    assert.equal(await page.locator('.dialog-brand img').evaluate(n=>getComputedStyle(n).mixBlendMode),'lighten');
+    assert.equal(await page.locator('.dialog-brand img:visible').evaluate(n=>getComputedStyle(n).mixBlendMode),'lighten');
+    const header=page.locator('.dialog-header:visible');
+    assert.equal(await header.evaluate(n=>{const h=n.getBoundingClientRect(),t=n.querySelector('.dialog-heading').getBoundingClientRect();return Math.abs(h.x+h.width/2-t.x-t.width/2)<1;}),true,'Titel genau über die Fensterbreite zentriert');
+    assert.equal(await page.locator('h1,h2,h3').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).every(n=>getComputedStyle(n).textAlign==='center')),true,'Alle Menüüberschriften mittig');
+    assert.equal(await page.locator('.dialog-brand img:visible').evaluate(n=>getComputedStyle(n).backgroundColor),'rgba(0, 0, 0, 0)','Original-Logo ohne abgesetztes Hintergrundrechteck');
     assert.ok(await page.locator('#dialog-title').evaluate(n=>parseFloat(getComputedStyle(n).fontSize)>=22));
     if(view==='wishes') {
       await page.locator('#wish-text').fill('A'.repeat(300));
@@ -989,7 +887,7 @@ test('Start bleibt bei verzögerten Ressourcen unsichtbar; erst die gemessene fe
   for (const loadingDelay of ['css','script','module','stylesheet','actions']) {
     for (const [width,k3] of [[960,false],[320,false],[960,true],[320,true]]) {
       const {page,loadingSnapshot,errors}=await setup(t,{k3,loadingDelay,viewport:{width,height:760}});
-      assert.equal(loadingSnapshot.background,'rgb(36, 36, 36)');
+      assert.equal(loadingSnapshot.background,'rgb(15, 17, 20)');
       assert.equal(loadingSnapshot.visibility,'hidden');assert.equal(loadingSnapshot.initialized,false);
       assert.deepEqual(loadingSnapshot.sizes,[],'Keine geratenen Größen vor der geladenen Oberfläche');
       const sizes=await page.evaluate(()=>window.__sizes);
@@ -1046,6 +944,8 @@ test('Skripte laden parallel zu langsamen Styles; vor Sichtbarkeit wird kein Mus
     assert.equal(loadingSnapshot.acknowledgements,0);
     assert.equal(requests.some(url=>url.endsWith('/js/app.js')),false);
     if(view==='studio') {
+      assert.equal(await page.evaluate(()=>window.__sent.some(event=>event.type==='mw:ackRequest')),false,'Deine Sendung quittiert keine unsichtbaren Wünsche');
+      await showStudioPane(page,true);
       await page.waitForFunction(()=>window.__sent.some(event=>event.type==='mw:ackRequest'));
       assert.equal(await page.evaluate(()=>window.__sent.filter(event=>event.type==='mw:ackRequest').length),1);
     }
@@ -1054,10 +954,9 @@ test('Skripte laden parallel zu langsamen Styles; vor Sichtbarkeit wird kein Mus
 });
 
 test('Jedes Fenster lädt nur seine Module und Styles; erneuter Einstieg verdoppelt keine Hooks oder Initialisierung', async t => {
-  const { frontendFilesForView } = require('../../tools/lib/frontend-files.cjs');
   for (const view of ['radio','wishes','studio','team','schedule']) {
     const { page, errors, requests } = await setup(t, { view });
-    const files = frontendFilesForView(view).filter(file => /\.(js|css)$/.test(file));
+    const files = selectedFiles(view);
     const actual = requests.filter(url => url.startsWith('http://mischwerk.test/') && /\.(js|css)$/.test(url));
     assert.deepEqual(actual.map(url => url.replace('http://mischwerk.test/','')).sort(), [...files].sort(), view);
     assert.equal(requests.some(url => url === 'http://mischwerk.test/js/app.js'), false);
@@ -1079,8 +978,8 @@ test('Langsames Original-Logo blockiert weder bedienbare Radioleiste noch korrek
     assert.equal(await page.locator('#play-button').isEnabled(),true);
     await page.locator('#play-button').click();
     assert.equal(await page.locator('#radio-audio').getAttribute('src'),'https://stream.example.com/test-radio');
-    assert.equal(requests.filter(url=>url.startsWith('http://mischwerk.test/') && url.endsWith('.js')).length,24);
-    assert.equal(requests.filter(url=>url.startsWith('http://mischwerk.test/') && url.endsWith('.css')).length,10);
+    assert.equal(requests.filter(url=>url.startsWith('http://mischwerk.test/') && url.endsWith('.js')).length,selectedFiles('radio').filter(file=>file.endsWith('.js')).length);
+    assert.equal(requests.filter(url=>url.startsWith('http://mischwerk.test/') && url.endsWith('.css')).length,selectedFiles('radio').filter(file=>file.endsWith('.css')).length);
     assert.equal(requests.some(url=>/\/js\/(studio|team|schedule)\//.test(url)),false);
     assert.deepEqual(errors,[]);
   }
@@ -1138,18 +1037,19 @@ test('Neue Radioanordnung hält die Hauptaktionen in 160 Pixeln sichtbar und ord
   await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,topic:'Die größten Hits der 80er und 90er',moderator:{nick:'Otterchen'}}),state);
   for(const width of [1440,1100,1099,1024,868,768,760,759,700,699,390,320]) {
     await resizeViewport(page,{width,height:160});
-    await page.waitForFunction(w=>document.documentElement.classList.contains('radio-constrained')===(w<700),width);
+    await page.waitForFunction(w=>document.documentElement.classList.contains('radio-constrained')===(w<=1350),width);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Kein horizontaler Überlauf bei '+width);
     for(const selector of ['#play-button','#track-title','#track-artist','#open-schedule','#open-wishes']) {
       const box=await page.locator(selector).boundingBox();
       assert.ok(box&&box.x>=0&&box.y>=0&&box.x+box.width<=width+.5&&box.y+box.height<=160.5,selector+' sichtbar bei '+width);
       if(selector.includes('button')||selector.includes('open-'))assert.ok(box.height>=44);
     }
-    if(width>=700) {
+    if(width>700) {
       const logo=await page.locator('.bar-logo').boundingBox(),play=await page.locator('#play-button').boundingBox();
       const volume=await page.locator('.volume-control').boundingBox();
-      assert.ok(logo.x>=0&&logo.y>=0&&logo.x+logo.width<=play.x&&logo.y+logo.height<=160,'Logo bleibt vollständig sichtbar und vom Player getrennt');
-      assert.ok(volume.x>=play.x+play.width&&volume.x+volume.width<=(await page.locator('#open-schedule').boundingBox()).x,'Lautstärke überlagert weder Player noch Hauptaktionen');
+      assert.ok(logo.x>=0&&logo.y>=0&&logo.y+logo.height<=160&&(logo.x+logo.width<=play.x||play.x+play.width<=logo.x||logo.y+logo.height<=play.y+1),'Logo bleibt vollständig sichtbar und vom Player getrennt');
+      const action=await page.locator('#open-schedule').boundingBox();
+      assert.ok(volume.x>=play.x+play.width&&(volume.x+volume.width<=action.x||volume.y+volume.height<=action.y),'Lautstärke überlagert weder Player noch Hauptaktionen');
     }
     const title=await page.locator('#track-title').boundingBox(),artist=await page.locator('#track-artist').boundingBox();
     assert.ok(artist.y>=title.y+title.height-1,'Interpret unter dem Titel');
@@ -1173,10 +1073,8 @@ test('Neue Radioanordnung hält die Hauptaktionen in 160 Pixeln sichtbar und ord
 test('Öffentliche Aktionen und private Zugänge folgen ausschließlich der echten Besitzer- oder Radiomoderatorenrolle',async t=>{
   async function arrangement(page,stacked) {
     const schedule=await page.locator('#open-schedule').boundingBox(),wishes=await page.locator('#open-wishes').boundingBox();
-    if(stacked) {
-      assert.ok(Math.abs(schedule.x-wishes.x)<1&&Math.abs(schedule.width-wishes.width)<1,'Höreraktionen gleich breit untereinander');
-      assert.ok(wishes.y>=schedule.y+schedule.height+1,'Sendeplan über Wunschbox mit Abstand');
-    } else assert.ok(Math.abs(schedule.y-wishes.y)<1&&wishes.x>=schedule.x+schedule.width,'Zwei öffentliche Aktionen nebeneinander');
+    assert.ok(Math.abs(schedule.width-wishes.width)<1&&Math.abs(schedule.height-wishes.height)<1,'Gleich große öffentliche Aktionen');
+    assert.ok(Math.abs(schedule.y-wishes.y)<1&&wishes.x>=schedule.x+schedule.width,'Zwei öffentliche Aktionen nebeneinander');
   }
   for(const role of ['listener','channelModerator','manager','radioModerator','owner']) {
     const {page,state,errors}=await setup(t,{role,station:true,viewport:{width:1360,height:160}});
@@ -1195,7 +1093,7 @@ test('Öffentliche Aktionen und private Zugänge folgen ausschließlich der echt
     }
     for(const width of [1024,700,390,320]) {
       await resizeViewport(page,{width,height:160});
-      await page.waitForFunction(w=>document.documentElement.classList.contains('radio-constrained')===(w<700),width);
+      await page.waitForFunction(w=>document.documentElement.classList.contains('radio-constrained')===(w<=1350),width);
       if(!hasStudio&&!hasTeam)await arrangement(page,width>=700);
       for(const selector of ['#open-schedule','#open-wishes',...(hasStudio?['#studio-tab']:[]),...(hasTeam?['#team-tab']:[])]) {
         const box=await page.locator(selector).boundingBox();
@@ -1236,12 +1134,12 @@ test('Studioleiste nutzt sehr breite Fenster vollständig und gruppiert auch ohn
     await resizeViewport(page,{width,height:160});
     const bar=await page.locator('#radio-panel').boundingBox(),music=await page.locator('.radio-program-face').boundingBox();
     const actions=await page.locator('#radio-actions').boundingBox(),status=await page.locator('.presenter').boundingBox();
-    assert.equal(bar.width,width,'Leiste nutzt die volle verfügbare Breite');assert.equal(bar.x,0);
+    assert.equal(bar.width,width,'Leiste nutzt die gesamte Framebreite');assert.equal(bar.x,0);
     assert.ok(status.x>=music.x&&status.x+status.width<=music.x+music.width,'Moderationsstatus bleibt innerhalb der Musikgruppe');
     assert.ok(actions.x-music.x-music.width<=16,'Musik und Bedienung bleiben unmittelbar benachbart');
-    assert.equal(await page.locator('#radio-topic').isVisible(),false);
+    assert.equal(await page.locator('#radio-topic').isVisible(),true);assert.equal(await page.locator('#show-topic').textContent(),'MischWerk Radio Show');
     assert.equal(await page.locator('#open-wishes').isDisabled(),true);
-    assert.equal(await page.locator('#open-wishes').evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(216, 187, 117)','Gesicherte Wunschbox behält die matte Goldfläche und bleibt nativ gesperrt');
+    assert.equal(await page.locator('#open-wishes').evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(31, 31, 31)','Gesicherte Wunschbox behält die dunkle Vinylfläche und bleibt nativ gesperrt');
     assert.equal(await page.locator('#on-air-sign').textContent(),'Radio MischWerk');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     if(width===2291)await captureDesign(page,'Radio-Studio-2291');
@@ -1266,9 +1164,9 @@ test('Hohe Auflösungen und Bildschirmskalierungen erhalten lesbare Gruppen, dir
     const bounds=await page.locator('#radio-panel').boundingBox();
     assert.equal(bounds.width,width);assert.equal(bounds.height,160);assert.equal(bounds.x,0);
     assert.equal(await page.evaluate(()=>devicePixelRatio),deviceScaleFactor);
-    assert.equal(await page.locator('.bar-logo').evaluate(n=>n.getBoundingClientRect().width),140);
-    assert.equal(await page.locator('#play-button').evaluate(n=>n.getBoundingClientRect().width),108);
-    assert.equal(await page.locator('#track-title').evaluate(n=>getComputedStyle(n).fontSize),'26px');
+    assert.ok(Math.abs(await page.locator('.bar-logo').evaluate(n=>n.getBoundingClientRect().width)-100)<.03);
+    assert.equal(await page.locator('#play-button').evaluate(n=>n.getBoundingClientRect().width),60);
+    assert.equal(await page.locator('#track-title').evaluate(n=>getComputedStyle(n).fontSize),'24px');
     const actions=['#open-schedule','#open-wishes',...(role==='owner'?['#studio-tab','#team-tab']:[])];
     async function reachable() {
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
@@ -1278,14 +1176,14 @@ test('Hohe Auflösungen und Bildschirmskalierungen erhalten lesbare Gruppen, dir
       }),true,selector+' direkt bedienbar bei '+width+' / '+deviceScaleFactor);
     }
     await reachable();await page.locator('#play-button').click();await waitRadioPlaying(page);
-    assert.equal(await page.locator('.radio-program-face').evaluate(n=>getComputedStyle(n).borderTopColor),'rgb(245, 245, 245)');
+    assert.equal(await page.locator('.radio-program-face').evaluate(n=>getComputedStyle(n).borderTopColor),'rgb(233, 234, 236)');
     assert.equal(await page.locator('#radio-panel').evaluate(n=>getComputedStyle(n,'::after').content),'none','Keine Beleuchtung um die äußere Leiste');
     const light=await page.locator('.radio-program-face').evaluate(n=>{const r=n.getBoundingClientRect();return {left:r.left,right:innerWidth-r.right,outerWidth:r.width,top:r.top,height:r.height};});
     const metadata=await page.locator('#radio-metadata').boundingBox();
-    assert.ok(light.left<metadata.x&&light.left+light.outerWidth>metadata.x+metadata.width,'Weißer Rahmen folgt der Musikkarte einschließlich Player und Hörertasten');
+    assert.ok(light.left<=metadata.x&&light.left+light.outerWidth>metadata.x+metadata.width,'Weißer Rahmen folgt der Musikkarte einschließlich Player und Hörertasten');
     assert.ok(light.left>0&&light.right>0&&light.outerWidth<width&&light.top>=0&&light.height<=160);
     const music=await page.locator('.radio-program-face').boundingBox(),volume=await page.locator('.volume-control').boundingBox();
-    assert.ok(Math.abs((volume.x+volume.width/2)-(music.x+music.width/2))<1,'Lautstärke und Musik bleiben gemeinsam in der Mitte');
+    assert.ok(Math.abs(volume.x+10-(await page.locator('#track-title').boundingBox()).x)<1,'Lautstärke und Musik besitzen dieselbe linke Kante');
     const roleLabel=role==='owner'?'Inhaber':'Hoerer';
     if(deviceScaleFactor===1||(deviceScaleFactor===2&&width===3840&&role==='owner'))await captureDesign(page,'Aufloesung-'+roleLabel+'-'+width+'-DPR'+deviceScaleFactor);
     if(process.env.MISCHWERK_DESIGN_CAPTURE&&deviceScaleFactor===1&&role==='owner'&&(width===1920||width===3840))await page.locator('.radio-program-face').screenshot({path:path.join(require('node:os').tmpdir(), 'MischWerk-Pruefbilder', 'design','Musikkarte-Hintergrund-'+width+'.png')});
@@ -1309,7 +1207,7 @@ test('Hohe Auflösungen und Bildschirmskalierungen erhalten lesbare Gruppen, dir
     await reachable();await page.locator('#play-button').click();await waitRadioPlaying(page);
     if(deviceScaleFactor===1&&width===3840&&role==='owner')await captureDesign(page,'Aufloesung-Inhaber-3840-Langtext');
     await page.locator('#play-button').click();
-    assert.equal(await page.locator('.radio-program-face').evaluate(n=>getComputedStyle(n).borderTopColor),'rgb(89, 89, 89)');
+    assert.equal(await page.locator('.radio-program-face').evaluate(n=>getComputedStyle(n).borderTopColor),'rgb(58, 58, 58)');
     assert.equal(await page.locator('#radio-panel').evaluate(n=>getComputedStyle(n,'::after').content),'none');
     if(deviceScaleFactor===1&&width===3840&&role==='owner')await captureDesign(page,'Aufloesung-Inhaber-3840-Pause');
     assert.deepEqual(errors,[]);
@@ -1325,7 +1223,7 @@ test('Fester schmaler Header bietet Titel, Lautstärke und berechtigte Verwaltun
   await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,topic:'Die größten Hits der 80er und 90er'}),state);
   assert.equal(await page.locator('#radio-more,#radio-back').count(),0);
   const volume=await page.locator('.volume-control').boundingBox();
-  assert.ok(volume.y>=0&&volume.y+volume.height<=101,'Lautstärke liegt bei kurzen Musikangaben direkt in der Musikfläche');
+  assert.ok(volume.y>=0&&volume.y+volume.height<=105,'Lautstärke liegt bei kurzen Musikangaben direkt in der Musikfläche');
   await captureDesign(page,'Radio-Fest-Details-390');
   await page.locator('#volume').focus();await page.keyboard.press('ArrowRight');
   assert.equal(await page.locator('#volume-value').textContent(),'11 %');
@@ -1348,7 +1246,7 @@ test('Ignorierte STAPP-Größenänderung erhält die kompakte Bedienung; erlaubt
   await page.exposeBinding('__resizeRadio',async(source,height)=>source.page.setViewportSize({width:320,height}));
   await page.evaluate(()=>{Client.getHostFrame=()=>({setSize(width,height){window.__sizes.push([width,height]);window.__resizeRadio(height);},setTitle(){},setResizable(){}});});
   await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,topic:'Ein langes Thema für die mobile Radioansicht mit deutlich zusätzlichem Platzbedarf'}),state);
-  await page.waitForFunction(()=>innerHeight>=360&&!document.documentElement.classList.contains('radio-constrained'));
+  await page.waitForFunction(()=>innerHeight>160&&!document.documentElement.classList.contains('radio-constrained'));
   assert.equal(await page.locator('#volume').isVisible(),true);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   assert.deepEqual(errors,[]);
@@ -1356,6 +1254,7 @@ test('Ignorierte STAPP-Größenänderung erhält die kompakte Bedienung; erlaubt
 
 test('Fenster-Buttons senden Popup-Anfragen ohne Leistenwechsel oder Audiostopp', async t => {
   const {page,errors}=await setup(t,{station:true,k3:false,viewport:{width:960,height:160}});
+  const initialSizes=await page.evaluate(()=>window.__sizes);
   await page.locator('#play-button').click();
   await page.locator('#open-wishes').click();
   const request=await page.evaluate(()=>window.__sent.findLast(event=>event.type==='mw:openWishes'));
@@ -1365,13 +1264,16 @@ test('Fenster-Buttons senden Popup-Anfragen ohne Leistenwechsel oder Audiostopp'
   assert.equal(await page.evaluate(()=>window.__sent.some(event=>event.type==='mw:openStudio')),true);
   assert.equal(await page.locator('#wishes-panel').isVisible(),false); assert.equal(await page.locator('#studio-panel').isVisible(),false);
   assert.equal(await page.locator('#play-button').getAttribute('aria-label'),'Radio stoppen');
-  assert.deepEqual(await page.evaluate(()=>window.__sizes),[[0,160]]);
+  assert.deepEqual(await page.evaluate(()=>window.__sizes),initialSizes);
   assert.deepEqual(errors,[]);
 });
 
 test('Radio-Team bleibt vom Moderationsmenü getrennt und verwaltet Ernennungen revisionssicher', async t => {
   const radio=await setup(t,{viewport:{width:960,height:160}});
   assert.equal(await radio.page.locator('#team-tab').isEnabled(),true);
+  assert.equal(await radio.page.locator('#team-tab .action-label').textContent(),'Verwaltung');
+  assert.equal(await radio.page.locator('#team-tab').getAttribute('aria-label'),'Verwaltung');
+  assert.equal(await radio.page.locator('#team-tab').getAttribute('title'),'Verwaltung');
   assert.equal(await radio.page.locator('#team-tab').evaluate(node=>!!node.closest('#studio-panel')),false);
   await radioAction(radio.page,'#team-tab');
   assert.equal(await radio.page.evaluate(()=>window.__sent.some(event=>event.type==='mw:openRadioTeam')),true);
@@ -1485,7 +1387,7 @@ test('Deaktivierte Wunschbox ist sichtbar gesperrt, sendet keine Popup-Anfrage u
       assert.equal(await page.locator('#wish-button-caption').textContent(),'Deaktiviert');
       assert.equal(await page.locator('#open-wishes .wish-icon-lock').evaluate(n=>getComputedStyle(n).display!=='none'),true);
       assert.equal(await page.locator('#open-wishes .wish-icon-music').isVisible(),false);
-      assert.equal(await page.locator('#open-wishes').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(216, 187, 117)','Gesperrte Wunschbox behält die gemeinsame matte Goldfläche bei '+width);
+      assert.equal(await page.locator('#open-wishes').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(31, 31, 31)','Gesperrte Wunschbox behält die gemeinsame dunkle Vinylfläche bei '+width);
       assert.equal(await page.locator('#open-wishes').evaluate(n=>getComputedStyle(n).borderTopColor),await page.locator('#open-schedule').evaluate(n=>getComputedStyle(n).borderTopColor),'Beide öffentlichen Aktionen behalten dieselbe Goldkontur bei '+width);
       assert.equal(await page.locator('#open-wishes .wish-button-arrow').isVisible(),false);
       assert.match(await page.locator('#open-wishes').getAttribute('title'),/deaktiviert/);
@@ -1518,14 +1420,13 @@ test('Popup zeigt nur seinen Bereich und verändert weder Headerbar-Höhe noch A
     assert.equal(await page.locator('#radio-panel').isVisible(),false);
     assert.equal(await page.locator('#'+view+'-panel').isVisible(),true);
     if (view === 'wishes') {
-      await page.waitForFunction(()=>window.__sizes.length>0);
-      assert.ok((await page.evaluate(()=>window.__sizes)).every(size=>size[0]===0&&size[1]>264));
+      assert.deepEqual(await page.evaluate(()=>window.__sizes),[]);
     } else {
       await page.waitForTimeout(100);
       await validDialogSizes(page);
     }
     assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
-    assert.equal((await page.locator('.dialog-brand img').boundingBox()).width,64);
+    assert.equal((await page.locator('.dialog-brand img:visible').boundingBox()).width,57);
     assert.deepEqual(errors,[]);
   }
 });
@@ -1553,6 +1454,7 @@ test('Wunschbox enthält weder Regeltext noch Offen-Limit und sperrt nicht wegen
 
 test('Erfolgreiche oder fehlgeschlagene Statusabfrage entsperrt keine parallele Studioaktion', async t => {
   const {page,state}=await setup(t,{view:'studio'}); await page.locator('#on-air').click();
+  await showStudioPane(page,true);
   await page.locator('#refresh-queue').click();
   assert.equal(await page.locator('#refresh-queue').getAttribute('aria-busy'),'true','Aktualisieren bleibt auch während einer wartenden Schreibaktion nutzbar');
   await page.evaluate(s=>__emit('mw:state',{...s,refreshRequestId:__sent.findLast(e=>e.type==='mw:refresh').data.requestId}),state);
@@ -1575,12 +1477,12 @@ test('Weißer Rahmen der inneren Musikkarte folgt nativer Wiedergabe und erlisch
       return {color:style.borderTopColor,shadow:style.boxShadow,pointerEvents:style.pointerEvents,animation:style.animationName,borderWidth:style.borderTopWidth};
     });
     const resting=await frame(),bounds=await page.locator('#radio-panel').boundingBox();
-    assert.equal(resting.color,'rgb(89, 89, 89)');
+    assert.equal(resting.color,'rgb(58, 58, 58)');
     const cardBounds=await page.locator('.radio-program-face').boundingBox();
     assert.equal(await page.locator('#radio-panel').evaluate(n=>getComputedStyle(n,'::after').content),'none');
     await page.locator('#play-button').click();await waitRadioPlaying(page);
     const playing=await frame();
-    assert.equal(playing.color,'rgb(245, 245, 245)');assert.notEqual(playing.shadow,resting.shadow);assert.equal(playing.borderWidth,'1px');
+    assert.equal(playing.color,'rgb(233, 234, 236)');assert.notEqual(playing.shadow,resting.shadow);assert.equal(playing.borderWidth,'1px');
     assert.equal(playing.pointerEvents,'none');assert.equal(playing.animation,'none');
     assert.deepEqual(await page.locator('#radio-panel').boundingBox(),bounds);
     assert.deepEqual(await page.locator('.radio-program-face').boundingBox(),cardBounds);
@@ -1608,64 +1510,79 @@ test('Wiedergabestatus folgt echter Wiedergabe statt dem Play-Klick', async t =>
   await page.locator('#play-button').click();
   assert.equal(await page.locator('#stream-label').textContent(),'Verbinden');
   assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),false);
-  assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(89, 89, 89)');
+  assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(58, 58, 58)');
   await page.evaluate(()=>document.getElementById('radio-audio').dispatchEvent(new Event('playing')));
   assert.equal(await page.locator('#stream-label').textContent(),'LIVE');
   assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),true);
-  assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(245, 245, 245)');
+  assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(233, 234, 236)');
   await page.evaluate(()=>document.getElementById('radio-audio').dispatchEvent(new Event('waiting')));
   assert.equal(await page.locator('#stream-label').textContent(),'Verbinden');
   assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),false);
-  assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(89, 89, 89)');
+  assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(58, 58, 58)');
   await page.locator('#play-button').click();
   assert.equal(await page.locator('#stream-label').textContent(),'Gestoppt');
   await page.emulateMedia({reducedMotion:'reduce'});
 });
 
-test('MischWerk übernimmt braucht bestätigten AutoDJ; LIVE zeigt den authentifizierten Moderatornamen ohne Audiowechsel',async t=>{
+test('Bestätigte Moderation ersetzt AutoDJ in der Hauptanzeige; Abmeldung zeigt wieder MischWerk ohne Audiowechsel',async t=>{
   const {page,state,errors}=await setup(t,{station:true,clock:true,viewport:{width:1600,height:160}});
   const sign=page.locator('#on-air-sign'),host=page.locator('#host-name');
   assert.equal(await sign.textContent(),'Radio MischWerk','Fehlende Modusinformation ist kein AutoDJ');
   let mode='autodj',modeError=false,transmission='started',revision=2;
   const base='https://stats.example.com/widget/radio/test-radio',modeUrl='https://stats.example.com/mode';
+  const autoTitle='Radio Mischwerk bestätigt die automatische Musikstrecke.',liveTitle='Radio Mischwerk bestätigt eine Live-Sendung.',unknownTitle='Der Sendemodus ist derzeit nicht bestätigt.';
   await page.route(modeUrl,r=>r.fulfill({status:modeError?503:200,contentType:'text/plain',body:mode}));
   await page.route(base,r=>r.fulfill({json:{slug:'test-radio',stream_status:transmission}}));
   const selected={...state,station:{...state.station,modeUrl,fields:{...state.station.fields,live:''}}};
   await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++});
-  await sign.filter({hasText:'MischWerk übernimmt'}).waitFor();
+  await sign.filter({hasText:'MischWerk am Pult'}).waitFor();
   await page.locator('#play-button').click();
   await page.evaluate(()=>{const audio=document.getElementById('radio-audio');window.__modeAudio=audio;audio.dispatchEvent(new Event('playing'));});
-  assert.equal(await sign.textContent(),'MischWerk übernimmt','Play erzeugt keine Live-Moderation');
+  assert.equal(await sign.textContent(),'MischWerk am Pult','Play erzeugt keine Moderationsanmeldung');
   const moderator={nick:'StudioNick mit vollständigem Namen'};
   await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator});
-  assert.equal(await sign.textContent(),'MischWerk übernimmt','Studioanmeldung überschreibt bestätigten AutoDJ nicht');
-  assert.equal(await host.isVisible(),false);
-  async function refresh(label){
-    const response=page.waitForResponse(base);
-    await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
-    await(await response).finished();
-    await sign.filter({hasText:label}).waitFor();
-    assert.equal(await sign.textContent(),label);
-  }
-  mode='live';await refresh('Live-Moderation');
-  assert.equal(await host.textContent(),moderator.nick);assert.equal(await host.isVisible(),true);
-  assert.equal(await page.locator('.presenter').getAttribute('data-mode'),'live');
-  assert.equal(await sign.evaluate(n=>getComputedStyle(n).color),'rgb(240, 184, 174)');
-  for(const value of ['relay','autodj_live','']){
-    mode=value;await refresh('Moderation');
-    assert.equal(await page.locator('.presenter').getAttribute('data-mode'),'unconfirmed');
-    assert.equal(await host.isVisible(),true,'Bestätigte Studioanmeldung bleibt erkennbar, ohne LIVE zu behaupten');
-  }
-  mode='autodj';await refresh('MischWerk übernimmt');
-  modeError=true;await refresh('Moderation');modeError=false;
-  mode='live';await refresh('Live-Moderation');
+  assert.equal(await sign.textContent(),'Es moderiert');
+  assert.equal(await page.locator('.presenter').getAttribute('data-mode'),'moderation','Studioanmeldung erfindet keinen bestätigten LIVE-Modus');
+  assert.equal(await host.getAttribute('data-prefix'),'');
+  assert.equal(await host.isVisible(),true);assert.equal(await host.textContent(),moderator.nick);
+  assert.match(await sign.getAttribute('aria-label'),/Es moderiert StudioNick mit vollständigem Namen/);
+  assert.ok((await sign.getAttribute('title')).startsWith(autoTitle),'Der unabhängige Anbieterbefund bleibt im Tooltip erhalten');
+  assert.doesNotMatch(await page.locator('.presenter').textContent(),/MischWerk am Pult|Im Studio angemeldet/);
   await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator:null});
-  assert.equal(await sign.textContent(),'Live-Moderation');assert.equal(await host.isVisible(),false,'Keine erfundene Moderationsidentität aus Anbieterwerten');
+  assert.equal(await sign.textContent(),'MischWerk am Pult','Abmeldung wechselt ohne Providerwechsel zurück');assert.equal(await host.isVisible(),false);
+  await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator});
+  assert.equal(await sign.textContent(),'Es moderiert');
+  async function refresh(label,titlePrefix){
+    const response=page.waitForResponse(base);
+    await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await(await response).finished();
+    await page.waitForFunction(({label,titlePrefix})=>{const sign=document.getElementById('on-air-sign');return sign.textContent===label&&sign.title.startsWith(titlePrefix);},{label,titlePrefix});
+  }
+  mode='live';await refresh('Es moderiert',liveTitle);
+  assert.equal(await host.textContent(),moderator.nick);assert.equal(await host.isVisible(),true);
+  assert.equal(await host.getAttribute('data-prefix'),'');
+  assert.equal(await page.locator('.presenter').getAttribute('data-mode'),'live');
+  assert.equal(await sign.evaluate(n=>getComputedStyle(n).color),'rgb(245, 245, 242)');
+  for(const value of ['relay','autodj_live','']){
+    mode=value;await refresh('Es moderiert',unknownTitle);
+    assert.equal(await page.locator('.presenter').getAttribute('data-mode'),'moderation');
+    assert.equal(await host.isVisible(),true,'Die bestätigte Moderation bleibt bei unbekanntem Sendemodus erkennbar');
+  }
+  mode='autodj';await refresh('Es moderiert',autoTitle);
+  modeError=true;await refresh('Es moderiert',unknownTitle);modeError=false;
+  mode='live';await refresh('Es moderiert',liveTitle);
+  await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator:null});
+  assert.equal(await sign.textContent(),'MischWerk spielt live');assert.equal(await host.isVisible(),false,'Keine erfundene Identität aus Anbieterwerten');
   assert.equal(await page.locator('body').evaluate(n=>n.classList.contains('moderator-on-air')),false);
-  mode='autodj';transmission='stopped';await refresh('Sendepause');
+  mode='autodj';transmission='stopped';await refresh('Sendepause','Radio Mischwerk meldet eine Sendepause.');
   assert.equal(await host.isVisible(),false);assert.equal(await page.locator('#play-button').isDisabled(),true);
-  transmission='unbekannt';await refresh('Radio MischWerk');
-  transmission='started';await refresh('MischWerk übernimmt');
+  await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator});
+  assert.equal(await sign.textContent(),'Es moderiert');assert.equal(await host.isVisible(),true);
+  assert.match(await sign.getAttribute('title'),/Sendepause/);assert.equal(await page.locator('#play-button').isDisabled(),true,'Moderationsanzeige hebt die echte Sendepause nicht auf');
+  await page.evaluate(()=>{window.__disconnectedAt=Date.now();});await page.clock.fastForward(66000);
+  assert.equal(await host.isVisible(),false,'Bei verlorener Channelbestätigung wird kein alter Nick als aktuell gezeigt');
+  await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator:null});
+  transmission='unbekannt';await refresh('Radio MischWerk',unknownTitle);
+  transmission='started';await refresh('MischWerk am Pult',autoTitle);
   assert.equal(await page.locator('#play-button').isDisabled(),false);
   assert.equal(await page.locator('#radio-audio').evaluate(n=>n===window.__modeAudio),true);
   assert.equal(await page.evaluate(()=>window.__sent.some(e=>e.type==='mw:onAir')),false);
@@ -1686,15 +1603,15 @@ test('Sendemodus bleibt bei verzögerter Erstprüfung, alter Senderantwort und v
   const changed={...state,revision:3,station:{...state.station,stationId:'other-radio',streamUrl:'https://stream.example.com/other-radio',
     metadataUrl:base+'other-radio/track/current',statusUrl:base+'other-radio'}};
   await page.evaluate(s=>window.__emit('mw:state',s),changed);
-  await sign.filter({hasText:'Live-Moderation'}).waitFor();
+  await sign.filter({hasText:'MischWerk spielt live'}).waitFor();
   releaseSong();await page.waitForTimeout(60);
-  assert.equal(await sign.textContent(),'Live-Moderation','Verspäteter AutoDJ-Befund des alten Senders wird verworfen');
+  assert.equal(await sign.textContent(),'MischWerk spielt live','Verspäteter AutoDJ-Befund des alten Senders wird verworfen');
   blocked=true;
   await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
   await page.clock.fastForward(91000);
   await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});
   assert.equal(await sign.textContent(),'Radio MischWerk','Alte Befunde werden vor neuer Prüfung nicht wieder als aktuell angezeigt');
-  release();await sign.filter({hasText:'Live-Moderation'}).waitFor();
+  release();await sign.filter({hasText:'MischWerk spielt live'}).waitFor();
   assert.deepEqual(errors,[]);
 });
 
@@ -1745,7 +1662,7 @@ test('Roter Lautstärkebereich warnt über 60 Prozent; bis 100 bleibt frei und M
   assert.equal(await page.locator('#radio-audio').evaluate(a=>a.volume),1);
   assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),false);
   assert.equal(await page.evaluate(()=>localStorage.getItem('mischwerk.volume.v1')),'0.1');
-  assert.ok(await page.locator('#volume').evaluate(n=>getComputedStyle(n).backgroundImage.includes('rgb(241, 111, 101)')),'Rote Reglerzone sichtbar');
+  assert.ok(await page.locator('#volume').evaluate(n=>getComputedStyle(n).backgroundImage.includes('rgb(255, 138, 126)')),'Rote Reglerzone sichtbar');
   assert.equal(await page.locator('#volume-value').evaluate(n=>getComputedStyle(n,'::before').content),'"!"','Warnhinweis nicht nur durch Farbe');
   await capture('100-prozent');
   await resizeViewport(page,{width:320,height:264});await page.locator('#volume').scrollIntoViewIfNeeded();await capture('100-prozent-mobil');
@@ -1764,18 +1681,25 @@ test('Roter Lautstärkebereich warnt über 60 Prozent; bis 100 bleibt frei und M
   assert.deepEqual(errors,[]);
 });
 
-test('Lange Themen bleiben im Detail vollständig und leere Angaben lassen keine leeren Beschriftungen zurück',async t=>{
+test('Eigene und lange Themen ersetzen den dauerhaften Standard; leere Angaben stellen ihn wieder her',async t=>{
   const {page,state,errors}=await setup(t,{station:true});const topic='S'.repeat(80);
   await page.evaluate(({state,topic})=>window.__emit('mw:state',{...state,revision:2,topic}),{state,topic});
   for(const width of [1440,1024,390,320]){
-    await resizeViewport(page,{width,height:160});
-
-    await page.locator('#show-topic').scrollIntoViewIfNeeded();
+    await resizeViewport(page,{width,height:160});await page.locator('#show-topic').scrollIntoViewIfNeeded();
     assert.equal(await page.locator('#show-topic').textContent(),topic);
     assert.equal(await page.locator('#show-topic').evaluate(n=>n.scrollWidth>n.clientWidth),false);
   }
-  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:3,topic:''}),state);
-  assert.equal(await page.locator('#radio-topic').isVisible(),false);assert.deepEqual(errors,[]);
+  let revision=3;
+  for(const topic of ['', '   ', null, undefined]){
+    await page.evaluate(s=>window.__emit('mw:state',s),{...state,revision:revision++,topic});
+    assert.equal(await page.locator('#radio-topic').isVisible(),true);
+    assert.equal(await page.locator('#show-topic').textContent(),'MischWerk Radio Show');
+    assert.equal(await page.locator('#show-topic').getAttribute('title'),'MischWerk Radio Show');
+  }
+  await page.evaluate(s=>window.__emit('mw:state',s),{...state,revision:revision++,topic:'MischWerk Wunschabend'});
+  assert.equal(await page.locator('#show-topic').textContent(),'MischWerk Wunschabend');
+  assert.equal(await page.evaluate(()=>window.__sent.some(e=>e.type==='mw:setTopic')),false,'Die Anzeige speichert kein erfundenes Thema');
+  assert.deepEqual(errors,[]);
 });
 
 test('Fehlende Musikdaten erfinden keine Titel und zeigen einen neutralen Status; einzelne vorhandene Werte bleiben korrekt',async t=>{
@@ -1795,18 +1719,19 @@ test('Fehlende Musikdaten erfinden keine Titel und zeigen einen neutralen Status
 
 test('Neue Moderation hält beim Verkleinern den per Tastatur bedienten Arbeitsbereich offen', async t=>{
   const {page,state,errors}=await setup(t,{view:'studio',viewport:{width:960,height:900},initialRequest:true});
+  await showStudioPane(page,true);
   await page.locator('[data-outcome=done]').focus();
   await resizeViewport(page,{width:390,height:360});
-  await page.waitForFunction(()=>document.getElementById('studio-panel').classList.contains('show-queue'));
+  assert.equal(await page.locator('#studio-queue-tab').getAttribute('aria-selected'),'true');
   assert.equal(await page.locator('[data-outcome=done]').isVisible(),true);
   assert.equal(await page.locator('[data-outcome=done]').evaluate(n=>n===document.activeElement),true);
-  await page.locator('#studio-controls-tab').click();
+  await page.locator('#studio-programme-tab').click();await revealStudio(page,'#studio-topic');
   await page.locator('#studio-topic').fill('Mein Entwurf');await page.locator('#studio-topic').focus();
   await resizeViewport(page,{width:780,height:360});
-  await page.waitForFunction(()=>document.getElementById('studio-panel').classList.contains('fit-tabs'));
+  await studioSettle(page);
   assert.equal(await page.locator('#studio-topic').isVisible(),true);
   assert.equal(await page.locator('#studio-topic').inputValue(),'Mein Entwurf');
-  assert.equal(await page.locator('#studio-controls-tab').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#studio-programme-tab').getAttribute('aria-selected'),'true');
   assert.deepEqual(errors,[]);
 });
 
@@ -1814,6 +1739,7 @@ test('Neue Sendesteuerung zählt Zeichen, erkennt Rücknahme und verwirft nur de
   const {page,state,errors}=await setup(t,{view:'studio',viewport:{width:320,height:560}});
   await page.evaluate(s=>window.__emit('mw:state',{...s,revision:2,topic:'Bestätigt'}),state);
   assert.equal(await page.locator('#studio-topic-count').textContent(),'9 / 80');
+  await revealStudio(page,'#studio-topic');
   await page.locator('#studio-topic').fill('N'.repeat(80));
   assert.equal(await page.locator('#studio-topic-count').textContent(),'80 / 80');
   assert.equal(await page.locator('#reset-topic').isVisible(),true);
@@ -1861,7 +1787,7 @@ test('Studio erhält Themenentwurf bei Fehlern und Statusupdates; nur bestätigt
   assert.deepEqual(errors,[]);
 });
 
-test('Volltext in der direkt scrollbar erreichbaren Musikfläche bleibt bei langen Titel-, Interpreten- und Moderationsnamen erreichbar',async t=>{
+test('Musikfläche bleibt ohne Scrollstapel geordnet; lange Texte bleiben als Volltext im DOM und Titelhinweis erhalten',async t=>{
   const {page,state,errors}=await setup(t,{station:true});
   const song={title:'Ein sehr langer Musiktitel mit zusätzlichen Angaben und einem weiteren Interpreten',artist:'Ein sehr langer Interpret mit vielen Beteiligten'};
   await page.route('https://stats.example.com/widget/radio/test-radio/track/current',route=>route.fulfill({json:song}));
@@ -1871,8 +1797,11 @@ test('Volltext in der direkt scrollbar erreichbaren Musikfläche bleibt bei lang
     await resizeViewport(page,{width,height:160});
 
     for(const selector of ['#track-title','#track-artist','#host-name']){
-      await page.locator(selector).scrollIntoViewIfNeeded();assert.equal(await page.locator(selector).evaluate(n=>n.scrollWidth>n.clientWidth),false);
+      assert.equal(await page.locator(selector).getAttribute('title'),await page.locator(selector).textContent());
+      assert.equal(await page.locator(selector).isVisible(),true);
     }
+    if(width>1350)assert.equal(await page.locator('#radio-metadata').evaluate(n=>n.scrollHeight>n.clientHeight+1),false);
+    else for(const id of ['host-name','volume'])await page.locator('#'+id).scrollIntoViewIfNeeded();
     assert.equal(await page.locator('#track-title').textContent(),song.title);
     assert.equal(await page.locator('#track-artist').textContent(),song.artist);
     assert.equal(await page.locator('#open-schedule').isVisible(),true);
@@ -1883,10 +1812,12 @@ test('Volltext in der direkt scrollbar erreichbaren Musikfläche bleibt bei lang
 test('Studio zeigt eigene Anmeldung, Ablauf und echte Abmelderechte; Verbindungsverlust sperrt Aktionen sichtbar',async t=>{
   const {page,state,errors}=await setup(t,{view:'studio',clock:true,viewport:{width:780,height:700}});
   assert.equal(await page.locator('#off-air').isDisabled(),true);
-  assert.equal(await page.locator('#studio-connection').textContent(),'Verbunden');
+  assert.equal(await page.locator('#studio-connection').isVisible(),false);
   let next={...state,revision:2,moderator:{nick:'Otterchen',since:Date.now(),expiresAt:Date.now()+3600000,sessionKey:'session-1'},user:{...state.user,isOnAir:true,canEndModeration:true}};
   await page.evaluate(s=>window.__emit('mw:state',s),next);
   assert.equal(await page.locator('#on-air').textContent(),'Anmeldung verlängern');
+  assert.equal(await page.locator('#handover-open').evaluate(n=>n.parentElement.id),'studio-controls','Übergabe gehört zur An-/Abmeldegruppe');
+  assert.equal(await page.locator('#studio-handover-card').isVisible(),false,'Ohne empfangene Notiz gibt es keine separate Übergabezeile');
   assert.equal(await page.locator('#off-air').isDisabled(),false);
   assert.equal(await page.locator('body').evaluate(n=>n.classList.contains('moderator-on-air')),true);
   assert.match(await page.locator('#studio-session').textContent(),/Angemeldet bis .* Uhr/);
@@ -1915,7 +1846,7 @@ test('Studio zeigt eigene Anmeldung, Ablauf und echte Abmelderechte; Verbindungs
   await page.locator('#refresh-queue').click();
   assert.match(await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:refresh').data.requestId),/^refresh-/);
   await page.evaluate(s=>window.__emit('mw:state',{...s,revision:5,refreshRequestId:__sent.findLast(e=>e.type==='mw:refresh').data.requestId}),next);
-  assert.equal(await page.locator('#studio-connection').textContent(),'Verbunden');
+  assert.equal(await page.locator('#studio-connection').isVisible(),false);
   assert.equal(await page.locator('#toggle-wishes').isDisabled(),false);
   assert.deepEqual(errors,[]);
 });
@@ -1925,6 +1856,7 @@ test('Studio-Warteschlange behält Tastaturfokus und sperrt Seitenwechsel währe
   const item={id:17,text:'a-ha – Take On Me',nick:'Musikfreund',createdAt:Date.now(),delivery:null};
   const next={...state,revision:2,queue:[item],queueTotal:2,pages:2,page:0};
   await page.evaluate(s=>window.__emit('mw:state',s),next);
+  await showStudioPane(page,true);
   await page.locator('[data-outcome="done"]').evaluate(node=>{window.__focusedWish=node;node.focus();});
   await page.evaluate(s=>window.__emit('mw:state',{...s,revision:3,queue:[{...s.queue[0],delivery:{nick:'Otterchen',at:Date.now()}}]}),next);
   assert.equal(await page.evaluate(()=>document.activeElement===window.__focusedWish),true,'Empfangsquittung ersetzt keine bediente Schaltfläche');
@@ -1980,42 +1912,41 @@ test('Studio und maximale Wunschtexte sind bei knappen Fenstermaßen ohne horizo
     const {page,state,errors}=await setup(t,{view:'studio',viewport:{width,height:568}});
     await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,moderator:{nick:'LangerModeratorNickname',expiresAt:Date.now()+3600000},queue:[{id:1,nick:'Hörer',text:'W'.repeat(300),createdAt:Date.now()}],queueTotal:1,pages:1}),state);
     await page.locator('#studio-queue-tab').waitFor({state:'visible'});await page.locator('#studio-queue-tab').click();
-    await page.locator('[data-outcome=done]').scrollIntoViewIfNeeded();assert.equal(await page.locator('[data-outcome=done]').isVisible(),true);
-    assert.equal(await page.locator('.queue-copy h3').textContent(),'W'.repeat(300));
+    await revealStudio(page,'[data-outcome=done]');assert.equal(await page.locator('[data-outcome=done]').isVisible(),true);
+    assert.equal(await readStudioText(page,'.queue-copy h3'),'W'.repeat(300));
     assert.equal(await page.locator('#queue-pagination button').first().isVisible(),false,'Einzelner Wunsch braucht keine Vor/Zurück-Aktionen');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
   }
 });
 
-async function fitPopup(page) {
+async function naturalContentHeight(page) {
   await page.waitForTimeout(100);
   const height=await page.locator('.dialog-shell').evaluate(node=>Math.ceil(node.getBoundingClientRect().height));
-  await resizeViewport(page,{width:page.viewportSize().width,height});
-  await page.waitForTimeout(100);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth||document.documentElement.scrollHeight>innerHeight),false);
+  await validDialogSizes(page);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   assert.equal(await page.locator('.dialog-shell').evaluate(node=>node.scrollWidth>node.clientWidth),false);
   return height;
 }
 
-test('Wunschbox behält ihre natürliche Höhenanpassung und enthält keine alte Wunschliste', async t => {
+test('Wunschbox behält ihren nativen Rahmen und enthält keine alte Wunschliste', async t => {
   for(const view of ['wishes']) {
     const {page,state,errors}=await setup(t,{view,k3:false,viewport:{width:view==='wishes'?520:780,height:700}});
-    const emptyHeight=await fitPopup(page);
+    const emptyHeight=await naturalContentHeight(page);
     if(view==='wishes'){assert.ok(emptyHeight<=460);assert.equal(await page.locator('.my-wishes,#wish-list-tab,#my-requests').count(),0);}
     const item={id:1,artist:'Ä'.repeat(80),title:'T'.repeat(80),message:'Gruß '.repeat(40),nick:'EinSehrLangerModeratorUndHoererNickname',createdAt:Date.now()};
     const populated={...state,revision:4,myRequests:[item],myTotal:2,myPage:0,myPages:2,queue:[item],queueTotal:50,pages:50,page:0};
     await page.evaluate(state=>window.__emit('mw:state',state),populated);
-    const populatedHeight=await fitPopup(page);
+    const populatedHeight=await naturalContentHeight(page);
     assert.ok(populatedHeight>=emptyHeight);
     if(view==='wishes'){assert.equal(populatedHeight,emptyHeight,'Alte Wünsche vergrößern das vereinfachte Fenster nicht');}
     assert.ok(populatedHeight<=1000,'Popup bleibt innerhalb der Hostgrenze: '+populatedHeight);
     await page.evaluate(state=>window.__emit('mw:state',{...state,revision:5}),state);
-    assert.equal(await fitPopup(page),emptyHeight);
+    assert.equal(await naturalContentHeight(page),emptyHeight);
     assert.deepEqual(errors,[]);
   }
 });
 
-test('Moderation und Radio-Team fordern bei Inhalt und Rückmeldungen passende Fenstermaße an', async t => {
+test('Moderation und Radio-Team erhalten bei Inhalt und Rückmeldungen ihre nativen Fenstermaße', async t => {
   for (const [view, width, height] of [['studio', 780, 680], ['team', 560, 560]]) {
     const { page, state, errors } = await setup(t, { view, k3: false, clock: true, viewport: { width, height } });
     await page.clock.fastForward(3000);
@@ -2032,7 +1963,7 @@ test('Moderation und Radio-Team fordern bei Inhalt und Rückmeldungen passende F
       await page.clock.runFor(100);
       await page.locator('#next-page').click();
       assert.equal(await page.evaluate(() => window.__sent.findLast(event => event.type === 'mw:refresh').data.page), 1);
-      await page.locator('[data-outcome=done]').scrollIntoViewIfNeeded();
+      await revealStudio(page,'[data-outcome=done]');
       await page.locator('[data-outcome=done]').click();
       const sent = await page.evaluate(() => window.__sent.findLast(event => event.type === 'mw:resolveRequest'));
       await page.evaluate(sent => window.__emit('mw:result', { ok: true, action: sent.type,
@@ -2074,12 +2005,13 @@ test('Niedrige STAPP-Verwaltungsfenster halten alle Aktionen mit Reitern und Scr
     if (view === 'studio') {
       await page.locator('#studio-queue-tab').waitFor({ state: 'visible' });
       await page.locator('#studio-queue-tab').click();
-      await page.locator('[data-outcome=done]').scrollIntoViewIfNeeded();
+      await revealStudio(page,'[data-outcome=done]');
       assert.equal(await page.locator('[data-outcome=done]').isVisible(), true);
-      await page.locator('#studio-controls-tab').click();
+      await page.locator('#studio-programme-tab').click();
     }
     for (const selector of view === 'studio' ? ['#on-air', '#toggle-wishes', '#studio-topic'] :
       ['#radio-moderator-nick', '#add-radio-moderator', '#refresh-radio-team']) {
+      if(view==='studio')await revealStudio(page,selector);
       await page.locator(selector).scrollIntoViewIfNeeded();
       assert.ok(await page.locator(selector).evaluate(node => {
         const box = node.getBoundingClientRect(); return box.top >= 0 && box.bottom <= innerHeight + 1;
@@ -2105,17 +2037,18 @@ test('Feste K3-Popups halten Rückmeldungen und Aktionen auch unterhalb ihrer In
     } else if (view === 'studio') {
       await page.evaluate(state => window.__emit('mw:state', { ...state, revision: 2, queueTotal: 2, pages: 2,
         queue: [{ id: 1, nick: 'Hörer', text: 'Langer Wunsch '.repeat(22), createdAt: Date.now() }] }), state);
-      await page.locator('#studio-controls-tab').waitFor();
+      await page.locator('#studio-programme-tab').waitFor();
       await page.locator('#studio-queue-tab').click();
       assert.equal(await page.locator('#on-air').isVisible(), false);
-      await page.locator('[data-outcome=done]').scrollIntoViewIfNeeded();
+      await revealStudio(page,'[data-outcome=done]');
       await page.locator('[data-outcome=done]').click();
       assert.equal(await page.evaluate(() => window.__sent.findLast(event => event.type === 'mw:resolveRequest').data.outcome), 'done');
-      await page.locator('#studio-controls-tab').click();
+      await page.locator('#studio-programme-tab').click();
     }
     const selectors = view === 'team' ? ['#radio-moderator-nick', '#add-radio-moderator', '#refresh-radio-team'] :
       view === 'studio' ? ['#on-air', '#toggle-wishes', '#save-topic'] : ['#wish-text', '#submit-wish'];
     for (const selector of selectors) {
+      if(view==='studio')await revealStudio(page,selector);
       await page.locator(selector).scrollIntoViewIfNeeded();
       assert.ok(await page.locator(selector).evaluate(node => {
         const box = node.getBoundingClientRect();
@@ -2136,16 +2069,17 @@ test('Schmale Popups halten maximale Texte und Aktionen mit Reitern und nativem 
     await page.evaluate(state=>window.__emit('mw:state',state),next);
     if(view==='wishes'){
       await page.locator('#wish-text').fill('G'.repeat(300));
-      assert.ok(await fitPopup(page)<=1000);
+      assert.ok(await naturalContentHeight(page)<=1000);
       assert.equal(await page.locator('#wish-text').evaluate(n=>n.scrollHeight>n.clientHeight),false);
       await page.locator('#wish-text').fill(('Gruß\n').repeat(40));
-      assert.ok(await fitPopup(page)<=1000);
+      assert.ok(await naturalContentHeight(page)<=1000);
       assert.equal(await page.locator('#wish-form').isVisible(),true);
       assert.equal(await page.locator('.my-wishes,#wish-list-tab,#my-next').count(),0);
     }else{
-      assert.ok(await fitPopup(page)<=1000);
+      assert.ok(await naturalContentHeight(page)<=1000);
       await page.locator('#studio-queue-tab').click();
       assert.equal(await page.locator('#on-air').isVisible(),false);
+      await revealStudio(page,'[data-outcome=done]');
       assert.equal(await page.locator('[data-resolve]').first().isVisible(),true);
     }
     if (view === 'studio') {
@@ -2154,7 +2088,7 @@ test('Schmale Popups halten maximale Texte und Aktionen mit Reitern und nativem 
         await page.locator(selector).scrollIntoViewIfNeeded();
         assert.ok(await page.locator(selector).evaluate(n=>{const r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight+1;}));
       }
-    } else { assert.ok(await fitPopup(page)<=1000); }
+    } else { assert.ok(await naturalContentHeight(page)<=1000); }
     if (view === 'studio') { await validDialogSizes(page); }
     else { assert.deepEqual(await page.evaluate(()=>window.__sizes),[]); }
     assert.deepEqual(errors,[]);
@@ -2183,12 +2117,12 @@ test('Kompakte Wunschbox zeigt nur das Formular und weist Links ohne Versand ode
   const {page,errors}=await setup(t,{view:'wishes',k3:false,viewport:{width:520,height:500}});
   assert.equal(await page.locator('#wish-form textarea,#wish-form input').count(),1);
   assert.match(await page.locator('label[for="wish-text"]').textContent(),/Interpret und Titel/);
-  assert.equal(await page.locator('#wish-rules').textContent(),'Bitte nur Interpret und Titel, keine Links.');
+  assert.equal(await page.locator('#wish-rules').textContent(),'Welcher Song darf’s sein?');
   assert.equal(await page.locator('.my-wishes,#wish-list-tab,#wish-nick,#my-requests').count(),0);
   assert.doesNotMatch(await page.locator('.dialog-shell').innerText(),/Einfach drauflosschreiben|direkt ans Studio|Dein Knuddels-Nick|Deine Wünsche/);
   for(const width of [520,320]){
     await resizeViewport(page,{width,height:500});
-    const height=await fitPopup(page);assert.ok(height<=500,'Lesbares Wunschfenster bei '+width);
+    const height=await naturalContentHeight(page);assert.ok(height<=500,'Lesbares Wunschfenster bei '+width);
     if(process.env.MISCHWERK_CAPTURE_WISHES){
       const folder=path.join(require('node:os').tmpdir(), 'MischWerk-Pruefbilder', 'wunschbox');fs.mkdirSync(folder,{recursive:true});
       await page.screenshot({path:path.join(folder,'Wunschbox-'+width+'.png')});
@@ -2199,14 +2133,14 @@ test('Kompakte Wunschbox zeigt nur das Formular und weist Links ohne Versand ode
     assert.match(await page.locator('#wish-feedback').textContent(),/Keine Links/);
     assert.equal(await page.locator('#wish-text').inputValue(),text);
     assert.equal(await page.evaluate(()=>window.__sent.some(e=>e.type==='mw:wish.submit')),false);
-    assert.ok(await fitPopup(page)<=600,'Fehlerrückmeldung bleibt erreichbar');
+    assert.ok(await naturalContentHeight(page)<=600,'Fehlerrückmeldung bleibt erreichbar');
   }
   await page.locator('#wish-text').fill('will.i.am – Scream & Shout');await page.locator('#submit-wish').click();
   assert.equal(await page.evaluate(()=>window.__sent.find(e=>e.type==='mw:wish.submit').data.text),'will.i.am – Scream & Shout');
   assert.deepEqual(errors,[]);
 });
-test('Versand an die Moderation wird gut sichtbar bestätigt; Zustandsupdates zeigen keine Hörerhistorie', async t=>{
-  const {page,state}=await setup(t,{view:'wishes'});
+test('Versandbestätigung verschwindet nach fünf Sekunden; Fehler und laufender Versand bleiben sichtbar', async t=>{
+  const {page,state}=await setup(t,{view:'wishes',clock:true});
   await page.locator('#wish-text').fill('Bitte unseren Lieblingssong.');
   await page.locator('#submit-wish').click();
   const sent=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:wish.submit'));
@@ -2224,7 +2158,15 @@ test('Versand an die Moderation wird gut sichtbar bestätigt; Zustandsupdates ze
   assert.equal(await page.locator('.delivery-status').count(),0);
   await page.evaluate(()=>window.__emit('mw:wish.receipt',{accepted:true,submissionId:'fremd',message:'An Fake übergeben.'}));
   assert.doesNotMatch(await page.locator('#wish-feedback').textContent(),/Fake/);
-  assert.ok(await fitPopup(page)<760);
+  assert.ok(await naturalContentHeight(page)<760);
+  await page.clock.runFor(6000);
+  assert.equal(await page.locator('#wish-feedback').isVisible(),false);
+  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:4}),state);
+  assert.equal(await page.locator('#wish-feedback').isVisible(),false,'Ein Snapshot zeigt die alte Erfolgsmeldung nicht erneut');
+  await page.locator('#wish-text').fill('https://example.com');await page.locator('#submit-wish').click();
+  await page.clock.runFor(6000);assert.equal(await page.locator('#wish-feedback.error').isVisible(),true);
+  await page.locator('#wish-text').fill('Ein weiterer Song');await page.locator('#submit-wish').click();
+  await page.clock.runFor(6000);assert.equal(await page.locator('#wish-feedback.pending').isVisible(),true);
 });
 test('Empfang wird nur für sichtbare Moderationswünsche bestätigt', async t=>{
   for(const view of ['radio','wishes','studio']){
@@ -2275,8 +2217,7 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   await radio.goto(base+'/preview?role=listener&view=radio');
   const ownerRadio=await context.newPage();
   await ownerRadio.goto(base+'/preview?role=moderator&view=radio');
-  await ownerRadio.locator('#curtain-toggle:not([disabled])').click();
-  await ownerRadio.locator('#curtain-toggle-label').filter({hasText:'Vorhang schließen'}).waitFor();
+  await previewCurtain(ownerRadio);
   await radio.evaluate(()=>Client.sendEvent('mw:refresh',{}));
   await radio.waitForFunction(()=>document.documentElement.dataset.curtain==='open');
   await radio.locator('#open-wishes:not([disabled])').waitFor();
@@ -2304,7 +2245,7 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   await mod.locator('#on-air').filter({hasText:'Anmeldung verlängern'}).waitFor();
   assert.equal(await mod.locator('#off-air').isDisabled(),false);
   await radio.evaluate(()=>Client.sendEvent('mw:refresh',{}));
-  await radio.locator('#host-name').filter({hasText:'Otterchen (Demo)'}).waitFor();
+  await radio.locator('#host-name').filter({hasText:'Testleitung'}).waitFor();
   assert.equal(await radio.locator('body').evaluate(n=>n.classList.contains('moderator-on-air')),true);
   await mod.locator('#off-air').click();
   await mod.locator('#studio-host').filter({hasText:'Keine Moderation angemeldet'}).waitFor();
@@ -2312,7 +2253,8 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   await radio.evaluate(()=>Client.sendEvent('mw:refresh',{}));
   await radio.locator('#on-air-sign').filter({hasText:'Radio MischWerk'}).waitFor();
   assert.equal(await radio.locator('#host-name').isVisible(),false);
-  await radio.locator('#radio-topic').waitFor({state:'hidden'});
+  await radio.locator('#radio-topic').waitFor({state:'visible'});
+  await radio.locator('#show-topic').filter({hasText:'MischWerk Radio Show'}).waitFor();
   assert.equal(await mod.locator('#studio-topic').inputValue(),'');
   assert.equal(await radio.locator('body').evaluate(n=>n.classList.contains('moderator-on-air')),false);
   await showStudioPane(mod,true);
@@ -2522,7 +2464,7 @@ test('Bestätigt gestoppter Sender sperrt Play neutralgrau, auch nach Push und s
   assert.equal(await page.locator('#stream-label').textContent(),'Sendepause');
   assert.equal(await page.locator('#play-button').isDisabled(),true);
   assert.equal(await page.locator('#play-button').getAttribute('aria-disabled'),'true');
-  assert.match(await page.locator('#play-button').getAttribute('title'),/STREAMPANEL gestoppt/);
+  assert.match(await page.locator('#play-button').getAttribute('title'),/Radio Mischwerk meldet eine Sendepause/);
   assert.equal(requests.some(url=>url.includes('/track/current')),false,'Keine aussichtslose Titelabfrage bei bestätigter Pause');
   assert.equal(requests.some(url=>url.startsWith('https://stream.example.com')),false,'Kein Audio zum Prüfen laden');
   await page.evaluate(s=>window.__emit('mw:state',{...s,revision:2,moderator:{nick:'Otterchen'},topic:'80er und 90er'}),state);
@@ -2531,7 +2473,7 @@ test('Bestätigt gestoppter Sender sperrt Play neutralgrau, auch nach Push und s
   for(const width of [320,681,900,901,1500,2124]){
     await resizeViewport(page,{width,height:radioHeight(width)});
     const color=await page.locator('#play-button').evaluate(n=>getComputedStyle(n).backgroundColor);
-    assert.match(color,/102, 102, 102/);assert.doesNotMatch(color,/255, 190, 46/);
+    assert.match(color,/85, 85, 85/);assert.doesNotMatch(color,/255, 190, 46/);
     await page.locator('#play-button').evaluate(b=>{b.click();b.dispatchEvent(new MouseEvent('click',{bubbles:true}));});
     assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth||document.documentElement.scrollHeight>innerHeight),false);
@@ -2599,17 +2541,7 @@ test('Tatsächliches SPCast-Antwortformat sperrt Play bei Sendestopp und prüft 
   await page.locator('#play-button:not([disabled])').waitFor();
   assert.equal(await page.locator('#radio-audio').getAttribute('src'),null,'Rückkehr der Übertragung startet keinen Ton');
   assert.deepEqual(errors,[]);
-  const central=await setup(t,{view:'team',station:true,clock:true});
-  await central.page.route(product.statusUrl,r=>r.fulfill({json:spcastStatistics()}));
-  await central.page.route(product.metadataUrl,r=>r.fulfill({json:{currentSong:null,currentArtist:'Unknown'}}));
-  await central.page.route(product.modeUrl,r=>r.fulfill({contentType:'text/plain',body:'autodj'}));
-  await central.page.evaluate(({state,product})=>__emit('mw:state',{...state,revision:2,station:product}),{state:central.state,product});
-  await central.page.locator('#team-status-tab').click();
-  await central.page.locator('#status-mode-value').filter({hasText:'AutoDJ'}).waitFor();
-  assert.equal(await central.page.locator('#status-transmission-value').textContent(),'Sendet');
-  assert.match(await central.page.locator('#status-mode-detail').textContent(),/STREAMPANEL-Sendemodus/);
-  assert.equal(central.requests.includes(product.streamUrl),false);
-  assert.deepEqual(central.errors,[]);
+
 });
 
 test('Nicht prüfbarer oder unbekannter Anbieterstatus sperrt nicht dauerhaft und unterbricht keinen Ton',async t=>{
@@ -2624,7 +2556,7 @@ test('Nicht prüfbarer oder unbekannter Anbieterstatus sperrt nicht dauerhaft un
   });
   for(mode of ['network','http','json',null,{}, {slug:'other-radio',stream_status:'stopped'},{slug:'test-radio',stream_status:'active'},{slug:'test-radio',stream_status:false},{slug:'test-radio',status:'error',stream_status:'stopped'}]){
     await page.evaluate(()=>{document.getElementById('metadata-status').textContent='';document.dispatchEvent(new Event('visibilitychange'));});
-    await page.locator('#metadata-status').filter({hasText:'Titelanzeige von STREAMPANEL'}).waitFor({state:'attached'});
+    await page.locator('#metadata-status').filter({hasText:'Titelanzeige von Radio Mischwerk'}).waitFor({state:'attached'});
     assert.equal(await page.locator('#stream-label').textContent(),'LIVE');
     assert.equal(await page.locator('#play-button').isEnabled(),true);
     assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),false);
@@ -2762,72 +2694,34 @@ function privatePositions(items, extra={}) {
   return {available:true,generation:'queue-browser',revision:1,nextPosition:items[0]?.position||null,
     items,total:items.length,page:0,pages:1,...extra};
 }
-test('Eigene Wunschplätze aktualisieren privat, sicher und ohne den Eingabeentwurf zu verlieren',async t=>{
+test('Wunschbox enthält keine doppelte Wunschübersicht und erhält den Eingabeentwurf bei privaten Updates',async t=>{
   const {page,state,errors}=await setup(t,{view:'wishes',role:'listener',parserIncludes:true,viewport:{width:320,height:560}});
-  const items=[{id:11,text:'<img src=x onerror=alert(1)> Mein erster Song',position:2},{id:12,text:'Mein zweiter Song',position:5}];
   const emit=positions=>page.evaluate(({state,positions})=>window.__emit('mw:state',{...state,wishPositions:positions}),{state,positions});
   await page.locator('#wish-text').fill('Dieser Entwurf bleibt');
-  await emit(privatePositions(items));
-  assert.deepEqual(await page.locator('.wish-position-value').allTextContents(),['Platz 2','Platz 5']);
-  assert.equal(await page.locator('#wish-positions-list img').count(),0);
-  assert.equal(await page.locator('#wish-positions').getAttribute('aria-labelledby'),'wish-positions-heading');
-  await page.locator('.wish-position-item').first().evaluate(node=>{window.__positionRow=node;});
-  await emit(privatePositions(items));
-  assert.equal(await page.locator('.wish-position-item').first().evaluate(node=>window.__positionRow===node),true,'Identisches Update baut die Liste nicht neu');
-  const advanced=privatePositions([{...items[0],position:1},{...items[1],position:4}],{revision:2});
-  await emit(advanced);
-  await emit(privatePositions(items));
-  assert.deepEqual(await page.locator('.wish-position-value').allTextContents(),['Platz 1','Platz 4'],'Verspätete Revision bringt alte Plätze nicht zurück');
-  assert.equal(await page.locator('#wish-text').inputValue(),'Dieser Entwurf bleibt');
+  const sent=await page.evaluate(()=>window.__sent.length);
+  for(const positions of [privatePositions([{id:11,text:'<img src=x onerror=alert(1)> Mein Song',position:2}]),privatePositions([],{generation:'queue-restarted',revision:0})]){
+    await emit(positions);
+    assert.equal(await page.locator('#wish-positions,#refresh-wish-positions,#wish-positions-pages').count(),0);
+    assert.doesNotMatch(await page.locator('#wishes-panel').innerText(),/Deine offenen Wünsche|Platz 2|Mein Song/);
+    assert.equal(await page.locator('#wish-text').inputValue(),'Dieser Entwurf bleibt');
+    assert.equal(await page.locator('#wish-text').evaluate(n=>n===document.activeElement),true);
+  }
+  assert.equal(await page.evaluate(()=>window.__sent.length),sent,'Private Updates erzeugen keine zusätzlichen Leseaufträge');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-  await page.locator('#refresh-wish-positions').focus();
-  await emit(privatePositions([],{generation:'queue-restarted',revision:0}));
-  assert.equal(await page.locator('#wish-positions').isVisible(),false);
-  assert.equal(await page.locator('#wish-text').evaluate(n=>n===document.activeElement),true,'Verschwindende Liste verliert den Tastaturfokus nicht');
-  await emit(advanced);
-  assert.equal(await page.locator('#wish-positions').isVisible(),false,'Pakete einer vergangenen Laufzeit beleben keine Wünsche wieder');
-  assert.deepEqual(errors,[]);
-});
-
-test('Eigene Wunschplätze blättern, halten Fokus und kennzeichnen Verbindungs- oder Lesefehler',async t=>{
-  const {page,state,errors}=await setup(t,{view:'wishes',role:'listener',clock:true});
-  const items=[1,2,3].map(n=>({id:n,text:'Eigener Wunsch '+n,position:n*2}));
-  const emit=positions=>page.evaluate(({state,positions})=>window.__emit('mw:state',{...state,wishPositions:positions}),{state,positions});
-  const first=privatePositions(items,{total:4,pages:2});
-  await emit(first);await page.locator('#wish-text').fill('Entwurf beim Blättern');
-  await page.locator('#next-wish-positions').click();
-  assert.equal(await page.locator('#next-wish-positions').isDisabled(),true);
-  assert.equal(await page.evaluate(()=>window.__sent.filter(e=>e.type==='mw:refresh').at(-1).data.myPage),1);
-  await emit(first);
-  assert.match(await page.locator('#wish-positions-status').textContent(),/werden aktualisiert/,'Antwort der alten Seite beendet das Blättern nicht');
-  const last=privatePositions([{id:4,text:'Eigener Wunsch 4',position:8}],{total:4,pages:2,page:1});
-  await emit(last);
-  assert.equal(await page.locator('#wish-positions-page').textContent(),'Seite 2 / 2');
-  assert.equal(await page.locator('#refresh-wish-positions').evaluate(n=>n===document.activeElement),true);
-  assert.equal(await page.locator('#wish-text').inputValue(),'Entwurf beim Blättern');
-  await page.clock.fastForward(66000);
-  assert.equal(await page.locator('.wish-position-value').textContent(),'Platz —');
-  assert.match(await page.locator('#wish-positions-status').textContent(),/nicht verfügbar/);
-  assert.equal(await page.locator('#refresh-wish-positions').isDisabled(),false,'Prüfen bleibt zur Wiederverbindung erreichbar');
-  await page.locator('#refresh-wish-positions').click();
-  await emit(last);
-  assert.equal(await page.locator('.wish-position-value').textContent(),'Platz 8');
-  await page.locator('#refresh-wish-positions').click();
-  await page.clock.fastForward(15001);
-  assert.equal(await page.locator('.wish-position-value').textContent(),'Platz —','Nach ausbleibender Leseantwort keine bestätigte Platznummer behaupten');
-  await emit(privatePositions(items,{revision:2}));
-  assert.equal(await page.locator('#wish-positions-pages').isVisible(),false,'Nach Löschen der letzten Seite passt sich die Navigation an');
-  assert.equal(await page.locator('#wish-text').inputValue(),'Entwurf beim Blättern');
   assert.deepEqual(errors,[]);
 });
 
 test('Radio zeigt den nächsten eigenen Wunsch auch bei geschlossener Wunschbox ohne Tonunterbrechung',async t=>{
   const {page,state,errors}=await setup(t,{role:'listener',station:true,realAudio:true,clock:true,viewport:{width:1200,height:160}});
   await page.locator('#play-button').click();await waitRadioPlaying(page);
-  const position=privatePositions([{id:1,text:'Mein Song',position:7}],{total:2});
+  const position=privatePositions([{id:1,text:'Mein Song',position:7,stage:'queued'}],{total:2,nextItem:{id:1,text:'Mein Song',position:7,stage:'queued'}});
   const emit=positions=>page.evaluate(({state,positions})=>window.__emit('mw:state',{...state,requestsEnabled:false,wishPositions:positions}),{state,positions});
   await emit(position);
-  assert.equal(await page.locator('#own-wish-position').textContent(),'Dein nächster Wunsch: Platz 7');
+  assert.equal(await page.locator('#own-wish-label').textContent(),'Dein Wunsch:');
+  assert.equal(await page.locator('#own-wish-rank').textContent(),'Platz 7');
+  assert.equal(await page.locator('#own-wish-title').textContent(),'Mein Song');
+  assert.equal(await page.locator('#own-wish-stage').textContent(),'Wartet');
+  assert.equal(await page.locator('#own-wish-more').textContent(),'+1');
   assert.equal(await page.locator('#open-wishes').isDisabled(),true);
   assert.equal(await page.locator('#mute-button').evaluate(n=>{
     const r=n.getBoundingClientRect(),m=document.getElementById('radio-metadata').getBoundingClientRect();
@@ -2839,13 +2733,16 @@ test('Radio zeigt den nächsten eigenen Wunsch auch bei geschlossener Wunschbox 
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   }
   assert.equal(await page.locator('#radio-audio').evaluate(n=>n.paused),false);
-  await emit({...position,revision:2,nextPosition:6});
+  await emit({...position,revision:2,nextPosition:6,nextItem:{...position.nextItem,position:6,stage:'preparing'},items:[{id:2,text:'Anderer eigener Wunsch auf Seite 2',position:9,stage:'queued'}],page:1,pages:2});
   await emit(position);
   assert.match(await page.locator('#own-wish-position').textContent(),/Platz 6/);
+  assert.equal(await page.locator('#own-wish-title').textContent(),'Mein Song');
+  assert.equal(await page.locator('#own-wish-stage').textContent(),'In Vorbereitung');
   await page.clock.fastForward(66000);
-  assert.equal(await page.locator('#own-wish-position').textContent(),'Wunschposition unbestätigt');
+  assert.equal(await page.locator('#own-wish-stage').textContent(),'Status unbestätigt');
+  assert.equal(await page.locator('#own-wish-rank').isVisible(),false,'Unbestätigte Position zeigt keinen hervorgehobenen Platzwert');
   await emit({...position,revision:3,nextPosition:null});
-  assert.equal(await page.locator('#own-wish-position').textContent(),'Wunschposition unbestätigt');
+  assert.equal(await page.locator('#own-wish-stage').textContent(),'Status unbestätigt');
   await emit(privatePositions([],{revision:4}));
   assert.equal(await page.locator('#own-wish-position').isVisible(),false);
   assert.deepEqual(errors,[]);
@@ -2861,140 +2758,100 @@ test('Wunschplätze rücken im vollständigen Versand- und Moderations-Roundtrip
     child.stdout.on('data',chunk=>{const match=String(chunk).match(/http:\/\/127\.0\.0\.1:\d+/);if(match){clearTimeout(timeout);resolve(match[0]);}});
   });
   const context=await browser.newContext({viewport:{width:520,height:700}});t.after(()=>context.close());
-  const listener=await context.newPage(),mod=await context.newPage();
-  await listener.goto(base+'/preview?role=listener&view=wishes');
+  const listener=await context.newPage(),mod=await context.newPage(),radio=await context.newPage();
+  await mod.goto(base+'/preview?role=moderator&view=studio');await previewCurtain(mod);
+  await radio.goto(base+'/preview?role=listener&embedded=1');
+  const source=await radio.evaluate(()=>MischWerkDemoData.sessionId);
+  await listener.goto(base+'/preview?view=wishes&sourceSession='+encodeURIComponent(source));
   await listener.locator('#wish-text:not([disabled])').fill('Ein Song mit sichtbarem Platz');
   await listener.locator('#submit-wish').click();
   await listener.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
-  await listener.locator('.wish-position-value').filter({hasText:'Platz 3'}).waitFor();
-  assert.deepEqual(await listener.locator('.wish-position-text').allTextContents(),['Ein Song mit sichtbarem Platz']);
-  await mod.goto(base+'/preview?role=moderator&view=studio');
+  await radio.locator('#own-wish-rank').filter({hasText:'Platz 3'}).waitFor();
+  assert.equal(await radio.locator('#own-wish-title').textContent(),'Ein Song mit sichtbarem Platz');
+  assert.equal(await listener.locator('#wish-positions').count(),0);
   await mod.setViewportSize({width:780,height:740});
   for(const [outcome,rank] of [['done',2],['discarded',1]]){
     await showStudioPane(mod,true);
     await mod.locator('[data-outcome="'+outcome+'"]').click();
     await mod.locator('#queue-count').filter({hasText:String(rank)}).waitFor();
-    await listener.locator('#refresh-wish-positions').click();
-    await listener.locator('.wish-position-value').filter({hasText:'Platz '+rank}).waitFor();
+    await radio.locator('#own-wish-rank').filter({hasText:'Platz '+rank}).waitFor();
   }
   await showStudioPane(mod,true);
   await mod.locator('.request-text').filter({hasText:'Ein Song mit sichtbarem Platz'}).waitFor();
   await mod.locator('[data-outcome="done"]').click();
   await mod.locator('#queue-count').filter({hasText:'0'}).waitFor();
-  await listener.locator('#refresh-wish-positions').click();
-  await listener.locator('#wish-positions').waitFor({state:'hidden'});
+  await radio.locator('#own-wish-position').waitFor({state:'hidden'});
   assert.equal(await listener.locator('#wish-text').isEnabled(),true);
 });
 
-test('Freigegebene breite Radioleiste entspricht der Bildgeometrie und erhält Tastaturbedienung',async t=>{
+test('Breite Radioleiste nutzt die Mittelbreite und erhält Tastaturbedienung',async t=>{
   const {page,state,errors}=await setup(t,{station:true,curtainClosed:true,viewport:{width:2290,height:160}});
   await page.waitForFunction(()=>{const img=document.querySelector('.bar-logo');return img.complete&&img.naturalWidth>0;});
-  const ids=['open-schedule','open-wishes','studio-tab','team-tab','curtain-toggle'];
+  const ids=['open-schedule','open-wishes','studio-tab','team-tab'];
   const boxes=await Promise.all(ids.map(id=>page.locator('#'+id).boundingBox()));
   assert.equal((await page.locator('#radio-panel').boundingBox()).width,2290);
-  assert.equal((await page.locator('#play-button').boundingBox()).width,108);
-  for(const [i,x] of [[0,1566.5],[1,1768.5],[2,2130],[3,2130],[4,2130]])assert.ok(Math.abs(boxes[i].x-x)<.5,'Position ohne seitlichen Außenabstand: '+ids[i]);
-  assert.deepEqual(boxes.slice(0,2).map(b=>[b.width,b.height]),[[190,44],[190,44]]);
-  assert.ok(Math.abs(boxes[0].y-boxes[1].y)<1&&boxes[3].y>=boxes[2].y+44&&boxes[4].y>=boxes[3].y+44);
-  const logo=await page.locator('.bar-logo').boundingBox(),play=await page.locator('#play-button').boundingBox(),music=await page.locator('.radio-program-face').boundingBox(),info=await page.locator('#radio-metadata').boundingBox();
-  assert.deepEqual([logo.x,logo.width,logo.height,play.x,play.width,info.x,info.width,music.x,music.x+music.width],[10,140,140,473.5,108,895,500,176,2114]);
+  assert.equal((await page.locator('#play-button').boundingBox()).width,60);
+  assert.ok(Math.abs(boxes[0].width-boxes[1].width)<1&&boxes[0].height===84&&boxes[1].height===84);
+  assert.ok(Math.abs(boxes[0].y-boxes[1].y)<1&&boxes[3].y>=boxes[2].y+44);
+  const logo=await page.locator('.bar-logo').boundingBox(),play=await page.locator('#play-button').boundingBox(),music=await page.locator('.radio-program-face').boundingBox();
+  assert.ok(play.x+play.width<=logo.x&&play.x>=music.x&&boxes[1].x+boxes[1].width<=music.x+music.width);
   assert.equal(await page.locator('.bar-logo').getAttribute('src'),'img/mischwerk-logo.png');
-  for(const id of ['studio-tab','team-tab','curtain-toggle'])assert.deepEqual(await page.locator('#'+id).evaluate(n=>{const s=getComputedStyle(n);return [s.fontSize,s.fontWeight,s.backgroundImage];}),['15px','500','none']);
+  for(const id of ['studio-tab','team-tab'])assert.deepEqual(await page.locator('#'+id).evaluate(n=>{const s=getComputedStyle(n);return [s.fontSize,s.fontWeight,s.backgroundImage];}),['13px','600','none']);
   for(const [index,id] of ids.entries()){
     const node=page.locator('#'+id),before=await node.boundingBox();
     await node.hover();await page.mouse.down();
     assert.deepEqual(await node.boundingBox(),before,'Druckzustand verschiebt keine Klickfläche');
     const styles=await node.evaluate(n=>{const s=getComputedStyle(n);return {shadow:s.boxShadow,textShadow:s.textShadow,background:s.backgroundImage};});
-    assert.equal(styles.shadow,'none');assert.equal(styles.textShadow,'none');if(index<2)assert.match(styles.background,/linear-gradient/);else assert.equal(styles.background,'none');
+    assert.equal(styles.shadow,'none');assert.equal(styles.textShadow,'none');assert.equal(styles.background,'none');
     await page.mouse.move(0,0);await page.mouse.up();
     await node.focus();await page.keyboard.press('Enter');
     const sent=await page.evaluate(()=>window.__sent.at(-1));
-    assert.equal(sent.type,['mw:openSchedule','mw:openWishes','mw:openStudio','mw:openRadioTeam','mw:setCurtain'][index]);
+    assert.equal(sent.type,['mw:openSchedule','mw:openWishes','mw:openStudio','mw:openRadioTeam'][index]);
     await page.evaluate(sent=>window.__emit('mw:result',{ok:true,action:sent.type,requestId:sent.data.requestId}),sent);
     if(index<ids.length-1){await node.focus();await page.keyboard.press('Tab');assert.equal(await page.locator('#'+ids[index+1]).evaluate(n=>document.activeElement===n),true);}
   }
   await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,curtain:{...state.curtain,closed:false}}),state);
-  assert.equal(await page.locator('#curtain-toggle-label').textContent(),'Vorhang schließen');
+  assert.equal(await page.locator('#curtain-toggle').count(),0);
   assert.deepEqual(errors,[]);
 });
 
-test('Radio-Team wächst mit dem gemeinsamen Inhalt und bleibt beim Reiterwechsel gleich groß',async t=>{
- for(const k3 of [true,false]){
-  const {page,state,errors}=await setup(t,{view:'team',k3,screenHeight:1200,viewport:{width:560,height:560}});
-  async function fit(){
-   await page.waitForTimeout(120);
-   const size=await page.evaluate(()=>window.__sizes.at(-1));assert.ok(size);
-   assert.ok(size[1]>=260&&size[1]<=1000);await page.setViewportSize({width:560,height:size[1]});await page.waitForTimeout(100);
-   const height=await page.locator('.dialog-shell').evaluate(n=>Math.ceil(n.getBoundingClientRect().height));
-   assert.ok(Math.abs(height-page.viewportSize().height)<2,'Fenster entspricht der natürlichen Inhaltshöhe');
-   assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight+1),false);
-   return size[1];
-  }
-  const empty=await fit();
-  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,radioModerators:[1,2,3].map(userId=>({userId,nick:'Radio-Teammitglied '+userId})),radioModeratorTotal:3}),state);
-  const members=await fit();assert.ok(members>empty);
-  await page.locator('[data-radio-moderator-id="1"]').click();const confirm=await fit();assert.ok(confirm>members);
-  await page.locator('#team-removal-confirm .secondary-button').click();await fit();
-  await page.locator('#team-status-tab').click();await fit();
-  await page.locator('#team-members-tab').click();await fit();
-  assert.deepEqual(errors,[]);
- }
+test('Teammitglieder und Entzugsbestätigung sind im unveränderten nativen Rahmen erreichbar',async t=>{
+ for(const k3 of [true,false]){const {page,state,errors}=await setup(t,{view:'team',k3,viewport:{width:560,height:560}});await page.evaluate(s=>__emit('mw:state',{...s,revision:2,radioModerators:[1,2,3].map(userId=>({userId,nick:'Radio-Teammitglied '+userId})),radioModeratorTotal:3}),state);await page.locator('[data-radio-moderator-id="1"]').click();await page.locator('[data-confirm-removal]').scrollIntoViewIfNeeded();assert.equal(await page.locator('[data-confirm-removal]').isVisible(),true);await page.locator('#team-removal-confirm .secondary-button').click();assert.deepEqual(await page.evaluate(()=>__sizes),[]);assert.deepEqual(page.viewportSize(),{width:560,height:560});assert.deepEqual(errors,[]);}
 });
 
-test('Geladene Statuswerte und lange Moderationsnamen verändern die Fenstergröße beim Reiterwechsel nicht',async t=>{
-  for(const [width,k3] of [[320,true],[560,false]]){
-    const {page,state,errors,requests}=await setup(t,{view:'team',station:true,k3,nativeSizing:true,hostSteps:true,screenHeight:1400,viewport:{width,height:560}});
-    await page.route('**/test-radio/track/current',r=>r.fulfill({json:{title:'Testtitel',artist:'Interpret',is_live:false}}));
-    await page.evaluate(s=>__emit('mw:state',{...s,revision:2,moderator:{nick:'SehrLangerModerationsname'.repeat(2),expiresAt:Date.now()+3600000}}),state);
-    await page.waitForTimeout(200);
-    assert.equal(requests.some(u=>u.startsWith('https://stats.example.com/')),false,'Vorberechnete Appwerte brauchen keine Anbieterabfrage');
-    await page.locator('#team-status-tab').click();await statusReady(page);await page.waitForTimeout(200);
-    assert.equal(await page.locator('#status-mode-warning').isVisible(),true);
-    const sizes=await page.evaluate(()=>__sizes.slice()),height=page.viewportSize().height;
-    for(const selector of ['#team-members-tab','#team-status-tab','#team-members-tab','#team-status-tab']){
-      await page.locator(selector).click();if(selector==='#team-status-tab')await statusReady(page);await page.waitForTimeout(160);
-      assert.deepEqual(await page.evaluate(()=>__sizes),sizes,'Bekannte Daten bleiben während des erneuten Abrufs mit ursprünglicher Prüfzeit dargestellt');
-      assert.equal(page.viewportSize().height,height);
-    }
-    assert.deepEqual(errors,[]);
-  }
+test('Teamverwaltung erhält Eingabe, Entzugsbestätigung und Fokus bei Aktualisierung und Overlaywechsel',async t=>{
+ const {page,state,errors,requests}=await setup(t,{view:'team',nativeSizing:true,hostSteps:true,viewport:{width:560,height:630},overlayState:{status:{selected:true,details:true},team:{nick:'Mein unverlorener Entwurf',page:0}}});
+ // A fresh overlay restores the existing team draft and ignores the removed status selection.
+ assert.equal(await page.locator('#radio-moderator-nick').inputValue(),'Mein unverlorener Entwurf');
+ assert.equal(await page.locator('#radio-moderator-form').isVisible(),true);
+ assert.equal(await page.locator('#team-status,#team-status-tab').count(),0);
+ await page.evaluate(s=>__emit('mw:state',{...s,revision:2,radioModerators:[{userId:21,nick:'Ein Radiomoderator'}],radioModeratorTotal:1}),state);
+ await page.locator('[data-radio-moderator-id="21"]').click();
+ const before=await page.locator('.dialog-header').boundingBox();
+ await page.evaluate(s=>__emit('mw:state',{...s,revision:3,radioModerators:[{userId:21,nick:'Ein Radiomoderator'}],radioModeratorTotal:1}),state);
+ assert.equal(await page.locator('#team-removal-confirm').isVisible(),true);
+ assert.equal(await page.locator('#team-removal-confirm .secondary-button').evaluate(n=>n===document.activeElement),true);
+ await page.evaluate(()=>__emit('mw:overlay.prepare',{token:1}));
+ const ready=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:overlay.ready'));
+ assert.equal(ready.data.state.team.nick,'Mein unverlorener Entwurf');
+ assert.equal(ready.data.state.team.removing,'21');
+ assert.equal(Object.hasOwn(ready.data.state,'status'),false);
+ await page.evaluate(()=>__emit('mw:overlay.resume',{token:1}));
+ assert.equal(await page.locator('#team-removal-confirm .secondary-button').evaluate(n=>n===document.activeElement),true);
+ await page.keyboard.press('Escape');
+ assert.equal(await page.locator('#team-removal-confirm').count(),0);
+ assert.equal(await page.locator('[data-radio-moderator-id="21"]').evaluate(n=>n===document.activeElement),true);
+ assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:removeRadioModerator')),false);
+ assert.deepEqual(await page.locator('.dialog-header').boundingBox(),before);
+ assert.deepEqual(await page.evaluate(()=>__sizes),[]);
+ assert.equal(requests.some(u=>u.startsWith('https://stats.example.com/')),false);
+ assert.deepEqual(errors,[]);
 });
-
-test('Team-Reiter erhalten Details, Eingabe und Entzugsbestätigung ohne versteckte Tabstopps oder Größenwechsel',async t=>{
-  const {page,state,errors,requests}=await setup(t,{view:'team',nativeSizing:true,hostSteps:true,screenHeight:1400,viewport:{width:560,height:560}});
-  await page.locator('#radio-moderator-nick').fill('Mein unverlorener Entwurf');
-  await page.evaluate(s=>__emit('mw:state',{...s,revision:2,radioModerators:[{userId:21,nick:'Ein Radiomoderator'}],radioModeratorTotal:1}),state);
-  await page.locator('[data-radio-moderator-id="21"]').click();
-  await page.locator('#team-status-tab').click();
-  assert.equal(await page.locator('#radio-moderator-form').isVisible(),false);
-  await page.locator('#status-details > summary').click();
-  await page.waitForTimeout(240);
-  const sizes=await page.evaluate(()=>__sizes.slice()),height=page.viewportSize().height;
-  for(const selector of ['#team-members-tab','#team-status-tab','#team-members-tab','#team-status-tab']){
-    await page.locator(selector).click();await page.waitForTimeout(160);
-    assert.deepEqual(await page.evaluate(()=>__sizes),sizes,'Geöffnete Statusdetails reservieren dieselbe gemeinsame Höhe');
-    assert.equal(page.viewportSize().height,height);
-    assert.equal(await page.locator('#radio-moderator-nick').inputValue(),'Mein unverlorener Entwurf');
-    assert.equal(await page.locator('#studio-connection').textContent(),'Verbunden');
-    assert.equal(await page.locator('#status-details').evaluate(n=>n.open),true);
-    const inactive=selector==='#team-status-tab'?'#team-members':'#team-status';
-    await page.locator(selector).focus();
-    for(let i=0;i<12;i++){
-      await page.keyboard.press('Tab');
-      assert.equal(await page.locator(inactive).evaluate(n=>n.contains(document.activeElement)),false,'Inaktiver Reiter erhält keinen Tastaturfokus');
-    }
-  }
-  await page.locator('#team-members-tab').click();
-  assert.equal(await page.locator('#team-removal-confirm').isVisible(),true);
-  assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:removeRadioModerator')),false);
-  assert.equal(requests.some(u=>u.startsWith('https://stats.example.com/')),false,'Layoutmessung löst keine Anbieterabfragen aus');
-  assert.deepEqual(errors,[]);
-});
-
 
 test('Overlay-Eingaben nutzen denselben Wunschcontroller und erhalten laufendes Audio auch bei später Quittung',async t=>{
  for(const k3 of [true,false]){
   const {page,errors}=await setup(t,{role:'listener',station:true,realAudio:true,k3,viewport:{width:1200,height:160}});
+  const initialSizes=await page.evaluate(()=>window.__sizes);
   await page.locator('#play-button').click();await waitRadioPlaying(page);
   await page.evaluate(()=>{window.__radioNode=document.getElementById('radio-audio');});
   await page.locator('#open-wishes').click();
@@ -3008,30 +2865,12 @@ test('Overlay-Eingaben nutzen denselben Wunschcontroller und erhalten laufendes 
   assert.equal(await page.locator('#wishes-panel').isVisible(),false);
   assert.equal(await page.locator('#radio-audio').evaluate(n=>n===__radioNode&&!n.paused),true);
   assert.equal(await page.evaluate(()=>__sent.filter(e=>e.type==='mw:wish.submit').length),1);
-  assert.ok((await page.evaluate(()=>__sizes)).every(size=>size[1]===160));assert.deepEqual(errors,[]);
+  assert.deepEqual(await page.evaluate(()=>__sizes),initialSizes);assert.deepEqual(errors,[]);
  }
 });
 
 
 
-test('Team-Statusdetails bleiben über Seiten ohne Scrollstapel vollständig erreichbar',async t=>{
- const {page,state,errors}=await setup(t,{view:'team',station:true,screenHeight:1200,viewport:{width:320,height:560}});
- await page.route('**/test-radio/track/current',r=>r.fulfill({json:{title:'T'.repeat(300),artist:'I'.repeat(100),is_live:false}}));
- await page.locator('#team-status-tab').click();await statusReady(page);
- await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,topic:'S'.repeat(80),moderator:{nick:'N'.repeat(50)}}),state);
- await page.locator('#status-details > summary').click();
- const found=[];
- for(let index=0;index<8;index++){
-  await page.waitForTimeout(100);const size=await page.evaluate(()=>window.__sizes.at(-1));
-  await page.setViewportSize({width:320,height:size[1]});await page.waitForTimeout(80);
-  assert.equal(await page.locator('.status-detail-list > div:visible').count(),1);
-  found.push(await page.locator('.status-detail-list > div:visible dt').textContent());
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight+1),false,'Details passen in den angeforderten Rahmen');
-  if(index<7)await page.locator('#next-status-detail').click();
- }
- assert.equal(new Set(found).size,8);assert.equal(await page.locator('#next-status-detail').isDisabled(),true);
- assert.deepEqual(errors,[]);
-});
 test('Ausstehender STREAMPANEL-Zugang erzeugt keine Anbieterabfragen und sperrt nur den Player',async t=>{
  const {page,requests,errors}=await setup(t,{station:false,clock:true,viewport:{width:1200,height:160}});
  await page.clock.fastForward(61000);
@@ -3082,59 +2921,80 @@ test('Alle direkten Radioaktionen einschließlich Vorhang passen auch zwischen 7
 
 test('Tastatur verlässt die Radioaktionen ohne unsichtbaren Zwischenstopp auf dem Hilfslink',async t=>{
  const {page,errors}=await setup(t,{station:true,viewport:{width:2290,height:160}});
- await page.locator('#curtain-toggle').focus();await page.keyboard.press('Tab');
+ await page.locator('#team-tab').focus();await page.keyboard.press('Tab');
  assert.notEqual(await page.evaluate(()=>document.activeElement.id),'station-link');
  assert.deepEqual(errors,[]);
 });
 
-test('Sendungsassistent zählt mit Serverzeit, erinnert vor dem Ende und löst keine Moderations- oder Audioaktion aus',async t=>{
+test('Sendungszeit nutzt bestätigte Serverzeit ohne Assistent, Erinnerung oder automatische Aktion',async t=>{
   for(const k3 of [true,false]){
-    const {page,state,errors}=await setup(t,{view:'studio',clock:true,k3,viewport:{width:780,height:950}});
-    const now=state.serverTime,slot={key:'plan-1',date:'2026-11-02',start:'20:00',end:'22:00',nick:'Otterchen',topic:'80er Abend',startAt:now-3600000,endAt:now+601000};
-    const next={...state,revision:2,serverTime:now,moderator:{nick:'Otterchen',since:now-45000,expiresAt:now+3600000,sessionKey:'timer-1'},
-      user:{...state.user,isOnAir:true,canEndModeration:true},assistant:{startedAt:now-45000,current:slot,next:{...slot,key:'plan-2',nick:'Nächster DJ'},unavailable:false}};
+    const {page,state,errors}=await setup(t,{view:'studio',clock:true,k3,viewport:{width:780,height:730}});
+    const now=state.serverTime;
+    const next={...state,revision:2,serverTime:now,moderator:{nick:'Otterchen',since:now-125000,expiresAt:now+3600000,sessionKey:'timer-1'},user:{...state.user,isOnAir:true,canEndModeration:true}};
     await page.evaluate(s=>__emit('mw:state',s),next);
-    await page.locator('#studio-assistant > summary').click();
-    assert.match(await page.locator('#assistant-elapsed').textContent(),/0:00:4/);
-    assert.match(await page.locator('#assistant-next').textContent(),/Nächster DJ/);
-    assert.equal(await page.locator('#assistant-reminder').isVisible(),false);
-    await page.clock.fastForward(2200);
-    assert.match(await page.locator('#assistant-reminder').textContent(),/Bereite die Übergabe vor/);
-    await page.evaluate(s=>__emit('mw:state',{...s,serverTime:s.assistant.current.endAt-299000}),next);
-    assert.match(await page.locator('#assistant-reminder').textContent(),/wenigen Minuten/);
-    await page.evaluate(s=>__emit('mw:state',{...s,serverTime:s.assistant.current.endAt+1000}),next);
-    assert.match(await page.locator('#assistant-reminder').textContent(),/Sendezeit ist beendet/);
-    assert.equal(await page.evaluate(()=>__sent.some(e=>['mw:offAir','mw:onAir','mw:handover.request'].includes(e.type))),false);
-    assert.equal(await page.locator('#studio-assistant').evaluate(n=>n.open),true);
-    await page.clock.fastForward(66000);
-    assert.equal(await page.locator('#assistant-reminder').isVisible(),false);
-    assert.match(await page.locator('#assistant-summary').textContent(),/Verbindung fehlt/);
+    assert.equal(await page.locator('#studio-duration').textContent(),'0 Std. 2 Min.');
+    assert.equal(await page.locator('#studio-assistant,[id^=assistant-]').count(),0);
+    await page.clock.fastForward(60000);
+    assert.equal(await page.locator('#studio-duration').textContent(),'0 Std. 3 Min.');
+    assert.equal(await page.evaluate(()=>__sent.some(e=>['mw:offAir','mw:onAir','mw:handover.request','mw:setTopic'].includes(e.type))),false);
+    await page.clock.fastForward(6000);
+    assert.equal(await page.locator('#studio-timing').isVisible(),false);
+    assert.equal(await page.locator('#studio-host').textContent(),'Moderation unbestätigt');
     assert.deepEqual(errors,[]);
   }
 });
 
-test('Geplantes Thema wird nur als Entwurf übernommen; Fehler, schmale Ansicht und Verbindungsverlust erhalten die Eingabe',async t=>{
-  const {page,state,errors}=await setup(t,{view:'studio',viewport:{width:320,height:740}});
+test('Moderation enthält keine eigenen Sendezeiten oder Kalenderabrufe und erhält den Themenentwurf',async t=>{
+  const {page,state,errors}=await setup(t,{view:'studio',viewport:{width:780,height:730}});
   await page.locator('#studio-topic').fill('Mein eigener Entwurf');
-  const slot={key:'plan-1',date:'2026-11-02',start:'20:00',end:'22:00',nick:'Otterchen',topic:'<img src=x onerror=alert(1)> 80er',startAt:state.serverTime+60000,endAt:state.serverTime+3600000};
-  const next={...state,revision:2,assistant:{startedAt:null,current:slot,next:null,unavailable:false}};
-  await page.evaluate(s=>__emit('mw:state',s),next);
-  await page.locator('#studio-assistant > summary').click();
-  assert.equal(await page.locator('#assistant-topic').isDisabled(),true,'Eigener Entwurf wird nicht überschrieben');
-  assert.equal(await page.locator('#assistant-topic-copy img').count(),0);
-  await page.locator('#reset-topic').click();await page.locator('#assistant-topic:not([disabled])').waitFor();
-  await page.locator('#assistant-topic').click();assert.equal(await page.locator('#studio-topic').inputValue(),slot.topic);
-  assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:setTopic')),false,'Übernehmen speichert nicht ungefragt');
-  await page.locator('#save-topic').click();
-  const sent=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:setTopic'));
-  await page.evaluate(e=>__emit('mw:result',{ok:false,action:e.type,requestId:e.data.requestId,message:'Speichern fehlgeschlagen.'}),sent);
-  assert.equal(await page.locator('#studio-topic').inputValue(),slot.topic);
-  await page.evaluate(s=>__emit('mw:state',{...s,revision:3,shuttingDown:true}),next);
-  assert.equal(await page.locator('#assistant-topic').isDisabled(),true);
-  assert.match(await page.locator('#assistant-plan').textContent(),/nicht bestätigt/);
-  await page.locator('#assistant-topic').scrollIntoViewIfNeeded();
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  for(const tab of ['studio-queue-tab','studio-history-tab','studio-programme-tab'])await page.locator('#'+tab).click();
+  await page.evaluate(s=>{__emit('mw:schedule.changed',{});__emit('mw:schedule.data',{requestId:'alter-studio-plan',week:'2026-11-02',page:0,pages:1,entries:[]});__emit('mw:state',{...s,revision:s.revision+1});document.dispatchEvent(new Event('visibilitychange'));},state);
+  assert.equal(await page.locator('#studio-plan,[id^="studio-plan-"],[class^="studio-plan-"]').count(),0);
+  assert.doesNotMatch(await page.locator('#studio-panel').textContent(),/Deine Sendezeiten|Diese und nächste Woche/);
+  assert.equal(await page.evaluate(()=>__sent.some(e=>e.type.startsWith('mw:schedule.'))),false);
+  assert.equal(await page.evaluate(()=>performance.getEntriesByType('resource').some(e=>/\/studio\/plan\.js|\/schedule\/calendar\.js/.test(e.name))),false);
+  await revealStudio(page,'#studio-topic');assert.equal(await page.locator('#studio-topic').inputValue(),'Mein eigener Entwurf');
+  assert.equal(await page.evaluate(()=>__sent.some(e=>['mw:setTopic','mw:onAir','mw:offAir'].includes(e.type))),false);
+  await studioFits(page);assert.deepEqual(errors,[]);
+});
+
+test('Flache Sendefläche und kompakte Wünsche nutzen klare Hierarchie; alle Texte bleiben ohne Scrollen erreichbar',async t=>{
+  const {page,state,errors}=await setup(t,{view:'studio',initialRequest:true,viewport:{width:780,height:730}});
+  assert.equal(await page.locator('#studio-setup .card').count(),0);
+  assert.equal(await page.locator('.microphone-card').evaluate(n=>getComputedStyle(n).backgroundImage),'none');
+  await showStudioPane(page,true);
+  assert.ok((await page.locator('.queue-item').boundingBox()).height<200);
+  assert.ok((await page.locator('[data-outcome=done]').boundingBox()).width<150);
+  const text=('Musikwunsch 🎵 mit vollständigem Originaltext. ').repeat(8).slice(0,300);
+  await page.evaluate(({s,text})=>__emit('mw:state',{...s,revision:2,queue:[{...s.queue[0],text}]}),{s:state,text});
+  for(const [width,height] of [[780,730],[390,560],[320,560],[780,360],[320,400]]){
+    await resizeViewport(page,{width,height});await studioSettle(page);
+    assert.equal(await readStudioText(page,'.request-text'),text);
+    await studioFits(page);
+  }
   assert.deepEqual(errors,[]);
+});
+
+test('Wunschliste zeigt mehrere Einträge, wählt über bestehende Seiten und quittiert ausschließlich die sichtbare Auswahl',async t=>{
+  const {page,state,errors}=await setup(t,{view:'studio',viewport:{width:780,height:730}});
+  const rows=[1,2,3].map(id=>({id,text:'Listenwunsch '+id,nick:'Hörer '+id,stage:id===2?'preparing':'queued',createdAt:state.serverTime,delivery:null}));
+  const next={...state,revision:2,queue:[rows[0]],queueWindow:rows,queueStart:0,queueTotal:5,page:0,pages:5,wishPositions:{...state.wishPositions,revision:3}};
+  await page.evaluate(s=>__emit('mw:state',s),next);await studioSettle(page);
+  assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:ackRequest')),false);
+  await showStudioPane(page,true);await studioSettle(page);
+  assert.equal(await page.locator('.queue-item').count(),3);assert.equal(await page.locator('.request-pick').count(),2);
+  assert.deepEqual(await page.evaluate(()=>__sent.filter(e=>e.type==='mw:ackRequest').map(e=>e.data.id)),[1]);
+  await page.locator('[data-position="1"]').click();
+  assert.equal(await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:refresh').data.page),1);
+  const selected={...next,revision:3,queue:[rows[1]],page:1};await page.evaluate(s=>__emit('mw:state',s),selected);await studioSettle(page);
+  assert.equal(await page.locator('.request-text').textContent(),'Listenwunsch 2');
+  assert.equal(await page.locator('[data-stage=playing]').isDisabled(),true,'Weiterhin darf ausschließlich Platz 1 laufen');
+  assert.deepEqual(await page.evaluate(()=>__sent.filter(e=>e.type==='mw:ackRequest').map(e=>e.data.id)),[1,2]);
+  await page.evaluate(s=>__emit('mw:state',{...s,queueWindow:s.queueWindow.map(row=>({...row,text:'Veraltete Vorschau'})),wishPositions:{...s.wishPositions,revision:2}}),selected);
+  assert.doesNotMatch(await page.locator('#request-queue').textContent(),/Veraltete Vorschau/);
+  await studioFits(page);
+  await page.evaluate(s=>__emit('mw:state',{...s,revision:4,user:{...s.user,canModerate:false},queue:[],queueWindow:[]}),selected);
+  assert.equal(await page.locator('#request-queue').textContent(),'');assert.deepEqual(errors,[]);
 });
 
 test('Verspäteter Queue-Stand setzt weder Wunschstatus noch Hörerposition zurück',async t=>{
@@ -3148,4 +3008,34 @@ test('Verspäteter Queue-Stand setzt weder Wunschstatus noch Hörerposition zur�
   await page.evaluate(s=>__emit('mw:state',{...s,user:{...s.user,canModerate:false}}),base);
   assert.equal(await page.locator('#studio-panel').isVisible(),false);
   assert.deepEqual(errors,[]);
+});
+
+
+for(const k3 of [true,false])test('HTML-Vorlagenraster erhält in '+(k3?'K3':'STAPP')+' Thema, Wunschplatz, Originaltexte und laufendes Audio',async t=>{
+ const {page,state,errors}=await setup(t,{station:true,k3,nativeSizing:!k3,curtainClosed:true,viewport:{width:1920,height:160}});
+ await page.route('https://stats.example.com/widget/radio/test-radio/track/current',r=>r.fulfill({json:{title:'Big City Life',artist:'Mattafix'}}));
+ await page.reload();await page.waitForFunction(()=>document.getElementById('track-title').textContent==='Big City Life');
+ await page.evaluate(s=>window.__emit('mw:state',{...s,revision:2,topic:'Testmusik!',wishPositions:{generation:'radio-info',revision:1,available:true,total:1,page:0,pages:1,nextPosition:1,items:[]}}),state);
+ await page.locator('#play-button').click();await page.evaluate(()=>{window.__orderedAudio=document.getElementById('radio-audio');__orderedAudio.dispatchEvent(new Event('playing'));});
+ for(const width of [320,390,560,561,700,768,850,851,1024,1350,1351,1600,1920,2290]){
+  await resizeViewport(page,{width,height:160});
+  await page.waitForTimeout(80);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'Kein horizontaler Überlauf bei '+width);
+  const buttons=await Promise.all(['open-schedule','open-wishes'].map(id=>page.locator('#'+id).boundingBox()));
+  assert.ok(Math.abs(buttons[0].width-buttons[1].width)<1&&buttons.every(b=>b.height>=44));
+  assert.ok(Math.abs(buttons[0].y-buttons[1].y)<1&&buttons[1].x>=buttons[0].x+buttons[0].width);
+  const constrained=await page.locator('html').evaluate(n=>n.classList.contains('radio-constrained'));
+  if(!constrained){
+   assert.equal(await page.locator('#radio-metadata').evaluate(n=>n.scrollWidth>n.clientWidth+1),false);
+   const music=await page.locator('.now-playing').boundingBox(),topic=await page.locator('.radio-context').boundingBox(),wish=await page.locator('#own-wish-position').boundingBox();
+   assert.ok(wish.x>=topic.x+topic.width-1,'Eigener Wunsch steht neben dem Thema');
+   if(width>850)assert.ok(topic.x>=music.x+music.width-1,'Musik steht links von den Sendungsinformationen');
+   assert.deepEqual(await page.locator('#show-topic').evaluate(n=>{const s=getComputedStyle(n);return[s.fontSize,s.fontWeight,s.color];}),[width<=700?'17px':'18px','700','rgb(245, 245, 242)']);
+   assert.equal(await page.locator('#own-wish-rank').evaluate(n=>getComputedStyle(n).color),'rgb(245, 245, 242)');
+  }else{
+   for(const id of ['volume','show-topic','own-wish-rank'])await page.locator('#'+id).scrollIntoViewIfNeeded();
+  }
+  assert.equal(await page.evaluate(()=>document.getElementById('radio-audio')===window.__orderedAudio),true);
+ }
+ assert.equal(await page.locator('#show-topic').textContent(),'Testmusik!');assert.match(await page.locator('#own-wish-position').textContent(),/Platz 1/);assert.deepEqual(errors,[]);
 });

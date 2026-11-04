@@ -7,11 +7,13 @@ MischWerkUI.define('studio', function (dependencies) {
   var commands = dependencies.commands;
   var signals = dependencies.signals;
   var topicDirty = false;
-  var topicRequest = null;
+  var topicRequest = null, serverAnchor=0, localAnchor=0;
+  function releaseTopicSpace() { dom.el('notice').removeAttribute('data-topic-reserved'); }
   function refreshControls() { signals.emit('controls'); }
   function topicFeedback(message, error) {
     var box = dom.el('topic-feedback');
     box.textContent = message; box.hidden = !message; box.classList.toggle('error', !!error);
+    dom.el('topic-help').hidden = !!message;
     layout.resizeDialog();
   }
   
@@ -29,6 +31,7 @@ MischWerkUI.define('studio', function (dependencies) {
     dom.el('studio-topic').disabled = !live || !!commands.pending() || !model.current().user.canModerate;
     dom.el('studio-topic').maxLength = limits.maxTopicLength || 80;
     dom.el('save-topic').disabled = dom.el('studio-topic').disabled || !topicDirty;
+    dom.el('save-topic').setAttribute('aria-busy', String(!!topicRequest));
     dom.el('reset-topic').hidden = !topicDirty;
     dom.el('reset-topic').disabled = dom.el('studio-topic').disabled;
     dom.setText('studio-topic-count', dom.el('studio-topic').value.length + ' / ' + dom.el('studio-topic').maxLength);
@@ -42,16 +45,29 @@ MischWerkUI.define('studio', function (dependencies) {
     var expiresAt = model.current().moderator && model.current().moderator.expiresAt;
     dom.el('studio-session').hidden = !live || !expiresAt;
     dom.setText('studio-session', expiresAt ? 'Angemeldet bis ' + dom.time(expiresAt) + ' Uhr' : '');
+    var presenter=model.current().moderator;
+    dom.el('studio-timing').hidden=!live||!presenter;
+    dom.setText('studio-started',presenter?dom.time(presenter.since)+' Uhr':'');
+    var elapsed=presenter?Math.max(0,Math.floor(((serverAnchor||model.current().serverTime)+Date.now()-localAnchor-presenter.since)/60000)):0;
+    dom.setText('studio-duration',Math.floor(elapsed/60)+' Std. '+(elapsed%60)+' Min.');
     dom.el('toggle-wishes').setAttribute('aria-checked', String(model.current().requestsEnabled));
     dom.setText('toggle-label', model.current().requestsEnabled ? 'Ein' : 'Aus');
-    dom.setText('studio-wish-state', model.current().requestsEnabled ? 'Wunschbox aktiviert' : 'Wunschbox deaktiviert');
+    dom.setText('studio-wish-state', model.current().requestsEnabled ? 'Musikwünsche sind offen' : 'Musikwünsche sind geschlossen');
   
   }
   function start() {
+    dom.el('studio-topic').addEventListener('focus', function () {
+      var notice=dom.el('notice');
+      if (!notice.hidden && dom.el('studio-controls').contains(notice)) { notice.setAttribute('data-topic-reserved',''); }
+    });
+    ['on-air','off-air','toggle-wishes','handover-open','studio-programme-tab','studio-queue-tab','studio-history-tab'].forEach(function(id){
+      dom.el(id).addEventListener('click',releaseTopicSpace);
+    });
+    signals.on('studio-selection',function(selection){if(selection.tab!=='programme')releaseTopicSpace();});
+    signals.on('snapshot',function(){serverAnchor=model.current().serverTime;localAnchor=Date.now();});
     signals.on('overlay-capture', function (state) {
       if (model.view !== 'studio') { return; }
-      state.studio = { topic:topicDirty ? dom.el('studio-topic').value : null,
-        queue:dom.el('studio-panel').classList.contains('show-queue'), assistant:dom.el('studio-assistant').open };
+      state.studio = { topic:topicDirty ? dom.el('studio-topic').value : null };
     });
     signals.on('overlay-restore', function (state) {
       if (model.view !== 'studio') { return; }
@@ -60,11 +76,7 @@ MischWerkUI.define('studio', function (dependencies) {
         dom.el('studio-topic').value = state.studio.topic; topicDirty = true;
         topicFeedback('Ungespeicherte Änderungen', false); refreshControls();
       }
-      dom.el(state.studio.queue ? 'studio-queue-tab' : 'studio-controls-tab').click();
-      dom.el('studio-assistant').open = state.studio.assistant === true;
     });
-    dom.el('studio-controls-tab').addEventListener('click', function () { layout.switchPane('studio-panel', 'show-queue', 'studio-controls-tab', 'studio-queue-tab', false); });
-    dom.el('studio-queue-tab').addEventListener('click', function () { layout.switchPane('studio-panel', 'show-queue', 'studio-controls-tab', 'studio-queue-tab', true); });
     dom.el('on-air').addEventListener('click', function () { commands.send('mw:onAir', {}, true); });
     dom.el('off-air').addEventListener('click', function () { commands.send('mw:offAir', {}, true); });
     dom.el('studio-topic').addEventListener('input', function () {
@@ -88,13 +100,6 @@ MischWerkUI.define('studio', function (dependencies) {
     });
     signals.on('studio-topic-reset', function () { topicDirty = false; topicRequest = null; });
     signals.on('topic-error', function (message) { topicFeedback(message, true); });
-    signals.on('topic-draft', function (topic) {
-      if (dom.el('studio-topic').disabled) { return; }
-      dom.el('studio-topic').value = topic;
-      topicDirty = topic !== (model.current().topic || '');
-      topicFeedback(topicDirty ? 'Ungespeicherte Änderungen' : '', false);
-      refreshControls(); dom.el('studio-topic').focus({ preventScroll:true });
-    });
     signals.on('command-result', function (response) {
       if (response.action === 'mw:setTopic') {
         if (response.ok && topicRequest && topicRequest.value === dom.el('studio-topic').value) { topicDirty = false; }
