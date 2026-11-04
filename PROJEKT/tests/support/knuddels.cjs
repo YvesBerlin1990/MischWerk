@@ -46,6 +46,8 @@ function createHarness(existingPersistence, options = {}) {
   };
   let submissionSequence = 0;
   let timestamp = Date.now();
+  const timers = new Map();
+  let timerSequence = 0;
   class FakeDate extends Date {
     constructor(...args) { super(...(args.length ? args : [timestamp])); }
     static now() { return timestamp; }
@@ -78,6 +80,8 @@ function createHarness(existingPersistence, options = {}) {
       return value.replace(/[_°<>\\]/g, character => '\\' + character);
     },
     Date: FakeDate,
+    setTimeout(callback, delay) { const id = ++timerSequence; timers.set(id, { callback, at:timestamp + delay }); return id; },
+    clearTimeout(id) { timers.delete(id); },
     HTMLFile,
     Color: { fromHexString: hex => { assertHex(hex); return { asHexString: () => hex.toUpperCase() }; } },
     UserType: { Human: 'human' },
@@ -164,7 +168,15 @@ function createHarness(existingPersistence, options = {}) {
   app.onAppStart();
   return {
     app, config: context.MischWerkConfig, store, user, contents, logs, bot, escapedNicks, updateCalls, updateFileCalls, cacheInvalidations, rootInstance, loadedFiles,
-    advance(ms) { timestamp += ms; },
+    timers,
+    now() { return timestamp; },
+    advance(ms) {
+      timestamp += ms;
+      for (const [id, task] of [...timers]) {
+        if (task.at > timestamp || !timers.has(id)) continue;
+        timers.delete(id); task.callback();
+      }
+    },
     open(person) { app.chatCommands.mischwerk(person); return person.sessions[0]; },
     event(person, session, type, data = {}) {
       if (/^mw:overlay\./.test(type)) { data = { view:session.activeView, viewRevision:session.viewRevision, ...data }; }

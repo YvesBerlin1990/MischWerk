@@ -27,7 +27,7 @@ MischWerkModules.attachOverlays = function (runtime) {
             if (radio.overlayDrafts) { delete radio.overlayDrafts[view.kind]; }
             return true;
         }
-        if (!state || typeof state !== 'object' || Array.isArray(state) || JSON.stringify(state).length > 2500 ||
+        if (!state || typeof state !== 'object' || Array.isArray(state) || JSON.stringify(state).length > (view.kind === 'team' ? 4100 : 2500) ||
             typeof revision !== 'number' || !isFinite(revision) || Math.floor(revision) !== revision || revision < 0 || revision > 1000000000) { return false; }
         if (revision < (view.draftRevision || 0)) { return false; }
         view.draftRevision = revision;

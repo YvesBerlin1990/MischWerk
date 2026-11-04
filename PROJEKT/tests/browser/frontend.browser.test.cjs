@@ -589,7 +589,7 @@ test('Radio-Team öffnet direkt die Verwaltung und behält native Maße und Kopf
   assert.equal(await page.locator('#dialog-title').textContent(),'Verwaltung');
   assert.ok(await page.locator('#dialog-title').evaluate(n=>{const r=document.createRange();r.selectNodeContents(n);const t=r.getBoundingClientRect(),h=n.closest('.dialog-header').getBoundingClientRect();return Math.abs(t.x+t.width/2-h.x-h.width/2)<1;}));
   assert.equal(await page.locator('#radio-moderator-form').isVisible(),true);
-  assert.equal(await page.locator('.team-tabs').count(),0);
+  assert.deepEqual(await page.locator('.team-tabs [role=tab]').allTextContents(),['Radio-Team','Bot-Texte']);
   await page.locator('#refresh-radio-team').click();
   await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1}),state);
   assert.deepEqual(await page.locator('.dialog-header').boundingBox(),before);
@@ -769,7 +769,8 @@ test('Radio-Team entfernt Statuszentrale, Anbieterquellen und Prüftimer vollst�
  for(const k3 of [true,false]){
   const {page,state,requests,errors}=await setup(t,{view:'team',station:true,k3,clock:true,viewport:{width:560,height:630}});
   assert.equal(await page.locator('#radio-moderator-form').isVisible(),true);
-  assert.equal(await page.locator('#team-status,#team-status-tab,#team-members-tab,#refresh-status,#status-details,.team-tabs,.team-workspace').count(),0);
+  assert.equal(await page.locator('#team-status,#team-status-tab,#refresh-status,#status-details,.team-workspace').count(),0);
+  assert.deepEqual(await page.locator('.team-tabs [role=tab]').allTextContents(),['Radio-Team','Bot-Texte']);
   assert.equal(await page.getByText('Statuszentrale',{exact:true}).count(),0);
   await page.locator('#radio-moderator-nick').fill('Mein Team-Entwurf');
   await page.evaluate(s=>__emit('mw:state',{...s,revision:2,moderator:{nick:'Langer Moderationsname'},queueTotal:8,topic:'Thema'}),state);
@@ -840,7 +841,7 @@ async function captureDesign(page, name) {
   const folder=path.join(require('node:os').tmpdir(), 'MischWerk-Pruefbilder', 'design');fs.mkdirSync(folder,{recursive:true});
   const size=page.viewportSize();
   const contentHeight=await page.locator('html').getAttribute('data-view')==='radio' ?
-    Math.ceil((await page.locator('#radio-panel').boundingBox()).height) : Math.min(1000,Math.ceil((await page.locator('.dialog-shell').boundingBox()).height));
+    Math.ceil((await page.locator('#radio-panel').boundingBox()).height)+40 : Math.min(1000,Math.ceil((await page.locator('.dialog-shell').boundingBox()).height));
   await page.evaluate(version => {
     const note=document.createElement('div');note.id='local-test-note';
     note.textContent='MischWerk '+version+' · lokale Vorschau';
@@ -1176,7 +1177,7 @@ test('Hohe Auflösungen und Bildschirmskalierungen erhalten lesbare Gruppen, dir
       }),true,selector+' direkt bedienbar bei '+width+' / '+deviceScaleFactor);
     }
     await reachable();await page.locator('#play-button').click();await waitRadioPlaying(page);
-    assert.equal(await page.locator('.radio-program-face').evaluate(n=>getComputedStyle(n).borderTopColor),'rgb(233, 234, 236)');
+    assert.equal(await page.locator('.radio-program-face').evaluate(n=>getComputedStyle(n).animationName),'mw-halo-rgb');
     assert.equal(await page.locator('#radio-panel').evaluate(n=>getComputedStyle(n,'::after').content),'none','Keine Beleuchtung um die äußere Leiste');
     const light=await page.locator('.radio-program-face').evaluate(n=>{const r=n.getBoundingClientRect();return {left:r.left,right:innerWidth-r.right,outerWidth:r.width,top:r.top,height:r.height};});
     const metadata=await page.locator('#radio-metadata').boundingBox();
@@ -1469,30 +1470,67 @@ test('Entzogene Moderatorrechte sperren auch ein bereits geöffnetes Studiofenst
   assert.equal(await page.locator('#studio-panel').isVisible(),false); assert.equal(await page.locator('#access-denied').isVisible(),true);
 });
 
-test('Weißer Rahmen der inneren Musikkarte folgt nativer Wiedergabe und erlischt bei Pause ohne Geometrieänderung',async t=>{
-  for(const viewport of [{width:1440,height:160},{width:1024,height:160},{width:390,height:160},{width:320,height:600}]) {
-    const {page,errors}=await setup(t,{station:true,realAudio:true,viewport});
+test('RGB-Lichthof wechselt fließend ohne Farbsprung und folgt nativer Wiedergabe ohne Geometrieänderung',async t=>{
+  for(const k3 of [true,false])for(const viewport of [{width:1440,height:160},{width:1024,height:160},{width:390,height:160},{width:320,height:600}]) {
+    const {page,errors}=await setup(t,{station:true,realAudio:true,viewport,k3});
+    await page.evaluate(()=>document.fonts.ready);
     const frame=()=>page.locator('.radio-program-face').evaluate(node=>{
       const style=getComputedStyle(node);
       return {color:style.borderTopColor,shadow:style.boxShadow,pointerEvents:style.pointerEvents,animation:style.animationName,borderWidth:style.borderTopWidth};
     });
     const resting=await frame(),bounds=await page.locator('#radio-panel').boundingBox();
     assert.equal(resting.color,'rgb(58, 58, 58)');
+    assert.equal(resting.shadow,'none');
+    for(const [selector,pseudo] of [['#radio-panel','::before'],['.radio-program-face','::after']]) {
+      const texture=await page.locator(selector).evaluate((node,pseudo)=>{
+        const style=getComputedStyle(node,pseudo);return {image:style.backgroundImage,pointerEvents:style.pointerEvents,animation:style.animationName};
+      },pseudo);
+      assert.match(texture.image,/repeating-radial-gradient/);assert.equal(texture.pointerEvents,'none');assert.equal(texture.animation,'none');
+    }
     const cardBounds=await page.locator('.radio-program-face').boundingBox();
     assert.equal(await page.locator('#radio-panel').evaluate(n=>getComputedStyle(n,'::after').content),'none');
     await page.locator('#play-button').click();await waitRadioPlaying(page);
+    await page.mouse.move(0,0);
+    await page.locator('#play-button').evaluate(node=>Promise.all(node.getAnimations().map(animation=>animation.finished)));
     const playing=await frame();
-    assert.equal(playing.color,'rgb(233, 234, 236)');assert.notEqual(playing.shadow,resting.shadow);assert.equal(playing.borderWidth,'1px');
-    assert.equal(playing.pointerEvents,'none');assert.equal(playing.animation,'none');
+    assert.equal(playing.shadow.split(/, (?![^()]*\))/).length,6);assert.match(playing.shadow,/84px 16px/);assert.equal(playing.borderWidth,'1px');
+    assert.equal(playing.pointerEvents,'none');assert.equal(playing.animation,'mw-halo-rgb');
+    const motion=await page.locator('.radio-program-face').evaluate(node=>{
+      const style=getComputedStyle(node);return {duration:style.animationDuration,timing:style.animationTimingFunction,iterations:style.animationIterationCount};
+    });
+    assert.deepEqual(motion,{duration:'48s',timing:'linear',iterations:'infinite'});
+    const sample=milliseconds=>page.locator('.radio-program-face').evaluate(async(node,milliseconds)=>{
+      const animation=node.getAnimations().find(animation=>animation.animationName==='mw-halo-rgb');
+      animation.pause();await animation.ready;animation.currentTime=milliseconds;
+      const style=getComputedStyle(node),colors=[style.borderTopColor,...style.boxShadow.matchAll(/rgba?\([^)]*\)/g)].map(value=>String(value).match(/rgba?\(([^)]+)\)/)[1].split(',').map(Number));
+      const unaffected=['.bar-logo','#play-button','#track-title','#open-schedule','#radio-metadata'].map(selector=>{
+        const element=document.querySelector(selector),style=getComputedStyle(element);return {bounds:element.getBoundingClientRect().toJSON(),color:style.color,background:style.backgroundColor,filter:style.filter};
+      });
+      return {colors,unaffected};
+    },milliseconds);
+    const initial=await sample(0),phase=await sample(viewport.width===390?32000:8000);
+    assert.notDeepEqual(phase.colors,initial.colors);assert.deepEqual(phase.unaffected,initial.unaffected,'Nur Lichtfarben wechseln, nicht Inhalt oder Geometrie');
+    if(k3&&viewport.width===1440) {
+      const phases=[];
+      for(const time of [0,8000,16000,24000,32000,40000])phases.push((await sample(time)).colors[0].slice(0,3).join(','));
+      assert.equal(new Set(phases).size,6,'Alle sechs Farbstationen werden erreicht');
+      for(const boundary of [8000,16000,24000,32000,40000,48000]) {
+        const before=await sample(boundary-10),after=await sample(boundary+10);
+        assert.deepEqual(after.unaffected,before.unaffected);
+        for(let layer=0;layer<before.colors.length;layer++)for(let channel=0;channel<3;channel++)assert.ok(Math.abs(after.colors[layer][channel]-before.colors[layer][channel])<=2,'Kein Farbsprung an '+boundary+' ms in Lichtschicht '+layer);
+      }
+      assert.deepEqual((await sample(48000)).colors,initial.colors,'Nahtloser Übergang zum nächsten Zyklus');
+      await sample(8000);
+    }
     assert.deepEqual(await page.locator('#radio-panel').boundingBox(),bounds);
     assert.deepEqual(await page.locator('.radio-program-face').boundingBox(),cardBounds);
     assert.equal(await page.locator('#radio-panel').evaluate(n=>getComputedStyle(n,'::after').content),'none');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     if(viewport.width===1024||viewport.width===390)await captureDesign(page,'Radio-Leuchtrahmen-'+viewport.width+'-Play');
     await page.emulateMedia({reducedMotion:'reduce'});
-    assert.equal((await frame()).color,playing.color,'Wiedergabebestätigung bleibt auch ohne Bewegung sichtbar');
+    const reduced=await frame();assert.equal(reduced.animation,'none');assert.equal(reduced.color,'rgb(240, 244, 250)');assert.notEqual(reduced.shadow,'none','Statische Wiedergabebestätigung bei reduzierter Bewegung');
     if(viewport.width===390) {
-      await page.locator('#radio-metadata').focus();await page.keyboard.press('End');assert.equal((await frame()).color,playing.color);
+      await page.locator('#radio-metadata').focus();await page.keyboard.press('End');assert.deepEqual(await frame(),reduced);
     }
     if(viewport.width===320)await page.locator('#radio-audio').evaluate(audio=>audio.pause());
     else await page.locator('#play-button').click();
@@ -1504,23 +1542,65 @@ test('Weißer Rahmen der inneren Musikkarte folgt nativer Wiedergabe und erlisch
   }
 });
 
+test('Glowauslauf erhält seinen Hintergrund in K3 und STAPP auch bei begrenzter Hosthöhe',async t=>{
+  for(const k3 of [true,false]) {
+    const {page,errors}=await setup(t,{station:true,realAudio:true,k3,nativeSizing:!k3,viewport:{width:1920,height:200}});
+    await page.evaluate(()=>document.fonts.ready);
+    await page.locator('#play-button').click();await waitRadioPlaying(page);
+    const audio=await page.locator('#radio-audio').getAttribute('src');
+    for(const width of [1920,1200,1199,700,390,320]) {
+      await resizeViewport(page,{width,height:200});
+      await page.waitForFunction(()=>document.getElementById('radio-panel').getBoundingClientRect().height+40<=innerHeight+1&&document.scrollingElement.scrollHeight<=innerHeight+1);
+      const tail=await page.evaluate(()=>{
+        const style=getComputedStyle(document.body,'::after'),bar=document.getElementById('radio-panel').getBoundingClientRect();
+        return {height:parseFloat(style.height),position:style.position,image:style.backgroundImage,pointer:style.pointerEvents,barHeight:bar.height,frameHeight:innerHeight,scrollHeight:document.scrollingElement.scrollHeight};
+      });
+      assert.equal(tail.height,40);assert.equal(tail.position,'relative');assert.match(tail.image,/linear-gradient/);assert.equal(tail.pointer,'none');
+      assert.ok(tail.barHeight+40<=tail.frameHeight+1,'Vollständiger Auslauf: '+JSON.stringify({k3,width,...tail}));
+      assert.ok(tail.scrollHeight<=tail.frameHeight+1,'Keine Scrollfläche für dekorativen Leerraum');
+      for(const selector of ['#play-button','#open-schedule','#open-wishes'])assert.equal(await page.locator(selector).evaluate(node=>{
+        const r=node.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')===node;
+      }),true,'Auslauf fängt keine Klicks ab');
+      assert.equal(await page.locator('#radio-audio').getAttribute('src'),audio);
+      if(width===1920||width===390)await captureDesign(page,'RGB-Auslauf-'+width);
+    }
+    assert.deepEqual(errors,[]);
+  }
+  const {page}=await setup(t,{station:true,viewport:{width:390,height:160}});
+  const fallback=await page.evaluate(()=>{
+    const style=getComputedStyle(document.body,'::after');return {height:style.height,position:style.position,scrollHeight:document.scrollingElement.scrollHeight};
+  });
+  assert.equal(fallback.position,'fixed');assert.equal(fallback.height,'8px');assert.equal(fallback.scrollHeight,160);
+});
+
 test('Wiedergabestatus folgt echter Wiedergabe statt dem Play-Klick', async t => {
   const {page}=await setup(t,{station:true,viewport:{width:1200,height:160}});
+  const shadow=()=>page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).boxShadow);
   assert.equal(await page.locator('#stream-label').textContent(),'Bereit');
+  assert.equal(await shadow(),'none');
   await page.locator('#play-button').click();
   assert.equal(await page.locator('#stream-label').textContent(),'Verbinden');
   assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),false);
   assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(58, 58, 58)');
-  await page.evaluate(()=>document.getElementById('radio-audio').dispatchEvent(new Event('playing')));
-  assert.equal(await page.locator('#stream-label').textContent(),'LIVE');
-  assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),true);
-  assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(233, 234, 236)');
-  await page.evaluate(()=>document.getElementById('radio-audio').dispatchEvent(new Event('waiting')));
-  assert.equal(await page.locator('#stream-label').textContent(),'Verbinden');
-  assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),false);
-  assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(58, 58, 58)');
+  assert.equal(await shadow(),'none','Play-Versuch allein aktiviert keinen Lichthof');
+  for(const type of ['waiting','stalled','pause','ended','error']) {
+    await page.evaluate(()=>document.getElementById('radio-audio').dispatchEvent(new Event('playing')));
+    assert.equal(await page.locator('#stream-label').textContent(),'LIVE');
+    assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),true);
+    assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).animationName),'mw-halo-rgb');
+    assert.match(await shadow(),/84px 16px/);
+    await page.evaluate(type=>document.getElementById('radio-audio').dispatchEvent(new Event(type)),type);
+    assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),false,type);
+    assert.equal(await shadow(),'none','Lichthof sofort aus bei '+type);
+    assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(58, 58, 58)');
+    if(!['waiting','stalled'].includes(type)) {
+      await page.locator('#play-button').click();assert.equal(await shadow(),'none','Erneuter Versuch bleibt ohne Lichthof');
+    }
+  }
   await page.locator('#play-button').click();
   assert.equal(await page.locator('#stream-label').textContent(),'Gestoppt');
+  await page.evaluate(()=>document.getElementById('radio-audio').dispatchEvent(new Event('playing')));
+  assert.equal(await shadow(),'none','Spätes Medienereignis nach Stop schaltet kein Licht ein');
   await page.emulateMedia({reducedMotion:'reduce'});
 });
 

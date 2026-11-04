@@ -19,7 +19,7 @@ MischWerkUI.define('layout', function (dependencies) {
     if (model.view !== 'radio') {
       var targets = { 'mw:onAir':'studio-controls', 'mw:offAir':'studio-controls', 'mw:setRequests':'studio-controls',
         'mw:setWishStage':'queue-notice', 'mw:resolveRequest':'queue-notice',
-        'mw:addRadioModerator':'radio-moderator-form', 'mw:removeRadioModerator':'team-list-notice' };
+        'mw:addRadioModerator':'radio-moderator-form', 'mw:removeRadioModerator':'team-list-notice', 'mw:channelTexts.save':'channel-texts-form' };
       var target = dom.el(targets[action] || (action && action.indexOf('mw:handover.') === 0 ? 'handover-panel' : 'dialog-notice-slot'));
       if (!target || !target.getClientRects().length || target.closest('[hidden]')) { target = dom.el('dialog-notice-slot'); }
       target.appendChild(box);

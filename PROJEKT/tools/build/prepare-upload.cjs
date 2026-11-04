@@ -75,7 +75,7 @@ function properties(text) {
 }
 function build() {
   buildBackend();
-  for (const args of [['--test', 'tests/node/backend.test.cjs', 'tests/node/wish-positions.test.cjs', 'tests/node/stream.test.cjs', 'tests/node/history.test.cjs', 'tests/node/upload.test.cjs', 'tests/node/preview.test.cjs', 'tests/node/schedule.test.cjs', 'tests/node/announcements.test.cjs', 'tests/node/handover.test.cjs', 'tests/node/studio-features.test.cjs', 'tests/node/emulator.test.cjs'], ['tools/checks/project.cjs'], ['tools/checks/rhino.cjs']]) {
+  for (const args of [['--test', 'tests/node/backend.test.cjs', 'tests/node/wish-positions.test.cjs', 'tests/node/stream.test.cjs', 'tests/node/history.test.cjs', 'tests/node/upload.test.cjs', 'tests/node/preview.test.cjs', 'tests/node/schedule.test.cjs', 'tests/node/announcements.test.cjs', 'tests/node/channel-texts.test.cjs', 'tests/node/handover.test.cjs', 'tests/node/studio-features.test.cjs', 'tests/node/emulator.test.cjs'], ['tools/checks/project.cjs'], ['tools/checks/rhino.cjs']]) {
     const result = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit', windowsHide: true });
     assert.equal(result.status, 0, 'Prüfung fehlgeschlagen; Uploadordner nicht aktualisiert.');
   }

@@ -8,6 +8,167 @@ const { createEmulator } = require('../../tools/emulator/server.cjs');
 const {reveal:revealStudio}=require('../support/studio-browser.cjs');
 let browser;
 
+for (const client of ['k3','stapp']) test('Bot-Texte lange Texte und Hauptaktionen bleiben in '+client+' sichtbar und bedienbar', async t => {
+  const lab=await setup(t,{},false,{deviceScaleFactor:client==='stapp'?2:1}),{page,radio}=await lab.join('Otterchen',client);
+  await page.setViewportSize({width:1800,height:1400});
+  await radio.locator('#team-tab:not([disabled])').click();const team=await overlayView(page,'team');
+  await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
+  const long=Array.from({length:16},(_,i)=>'Nachricht Zeile '+(i+1)).join('\n');
+  for(const width of [560,390,320]) {
+    await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');
+    await team.evaluate(()=>window.scrollTo(0,0));
+    const actions=await team.evaluate(()=>['channel-texts-save','channel-texts-refresh'].map(id=>{
+      const n=document.getElementById(id),r=n.getBoundingClientRect();return {id,top:r.top,bottom:r.bottom,height:r.height,limit:innerHeight};
+    }));
+    assert.ok(actions.every(r=>r.top>=0&&r.bottom<=r.limit+1&&r.height>=44),JSON.stringify(actions));
+    const field=team.locator('#channel-texts-fields textarea').first();await field.fill(long);
+    await field.evaluate(n=>{n.setSelectionRange(0,0);n.scrollTop=0;n.scrollIntoView({block:'center'});});
+    const before=await field.evaluate(n=>({scrollTop:n.scrollTop,scrollHeight:n.scrollHeight,client:n.clientHeight,overflow:getComputedStyle(n).overflowY}));
+    assert.equal(before.overflow,'auto');assert.ok(before.scrollHeight>before.client);
+    const box=await field.boundingBox();await page.mouse.move(box.x+30,box.y+25);await page.mouse.wheel(0,160);await page.waitForTimeout(100);
+    assert.ok(await field.evaluate(n=>n.scrollTop>0),'Lange Texte müssen mit dem Mausrad im Feld lesbar sein');
+    await field.press('Control+End');assert.ok(await field.evaluate(n=>n.selectionStart===n.value.length));
+    assert.equal(await team.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await team.locator('#channel-texts-save').evaluate(n=>{
+      const r=n.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+      if(!hit||hit.closest('button')!==n)throw Error('Speichern wird verdeckt');
+    });
+  }
+  lab.hub.faults.failPersistence=true;await team.locator('#channel-texts-save').click();
+  await team.locator('#channel-texts-feedback').filter({hasText:'konnten nicht gespeichert'}).waitFor();
+  assert.ok(await team.locator('#channel-texts-feedback').evaluate(n=>{const r=n.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return r.top>=0&&r.bottom<=innerHeight&&hit===n;}),'Fehlerrückmeldung muss ohne weiteres Scrollen sichtbar sein');
+  lab.hub.faults.failPersistence=false;
+  for(let i=0;i<4;i++)await team.locator('#channel-texts-add').click();
+  const last=team.locator('#channel-texts-fields textarea').last();await last.fill('Sechster Text');
+  await last.evaluate(n=>n.scrollIntoView({block:'center'}));
+  assert.ok(await last.evaluate(n=>{const r=n.getBoundingClientRect(),header=document.querySelector('.dialog-header').getBoundingClientRect(),actions=document.querySelector('.channel-texts-actions').getBoundingClientRect();return r.top>=header.bottom&&r.bottom<=actions.top;}),'Kopf und Aktionen dürfen das fokussierte Textfeld nicht verdecken');
+  await team.locator('#channel-texts-save').click();await team.locator('#channel-texts-feedback').filter({hasText:'gespeichert'}).waitFor();
+  assert.equal(lab.hub.runtime.persistence.api().getObject('mischwerk.channelTexts.v1').texts[0],long);
+  assert.equal(lab.hub.runtime.persistence.api().getObject('mischwerk.channelTexts.v1').texts[5],'Sechster Text');
+  await page.setViewportSize({width:1800,height:550});await page.waitForTimeout(100);
+  const height=await team.evaluate(()=>innerHeight);
+  if(height<=480)assert.equal(await team.locator('.channel-texts-actions').evaluate(n=>getComputedStyle(n).position),'static');
+  await team.locator('#channel-texts-refresh').scrollIntoViewIfNeeded();await team.locator('#channel-texts-refresh').click();
+  await team.waitForFunction(()=>document.getElementById('channel-texts-refresh').getAttribute('aria-disabled')==='false');
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' speichern, rotieren und erhalten Entwurf, Rechte und Audio', async t => {
+  const lab=await setup(t,{provider:'online'}), {page,radio}=await lab.join('Otterchen',client,1280);
+  await page.setViewportSize({width:1800,height:1400});
+  await radio.locator('#play-button:not([disabled])').click();
+  await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+  await radio.evaluate(()=>{window.__botTextsAudio=document.getElementById('radio-audio');});
+  await radio.locator('#team-tab:not([disabled])').click();let team=await overlayView(page,'team');
+  assert.equal(await team.locator('#dialog-title').textContent(),'Verwaltung');
+  await team.locator('#team-texts-tab').click();
+  await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
+  assert.equal(await team.locator('#channel-texts-enabled').isChecked(),false);
+  assert.deepEqual(await team.locator('#channel-texts-interval option').allTextContents(),['20 Minuten','30 Minuten','40 Minuten','50 Minuten']);
+  await team.locator('#channel-texts-fields textarea').nth(0).fill('Erster Channeltext');
+  await team.locator('#channel-texts-fields textarea').nth(1).fill('Zweiter Channeltext');
+  await team.locator('#channel-texts-interval').selectOption('30');
+  await team.locator('#channel-texts-enabled').check();
+  await team.locator('#channel-texts-save').click();
+  await team.locator('#channel-texts-feedback').filter({hasText:'Erste Ausgabe in 30 Minuten'}).waitFor();
+  assert.equal(lab.hub.trace.filter(e=>e.kind==='public').length,0);
+  lab.hub.runtime.clock.advance(30*60000);
+  assert.equal(lab.hub.trace.filter(e=>e.kind==='public').at(-1).message,'Erster Channeltext');
+  lab.hub.runtime.clock.advance(30*60000);
+  assert.equal(lab.hub.trace.filter(e=>e.kind==='public').at(-1).message,'Zweiter Channeltext');
+  await team.locator('#channel-texts-enabled').uncheck();await team.locator('#channel-texts-save').click();
+  await team.locator('#channel-texts-feedback').filter({hasText:'ausgeschaltet'}).waitFor();
+  lab.hub.runtime.clock.advance(50*60000);assert.equal(lab.hub.trace.filter(e=>e.kind==='public').length,2);
+  await team.locator('#channel-texts-fields textarea').nth(0).fill('Mein ungespeicherter Bot-Text');
+  await team.locator('#channel-texts-refresh').click();
+  await team.locator('#channel-texts-feedback').filter({hasText:'Aktualisiert'}).waitFor();
+  assert.equal(await team.locator('#channel-texts-fields textarea').nth(0).inputValue(),'Mein ungespeicherter Bot-Text');
+  await radio.locator('#open-schedule:not([disabled])').click();await overlayView(page,'schedule');
+  await radio.locator('#team-tab:not([disabled])').click();team=await overlayView(page,'team');
+  assert.equal(await team.locator('#team-texts-tab').getAttribute('aria-selected'),'true');
+  assert.equal(await team.locator('#channel-texts-fields textarea').nth(0).inputValue(),'Mein ungespeicherter Bot-Text');
+  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===window.__botTextsAudio&&!window.__botTextsAudio.paused),true);
+  await team.locator('#team-members-tab').click();assert.equal(await team.locator('#radio-moderator-form').isVisible(),true);
+  await team.locator('#team-members-tab').press('ArrowRight');assert.equal(await team.locator('#channel-texts-form').isVisible(),true);
+  for(let i=0;i<4;i++)await team.locator('#channel-texts-add').click();
+  assert.equal(await team.locator('#channel-texts-fields textarea').count(),6);assert.equal(await team.locator('#channel-texts-add').isDisabled(),true);
+  await team.locator('#channel-texts-fields button').last().click();assert.equal(await team.locator('#channel-texts-fields textarea').count(),5);
+  lab.hub.runtime.users.find('Otterchen').state.role='listener';
+  await team.locator('#channel-texts-refresh').click();
+  await team.locator('#team-panel').waitFor({state:'hidden'});
+  assert.equal(await team.locator('#channel-texts-fields textarea').nth(0).inputValue(),'');
+  assert.equal(await team.locator('#channel-texts-save').isDisabled(),true);
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' bleiben bei 560 und 320 Pixeln erreichbar und behalten Fehlerentwürfe', async t => {
+  const lab=await setup(t),{page,radio}=await lab.join('Otterchen',client,1280);
+  await page.setViewportSize({width:1800,height:1400});
+  await radio.locator('#team-tab:not([disabled])').click();const team=await overlayView(page,'team');
+  await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
+  await team.locator('#channel-texts-fields textarea').nth(0).fill('Ein Text für unsere Hörerinnen und Hörer.');
+  await team.locator('#channel-texts-fields textarea').nth(1).fill('Deinen Musikwunsch kannst du in der Wunschbox abgeben.');
+  lab.hub.faults.failPersistence=true;await team.locator('#channel-texts-save').click();
+  await team.locator('#channel-texts-feedback').filter({hasText:'konnten nicht gespeichert'}).waitFor();
+  assert.equal(await team.locator('#channel-texts-fields textarea').nth(0).inputValue(),'Ein Text für unsere Hörerinnen und Hörer.');
+  lab.hub.faults.failPersistence=false;
+  for(const width of [560,320]) {
+    await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await team.waitForTimeout(100);
+    assert.equal(await team.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    const metrics=await team.evaluate(()=>Array.from(document.querySelectorAll('#channel-texts-form textarea,#channel-texts-form select,#channel-texts-save')).map(n=>{
+      const r=n.getBoundingClientRect();return {width:r.width,height:r.height,font:parseFloat(getComputedStyle(n).fontSize),button:n.tagName==='BUTTON'};
+    }));
+    assert.ok(metrics.every(m=>m.width>44&&m.height>=44&&m.font>=(m.button?14:16)),JSON.stringify(metrics));
+    await team.locator('#channel-texts-save').scrollIntoViewIfNeeded();assert.equal(await team.locator('#channel-texts-save').isVisible(),true);
+    if(process.env.MISCHWERK_DESIGN_CAPTURE&&client==='k3') {
+      await team.evaluate(()=>window.scrollTo(0,0));
+      await page.locator('#overlays iframe').screenshot({path:path.resolve('docs/pruefung/oberflaeche/verwaltung-bottexte-'+width+'.png')});
+    }
+  }
+  await team.locator('#channel-texts-save').click();await team.locator('#channel-texts-feedback').filter({hasText:'gespeichert'}).waitFor();
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' schützen ungespeicherte Eingaben bei einer neueren Serverrevision', async t => {
+  const lab=await setup(t),{page,radio}=await lab.join('Otterchen',client);
+  await radio.locator('#team-tab:not([disabled])').click();const team=await overlayView(page,'team');
+  await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
+  await team.locator('#channel-texts-fields textarea').first().fill('Mein noch nicht gespeicherter Entwurf');
+  await team.evaluate(()=>Client.sendEvent('mw:channelTexts.save',{requestId:'other-owner-edit',view:'team',viewRevision:1,
+    expectedRevision:0,enabled:false,interval:50,texts:['Inzwischen gespeicherter Text']}));
+  await team.locator('#channel-texts-reload').waitFor({state:'visible'});
+  assert.ok(await team.locator('#channel-texts-reload').evaluate(n=>{const r=n.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return r.top>=0&&r.bottom<=innerHeight&&hit&&hit.closest('button')===n;}));
+  assert.equal(await team.locator('#channel-texts-fields textarea').first().inputValue(),'Mein noch nicht gespeicherter Entwurf');
+  assert.equal(await team.locator('#channel-texts-save').isDisabled(),true);
+  await team.locator('#channel-texts-refresh').click();
+  await team.waitForFunction(()=>document.getElementById('channel-texts-refresh').getAttribute('aria-disabled')==='false');
+  assert.equal(await team.locator('#channel-texts-fields textarea').first().inputValue(),'Mein noch nicht gespeicherter Entwurf');
+  await team.locator('#channel-texts-reload').click();
+  assert.equal(await team.locator('#channel-texts-fields textarea').first().inputValue(),'Inzwischen gespeicherter Text');
+  assert.equal(await team.locator('#channel-texts-interval').inputValue(),'50');
+  await team.locator('#channel-texts-fields textarea').first().fill('Überarbeiteter bestätigter Stand');
+  await team.locator('#channel-texts-save').click();await team.locator('#channel-texts-feedback').filter({hasText:'gespeichert'}).waitFor();
+  assert.equal(lab.hub.runtime.persistence.api().getObject('mischwerk.channelTexts.v1').revision,2);
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+test('Bot-Texte erhalten bei verlorener Speicherquittung die globale Hinweisbox und einen erreichbaren Wiederanlauf', async t => {
+  const lab=await setup(t,{},true),{page,radio}=await lab.join('Otterchen','k3');
+  await radio.locator('#team-tab:not([disabled])').click();const team=await overlayView(page,'team');
+  await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
+  await team.locator('#channel-texts-fields textarea').first().fill('Text mit verlorener Bestätigung');
+  lab.hub.faults.dropServerType='mw:result';lab.hub.faults.dropServer=1;
+  await team.locator('#channel-texts-save').click();
+  await page.clock.runFor(15010);
+  await team.locator('#channel-texts-reload').waitFor({state:'visible'});
+  assert.equal(await team.locator('#notice').count(),1,'Feedback-Neuzeichnung erhält die gemeinsame Hinweisbox');
+  assert.equal(await team.locator('#channel-texts-fields textarea').first().inputValue(),'Text mit verlorener Bestätigung');
+  await team.locator('#channel-texts-reload').click();await team.locator('#team-members-tab').click();
+  await team.locator('#radio-moderator-nick').fill('Unbekannter-Nick');await team.locator('#add-radio-moderator').click();
+  await team.locator('#radio-moderator-form #notice').waitFor({state:'visible'});
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
 for(const client of ['k3','stapp'])for(const sizing of ['normal','stepped','ignored','clamped'])test('Kompakte Moderation in '+client+' bei '+sizing+' behält Text, Fokus und stabile Größen',async t=>{
   const lab=await setup(t,{provider:'online',hostSizing:sizing==='clamped'?'normal':sizing}),{page,radio}=await lab.join('Otterchen',client,sizing==='clamped'?320:2290);
   if(sizing==='clamped')await page.setViewportSize({width:1800,height:550});
@@ -403,12 +564,12 @@ for(const client of ['k3','stapp'])test('Studioanmeldung zeigt in '+client+' ein
 
 test.before(async () => { browser = await chromium.launch({ headless: true, channel: 'msedge', args: ['--mute-audio'] }); });
 test.after(async () => { await browser?.close(); });
-async function setup(t, faults = {}, clock = false) {
+async function setup(t, faults = {}, clock = false, contextOptions = {}) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'MischWerk-Emulator-Browser-'));
   const instance = await createEmulator({ port: 0, dataDir: directory, appDir:process.env.MISCHWERK_TEST_UPLOAD });
   Object.assign(instance.hub.faults, faults);
   if (faults.provider) instance.hub.restart(false);
-  const context = await browser.newContext({ viewport: { width: 1800, height: 1000 } });
+  const context = await browser.newContext({ viewport: { width: 1800, height: 1000 }, ...contextOptions });
   const errors = [], external = [];
   await context.route('**/*', route => {
     if (new URL(route.request().url()).origin === instance.origin) return route.continue();
@@ -551,6 +712,7 @@ for(const client of ['k3','stapp']) {
   });
   test('Sendeplan öffnet in '+client+' sofort mit 820 × 630 ohne spätere Größenanforderung',async t=>{
     const lab=await setup(t,{hostSizing:'stepped',resourceDelayMs:20,serverDelayMs:150}),{page,radio}=await lab.join('Otterchen',client);
+    await page.setViewportSize({width:1800,height:1400});
     await radio.waitForFunction(client=>client==='k3'||!document.documentElement.classList.contains('radio-constrained'),client);
     await radio.waitForFunction(()=>innerHeight>=document.getElementById('radio-panel').getBoundingClientRect().height-1);
     const radioHeight=await radio.evaluate(()=>innerHeight);
@@ -572,13 +734,43 @@ for(const client of ['k3','stapp']) {
     await frame.locator('#schedule-new').click();await frame.locator('#schedule-topic').fill('Mein Entwurf');
     await frame.waitForTimeout(150);
     assert.deepEqual(sizes(),[]);assert.equal(await frame.locator('#schedule-topic').inputValue(),'Mein Entwurf');
+    async function editorFits() {
+      const layout=await frame.evaluate(()=>{
+        const controls=[...document.querySelectorAll('#schedule-form input,#schedule-form button,#schedule-refresh,#close-overlay')].filter(node=>node.getClientRects().length).map(node=>{
+          const rect=node.getBoundingClientRect();return {id:node.id,...rect.toJSON(),hit:document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2)?.closest('button,input')===node};
+        });
+        return {width:innerWidth,height:innerHeight,scrollHeight:document.documentElement.scrollHeight,scrollWidth:document.documentElement.scrollWidth,controls};
+      });
+      assert.equal(layout.height,630);assert.ok(layout.scrollHeight<=630,'Editor ohne vertikales Scrollen: '+JSON.stringify(layout));
+      assert.ok(layout.scrollWidth<=layout.width,'Keine horizontale Überbreite');
+      for(const control of layout.controls)assert.ok(control.y>=0&&control.bottom<=630&&control.x>=0&&control.right<=layout.width&&control.width>=44&&control.height>=44&&control.hit,'Bedienfläche vollständig und direkt erreichbar: '+JSON.stringify(control));
+      assert.deepEqual(sizes(),[],'Kein Größenauftrag zum Einpassen des Formulars');
+    }
+    await frame.evaluate(()=>document.fonts.ready);
+    for(const width of [820,560,390,320]) {
+      await page.locator('#width').fill(String(width===820?1200:width));await page.locator('#width').dispatchEvent('change');
+      await frame.waitForFunction(width=>innerWidth===width,width);await editorFits();
+      assert.equal(await frame.locator('#schedule-topic').inputValue(),'Mein Entwurf');
+    }
+    await frame.locator('#schedule-nick').fill('KeinExistierenderNick');await frame.locator('#schedule-save').click();
+    await frame.locator('#schedule-feedback.error').waitFor();await editorFits();
+    await frame.locator('#schedule-refresh:not([disabled])').click();
+    await frame.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled&&!document.getElementById('schedule-fields').disabled);
+    assert.equal(await frame.locator('#schedule-topic').inputValue(),'Mein Entwurf');
+    await frame.locator('#schedule-nick').fill('Otterchen');
+    await page.locator('#width').fill('1200');await page.locator('#width').dispatchEvent('change');
     await frame.locator('#schedule-save').click();
     await frame.locator('#schedule-form').waitFor({state:'hidden'});
     await frame.locator('.schedule-topic').filter({hasText:'Mein Entwurf'}).waitFor();
+    await frame.locator('.schedule-show:visible .schedule-edit').first().click();
+    await page.locator('#width').fill('320');await page.locator('#width').dispatchEvent('change');await frame.waitForFunction(()=>innerWidth===320);
+    assert.equal(await frame.locator('#schedule-delete').isVisible(),true);await editorFits();
+    await frame.locator('#schedule-cancel').click();await frame.locator('#schedule-form').waitFor({state:'hidden'});
+    await page.locator('#width').fill('1200');await page.locator('#width').dispatchEvent('change');
     await frame.locator('#schedule-next').click();
     await frame.waitForFunction(()=>!document.getElementById('schedule-next').disabled);
     assert.deepEqual(sizes(),[]);
-    assert.deepEqual(await frame.evaluate(()=>[innerWidth,innerHeight]),[820,630]);
+    assert.deepEqual(await frame.evaluate(()=>[innerWidth,innerHeight]),[320,630],'Der nativ verkleinerte Rahmen bleibt beim Wochenwechsel erhalten');
     const selectedWeek=await frame.locator('#schedule-range').textContent();
     await frame.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});
     await radio.locator('#open-schedule:not([disabled])').click();
@@ -678,7 +870,7 @@ test('Zwei echte Nutzer: natives Overlay, Entwurf, doppeltes Senden und Erledigt
   await listener.radio.locator('#open-wishes').click();
   let surface = await view(listener.page, 'Overlay');
   assert.equal((await listener.page.locator('#channel').boundingBox()).y, before.y);
-  assert.equal(await listener.radio.evaluate(() => innerHeight), 160);
+  assert.equal(await listener.radio.evaluate(() => innerHeight), 200);
   assert.equal(await surface.evaluate(() => Client.getHostFrame().getAppViewMode()), 'OVERLAY');
   await surface.locator('#wish-text').fill('a-ha – Take On Me');
   await surface.locator('#close-wishes').click();
@@ -725,7 +917,7 @@ test('320 und 2290 Pixel sind tatsächliche Framebreiten, Overlay verändert den
   assert.equal(await radio.evaluate(() => innerWidth), 320);
   await radio.locator('#open-wishes').click(); const surface = await view(page, 'Overlay');
   assert.ok(await surface.locator('#submit-wish').isVisible());
-  assert.equal(await radio.evaluate(() => innerHeight), 160);
+  assert.equal(await radio.evaluate(() => innerHeight), 200);
   await page.locator('#width').fill('2290'); await page.locator('#width').dispatchEvent('change');
   await radio.waitForFunction(() => innerWidth === 2290);
   assert.equal(await radio.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
@@ -738,7 +930,8 @@ test('Team-Popup öffnet die Verwaltung direkt und bleibt bei schrittweisen Host
   await page.waitForFunction(() => [...window.EmulatorLab.frames.sessions.values()].some(entry => entry.mode === 'Overlay' && entry.height === 630));
   assert.deepEqual(await team.evaluate(()=>[innerWidth,innerHeight]),[560,630]);
   const initialHeight = await team.evaluate(() => innerHeight);
-  assert.equal(await team.locator('#team-status,#team-status-tab,#team-members-tab').count(),0);
+  assert.equal(await team.locator('#team-status,#team-status-tab').count(),0);
+  assert.deepEqual(await team.locator('.team-tabs [role=tab]').allTextContents(),['Radio-Team','Bot-Texte']);
   assert.equal(await team.locator('#radio-moderator-form').isVisible(),true);
   assert.equal(await team.evaluate(()=>innerHeight),initialHeight);
   await page.waitForFunction(() => [...window.EmulatorLab.frames.sessions.values()].filter(entry => entry.mode === 'Overlay').every(entry =>

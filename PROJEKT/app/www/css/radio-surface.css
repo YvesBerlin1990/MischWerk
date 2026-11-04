@@ -1,8 +1,140 @@
 /* Statisches Vinyl, dunkle Deckfläche und an echte Wiedergabe gebundene Kontur. */
 html[data-view=radio],html[data-view=radio] body,.radio-bar { background:var(--canvas); }
+html[data-view=radio] body { display:flex; flex-direction:column; }
+/* Eigene Hintergrundfläche unter der unverändert großen Bedienleiste.
+   Der Verlauf blendet nur den äußeren Lichtsaum in die Canvas-Grundfarbe aus. */
+html[data-view=radio] body::after {
+  content:"";
+  display:block;
+  position:relative;
+  z-index:1;
+  height:40px;
+  flex:1 1 0;
+  min-height:0;
+  max-height:40px;
+  pointer-events:none;
+  background:linear-gradient(to bottom,transparent,var(--canvas));
+}
+/* Begrenzte/ignorierte Hosthöhen behalten ihre vollständige Bedienfläche.
+   Innerhalb des verbleibenden Randes weich auf die Grundfarbe auslaufen. */
+@media (max-height:199px) {
+  html[data-view=radio] body::after { position:fixed; inset:auto 0 0; height:18px; }
+  html[data-view=radio].radio-constrained body::after { height:8px; }
+}
+.radio-bar {
+  flex-shrink:0;
+  --mw-vinyl-groove:rgba(222,230,240,.045);
+  --mw-halo-core:rgba(236,244,255,.76);
+  --mw-halo-near:rgba(205,226,248,.53);
+  --mw-halo-medium:rgba(164,195,229,.36);
+  --mw-halo-far:rgba(111,150,196,.21);
+}
+/* Die vorhandenen Dekorationsflächen erhalten nur die beiden ZIP-Effekte.
+   Raster, Grundfarbe, linke Schallplatte und sämtliche Bedienflächen bleiben erhalten. */
+.radio-bar::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-2;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 55% -18%,rgba(112,129,148,.085),transparent 62%),
+    repeating-radial-gradient(circle at 92% -150px,transparent 0 19px,var(--mw-vinyl-groove) 20px 21px,transparent 22px 35px);
+  -webkit-mask-image:linear-gradient(90deg,transparent 8%,rgba(0,0,0,.18) 42%,#000 100%);
+  mask-image:linear-gradient(90deg,transparent 8%,rgba(0,0,0,.18) 42%,#000 100%);
+  opacity:.7;
+}
 .radio-program-face { overflow:hidden; border:1px solid #3a3a3a; border-radius:24px; background:#141414; box-shadow:none; }
 .radio-program-face::before { content:""; position:absolute; left:-44px; top:50%; width:200px; height:200px; transform:translateY(-50%); border:2px solid #b9bdc3; border-radius:50%; background:radial-gradient(circle,#a4a9b0 0 39px,transparent 40px),repeating-radial-gradient(circle,#050505 0 9px,#262626 10px 11px,#050505 12px 20px); }
-.playing .radio-program-face { border-color:#e9eaec; box-shadow:0 0 0 1px #e9eaec33; }
+.radio-program-face::after {
+  content:"";
+  position:absolute;
+  inset:1px;
+  border-radius:inherit;
+  pointer-events:none;
+  background:
+    repeating-radial-gradient(circle at 86% -220px,transparent 0 16px,rgba(220,227,237,.035) 17px 18px,transparent 19px 32px),
+    linear-gradient(116deg,transparent 30%,rgba(207,216,229,.028) 61%,transparent 91%);
+  opacity:.9;
+}
+/* body.playing gehört bereits dem Player: kein eigener Klickzustand oder Timer.
+   Ohne Übergang erlischt der Halo auch beim Nachladen oder Fehler unmittelbar. */
+.playing .radio-program-face {
+  animation:mw-halo-rgb 48s linear infinite;
+  border-color:#f0f4fa;
+  box-shadow:
+    0 0 0 1px rgba(238,244,251,.43),
+    0 0 11px 1px var(--mw-halo-core),
+    0 0 27px 4px var(--mw-halo-near),
+    0 0 48px 9px var(--mw-halo-medium),
+    0 0 84px 16px var(--mw-halo-far),
+    inset 0 0 21px rgba(211,227,244,.075);
+}
+/* Gleich lange Farbübergänge mit identischen Schattenmaßen und Deckkräften.
+   0 und 100 Prozent teilen dieselbe Farbe: kein Sprung am Schleifenende.
+   Bei reduced-motion bleibt über foundation.css der statische Halo oben bestehen. */
+@keyframes mw-halo-rgb {
+  0%,100% {
+    border-color:#d2e6ff;
+    box-shadow:
+      0 0 0 1px rgba(210,230,255,.43),
+      0 0 11px 1px rgba(144,190,255,.76),
+      0 0 27px 4px rgba(92,150,255,.53),
+      0 0 48px 9px rgba(62,112,235,.36),
+      0 0 84px 16px rgba(44,92,204,.21),
+      inset 0 0 21px rgba(144,190,255,.075);
+  }
+  16.666667% {
+    border-color:#eed8ff;
+    box-shadow:
+      0 0 0 1px rgba(238,216,255,.43),
+      0 0 11px 1px rgba(202,156,255,.76),
+      0 0 27px 4px rgba(165,112,250,.53),
+      0 0 48px 9px rgba(140,80,219,.36),
+      0 0 84px 16px rgba(105,60,186,.21),
+      inset 0 0 21px rgba(202,156,255,.075);
+  }
+  33.333333% {
+    border-color:#ffdae5;
+    box-shadow:
+      0 0 0 1px rgba(255,218,229,.43),
+      0 0 11px 1px rgba(255,150,176,.76),
+      0 0 27px 4px rgba(250,100,140,.53),
+      0 0 48px 9px rgba(223,69,110,.36),
+      0 0 84px 16px rgba(185,52,91,.21),
+      inset 0 0 21px rgba(255,150,176,.075);
+  }
+  50% {
+    border-color:#ffeecc;
+    box-shadow:
+      0 0 0 1px rgba(255,238,204,.43),
+      0 0 11px 1px rgba(255,211,141,.76),
+      0 0 27px 4px rgba(249,177,80,.53),
+      0 0 48px 9px rgba(222,144,42,.36),
+      0 0 84px 16px rgba(182,111,27,.21),
+      inset 0 0 21px rgba(255,211,141,.075);
+  }
+  66.666667% {
+    border-color:#d7fadf;
+    box-shadow:
+      0 0 0 1px rgba(215,250,223,.43),
+      0 0 11px 1px rgba(148,232,170,.76),
+      0 0 27px 4px rgba(88,204,129,.53),
+      0 0 48px 9px rgba(52,171,98,.36),
+      0 0 84px 16px rgba(35,137,69,.21),
+      inset 0 0 21px rgba(148,232,170,.075);
+  }
+  83.333333% {
+    border-color:#d2f7fa;
+    box-shadow:
+      0 0 0 1px rgba(210,247,250,.43),
+      0 0 11px 1px rgba(140,224,238,.76),
+      0 0 27px 4px rgba(80,194,219,.53),
+      0 0 48px 9px rgba(51,159,194,.36),
+      0 0 84px 16px rgba(31,123,159,.21),
+      inset 0 0 21px rgba(140,224,238,.075);
+  }
+}
 .play-button { border:0; background:#e9eaec; box-shadow:0 0 0 10px #a4a9b0; }
 .play-button:hover:enabled { background:#fff; }
 .play-button:active:enabled { background:#cfd2d6; }

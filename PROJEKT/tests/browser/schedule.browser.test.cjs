@@ -128,7 +128,7 @@ async function scheduleReachable(page) {
   });
   assert.equal(result.horizontal, false);
   assert.equal(result.listOverflow, 'visible');
-  // Einzelne lange Zeilen und der einspaltige Editor dürfen im festen Fenster scrollen.
+  // Bei tatsächlich kleineren Hostgrenzen bleiben Eingaben nativ erreichbar.
   for (const control of await page.locator('#schedule-form input:visible,#schedule-form button:visible').all()) {
     await control.scrollIntoViewIfNeeded();
     assert.ok(await control.evaluate(node=>{const box=node.getBoundingClientRect();return box.top>=0&&box.bottom<=innerHeight+1;}));

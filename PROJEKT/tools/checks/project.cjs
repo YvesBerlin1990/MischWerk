@@ -28,7 +28,7 @@ for (const name of ['Client.sendEvent', 'Client.addEventListener', 'Client.inclu
 }
 // Vollstaendiges Inventar der zusaetzlichen verwendeten Hooks und Instanzmethoden.
 for (const [type, names] of Object.entries({
-  App: ['onAppStart', 'onPrepareShutdown', 'onUserJoined', 'onUserLeft', 'onUserDeleted', 'onEventReceived'],
+  App: ['onAppStart', 'onPrepareShutdown', 'onShutdown', 'onUserJoined', 'onUserLeft', 'onUserDeleted', 'onEventReceived'],
   User: ['getNick', 'getUserId', 'isOnlineInChannel', 'isAppManager', 'equals', 'canSendAppContent', 'sendAppContent', 'sendPrivateMessage'],
   AppContentSession: ['getUser', 'remove'],
   AppContent: ['setResponsive', 'addCloseListener'],

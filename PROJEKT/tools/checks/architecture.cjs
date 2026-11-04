@@ -10,6 +10,8 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 function checkArchitecture() {
   const backend = Object.fromEntries(modules.map(file => [file, read('src/backend/' + file)]));
   const allBackend = Object.values(backend).join('\n');
+  assert.doesNotMatch(allBackend, /KnuddelsServer\.(?:set|clear)(?:Timeout|Interval)\s*\(/, 'Hosttimer sind globale Funktionen, keine unbelegten KnuddelsServer-Methoden');
+  assert.equal((allBackend.match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Genau ein serverseitiger Versandtimer');
   assert.doesNotMatch(allBackend, /attachWebsite|registerWebsite|submitWebsiteWish|getWebHookAccess|mischwerk-web/, 'Pausierte Website ist nicht Teil der Radio-App');
   for (const method of ['sendAppContent', 'overlayContent', 'headerbarContent', 'remove']) {
     assert.equal((allBackend.match(new RegExp('\\.' + method + '\\s*\\(', 'g')) || []).length, 1, 'Genau ein nativer Lebenszykluspfad: ' + method);

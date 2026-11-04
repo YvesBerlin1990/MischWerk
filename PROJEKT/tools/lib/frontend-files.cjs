@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(root, 'app/www', file), 'utf8');
 const scripts = [...read('js/start.js').matchAll(/^\s+\['\w+', '([^']+\.js)'(?:, '[^']+')?\]/gm)].map(match => 'js/' + match[1]);
 const styles = [...read('index.html').match(/var styles = \[([\s\S]*?)\];/)[1].matchAll(/^\s+'(css\/[^']+\.css)'/gm)].map(match => match[1]);
-assert.equal(scripts.length, 44, 'Frontend-Ladeplan unvollständig');
+assert.equal(scripts.length, 46, 'Frontend-Ladeplan unvollständig');
 assert.equal(styles.length, 17, 'CSS-Ladeplan unvollständig');
 const vinylFonts = ['fonts/outfit-latin.woff2','fonts/fraunces-latin.woff2','fonts/outfit-OFL.txt','fonts/fraunces-OFL.txt'];
 const frontendFiles = ['index.html', 'js/start.js', 'js/ui/composition.js', ...scripts, ...styles, 'img/mischwerk-logo.png', 'img/mischwerk-radio.png', 'audio/werbung.mp3', 'fonts/inter-latin.woff2', 'fonts/OFL.txt', ...vinylFonts];

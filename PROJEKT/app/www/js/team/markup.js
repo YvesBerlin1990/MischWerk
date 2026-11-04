@@ -3,7 +3,11 @@ MischWerkUI.define('teamMarkup', function (dependencies) {
   'use strict';
   dependencies.dom.mount('team-placeholder', `
     <section id="team-panel" aria-label="Verwaltung" hidden>
-      <div id="team-members">
+  <div class="team-tabs" role="tablist" aria-label="Bereiche der Verwaltung">
+    <button id="team-members-tab" type="button" role="tab" aria-selected="true" aria-controls="team-members">Radio-Team</button>
+    <button id="team-texts-tab" type="button" role="tab" aria-selected="false" aria-controls="channel-texts-panel" tabindex="-1">Bot-Texte</button>
+  </div>
+      <div id="team-members" role="tabpanel" aria-labelledby="team-members-tab">
         <section class="card team-intro-card" aria-labelledby="team-add-heading">
           <div class="team-section-heading"><span class="eyebrow">STUDIOZUGRIFF VERGEBEN</span><h2 id="team-add-heading">Dein Team erweitern</h2></div>
           <form id="radio-moderator-form" class="team-add-form">
@@ -20,6 +24,7 @@ MischWerkUI.define('teamMarkup', function (dependencies) {
         </section>
         <p class="team-owner-note">Teamverwaltung ist Sache des Channelinhabers. Channelmoderatoren erhalten keinen automatischen Studiozugriff.</p>
       </div>
+  <div id="channel-texts-slot"></div>
     </section>
   `);
 });

@@ -111,7 +111,7 @@ test('Wunschbox öffnet als natives Channel-Overlay; Header bleibt beim Wechsel 
  const events=h.event(a,as,'mw:openWishes');
  assert.equal(events.find(e=>e.type==='mw:result').data.ok,true);
  const surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
- assert.ok(surface);assert.equal(as.content.height,160);assert.equal(as.removed,false);
+ assert.ok(surface);assert.equal(as.content.height,200);assert.equal(as.removed,false);
  assert.deepEqual([surface.content.width,surface.content.height],[560,340]);
  assert.equal(surface.content.responsive,true);assert.equal(surface.content.allowJFXBrowser,false);
  assert.equal(surface.content.htmlFile.pageData.wishSurface,true);
@@ -162,7 +162,7 @@ test('Nicht unterstütztes Overlay und verhüllte Radioleiste erhalten den beste
  assert.equal(h.event(a,as,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
  h.app.chatCommands.vorhang(owner,'öffnen');
  a.capable=false;assert.equal(h.event(a,as,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
- assert.equal(as.removed,false);assert.equal(as.content.height,160);assert.equal(a.sessions.length,1);
+ assert.equal(as.removed,false);assert.equal(as.content.height,200);assert.equal(a.sessions.length,1);
  a.capable=true;h.event(a,as,'mw:openWishes');const surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
  as.remove();assert.equal(surface.removed,true);
 });

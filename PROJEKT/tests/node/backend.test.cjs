@@ -302,8 +302,8 @@ test('main.js laedt fachlich getrennte Serverdateien statt eines Sammelbundles',
 });
 test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
   const result = require('../../tools/checks/architecture.cjs').checkArchitecture();
-  assert.equal(result.backendModules, 31);
-  assert.equal(result.frontendComponents, 44);
+  assert.equal(result.backendModules, 34);
+  assert.equal(result.frontendComponents, 46);
 });
 
 test('Laufzeitprüfung verweigert fremde und fehlende Dateien vor der Paketfreigabe', t => {
@@ -974,7 +974,7 @@ test('Knuddels-Ansicht ist responsiv und schließt den alten JFX-Browser aus', (
   const { h, os } = fixture();
   assert.equal(os.content.responsive, true); assert.equal(os.content.allowJFXBrowser, false);
   assert.equal(os.content.htmlFile.getAssetPath(), 'index.html');
-  assert.equal(os.content.viewMode, 'Headerbar'); assert.equal(os.content.height, 160);
+  assert.equal(os.content.viewMode, 'Headerbar'); assert.equal(os.content.height, 200);
 });
 test('Channelbeitritt und Appstart öffnen die Leiste; Wiederöffnen hinterlässt keine doppelte Sitzung', () => {
   const h = createHarness(); const user = h.user(9, 'Hörer');

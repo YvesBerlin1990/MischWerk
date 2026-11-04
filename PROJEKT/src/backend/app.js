@@ -10,6 +10,9 @@ KnuddelsServer.execute('server/radio/station.js');
 KnuddelsServer.execute('server/radio/team.js');
 KnuddelsServer.execute('server/radio/moderation.js');
 KnuddelsServer.execute('server/radio/announcements.js');
+KnuddelsServer.execute('server/channel-texts/storage.js');
+KnuddelsServer.execute('server/channel-texts/scheduler.js');
+KnuddelsServer.execute('server/channel-texts/transport.js');
 KnuddelsServer.execute('server/radio/handover.js');
 KnuddelsServer.execute('server/state/initialization.js');
 KnuddelsServer.execute('server/radio/show.js');
@@ -43,6 +46,9 @@ MischWerkModules.createApp = function (config) {
     MischWerkModules.attachRadioTeam(runtime, config);
     MischWerkModules.attachModeration(runtime, config);
     MischWerkModules.attachStudioAnnouncements(runtime);
+    MischWerkModules.attachChannelTextStorage(runtime);
+    MischWerkModules.attachChannelTextScheduler(runtime);
+    MischWerkModules.attachChannelTextTransport(runtime);
     MischWerkModules.attachHandover(runtime);
     MischWerkModules.attachStateInitialization(runtime, config);
     MischWerkModules.attachShow(runtime, config);
@@ -66,6 +72,7 @@ MischWerkModules.createApp = function (config) {
         onAppStart: runtime.start,
         onUserJoined: runtime.userJoined,
         onPrepareShutdown: runtime.prepareShutdown,
+        onShutdown: runtime.stopChannelTexts,
         onUserLeft: runtime.userLeft,
         onUserDeleted: runtime.userDeleted,
         onEventReceived: runtime.handleEvent,

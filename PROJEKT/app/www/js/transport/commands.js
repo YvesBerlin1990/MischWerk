@@ -90,7 +90,7 @@ MischWerkUI.define('commands', function (dependencies) {
     pending = null; clearTimeout(pendingTimer);
     signals.emit('command-result', response);
     refreshControls();
-    if (response.action !== 'mw:setTopic' && (!response.ok ||
+    if (response.action !== 'mw:setTopic' && response.action !== 'mw:channelTexts.save' && (!response.ok ||
         (response.action !== 'mw:openWishes' && response.action !== 'mw:openStudio' && response.action !== 'mw:openRadioTeam' && response.action !== 'mw:openSchedule'))) {
       if (response.action !== 'mw:removeRadioModerator' || response.ok || !document.getElementById('team-removal-confirm')) {
         layout.notify(response.message, !response.ok, response.action);

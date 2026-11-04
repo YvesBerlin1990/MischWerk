@@ -9,6 +9,7 @@ MischWerkUI.setComposer(function (factories) {
     if (factories.studioMarkup) { factories.studioMarkup({ dom: dom }); }
     if (factories.handoverMarkup) { factories.handoverMarkup({ dom: dom }); }
     if (factories.teamMarkup) { factories.teamMarkup({ dom: dom }); }
+    if (factories.channelTextsMarkup) { factories.channelTextsMarkup({ dom:dom }); }
     if (factories.scheduleMarkup) { factories.scheduleMarkup({ dom: dom }); }
     var signals = factories.signals({});
     var historyView = null;
@@ -58,6 +59,8 @@ MischWerkUI.setComposer(function (factories) {
     if (factories.handover) { handover = factories.handover({ model: model, dom: dom, layout: layout, commands: commands, signals: signals, reader:reader }); }
     var team = null;
     if (factories.team) { team = factories.team({ model: model, dom: dom, commands: commands, signals: signals }); }
+    var channelTexts = null;
+    if (factories.channelTexts) { channelTexts = factories.channelTexts({ bridge:bridge, model:model, dom:dom, commands:commands, signals:signals }); }
     var calendar = null;
     if (factories.scheduleCalendar) { calendar = factories.scheduleCalendar({}); }
     var historyData = null;
@@ -83,5 +86,5 @@ MischWerkUI.setComposer(function (factories) {
     var lifecycle = factories.lifecycle({ bridge: bridge, model: model, dom: dom, layout: layout,
       commands: commands, wishes: wishes, provider: provider, player: player, signals: signals });
     lifecycle.start([viewport, layout, commands, volume, player, curtain, wishes, wishFeedback, wishRelay, wishDrawer, wishWindow,
-      studioWindow, workspace, studioPages, reader, studio, handover, queue, team, scheduleEditor, history, scheduleWindow, schedule, updates, overlays]);
+      studioWindow, workspace, studioPages, reader, studio, handover, queue, team, channelTexts, scheduleEditor, history, scheduleWindow, schedule, updates, overlays]);
 });

@@ -24,7 +24,7 @@ MischWerkModules.attachViewTransport = function (runtime, config) {
         }
         var next = runtime.snapshot(user, page === undefined && view ? view.page : page,
             myPage === undefined && view ? view.myPage : myPage, view ? view.feedbackId : null,
-            radioModeratorPage === undefined && view ? view.radioModeratorPage : radioModeratorPage);
+            radioModeratorPage === undefined && view ? view.radioModeratorPage : radioModeratorPage, view && view.kind);
         if (view) {
             view.page = next.page;
             view.myPage = next.wishPositions.page;
@@ -42,6 +42,7 @@ MischWerkModules.attachViewTransport = function (runtime, config) {
         }
         if (refreshRequestId) { next.refreshRequestId = refreshRequestId; }
         runtime.send(session, 'mw:state', next);
+        if (view && view.kind === 'team') { runtime.send(session, 'mw:channelTexts.state', runtime.channelTextsView(user)); }
     };
 
     runtime.broadcast = function () {

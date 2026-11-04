@@ -29,6 +29,7 @@ MischWerkModules.attachEvents = function (runtime, config) {
     runtime.handleEvent = function (user, type, data, session) {
         if (!runtime.activeSession(user, session)) { return; }
         if (typeof type !== 'string' || type.indexOf('mw:') !== 0) { return; }
+        if (type.indexOf('mw:channelTexts.') === 0) { runtime.handleChannelTextEvent(user, type, data, session); return; }
         if (type === 'mw:wish.submit') {
             runtime.handleWishSubmission(user, data, session);
             return;

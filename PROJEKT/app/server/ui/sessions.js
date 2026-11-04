@@ -51,7 +51,7 @@ MischWerkModules.attachSessions = function (runtime, config) {
         if (kind === 'studio' && selected.queueId) {
             runtime.wishItems().some(function (item, index) { if (item.id !== selected.queueId) { return false; } page = Math.floor(index / runtime.pageSize); return true; });
         }
-        var data = runtime.snapshot(user, page, selected.myPage || 0, selected.feedbackId || null, selected.radioModeratorPage || 0);
+        var data = runtime.snapshot(user, page, selected.myPage || 0, selected.feedbackId || null, selected.radioModeratorPage || 0, kind);
         data.view = kind; data.overlay = kind !== 'radio';
         data.viewRevision = 1;
         if (kind !== 'radio') {
@@ -63,7 +63,7 @@ MischWerkModules.attachSessions = function (runtime, config) {
         }
         if (JSON.stringify(data).length >= 10000) { throw runtime.failure('Die Ansicht ist gerade zu umfangreich. Bitte erneut versuchen.'); }
         var htmlFile = new HTMLFile('index.html', data);
-        var content = kind === 'radio' ? AppContent.headerbarContent(htmlFile, 160) :
+        var content = kind === 'radio' ? AppContent.headerbarContent(htmlFile, 200) :
             AppContent.overlayContent(htmlFile, kind === 'schedule' ? 820 : kind === 'studio' ? 780 : 560,
                 kind === 'schedule' ? 630 : kind === 'studio' ? 730 : kind === 'team' ? 630 : 340);
         content.setResponsive(true); content.setAllowJFXBrowser(false);

@@ -1,6 +1,6 @@
 {
-  "version": "0.1.202",
-  "buildNumber": 202,
+  "version": "0.1.208",
+  "buildNumber": 208,
   "files": [
     {
       "path": "MischWerk/www/js/studio/markup.js",
@@ -11,6 +11,16 @@
       "path": "MischWerk/www/js/studio/handover-markup.js",
       "bytes": 2882,
       "sha256": "097CEF87782F7F1A469BFBADCE1BEE9F03CF5A04E86EBA42127D4CEBF839CFD1"
+    },
+    {
+      "path": "MischWerk/www/js/team/markup.js",
+      "bytes": 4684,
+      "sha256": "DB5285A58163E5CA44E237E68E3BA6A3FF8467544717F32AF5FD10BDB8A68B90"
+    },
+    {
+      "path": "MischWerk/www/js/team/channel-texts-markup.js",
+      "bytes": 1777,
+      "sha256": "56FF3B17B30F64487169D5C620078D877C53381DC5A0DCEDD850AB7AF35FDFC6"
     },
     {
       "path": "MischWerk/www/js/studio/controls.js",
@@ -48,6 +58,16 @@
       "sha256": "03BD4316979F2588826916944314831D31DE6142D6451E72228DD414AA4B33C5"
     },
     {
+      "path": "MischWerk/www/js/team/management.js",
+      "bytes": 8573,
+      "sha256": "D68A49A5E34F94DE7C7128F71348232B24CA40B9FE9F2D717C0BEC82CB7208D0"
+    },
+    {
+      "path": "MischWerk/www/js/team/channel-texts.js",
+      "bytes": 7798,
+      "sha256": "5799403C0A5F071921EDB0F4C60C32F194FA39F9D583D35C6C3916B9B9332E64"
+    },
+    {
       "path": "MischWerk/www/css/studio.css",
       "bytes": 8105,
       "sha256": "6D6D43AC6DB0EC7AEFF04ECECB10A04F485EF8A81C6C8F745E72268121ED4C7A"
@@ -61,6 +81,11 @@
       "path": "MischWerk/www/css/handover.css",
       "bytes": 1428,
       "sha256": "E48477E367EDBFE9D4D3E25534A7FB2365D01595081A2DCC1A7BF85896A6DD44"
+    },
+    {
+      "path": "MischWerk/www/css/team.css",
+      "bytes": 5725,
+      "sha256": "09FFC7F1A5D1FBA1B16606AFB2F31E698E6DAAB20ABC2FD67BC88AB2D4F67951"
     }
   ]
 }

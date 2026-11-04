@@ -266,4 +266,5 @@ check(latest(listenerSession, 'mw:state').curtain.closed === true, 'Vorhang schl
 App.chatCommands.vorhang(owner, 'toggle');
 App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
 check(latest(ownerSession, 'mw:state').curtain.closed === true, 'Ungueltige Chatangabe erhaelt Vorhang');
-print('Rhino-Wunschweg OK: ' + assertions + ' Pruefungen, 125 Wuensche, ' + links.length + ' abgewiesene Links; Sendeplan und Studio-Meldungen ebenfalls geprueft.');
+load('tests/rhino/channel-texts.js');
+print('Rhino-Wunschweg OK: ' + assertions + ' Pruefungen, 125 Wuensche, ' + links.length + ' abgewiesene Links; Sendeplan, Studio-Meldungen und Bot-Texte ebenfalls geprueft.');

@@ -16,8 +16,9 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
             stage: item.stage || 'queued' };
     };
 
-    runtime.snapshot = function (user, page, myPage, feedbackId, radioModeratorPage) {
+    runtime.snapshot = function (user, page, myPage, feedbackId, radioModeratorPage, kind) {
         var mod = runtime.isModerator(user);
+        var showQueue = mod && kind !== 'team';
         var station = runtime.station();
         if (!mod) { delete station.historyUrl; delete station.historyIgnoredTitles; }
         var presenter = runtime.moderatorIsActive() ? runtime.state.moderator : null;
@@ -46,17 +47,17 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
             myPages: 1,
             requestFeedback: null,
             wishPositions: runtime.wishPositions(user, myPage),
-            queue: mod ? requests.slice(page * runtime.pageSize, (page + 1) * runtime.pageSize).map(runtime.requestView) : [],
-            queueStart: mod ? Math.floor(page / 3) * 3 : 0,
-            queueWindow: mod ? requests.slice(Math.floor(page / 3) * 3, Math.floor(page / 3) * 3 + 3).map(runtime.requestView) : [],
-            queueTotal: mod ? requests.length : 0,
+            queue: showQueue ? requests.slice(page * runtime.pageSize, (page + 1) * runtime.pageSize).map(runtime.requestView) : [],
+            queueStart: showQueue ? Math.floor(page / 3) * 3 : 0,
+            queueWindow: showQueue ? requests.slice(Math.floor(page / 3) * 3, Math.floor(page / 3) * 3 + 3).map(runtime.requestView) : [],
+            queueTotal: showQueue ? requests.length : 0,
             radioModerators: radioTeam.items,
             radioModeratorTotal: radioTeam.total,
             radioModeratorPage: radioTeam.page,
             radioModeratorPages: radioTeam.pages,
             radioModeratorRevision: runtime.state.radioModeratorRevision,
-            page: mod ? page : 0,
-            pages: mod ? totalPages : 1,
+            page: showQueue ? page : 0,
+            pages: showQueue ? totalPages : 1,
             serverTime: runtime.now(),
             shuttingDown: runtime.shuttingDown
         };

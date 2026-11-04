@@ -1,4 +1,37 @@
 /* Ernennung, übersichtliche Mitgliederzeilen und Bestätigung am betroffenen Mitglied. */
+html[data-view=team] { scroll-padding-top:110px; scroll-padding-bottom:220px; }
+html[data-view=team] body { overflow:visible; }
+html[data-view=team] .dialog-header { position:sticky; top:1px; z-index:5; }
+.team-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:14px; padding:4px; border:1px solid var(--line); border-radius:12px; background:var(--input); }
+.team-tabs button { min-height:44px; border:1px solid transparent; border-radius:8px; color:var(--muted); background:transparent; font:inherit; font-weight:600; }
+.team-tabs button[aria-selected=true] { color:var(--text); border-color:#525252; background:#292929; }
+.channel-texts-form h2 { margin:0 0 8px; text-align:center; font-size:22px; }
+.channel-texts-form > .form-hint { margin:0 0 12px; }
+.channel-texts-options { display:grid; grid-template-columns:minmax(0,1fr) 150px; gap:12px; align-items:end; }
+.channel-texts-options > label { min-width:0; font-size:13px; }
+.channel-texts-options select { display:block; width:100%; min-height:44px; margin:4px 0 0; font-size:16px; }
+.channel-texts-toggle { display:flex; align-items:center; gap:9px; min-height:44px; cursor:pointer; }
+.channel-texts-toggle input { flex:0 0 22px; width:22px; height:22px; margin:0; accent-color:#d7d7d7; }
+.channel-texts-status { margin:10px 0; color:var(--muted); font-size:12px; }
+.channel-texts-fields { display:grid; gap:10px; margin-bottom:10px; }
+.channel-texts-entry-heading { display:flex; align-items:center; gap:8px; min-width:0; }
+.channel-texts-entry-heading label { flex:1; margin:0; font-size:14px; font-weight:600; }
+.channel-texts-counter { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.channel-texts-remove { min-height:44px; padding:0 7px; border:0; background:transparent; color:var(--muted); font:inherit; font-size:12px; }
+.channel-texts-entry textarea { display:block; width:100%; min-height:70px; margin:0; resize:vertical; overflow-y:auto; font-size:16px; }
+.channel-texts-actions { position:sticky; bottom:0; z-index:3; display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; padding:10px 0; border-top:1px solid var(--line); background:var(--surface); }
+.channel-texts-actions > button { flex:1; min-height:44px; }
+html[data-view=team] .channel-texts-actions > button { font-size:16px; }
+@media (max-height:480px) {
+ .channel-texts-actions { position:static; }
+ html[data-view=team] { scroll-padding-bottom:20px; }
+}
+.channel-texts-form #channel-texts-feedback { flex:1 0 100%; margin:0; overflow-wrap:anywhere; }
+.channel-texts-form #channel-texts-feedback:empty { display:none; }
+@media (max-width:400px) {
+ .channel-texts-options { grid-template-columns:minmax(0,1fr) 140px; gap:8px; }
+ .channel-texts-toggle { font-size:12px; }
+}
 .team-intro-card,.team-list-card { padding:22px; border:1px solid var(--line); border-radius:20px; background:var(--management-card); }
 .team-section-heading .eyebrow { color:var(--gold-ink); font-size:12px; font-weight:600; letter-spacing:.1em; }
 .team-section-heading h2 { margin:4px 0 0; font-size:23px; font-weight:700; letter-spacing:-.02em; overflow-wrap:anywhere; }
