@@ -1,14 +1,15 @@
 /* Musik, Sendung und private Wunschinformation behalten ihre eigenen Datenbindungen. */
 .radio-metadata { grid-column:3; grid-row:1; min-width:0; min-height:124px; display:grid; grid-template-columns:minmax(160px,1.1fr) minmax(150px,1fr); grid-template-rows:minmax(80px,auto) 44px; max-height:124px; overflow-x:hidden; overflow-y:auto; scrollbar-width:thin; gap:0 20px; align-items:center; padding:0; text-align:left; }
 .radio-metadata:has(.own-wish-position:not([hidden])) { grid-template-columns:minmax(160px,1.1fr) minmax(150px,1fr) minmax(120px,.85fr); }
-.radio-metadata .now-playing { grid-column:1; grid-row:1; padding:0; }
-.radio-metadata .volume-control { grid-column:1; grid-row:2; margin:0 0 0 -10px; width:calc(100% + 10px); max-width:330px; }
+.radio-metadata .now-playing { grid-column:1; grid-row:1; padding:10px 0 0; }
+.radio-metadata .volume-control { grid-column:1; grid-row:2; margin:0; width:100%; max-width:330px; }
 .radio-context { grid-column:2; grid-row:1 / 3; display:flex; flex-direction:column; justify-content:center; min-width:0; min-height:88px; padding:0; }
 .topic-display { min-width:0; }
-.topic-label,.own-wish-label { display:block; font-size:11px; font-weight:700; letter-spacing:1.6px; line-height:1.3; text-transform:uppercase; color:#b9bdc3; }
+.topic-label,.own-wish-label { display:block; font-size:11px; font-weight:700; letter-spacing:1.6px; line-height:1.3; text-transform:uppercase; }
+.radio-metadata .track-eyebrow,.topic-label,.own-wish-label { color:#e6c77b; }
 .topic-label { margin:0 0 3px; }
 #show-topic { display:block; overflow-wrap:anywhere; font-size:18px; font-weight:700; line-height:1.2; color:var(--text); }
-.radio-status-row { min-width:0; padding-top:6px; }
+.radio-status-row { min-width:0; padding-top:12px; }
 .own-wish-position { grid-column:3; grid-row:1 / 3; display:flex; flex-direction:column; justify-content:center; gap:3px; min-width:0; min-height:88px; margin:0; padding:0 0 0 12px; border-left:1px solid var(--line); }
 .own-wish-heading { display:flex; align-items:center; gap:6px; min-width:0; }
 .own-wish-rank { display:block; max-width:100%; font-size:20px; line-height:1.1; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -18,10 +19,12 @@
 .own-wish-stage[data-stage=playing],.own-wish-stage[data-stage=preparing] { color:#e9eaec; }
 .radio-metadata:focus-visible { outline:2px solid #cfd2d6; outline-offset:-3px; border-radius:8px; }
 #host-name { display:block; overflow-wrap:anywhere; }
-/* Breite Leisten nutzen den Platz für ausgewogene, oben ausgerichtete Informationsbereiche. */
+/* Breite Leisten verteilen die Textgruppen ruhig über die vorhandene Höhe. */
 @media (min-width:1200px) {
- .radio-metadata .now-playing { align-self:start; padding-top:10px; }
+ .radio-metadata .now-playing { align-self:end; padding:0; }
  .radio-metadata #track-title { font-size:clamp(20px,1.6vw,24px); }
  .radio-metadata .volume-control { max-width:440px; }
- .radio-context,.own-wish-position { align-self:stretch; justify-content:flex-start; min-height:124px; padding:10px 0 10px clamp(16px,1.4vw,28px); border-left:1px solid var(--line); }
+ .radio-context,.own-wish-position { align-self:stretch; justify-content:center; min-height:124px; padding:10px 0 10px clamp(16px,1.4vw,28px); border-left:1px solid var(--line); }
+ .radio-context .topic-label { margin-bottom:6px; }
+ .own-wish-position { gap:5px; }
 }

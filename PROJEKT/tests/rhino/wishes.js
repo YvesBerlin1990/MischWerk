@@ -99,10 +99,10 @@ var ownerSession = owner.sessions[0];
 App.onEventReceived(owner, 'mw:openStudio', {}, ownerSession);
 var studio = owner.sessions[owner.sessions.length - 1];
 check(studio.getAppContent().mode === 'Overlay' && studio.getAppContent().html.data.view === 'studio', 'Moderationsfenster geoeffnet');
-check(studio.getAppContent().loading.background === '#0a0a0a', 'Native Ladeflaeche vor dem HTML dunkel vorbereitet');
+check(studio.getAppContent().loading.background === '#0f1114', 'Native Ladeflaeche vor dem HTML dunkel vorbereitet');
 check(studio.getAppContent().loading.text === '' && studio.getAppContent().loading.enabled === true, 'Aktive dunkle Abdeckung ohne nativen Ladetext');
-check(studio.getAppContent().loading.foreground === '#0a0a0a', 'Native Ladefarben identisch');
-check(ownerSession.getAppContent().loading.background === '#0a0a0a' && ownerSession.getAppContent().loading.enabled === false, 'Eigenstaendige Radioleiste unveraendert');
+check(studio.getAppContent().loading.foreground === '#0f1114', 'Native Ladefarben identisch');
+check(ownerSession.getAppContent().loading.background === '#0f1114' && ownerSession.getAppContent().loading.enabled === false, 'Radioleiste behaelt deaktivierte Ladeabdeckung');
 App.onEventReceived(owner, 'mw:openStudio', { requestId: 'rhino-focus' }, ownerSession);
 App.onEventReceived(owner, 'mw:openStudio', { requestId: 'rhino-focus' }, ownerSession);
 App.onEventReceived(owner, 'mw:overlay.ready', { token:latest(studio, 'mw:overlay.prepare').token, state:{}, revision:1 }, studio);
@@ -196,11 +196,44 @@ check(latest(scheduleSession, 'mw:schedule.data').entries[0].week === '2026-10-2
 App.onEventReceived(owner, 'mw:schedule.delete', { requestId: 'schedule-delete', week: '2026-10-26',
     expectedRevision: 2, id: 1 }, scheduleSession);
 check(latest(scheduleSession, 'mw:schedule.result').ok, 'Sendung in Rhino entfernen');
+App.onEventReceived(owner, 'mw:schedule.save', { requestId: 'schedule-autodj', week: '2026-11-09',
+    expectedRevision: 0, date: '2026-11-09', kind: 'autodj', timing: 'allDay', topic: 'MischWerk am Pult' }, scheduleSession);
+check(latest(scheduleSession, 'mw:schedule.result').ok, 'AutoDJ ganztags ohne Knuddels-Nick in Rhino speichern');
+App.onEventReceived(owner, 'mw:schedule.get', { requestId: 'schedule-autodj-read', week: '2026-11-09' }, scheduleSession);
+var automaticProgramme = latest(scheduleSession, 'mw:schedule.data').entries[0];
+check(automaticProgramme.nick === 'MischWerk' && automaticProgramme.kind === 'autodj' &&
+    automaticProgramme.timing === 'allDay' && automaticProgramme.start === '00:00' && automaticProgramme.end === '00:00',
+    'Ganztags ist ein voller Kalendertag mit kanonischem AutoDJ');
+App.onEventReceived(owner, 'mw:schedule.save', { requestId: 'schedule-open-end', week: '2026-11-09',
+    expectedRevision: 1, date: '2026-11-10', kind: 'live', timing: 'openEnd', start: '20:00', end: '',
+    nick: 'Otterchen', topic: 'Offene Sendung' }, scheduleSession);
+check(latest(scheduleSession, 'mw:schedule.result').ok, 'Open End ohne feste Endzeit speichern');
+App.onEventReceived(owner, 'mw:schedule.get', { requestId: 'schedule-open-next', week: '2026-11-16' }, scheduleSession);
+var openProgramme = latest(scheduleSession, 'mw:schedule.data');
+check(openProgramme.entries.length === 1 && openProgramme.entries[0].end === '' &&
+    openProgramme.entries[0].until === null && openProgramme.entries[0].week === '2026-11-09', 'Open End in leerer Folgewoche erhalten');
+App.onEventReceived(owner, 'mw:schedule.save', { requestId: 'schedule-open-follow', week: '2026-11-16',
+    expectedRevision: 0, date: '2026-11-16', kind: 'autodj', timing: 'allDay', topic: 'AutoDJ Folgewoche' }, scheduleSession);
+check(latest(scheduleSession, 'mw:schedule.result').ok, 'Folgesendung begrenzt Open End ohne Überschneidungsfehler');
+App.onEventReceived(owner, 'mw:schedule.get', { requestId: 'schedule-open-bound', week: '2026-11-09' }, scheduleSession);
+check(latest(scheduleSession, 'mw:schedule.data').entries[1].until === Date.UTC(2026, 10, 16) / 60000,
+    'Open-End-Grenze über die Woche in Rhino korrekt');
 check(publicMessages.length === 0, 'Keine Studio-Meldung beim Start oder Wunschversand');
 App.onEventReceived(owner, 'mw:onAir', {}, ownerSession);
 check(publicMessages.length === 1 && publicMessages[0].indexOf('Otterchen betritt das Studio') !== -1, 'ON AIR im Nick-Bot');
 App.onEventReceived(owner, 'mw:onAir', {}, ownerSession);
 check(publicMessages.length === 1, 'Verlaengerung ohne doppelte Meldung');
+var ownEndKey = latest(ownerSession, 'mw:state').moderator.sessionKey;
+App.onEventReceived(owner, 'mw:onAir', { expectedModerator: ownEndKey, endMode: 'openEnd' }, ownerSession);
+check(latest(ownerSession, 'mw:result').ok, 'Open End im bestehenden Moderationsprotokoll speichern');
+var openModerator = latest(ownerSession, 'mw:state').moderator;
+check(openModerator.expiresAt === null && openModerator.openEnd === true, 'Explizites Open End bleibt aktive Moderation in Rhino');
+check(openModerator.sessionKey !== ownEndKey && publicMessages.length === 1, 'Endzeitaenderung erneuert Schluessel ohne erneute Botmeldung');
+App.onEventReceived(owner, 'mw:onAir', { expectedModerator: ownEndKey, endMode: 'fixed', endLocal: '2030-05-01T21:00' }, ownerSession);
+check(!latest(ownerSession, 'mw:result').ok, 'Veralteter Endzeitentwurf wird in Rhino abgewiesen');
+App.onEventReceived(owner, 'mw:onAir', { expectedModerator: openModerator.sessionKey, endMode: 'fixed', endLocal: '2030-05-01T21:00' }, ownerSession);
+check(latest(ownerSession, 'mw:result').ok, 'Manuelle feste Endzeit speichern');
+check(latest(ownerSession, 'mw:state').moderator.expiresAt === Date.UTC(2030, 4, 1, 19), 'Deutsche Sommerzeit fuer Endzeit in Rhino');
 App.onEventReceived(owner, 'mw:offAir', {}, ownerSession);
 check(publicMessages.length === 2 && publicMessages[1].indexOf('Otterchen verlässt das Studio') !== -1, 'OFF AIR im Nick-Bot');
 check(warnings.length === 0, 'Keine Warnung bei Studio-Meldungen');
@@ -267,4 +300,5 @@ App.chatCommands.vorhang(owner, 'toggle');
 App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
 check(latest(ownerSession, 'mw:state').curtain.closed === true, 'Ungueltige Chatangabe erhaelt Vorhang');
 load('tests/rhino/channel-texts.js');
+load('tests/rhino/website.js');
 print('Rhino-Wunschweg OK: ' + assertions + ' Pruefungen, 125 Wuensche, ' + links.length + ' abgewiesene Links; Sendeplan, Studio-Meldungen und Bot-Texte ebenfalls geprueft.');

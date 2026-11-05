@@ -1,7 +1,7 @@
 /* Moderation im Sendeplandesign: drei Arbeitsreiter und vollständig paginierte Inhalte. */
 html[data-view=studio] { --studio-surface:#1f1f1f; --management-card:var(--studio-surface); }
 html[data-view=studio],html[data-view=studio] body { height:100%; min-height:0; overflow:hidden; }
-html[data-view=studio] body { display:flex; flex-direction:column; height:100vh; background:var(--bg); }
+html[data-view=studio] body { display:flex; flex-direction:column; height:100vh; background:var(--canvas); }
 html[data-view=studio] .dialog-shell { display:flex; flex-direction:column; height:auto; flex:1; min-height:0; }
 html[data-view=studio] .dialog-header { flex:none; }
 html[data-view=studio] .dialog-content { flex:1; min-height:0; display:flex; flex-direction:column; }
@@ -22,6 +22,13 @@ html[data-view=studio] .card { padding:12px; border-color:var(--line); backgroun
 .microphone-card { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:16px; }
 .microphone-card h2 { margin:6px 0; font-size:24px; line-height:1.25; font-weight:650; letter-spacing:-.02em; overflow-wrap:anywhere; }
 .studio-session { margin:0 0 8px; font-size:12px; color:var(--muted); }
+.studio-end-open :is(#studio-setup,#studio-paging,#handover-panel) { display:none; }
+.studio-end-form { min-height:0; max-height:100%; overflow:auto; overscroll-behavior:contain; padding:16px; border:1px solid var(--line); border-radius:16px; background:var(--studio-surface); }
+.studio-end-form h2 { font-size:22px; margin-bottom:12px; }
+.studio-end-current { margin:0 0 14px; color:var(--muted); font-size:14px; overflow-wrap:anywhere; }
+.studio-end-form .form-hint { margin-top:0; }
+#studio-end-feedback { margin:12px 0 0; color:var(--error); font-size:14px; overflow-wrap:anywhere; }
+.studio-end-form .button-row { margin-top:14px; }
 .studio-timing { display:flex; flex-wrap:wrap; gap:8px 24px; margin:8px 0 0; }
 .studio-timing div { min-width:0; }
 .studio-timing dt { display:inline; color:var(--muted); font-size:12px; }
@@ -81,7 +88,7 @@ html[data-view=studio] .card { padding:12px; border-color:var(--line); backgroun
 }
 html[data-view=studio].studio-height-limited .dialog-shell { padding:0 0 12px; }
 html[data-view=studio].studio-height-limited .dialog-content { padding:12px 12px 0; }
-html[data-view=studio].studio-height-limited .dialog-header { --dialog-logo:40px; --dialog-title:20px; --brand-padding:11px; min-height:72px; padding:8px 12px; margin-bottom:0; }
+html[data-view=studio].studio-height-limited .dialog-header { --dialog-logo:64px; --dialog-title:20px; --brand-padding:8px; --dialog-gap:8px; min-height:72px; padding:3px 12px; margin-bottom:0; }
 html[data-view=studio].studio-height-limited .eyebrow { font-size:12px; }
 html[data-view=studio].studio-height-limited .studio-programme-tabs { margin:-12px -12px 12px; }
 html[data-view=studio].studio-height-limited .studio-programme-tabs button { min-height:44px!important; }
@@ -93,7 +100,7 @@ html.studio-height-limited .studio-dashboard > .studio-part { padding:12px; }
 html.studio-height-limited .microphone-card h2 { font-size:20px; }
 /* Auch nach einem manuellen Größenwechsel bleibt im kleinen Rahmen Lesefläche. */
 @media (max-height:550px) {
- html[data-view=studio] .dialog-header { --dialog-logo:40px; --dialog-title:20px; --brand-padding:11px; min-height:72px; padding:8px 12px; }
+ html[data-view=studio] .dialog-header { --dialog-logo:64px; --dialog-title:20px; --brand-padding:8px; --dialog-gap:8px; min-height:72px; padding:3px 12px; }
  html[data-view=studio] .dialog-shell { padding-bottom:12px; }
  html[data-view=studio] .dialog-content { padding:12px 12px 0; }
  html[data-view=studio] .studio-programme-tabs { margin:-12px -12px 12px; }

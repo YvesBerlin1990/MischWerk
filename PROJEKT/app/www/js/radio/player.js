@@ -1,122 +1,70 @@
-/* Native Wiedergabe, Medienereignisse, Versuchszuordnung und Playerstatus. */
+/* Bedienung und Anzeige; die Audioverbindung gehört ausschließlich radio/connection. */
 MischWerkUI.define('player', function (dependencies) {
   'use strict';
   var model = dependencies.model;
   var dom = dependencies.dom;
   var api = dependencies.api;
   var provider = dependencies.provider;
-  var layout = dependencies.layout;
   var signals = dependencies.signals;
-  var audio = dependencies.audio;
   var volume = dependencies.volume;
-  var wantedPlayback = false;
-  var playbackTimer;
-  var playbackAttempt = 0;
-  var streamPhase = 'ready';
-  function renderStreamStatus() {
-    var urls = model.current() && api.streamUrls(model.current().station);
-    var offline = provider.status() === 'stopped';
-    var checking = provider.status() === 'checking';
-    var label = !model.current() ? 'Verbinde …' : !urls ? 'In Vorbereitung' : offline ? 'Sendepause' : streamPhase === 'playing' ? 'LIVE' : streamPhase === 'connecting' ? 'Verbinden' : checking ? 'Prüfe …' : streamPhase === 'error' ? 'Streamfehler' : !model.connected() ? 'Getrennt' : provider.status() === 'unknown' ? 'Status unbekannt' : streamPhase === 'stopped' ? 'Gestoppt' : 'Bereit';
+  var connection = dependencies.connection;
+  var selectedSource = '';
+  var stoppedByUser = false;
+  var messages = {
+    stopped: 'Bereit, wenn du es bist. Drücke Play.',
+    connecting: 'Verbinde mit dem Stream …',
+    playing: 'Du hörst MischWerk. Schön, dass du da bist.',
+    buffering: 'Die Verbindung stockt kurz. Die Wiedergabe läuft automatisch weiter.',
+    reconnecting: 'Verbindung unterbrochen. Wir verbinden dich automatisch wieder.',
+    blocked: 'Der Browser benötigt deine Freigabe. Drücke Play, um weiterzuhören.'
+  };
+  function source() { return api.audioUrl(model.current() && model.current().station) || ''; }
+  function renderStatus() {
+    var state = connection.state(), url = source();
+    var label = !model.current() ? 'Verbinde …' : !url ? 'In Vorbereitung' :
+      state.phase === 'playing' ? 'LIVE' : state.phase === 'connecting' ? 'Verbinden' :
+      state.phase === 'buffering' ? 'Verbinden' : state.phase === 'reconnecting' ? 'Verbinde erneut' :
+      state.phase === 'blocked' ? 'Play erforderlich' : provider.status() === 'stopped' ? 'Sendepause' :
+      stoppedByUser ? 'Gestoppt' : !model.connected() ? 'Getrennt' : 'Bereit';
+    var description = !url ? 'Der Hörerstream von Radio Mischwerk ist noch nicht eingerichtet.' :
+      state.wanted ? messages[state.phase] : provider.status() === 'stopped' ?
+        'Radio Mischwerk meldet eine Sendepause. Du kannst die Wiedergabe versuchen.' : messages[state.phase];
+    var button = dom.el('play-button');
+    button.disabled = model.view !== 'radio' || !url;
+    button.setAttribute('aria-disabled', String(button.disabled));
+    button.setAttribute('aria-pressed', String(state.wanted));
+    button.setAttribute('aria-label', state.wanted ? 'Radio stoppen' : 'Radio abspielen');
+    button.classList.toggle('is-offline', !state.wanted && provider.status() === 'stopped');
+    button.title = description;
     dom.setText('stream-label', label);
-    var description = !urls ? 'Der Hörerstream von Radio Mischwerk ist noch nicht eingerichtet.' : offline ? 'Radio Mischwerk meldet eine Sendepause. Automatische Prüfung alle 30 Sekunden.' : checking ? 'Der Senderstatus von Radio Mischwerk wird geprüft.' : provider.status() === 'unknown' && streamPhase !== 'playing' ? 'Senderstatus momentan nicht prüfbar. Du kannst die Wiedergabe versuchen.' : 'Status deiner Radio-Wiedergabe: ' + label;
     dom.el('stream-badge').title = description;
-    dom.el('play-button').disabled = model.view !== 'radio' || !urls || offline || (checking && !wantedPlayback);
-    dom.el('play-button').setAttribute('aria-disabled', String(dom.el('play-button').disabled));
-    dom.el('play-button').classList.toggle('is-offline', !!urls && offline);
-    dom.el('play-button').title = description;
-    dom.el('play-button').setAttribute('aria-label', offline ? 'Radio pausiert: Radio Mischwerk meldet eine Sendepause' : checking ? 'Senderstatus wird geprüft' : wantedPlayback ? 'Radio stoppen' : 'Radio abspielen');
     dom.el('stream-badge').classList.toggle('is-idle', label !== 'LIVE');
-    document.body.classList.toggle('playing', streamPhase === 'playing');
+    document.body.classList.toggle('playing', state.phase === 'playing');
   }
-  
-  function playbackUi(playing, status) {
-    dom.el('play-button').setAttribute('aria-label', playing ? 'Radio stoppen' : 'Radio abspielen');
-    dom.el('play-button').setAttribute('aria-pressed', String(playing));
-    renderStreamStatus();
-    if (status) { dom.setText('playback-status', status); }
+  function stop() {
+    stoppedByUser = true;
+    connection.stop(); renderStatus();
+    dom.setText('playback-status', 'Gestoppt. Dein Mix wartet auf dich.');
   }
-  
-  function stopPlayback() {
-    wantedPlayback = false; streamPhase = 'stopped'; playbackAttempt += 1; clearTimeout(playbackTimer); audio.pause(); audio.removeAttribute('src'); audio.load();
-    signals.emit('playback-reset');
-    playbackUi(false);
+  function selectSource() {
+    var next = source();
+    if (selectedSource !== next) { connection.stop(); selectedSource = next; stoppedByUser = false; }
+    renderStatus();
   }
-  
-  function playbackFailed() {
-    if (!wantedPlayback) { return; }
-    stopPlayback(); streamPhase = 'error'; renderStreamStatus(); dom.setText('playback-status', 'Der Stream ist gerade nicht erreichbar. Bitte erneut versuchen.');
-    var attempt = playbackAttempt;
-    provider.poll().then(function () {
-      if (attempt === playbackAttempt && streamPhase === 'error' && provider.status() !== 'stopped') { layout.notify('Der Stream ist gerade nicht erreichbar. Bitte versuche es erneut.', true); }
-    });
-  }
-  
-  function startPlayback() {
-    signals.emit('playback-reset');
-    volume.preparePlayback();
-    wantedPlayback = true; streamPhase = 'connecting'; var attempt = ++playbackAttempt;
-    playbackUi(true, 'Verbinde mit dem Stream …');
-    clearTimeout(playbackTimer); playbackTimer = setTimeout(playbackFailed, 20000);
-    function playResolvedStream() {
-      if (!wantedPlayback || attempt !== playbackAttempt) { return; }
-      var source = api.streamUrls(model.current() && model.current().station);
-      if (!source) { playbackFailed(); return; }
-      audio.src = source.stream;
-      try {
-        var promise = audio.play();
-        if (promise && typeof promise.catch === 'function') {
-          promise.catch(function () { if (attempt === playbackAttempt) { playbackFailed(); } });
-        }
-      } catch (error) { if (attempt === playbackAttempt) { playbackFailed(); } }
-    }
-    playResolvedStream();
-  }
-  
-  function bindAudioEvents(target) {
-    target.addEventListener('playing', function () { if (target === audio && wantedPlayback) { streamPhase = 'playing'; clearTimeout(playbackTimer); playbackUi(true, 'Du hörst MischWerk. Schön, dass du da bist.'); } });
-    function buffering() {
-      if (target !== audio || !wantedPlayback) { return; }
-      streamPhase = 'connecting'; renderStreamStatus(); dom.setText('playback-status', 'Der Stream lädt nach …');
-      signals.emit('playback-reset');
-      provider.poll();
-      clearTimeout(playbackTimer); playbackTimer = setTimeout(playbackFailed, 20000);
-    }
-    target.addEventListener('waiting', buffering); target.addEventListener('stalled', buffering);
-    target.addEventListener('pause', function () {
-      if (target === audio && wantedPlayback) { stopPlayback(); dom.setText('playback-status', 'Wiedergabe unterbrochen. Drücke Play, um erneut zu starten.'); }
-    });
-    target.addEventListener('error', function () { if (target === audio) { playbackFailed(); } });
-    target.addEventListener('ended', function () { if (target === audio) { playbackFailed(); } });
-  }
-  
   function start() {
+    connection.bind();
+    signals.on('connection-state', function (state) {
+      renderStatus(); dom.setText('playback-status', messages[state.phase]);
+    });
+    signals.on('snapshot', selectSource);
+    signals.on('provider-status', renderStatus);
     dom.el('play-button').addEventListener('click', function () {
-      if (!model.current() || !api.streamUrls(model.current().station) || dom.el('play-button').disabled || provider.status() === 'stopped') { return; }
-      if (wantedPlayback) { stopPlayback(); dom.setText('playback-status', 'Gestoppt. Dein Mix wartet auf dich.'); return; }
-      startPlayback();
-    });
-  
-    bindAudioEvents(audio);
-    signals.on('station-changed', function (station) {
-      stopPlayback();
-      if (station.configured) { streamPhase = 'ready'; dom.setText('playback-status', 'Bereit, wenn du es bist. Drücke Play.'); }
-    });
-    signals.on('provider-status', function (change) {
-      if (change.status === 'stopped') {
-        if (change.previous !== 'stopped' || wantedPlayback) { stopPlayback(); }
-        dom.setText('playback-status', 'Radio Mischwerk meldet eine Sendepause. Der Status wird automatisch erneut geprüft.');
-      } else if (change.previous === 'stopped') {
-        streamPhase = 'ready';
-        dom.setText('playback-status', change.status === 'started' ? 'Der Sender ist wieder bereit. Drücke Play zum Zuhören.' : 'Senderstatus nicht prüfbar. Du kannst die Wiedergabe versuchen.');
-      }
-      renderStreamStatus();
+      if (connection.state().wanted) { stop(); return; }
+      var url = source();
+      if (model.view !== 'radio' || !url) { return; }
+      volume.preparePlayback(); selectedSource = url; stoppedByUser = false; connection.start(url);
     });
   }
-  function playbackPosition() {
-    if (!wantedPlayback || streamPhase !== 'playing' || audio.paused || audio.ended || audio.seeking ||
-        audio.error || audio.readyState < 3 || !isFinite(audio.currentTime)) { return null; }
-    return audio.currentTime;
-  }
-  return { start: start, stop: stopPlayback, renderStatus: renderStreamStatus, playbackPosition: playbackPosition };
+  return { start: start, stop: stop, renderStatus: renderStatus, playbackPosition: connection.playbackPosition,
+    isListening: function () { return connection.state().wanted; } };
 });

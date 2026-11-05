@@ -31,6 +31,12 @@ KnuddelsServer.execute('server/ui/sessions.js');
 KnuddelsServer.execute('server/ui/wish-surface.js');
 KnuddelsServer.execute('server/ui/overlays.js');
 KnuddelsServer.execute('server/maintenance.js');
+KnuddelsServer.execute('server/channel-texts/settings.js');
+KnuddelsServer.execute('server/wishes/website.js');
+KnuddelsServer.execute('server/website/access.js');
+KnuddelsServer.execute('server/website/public.js');
+KnuddelsServer.execute('server/website/commands.js');
+KnuddelsServer.execute('server/website/transport.js');
 KnuddelsServer.execute('server/lifecycle.js');
 KnuddelsServer.execute('server/transport/events.js');
 
@@ -66,6 +72,12 @@ MischWerkModules.createApp = function (config) {
     MischWerkModules.attachWishSurface(runtime);
     MischWerkModules.attachOverlays(runtime);
     MischWerkModules.attachMaintenance(runtime, config);
+    MischWerkModules.attachChannelTextSettings(runtime);
+    MischWerkModules.attachWebsiteWishes(runtime);
+    MischWerkModules.attachWebsiteAccess(runtime);
+    MischWerkModules.attachWebsitePublic(runtime, config);
+    MischWerkModules.attachWebsiteCommands(runtime);
+    MischWerkModules.attachWebsiteTransport(runtime);
     MischWerkModules.attachLifecycle(runtime, config);
     MischWerkModules.attachEvents(runtime, config);
     return {
@@ -77,6 +89,6 @@ MischWerkModules.createApp = function (config) {
         onUserDeleted: runtime.userDeleted,
         onEventReceived: runtime.handleEvent,
         chatCommands: { mischwerk: runtime.open, update: runtime.requestUpdate,
-            vorhang: runtime.curtainCommand }
+            vorhang: runtime.curtainCommand, 'mischwerk-web': runtime.websiteCommand }
     };
 };

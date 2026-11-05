@@ -1,5 +1,5 @@
-// Pausierter Stand: nur isolierte Regressionstests dürfen einen lokalen Server öffnen.
-if(process.env.MISCHWERK_WEBSITE_TEST !== '1'){ console.log('Website PAUSIERT. Kein Server gestartet. Stand unter PROJEKT/website/.'); process.exit(0); }
+// Getrennter Diagnoseserver mit Testrollen; niemals Produktiveinstieg.
+if(process.env.MISCHWERK_WEBSITE_TEST !== '1'){ console.log('Diagnoseserver nur für isolierte Tests. Homepage über den regulären Website-Start öffnen.'); process.exit(0); }
 // Lokale Vorschau: echtes main.js mit API-Mocks. Kein Bestandteil des Uploads.
 const http = require('node:http');
 const fs = require('node:fs');
@@ -93,7 +93,7 @@ const server = http.createServer(async (req, res) => {
       respond(res, 200, types['.html'], html); return;
     }
     const route = url.pathname === '/' ? '/preview.html' : url.pathname;
-    const previewFiles = { '/preview.html': 'index.html', '/preview-bridge.js': 'bridge.js', '/channel.html': 'channel.html', '/preview.css': 'preview.css', '/radio-site.css': 'radio-site.css', '/channel.js': 'channel.js', '/sections.css': 'sections.css', '/sections.js': 'sections.js' };
+    const previewFiles = { '/preview.html': 'index.html', '/preview-bridge.js': 'bridge.js', '/channel.html': 'channel.html', '/preview.css': 'preview.css', '/radio-site.css': 'radio-site.css', '/channel.js': 'channel.js', '/sections.css': 'sections.css', '/sections.js': 'sections.js', '/site-components.js':'site-components.js','/site-navigation.js':'site-navigation.js','/sendeplan':'index.html','/team':'index.html','/mitmachen':'index.html','/wunschbox':'index.html' };
     if (!Object.prototype.hasOwnProperty.call(previewFiles, route) && !route.startsWith('/app/www/')) { respond(res, 404, 'text/plain', 'Nicht gefunden'); return; }
     let file;
     if (route.startsWith('/app/www/')) {
@@ -107,7 +107,7 @@ const server = http.createServer(async (req, res) => {
     let body = fs.readFileSync(file);
     // Nur die lokale Darstellung erhält neutrale Testbeschriftungen; Appdateien bleiben unverändert.
     if (route.endsWith('.js')) {
-      body = body.toString('utf8').replaceAll('Knuddels-Nick', 'Testrolle').replaceAll('Exakten Nick eingeben', 'Testrolle eingeben')
+      body = body.toString('utf8').replaceAll('Otterchen', 'Testleitung').replaceAll('Polaroid', 'Testmoderation').replaceAll('Knuddels-Nick', 'Testrolle').replaceAll('Exakten Nick eingeben', 'Testrolle eingeben')
         .replaceAll('Verbindung zum Knuddels-Channel bestätigt', 'Lokale Testverbindung bestätigt')
         .replaceAll('Öffne diese App in Knuddels mit /mischwerk oder starte die lokale Vorschau aus dem Projektordner.', 'Öffne die lokale Testansicht erneut.')
         .replaceAll('Gestoppt. Dein Mix wartet auf dich.', 'Gestoppt. Mit Play hörst du weiter.')
@@ -117,7 +117,7 @@ const server = http.createServer(async (req, res) => {
           .replaceAll('Sendebetrieb bei STREAMPANEL', 'Lokaler Sendebetrieb').replaceAll('STREAMPANEL', 'Radio MischWerk');
       }
     }
-    if (route === '/preview.html') { body = body.toString('utf8').replaceAll('{{APP_VERSION}}', JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version); }
+    if (file.endsWith('index.html')) { var selected={'/sendeplan':'schedule','/team':'team','/mitmachen':'applications','/wunschbox':'wishes'}[url.pathname]||'radio';body=body.toString('utf8').replace('data-site-current="radio"','data-site-current="'+selected+'"');body = body.toString().replaceAll('{{APP_VERSION}}', JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version); }
     respond(res, 200, types[path.extname(file)] || 'application/octet-stream', body);
   } catch (error) { respond(res, 500, 'text/plain', 'Vorschau-Fehler: ' + error.message); }
 });

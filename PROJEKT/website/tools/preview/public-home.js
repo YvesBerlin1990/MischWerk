@@ -1,0 +1,2 @@
+// Größenmeldung ausschließlich vom eigenen öffentlichen Player akzeptieren.
+(function(){var frame=document.getElementById('radio-frame');if(!frame)return;window.addEventListener('message',function(event){if(event.origin!==location.origin||event.source!==frame.contentWindow||event.data?.type!=='website-radio-size'||!Number.isFinite(event.data.height))return;frame.style.height=Math.min(500,Math.max(210,event.data.height))+'px';});})();

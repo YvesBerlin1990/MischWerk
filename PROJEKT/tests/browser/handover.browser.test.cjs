@@ -98,7 +98,7 @@ test('Bestätigte Übergabe im Browser: Auswahl, Warten, Annahme mit Thema und g
     await target.screenshot({ path: path.join(folder, 'Uebergabe-Annehmen.png') });
   }
   await reveal(target,'#handover-accept','handover');await target.locator('#handover-accept').click();
-  await reveal(target,'#on-air');await target.locator('#on-air').filter({ hasText: 'Anmeldung verlängern' }).waitFor();
+  await reveal(target,'#on-air');await target.locator('#on-air').filter({ hasText: 'Endzeit ändern' }).waitFor();
   await source.locator('#studio-host').filter({ hasText: 'Nächster DJ ist am Mikrofon' }).waitFor();
   assert.equal(await target.locator('#studio-topic').inputValue(), 'Die nächste Sendung');
   assert.equal(await target.locator('#handover-panel').isVisible(), false);

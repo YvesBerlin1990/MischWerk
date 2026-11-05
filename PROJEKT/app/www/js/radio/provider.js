@@ -94,27 +94,24 @@ MischWerkUI.define('provider', function (dependencies) {
     metadataRequest = null; statusRequest = null;
     broadcastMode = null; modeAt = 0; statusAt = 0; publishBroadcast();
   }
-  function playbackKey(station) {
+  function metadataKey(station) {
     var value = Object.assign({}, typeof station === 'string' ? JSON.parse(station) : station);
     delete value.historyUrl; delete value.historyIgnoredTitles;
     return JSON.stringify(value);
   }
   function selectStation(oldStation) {
     var radioUrls = api.streamUrls(model.current().station);
-    dom.el('play-button').disabled = !radioUrls;
     if (radioUrls && model.view === 'radio') {
       dom.el('station-link').hidden = false; dom.el('station-link').href = radioUrls.stream;
-      if (playbackKey(oldStation) !== playbackKey(model.current().station)) {
+      if (metadataKey(oldStation) !== metadataKey(model.current().station)) {
         dispose(); metadataStation = model.current().station; lastSong = null; providerStatus = 'checking';
-        signals.emit('station-changed', { configured: true });
         presentation.renderSong(null); pollStatus();
       }
     } else if (model.view === 'radio') {
       dispose(); metadataStation = null; lastSong = null; providerStatus = 'unknown';
-      signals.emit('station-changed', { configured: false }); dom.el('station-link').hidden = true;
+      dom.el('station-link').hidden = true;
       presentation.renderSong(null);
       dom.setText('metadata-status', 'Sobald der Sender bereit ist, erscheint hier der aktuelle Titel.');
-      dom.setText('playback-status', 'Der Sender wird noch eingerichtet.');
     }
   }
   return { selectStation: selectStation, poll: poll, dispose: dispose,

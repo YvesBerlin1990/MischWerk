@@ -78,9 +78,10 @@ MischWerkUI.define('schedule', function (dependencies) {
         !Array.isArray(response.entries) || !Array.isArray(response.days) || response.days.length !== 7) { return; }
     clearTimeout(readTimer);
     reading = null;
-    if (!response.page) { batch = { week: response.week, revision: response.revision, previousRevision: response.previousRevision, entries: [] }; }
+    if (!response.page) { batch = { week: response.week, revision: response.revision,
+      previousRevision: response.previousRevision, boundaryRevision: response.boundaryRevision, entries: [] }; }
     if (!batch || batch.week !== response.week || batch.revision !== response.revision ||
-        batch.previousRevision !== response.previousRevision) { reload(); return; }
+        batch.previousRevision !== response.previousRevision || batch.boundaryRevision !== response.boundaryRevision) { reload(); return; }
     batch.entries = batch.entries.concat(response.entries);
     if (response.page < response.pages - 1) { load(response.week, response.page + 1); return; }
     response.entries = batch.entries;

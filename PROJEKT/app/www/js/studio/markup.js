@@ -34,6 +34,17 @@ MischWerkUI.define('studioMarkup',function(dependencies){
       </section>
     </div>
     <nav id="studio-paging" class="studio-part-pagination" aria-label="Bereiche deiner Sendung" hidden><button class="secondary-button" data-part-previous type="button">Zurück</button><span data-part-label role="status"></span><button class="secondary-button" data-part-next type="button">Weiter</button></nav>
+    <form id="studio-end-form" class="studio-end-form" aria-labelledby="studio-end-title" hidden>
+      <h2 id="studio-end-title">Endzeit ändern</h2>
+      <p id="studio-end-current" class="studio-end-current"></p>
+      <fieldset id="studio-end-fields">
+        <label for="studio-end-mode">Ende deiner Moderation<select id="studio-end-mode"><option value="fixed">Datum und Uhrzeit</option><option value="openEnd">Open End</option></select></label>
+        <label id="studio-end-at-field" for="studio-end-at">Endzeit · deutsche Zeit<input id="studio-end-at" type="datetime-local" step="60" required></label>
+        <p id="studio-end-help" class="form-hint"></p>
+        <p id="studio-end-feedback" role="status" aria-live="polite" hidden></p>
+        <div class="button-row"><button id="studio-end-save" class="primary-button" type="submit">Endzeit speichern</button><button id="studio-end-cancel" class="secondary-button" type="button">Abbrechen</button><button id="studio-end-reload" class="secondary-button" type="button" hidden>Aktuellen Stand laden</button></div>
+      </fieldset>
+    </form>
     <div id="handover-placeholder"></div>
   </section>
   <section id="studio-requests" class="studio-queue" data-detail="copy" role="tabpanel" aria-labelledby="studio-queue-tab" hidden>

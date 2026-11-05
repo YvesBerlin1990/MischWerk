@@ -11,6 +11,60 @@ function fixture() {
   return {h,owner,dj,a,b,os,ds,as,bs};
 }
 function at(f, utc) { f.h.advance(Date.parse(utc) - f.h.state(f.owner,f.os).serverTime); }
+
+function endSetting(f, values, person = f.owner, session = f.os) {
+  return result(f.h.event(person,session,'mw:onAir',{
+    expectedModerator:f.h.state(person,session).moderator?.sessionKey,endMode:'fixed',endLocal:'2026-11-05T23:00',...values
+  }));
+}
+
+test('Moderation: feste Endzeit ist eine tatsächliche Änderung in Berliner Zeit, Beginn und Sendung bleiben erhalten',()=>{
+  const f=fixture();at(f,'2026-11-05T18:00:00Z');
+  f.h.event(f.owner,f.os,'mw:onAir');f.h.event(f.owner,f.os,'mw:setTopic',{topic:'Abendshow'});
+  f.h.event(f.a,f.as,'mw:wish.submit',{text:'Erster Song'});
+  const previous=f.h.state(f.owner,f.os).moderator,messages=f.h.bot.messages.length;
+  const saved=endSetting(f,{});assert.equal(saved.ok,true,saved.message);assert.match(saved.message,/23:00/);
+  const state=f.h.state(f.owner,f.os);assert.equal(state.moderator.expiresAt,Date.parse('2026-11-05T22:00:00Z'));
+  assert.equal(state.moderator.since,previous.since);assert.notEqual(state.moderator.sessionKey,previous.sessionKey);
+  assert.equal(state.topic,'Abendshow');assert.equal(state.queueTotal,1);assert.equal(f.h.bot.messages.length,messages);
+});
+
+test('Moderation: Open End bleibt über sechs Stunden aktiv und kann wieder ein festes Ende erhalten',()=>{
+  const f=fixture();at(f,'2026-11-05T18:00:00Z');f.h.event(f.owner,f.os,'mw:onAir');
+  assert.equal(endSetting(f,{endMode:'openEnd'}).ok,true);
+  let state=f.h.state(f.owner,f.os);assert.equal(state.moderator.expiresAt,null);assert.equal(state.moderator.openEnd,true);
+  f.h.advance(2*86400000);state=f.h.state(f.owner,f.os);assert.equal(state.user.isOnAir,true);
+  assert.equal(result(f.h.event(f.owner,f.os,'mw:onAir')).ok,true,'Alter Client bestätigt, ohne Open End zu löschen');
+  assert.equal(f.h.state(f.owner,f.os).moderator.openEnd,true);
+  assert.equal(endSetting(f,{endLocal:'2026-11-08T01:00'}).ok,true);
+  assert.equal(f.h.state(f.owner,f.os).moderator.expiresAt,Date.parse('2026-11-08T00:00:00Z'));
+  f.h.advance(Date.parse('2026-11-08T00:00:00Z')-f.h.now());assert.equal(f.h.state(f.owner,f.os).moderator,null);
+});
+
+test('Moderation: Endzeit prüft eigenes Recht, aktuellen Schlüssel und gültige zukünftige deutsche Uhrzeit',()=>{
+  const f=fixture();at(f,'2026-11-05T18:00:00Z');f.h.event(f.dj,f.ds,'mw:onAir');
+  const before=JSON.stringify(f.h.state(f.dj,f.ds).moderator);
+  for(const input of [{endMode:'forever'},{endMode:null},{endLocal:'2026-11-05T18:00'},
+    {endLocal:'2026-02-30T20:00'},{endLocal:'2027-03-28T02:30'},{expectedModerator:null},{expectedModerator:undefined}]){
+    assert.equal(endSetting(f,input,f.dj,f.ds).ok,false,JSON.stringify(input));
+    assert.equal(JSON.stringify(f.h.state(f.dj,f.ds).moderator),before);
+  }
+  for(const [person,session] of [[f.owner,f.os],[f.a,f.as]])assert.equal(endSetting(f,{endMode:'openEnd'},person,session).ok,false);
+  assert.equal(endSetting(f,{endLocal:'2027-10-31T02:30'},f.dj,f.ds).ok,true);
+  assert.equal(f.h.state(f.dj,f.ds).moderator.expiresAt,Date.parse('2027-10-31T01:30:00Z'),'Spätere doppelte End-Uhrzeit');
+});
+
+test('Moderation: veraltete Endzeitänderung und Speicherfehler erhalten den bestätigten Stand',()=>{
+  const f=fixture();at(f,'2026-11-05T18:00:00Z');f.h.event(f.owner,f.os,'mw:onAir');
+  const key=f.h.state(f.owner,f.os).moderator.sessionKey;
+  assert.equal(endSetting(f,{endMode:'openEnd'}).ok,true);
+  assert.equal(f.h.state(f.owner,f.os).moderator.expiresAt,null);
+  assert.equal(endSetting(f,{expectedModerator:key}).ok,false);
+  const before=JSON.stringify(f.h.state(f.owner,f.os).moderator),set=f.h.store.setObject;
+  f.h.store.setObject=()=>{throw Error('Speicherfehler');};assert.equal(endSetting(f,{}).ok,false);f.h.store.setObject=set;
+  assert.equal(JSON.stringify(f.h.state(f.owner,f.os).moderator),before);
+  f.h.app.onUserLeft(f.owner);assert.equal(f.h.state(f.dj,f.ds).moderator,null,'Open End endet beim Channel-Verlassen');
+});
 function schedule(f, date, start, end, nick, topic = 'Geplantes Thema') {
   const day = new Date(date+'T12:00:00Z'); day.setUTCDate(day.getUTCDate()-(day.getUTCDay()+6)%7);
   const week = day.toISOString().slice(0,10);

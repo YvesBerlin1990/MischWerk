@@ -22,7 +22,9 @@ MischWerkUI.define('lifecycle', function (dependencies) {
 
   function resetPlaybackActivity() {
     activityPosition = null; activitySampleAt = 0; activityProgressAt = 0;
-    activityDueAt = 0; activityRequest = null;
+    // Kurzes Nachladen darf den bestätigten Hörwunsch nicht endlos um drei Minuten verschieben.
+    if (!player || !player.isListening()) { activityDueAt = 0; }
+    activityRequest = null;
   }
   function playbackPosition() {
     return !disposed && player && navigator.onLine !== false ? player.playbackPosition() : null;
@@ -35,12 +37,12 @@ MischWerkUI.define('lifecycle', function (dependencies) {
     var elapsed = (now - activitySampleAt) / 1000, advanced = false;
     if (activityPosition === null || elapsed <= 0 || elapsed > 15 || position < activityPosition ||
         position - activityPosition > elapsed * 2 + 1) {
-      resetPlaybackActivity(); activityDueAt = now + activityInterval;
+      resetPlaybackActivity();
     } else if (position > activityPosition) { activityProgressAt = now; advanced = true; }
     activityPosition = position; activitySampleAt = now;
     if (!activityDueAt) { activityDueAt = now + activityInterval; }
     if (!activityProgressAt || now - activityProgressAt > 5000) {
-      activityRequest = null; activityDueAt = now + activityInterval; return;
+      activityRequest = null; return;
     }
     if (activityRequest && now > activityRequest.expiresAt) { activityRequest = null; }
     if (!advanced) { activityRequest = null; return; }
@@ -51,7 +53,9 @@ MischWerkUI.define('lifecycle', function (dependencies) {
       return;
     }
     if (now < activityDueAt || activityRequest) { return; }
-    activityDueAt = now + activityInterval;
+    // Erst eine ausgeführte Bestätigung beginnt den nächsten Drei-Minuten-Abstand.
+    // Verlorene/unterbrochene Antworten begrenzt neu prüfen, solange wirklich Ton läuft.
+    activityDueAt = now + 10000;
     activityRequest = { id:commands.nextId('playback'), expiresAt:now + 10000, position:position, confirmed:false };
     commands.send('mw:refresh', { requestId:activityRequest.id });
   }

@@ -32,6 +32,7 @@ for (const [type, names] of Object.entries({
   User: ['getNick', 'getUserId', 'isOnlineInChannel', 'isAppManager', 'equals', 'canSendAppContent', 'sendAppContent', 'sendPrivateMessage'],
   AppContentSession: ['getUser', 'remove'],
   AppContent: ['setResponsive', 'addCloseListener'],
+  WebHookAccess:['registerWebHook','unregisterWebHook'], WebHookRequest:['getMethod','getBody','getQueryString','getRemoteAddress'], WebHookResponse:['send'],
   BotUser: ['sendPublicMessage'], String: ['escapeKCode'],
   AppAccess: ['getOwnInstance'], AppInstance: ['getRootInstance'], RootAppInstance: ['updateAppFiles', 'invalidateClientCache', 'updateApp']
 })) {
@@ -41,6 +42,7 @@ for (const [type, names] of Object.entries({
 }
 assert.ok(backendApi.includes('KnuddelsServer.getAppAccess = function'), 'Fehlende AppAccess-Signatur');
 assert.ok(backendApi.includes('KnuddelsServer.getDefaultBotUser = function'), 'Fehlende BotUser-Signatur');
+assert.ok(backendApi.includes('KnuddelsServer.getWebHookAccess = function'), 'Fehlende WebHook-Signatur');
 assert.ok(backendApi.includes('KnuddelsServer.execute = function'), 'Fehlende Loader-Signatur');
 assert.ok(backendApi.includes('AppContent.overlayContent'), 'Overlay fehlt in der Backend-Referenz');
 for (const name of ['setTitle', 'setSize']) {

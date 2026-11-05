@@ -5,8 +5,22 @@ html[data-view=team] .dialog-header { position:sticky; top:1px; z-index:5; }
 .team-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:14px; padding:4px; border:1px solid var(--line); border-radius:12px; background:var(--input); }
 .team-tabs button { min-height:44px; border:1px solid transparent; border-radius:8px; color:var(--muted); background:transparent; font:inherit; font-weight:600; }
 .team-tabs button[aria-selected=true] { color:var(--text); border-color:#525252; background:#292929; }
+html.channel-texts-open,html.channel-texts-open body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:none; }
+html.channel-texts-open .dialog-shell { display:flex; flex-direction:column; height:100%; min-height:0; padding-bottom:0; overflow:hidden; }
+html.channel-texts-open .dialog-header { position:relative; top:auto; flex:none; }
+html.channel-texts-open #dialog-notice-slot { flex:none; }
+html.channel-texts-open .dialog-content { display:flex; flex:1; min-height:0; padding:12px 15px 0; overflow:hidden; }
+html.channel-texts-open #team-panel { display:flex; flex:1; flex-direction:column; min-width:0; min-height:0; }
+html.channel-texts-open .team-tabs { flex:none; margin-bottom:10px; }
+html.channel-texts-open #channel-texts-panel { display:flex; flex:1; min-width:0; min-height:0; }
+html.channel-texts-open .channel-texts-form { display:flex; flex:1; flex-direction:column; min-width:0; min-height:0; }
+.channel-texts-scroll { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; overflow-anchor:none; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:#777e88 #1c1d20; scroll-padding:12px; padding:4px 10px 12px 2px; }
+.channel-texts-scroll::-webkit-scrollbar { width:8px; }
+.channel-texts-scroll::-webkit-scrollbar-track { background:#1c1d20; border-radius:8px; }
+.channel-texts-scroll::-webkit-scrollbar-thumb { background:#777e88; border:2px solid #1c1d20; border-radius:8px; }
+.channel-texts-scroll::-webkit-scrollbar-thumb:hover { background:#a1a7b0; }
 .channel-texts-form h2 { margin:0 0 8px; text-align:center; font-size:22px; }
-.channel-texts-form > .form-hint { margin:0 0 12px; }
+.channel-texts-scroll > .form-hint { margin:0 0 12px; }
 .channel-texts-options { display:grid; grid-template-columns:minmax(0,1fr) 150px; gap:12px; align-items:end; }
 .channel-texts-options > label { min-width:0; font-size:13px; }
 .channel-texts-options select { display:block; width:100%; min-height:44px; margin:4px 0 0; font-size:16px; }
@@ -18,13 +32,17 @@ html[data-view=team] .dialog-header { position:sticky; top:1px; z-index:5; }
 .channel-texts-entry-heading label { flex:1; margin:0; font-size:14px; font-weight:600; }
 .channel-texts-counter { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
 .channel-texts-remove { min-height:44px; padding:0 7px; border:0; background:transparent; color:var(--muted); font:inherit; font-size:12px; }
-.channel-texts-entry textarea { display:block; width:100%; min-height:70px; margin:0; resize:vertical; overflow-y:auto; font-size:16px; }
-.channel-texts-actions { position:sticky; bottom:0; z-index:3; display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; padding:10px 0; border-top:1px solid var(--line); background:var(--surface); }
+.channel-texts-entry textarea { display:block; width:100%; min-height:70px; margin:0; resize:none; overflow:hidden; font-size:16px; }
+.channel-texts-actions { flex:none; display:flex; flex-wrap:wrap; gap:8px; margin-top:0; padding:10px 0; border-top:1px solid var(--line); background:var(--surface); }
 .channel-texts-actions > button { flex:1; min-height:44px; }
+.channel-texts-actions > .notice { flex:1 0 100%; margin:0; }
 html[data-view=team] .channel-texts-actions > button { font-size:16px; }
-@media (max-height:480px) {
- .channel-texts-actions { position:static; }
- html[data-view=team] { scroll-padding-bottom:20px; }
+@media (max-height:420px) {
+ html.channel-texts-open .dialog-header { --dialog-logo:52px; --brand-padding:8px; --dialog-title:22px; min-height:64px; padding-block:5px; }
+ html.channel-texts-open .dialog-heading > .eyebrow { display:none; }
+ html.channel-texts-open .dialog-content { padding-top:6px; }
+ html.channel-texts-open .team-tabs { margin-bottom:6px; }
+ .channel-texts-actions { padding-block:6px; gap:6px; }
 }
 .channel-texts-form #channel-texts-feedback { flex:1 0 100%; margin:0; overflow-wrap:anywhere; }
 .channel-texts-form #channel-texts-feedback:empty { display:none; }

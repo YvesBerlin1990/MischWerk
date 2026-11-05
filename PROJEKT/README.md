@@ -1,68 +1,12 @@
 # MischWerk – technische Übersicht
 
-Sicht-/Bedienprüfung 208: Lange Bot-Texte sind im Eingabefeld mit dem Mausrad und der Tastatur vollständig lesbar. Die vorhandene Aktionsgruppe bleibt bei normalen Rahmen unten sichtbar; Speichern, Aktualisieren sowie Fehler-/Erfolg-/Konflikthinweis sind unmittelbar erreichbar. Nur im Bot-Textbereich CSS und die Position des bestehenden Rückmeldeabsatzes angepasst. Bei weniger als 481 px verfügbarer Höhe nutzt die Gruppe ihren natürlichen Dokumentfluss. Native Fenstermaße, Feldwerte und alle ausführbaren Controller bleiben erhalten. K3/STAPP mit 560/390/320 px, 1×/2×-Pixeldichte, sechs langen Feldern und begrenzter Höhe geprüft.
+**App 0.1.223 · Build 223 · Website 0.2.0**, Stand 05.11.2026. Funktionen und aktuelle Bilder stehen in der [GitHub-Übersicht](../README.md); verbindliche Entwicklungsregeln ausschließlich in [AGENTS.md](AGENTS.md).
 
-Aktueller lokaler Stand **0.1.208 · Build 208**. Die Verwaltung enthält jetzt die Bereiche Radio-Team und Bot-Texte. Ausschließlich der tatsächliche Channelinhaber kann bis zu sechs Textfelder bearbeiten (je höchstens 300 Zeichen), automatische öffentliche Ausgabe ein-/ausschalten und **20, 30, 40 oder 50 Minuten** Abstand wählen. Anfangs ausgeschaltet; gefüllte Texte laufen der Reihe nach, leere Felder werden übersprungen. Nach Speichern beginnt ein voller Abstand. Einstellungen und Rotationszeiger bleiben über Neustarts erhalten; verpasste Termine werden nicht nachgeholt. Öffentlicher Versand über den Standardbot als Klartext. Eigener privater Einstellungszustand, Revisionsschutz, Fehler-/Entwurfserhalt und Löschung beim Rechteverlust. Ein serverseitiger Timeout mit Shutdown-Abbruch; keine zusätzlichen Radioereignisse oder Client-Versandtimer. Vorhandene Radio-/Wunsch-/Sendeplanfunktionen und Gestaltung bleiben erhalten. **111 Laufzeitdateien, 105 Texte, 34 Backendmodule, 75 Browserdateien, 46 Komponenten, 17 Stylesheets, fünf Manifeste.** Der vollständige feste Desktop-UPLOAD ist ausschließlich lokal vorbereitet; keine Live-Aktion.
+Der Appstand besteht aus **122 Laufzeitdateien, 115 Textdateien, 40 Backendmodulen, 80 Browser-/Mediendateien, 49 Frontendkomponenten und 18 Stylesheets**. Fünf Manifeste belegen die vollständige Auslieferung. Die Website bleibt ein eigenes Projekt außerhalb des Knuddels-UPLOAD.
 
-Erhaltene Sendeplankorrektur aus 206: Sendung eintragen und Sendung bearbeiten passen im vorhandenen 630-px-Sendeplanrahmen bei 820/560/390/320 px Breite ohne Dokument-Scrollen. Im Editor stehen nur die Eingaben und Formularaktionen im Mittelpunkt; die weiterhin nutzbare Aktualisierung sitzt rechts im zentrierten Formularkopf. Datum/Moderation und Von/Bis bleiben zweispaltig, das Thema nutzt die volle Breite. Pflichtfelder, 16-px-Eingabetext, mindestens 44-px-Bedienflächen, Fehler/Aktualisieren/Entwurf, Speichern, Zurück und Löschen bleiben erhalten. Nur schedule.css geändert; Fachcontroller und übrige Gestaltung einschließlich RGB-Glow/40-px-Auslauf unverändert. Kalender und native 820 × 630 px bleiben erhalten, tatsächlich kleinere Hostgrenzen behalten ihre native Erreichbarkeit. Fester Desktop-UPLOAD mit 106 Laufzeitdateien lokal bereitgestellt; keine Veröffentlichung oder Live-Aktion.
+`radio/connection` besitzt allein Audioquelle, Hörwunsch und Wiederherstellung. Kurze Engpässe erhalten Verbindung und Puffer; echte Abbrüche werden bei bestehendem Hörwunsch erneut verbunden. Metadaten und Status steuern kein Audio. Der bestehende Heartbeat erhält seine Fälligkeit über Nachladephasen und bestätigt Aktivität nur bei geprüftem Audiofortschritt und frischer passender Channelantwort.
 
-Platzverteilung aus 201: Die Appleiste verteilt die Mitte ab 1200 px proportional auf Musik/Lautstärke, Thema/Sendestatus und gegebenenfalls den eigenen Wunsch. Ohne Wunsch nutzen die zwei übrigen Informationsbereiche den Platz. Gemeinsame Oberkante, ruhige Trennlinien, passende Innenabstände, eine bis 440 px nutzbare Lautstärkegruppe und ein an der Übergangsbreite angepasster 20–24-px-Titel ersetzen die überbreite Musikspalte mit rechts zusammengedrängten Informationen. Die schmalen Raster unter 1200 px, sämtliche Controller, Fachlogik, Audio und Overlaygestaltung bleiben unverändert. Vollständiger fester Desktop-UPLOAD mit 106 Laufzeitdateien lokal bereitgestellt; keine Live-Aktion.
-
-Versionsstand 200: Ausschließlich Versions- und Buildkennung gegenüber 199 erhöht; Gestaltung und Funktionen sind bytegleich erhalten. Backendkonfiguration, App-Konfiguration, Einstieg und alle fünf Manifeste tragen dieselbe neue Kennung. Vollständiger fester Desktop-UPLOAD mit 106 Laufzeitdateien lokal neu bereitgestellt; keine Live-Aktion. Die nachfolgenden Gestaltungs-/Browsernachweise stammen aus dem unveränderten Stand 199.
-
-Unverändert aus Build 199: Die bestätigten ZIP-Designs sind in der gewünschten Reihenfolge übernommen: Appleiste nach B · Vinyl Deck, anschließend Moderation, Verwaltung, Wunschbox und Sendeplan nach MischWerk_Alle_Menues. Schwarze Flächen, silberne Aktionen, statisches Vinylmotiv und lokal geladene Outfit-/Fraunces-Schriften bilden die gemeinsame Gestaltung. Sämtliche Menüüberschriften sind mittig; die Original-Logos stehen links vor dem ruhigen Kopfzeilenhintergrund ohne abgesetzte schwarze Kachel, das Vinylmotiv rechts und das X bleibt rechts bedienbar. Responsive Appleiste mit direktem Zugriff auf öffentliche und berechtigte private Aktionen, lange Informationen im vorhandenen nativen Lesebereich. Rollen, private Wunschinformation, Entwürfe, Chronologie 197/198, Event-/Sitzungskorrektur und Startabsicherung sind erhalten. **106 Laufzeitdateien, 100 Texte, 31 Backendmodule, 73 Browserdateien, 44 Komponenten, 17 Stylesheets, fünf Manifeste.** Ausschließlich fester Desktop-UPLOAD; keine Live-Aktion.
-
-Erhalten aus Build 198: Die Seitenzählung in Heute gespielt folgt ebenfalls der Zeit: älteste Titel auf Seite 1, neueste auf der letzten Seite. Beim Öffnen werden weiterhin die neuesten Titel auf der letzten Seite gezeigt. Zurück verringert die Seitenzahl, Weiter erhöht sie. Internen Cursor, Sortierung, Navigation und Seitenanker erhalten; ausschließlich die sichtbare Zahl ist angepasst. Frühere Wunsch-, Start-, Event-/Sitzungs- und Audiokorrekturen bleiben erhalten. Nur lokal bereitgestellt, weiterhin 102 Laufzeitdateien; keine Live-Aktion.
-
-Build 197: In Heute gespielt folgt die Navigation der Uhrzeit: Zurück zeigt ältere Titel, Weiter neuere. Auf der neuesten Seite ist Weiter gesperrt, auf der ältesten Zurück. Die neuesten Titel stehen weiterhin oben; Seitennummerierung, Textfortsetzungen und Gestaltung bleiben erhalten. Wunschübersichtsentfernung, Event-/Sitzungskorrektur und Startabsicherung bleiben erhalten. Ausschließlich lokal bereitgestellt, unverändert 102 Laufzeitdateien; keine Live-Aktion.
-
-Build 196: Die doppelte Rubrik Deine offenen Wünsche entfällt vollständig aus der Wunschbox samt Aktualisieren, Liste und Seitennavigation. Nach Abgabe bleiben die kurze Fünf-Sekunden-Bestätigung und Weiteren Wunsch eingeben; Titel, Platz und Bearbeitungsstatus stehen ausschließlich im vorhandenen privaten Wunschbereich der Appleiste. Eingabe, Entwürfe, Fokus, Versand, Radioaudio und natürliche Wunschhöhe bleiben erhalten. Event-/Sitzungskorrektur aus 194 und Startabsicherung aus 195 sind erhalten. Ausschließlich lokale Bereitstellung mit 102 Laufzeitdateien; keine Live-Aktion.
-
-Build 195: Die leere Appleiste direkt nach Beitritt/Aktualisierung ist auf einen öffentlich nachgewiesenen Auslieferungsmischstand zurückgeführt: Ladeplan aktuell, 13 Frontenddateien älter und drei benötigte Dateien nicht vorhanden. Startfehler werden bereits vor der ersten SDK-Dateieinbindung abgesichert und bei fehlenden Pflichtdateien sofort sichtbar gemeldet. Vollständiger Desktop-UPLOAD mit 103 Laufzeitdateien lokal bereitgestellt; die Event-/Sitzungskorrektur aus Build 194 bleibt erhalten. Keine Live-Aktivierung oder Übertragung ausgeführt.
-
-Build 194: Wunschbox-Abgleich gegen das gemeldete Eventlimit korrigiert: Entwürfe lokal sofort anzeigen, Serverabgleich bündeln und identische Rückmeldungen unterdrücken. Vor Schließen/Absenden/Overlaywechsel wird die letzte Eingabe übertragen. Sitzungen werden nur noch aktuell und höchstens einmal geschlossen, auch bei verzögertem Close-Listener und neuen Plattformwrappern. Ausschließlich lokale Bereitstellung; die vorübergehend abgeschaltete Knuddels-App wird nicht automatisch aktiviert oder aktualisiert.
-
-Build 193: Der vorhandene Bereich Dein Wunsch in der Appleiste zeigt Platz, nächsten eigenen Songtitel und Bearbeitungsstatus, bei mehreren Wünschen ergänzt um einen kleinen Zähler. Am Wunschbox-Button entstehen keine Zusatzangaben. Die Detailansicht ordnet Platz/Status über dem vollständigen Titel; der zusätzliche Moderationshinweis entfällt. Erfolgsfeedback verschwindet nach fünf Sekunden, Fehler und laufender Versand bleiben sichtbar.
-
-Build 192: Der Menüpunkt heißt jetzt Verwaltung, einschließlich Tooltip, Screenreaderbeschriftung, frühem und fertigem Dialogtitel sowie nativem Fenstertitel. Überschrift und Leitspruch stehen mittig in der Kopfkarte, Logo links und Schließen-X rechts. Funktionen und Berechtigungen der Teamverwaltung bleiben erhalten.
-
-Build 191: Vollständig leere Wochen verteilen den verfügbaren unteren Platz gleichmäßig auf ihre sieben Tageszeilen. Bestehende Mindesthöhe, Schrift und Kalenderfunktionen bleiben erhalten. Gefüllte Wochen, Pagination und Editor behalten ihre natürliche Anordnung; keine neue Fenstersteuerung.
-
-Build 190: Die Statuszentrale ist vollständig entfernt: Anzeige, Reiter, Prüftaste, Detailseiten und eigene Anbieterabfragen. Radio-Team öffnet direkt die Mitgliederverwaltung. Ernennen/Entziehen, Aktualisieren, Rechte, Entwürfe und feste native Maße bleiben erhalten. Die unabhängige Anbieterprüfung und Wiedergabe der Radioleiste bleiben unverändert.
-
-Build 189 entfernt „Deine Sendezeiten“ vollständig aus der Moderation, einschließlich Kalenderabruf, Aktualisieren und eigenem Modul. Die natürliche Fensterhöhe richtet sich nach den verbleibenden Bediengruppen. Öffentlicher Sendeplan und gespeicherte Termine bleiben erhalten.
-
-Build 188 zentriert Moderation und Leitspruch in der gesamten Kopfkarte. Das Original-Logo bleibt links, das Schließen-X rechts mit 44-px-Bedienfläche. Normale und kompakte Ansicht sowie früher HTML-Kopf sind berücksichtigt; Studiofunktionen, natürliche Höhe und andere Overlays bleiben erhalten.
-
-Build 187 zentriert Sendeplan und Leitspruch in der gesamten Kopfkarte. Das Original-Logo bleibt links, das Schließen-X rechts. Die Ausrichtung gilt bereits für den frühen HTML-Kopf; Kalender, Anfangsmaße, Funktionen und andere Overlays bleiben erhalten.
-
-Build 186 zentriert die Wunschbox-Kopfüberschrift als „MischWerk Wunschbox“ über die gesamte Kopfbreite. Der Schließen-Button bleibt rechts; schmal kann der Titel auf zwei Zeilen umbrechen. Flaches Formular, native Anfangshöhe und Wunsch-/Audiofunktionen bleiben erhalten.
-
-Build 185 entfernt die zusätzliche Kartenfläche um das Wunschformular. Das Formular bleibt funktional erhalten; Textfeld und Sendebutton nutzen die volle Inhaltsbreite. Die eigene Textfeldumrandung bleibt bestehen, das Textfeld erhält mehr Platz. Native Anfangsgröße, Versand, Entwürfe und Quittungen sind unverändert.
-
-Build 184 fasst die Lautstärkebedienung zusammen: Lautstärke steht vor der Stummschalttaste, die jetzt direkt neben dem Regler liegt. Abstände regulär 6 px, kompakt weiterhin 4 px. Native 44-px-Bedienflächen, Prozentfeld, Warnung und sämtliche Audiocontroller bleiben erhalten.
-
-Build 183 vergrößert Schrift und Symbole der öffentlichen Buttons Sendeplan/Wunschbox auf 16/22 px. Schmale Ansichten verwenden passende 14/20 px; begrenzte Verwaltungsrahmen bleiben bedienbar. Die Buttonhöhe bleibt 44 px, einschließlich deaktivierter Wunschbox. Alle Browsercontroller und Audiofunktionen sind unverändert.
-
-Seit Build 182 gilt die Änderung: Dieser Stand ändert die AutoDJ-Beschriftung in „MischWerk am Pult“. Die vorhandene Moderations-/Sendemodusprüfung, Gestaltung und Wiedergabe einschließlich Heartbeat bleiben erhalten.
-
-Build 181 ergänzt einen an tatsächlichen Audiofortschritt gebundenen Wiedergabe-Heartbeat in der Radioleiste: alle drei Minuten /confirm über die dokumentierte Client.executeSlashCommand-Methode, erst nach passender frischer mw:refresh-Antwort. Stop, Pause, Nachladen, Fehler, Seitenende und fehlende Verbindung sperren weitere Aufrufe. Im Hintergrund bleibt der bestehende Channel-Leseweg nur bei laufendem Radio aktiv. Gestaltung, vier getrennte Overlays, Rollen, Entwürfe und Wunschtransport bleiben erhalten. Der aktuelle öffentliche OR-Radio-Player belegt diesen Ansatz; eine echte native MischWerk-Timeoutabnahme steht weiterhin aus.
-
-Reine Versionsfortschreibung auf 0.1.181 / Build 181. Funktionen und Oberfläche entsprechen unverändert dem geprüften Stand 179.
-
-Build 179 nutzt den freien unteren Sendeplanbereich für besser lesbare Tageszeilen: Wochentag 16 px, Datum und Leerhinweis 14 px, Tageszahl 26 px; vollständig leere Wochen nutzen mindestens 50 px hohe Zeilen. Bei vorhandenen Sendungen werden leere Zwischenzeilen kompakter ab 40 px gehalten. Im breiten 820-×-630-Rahmen bleiben alle sieben leeren Tage auf einer Seite; der freie Unterrand sinkt lokal von 118 auf 17 px. An der Oberfläche ausschließlich schedule.css geändert; Farben, vollständige Sendungsinhalte, Pagination, Editor, Rechte und alle JavaScriptmodule bleiben erhalten. Keine neue Hostgrößensteuerung.
-
-
-Themenbearbeitung in Build 178: Eingabe, Zähler, Speichern, Fehler, Bestätigung und Verwerfen behalten feste Feld-/Button-/Folgeabschnittsmaße. Hilfe und Rückmeldung teilen einen festen Statusplatz; Verwerfen wird ohne Layoutänderung sichtbar. Bei diesen Vorgängen erfolgt kein neuer Hostgrößenauftrag. Eine schon sichtbare Studio-Statusmeldung behält während der Themenbearbeitung ihren Platz auch nach ihrem regulären Ausblenden; bewusste Bereichs-/Steuerungswechsel geben ihn frei. Die bestätigte automatische Verkürzung bei anderen Inhalts- und Reiterwechseln bleibt erhalten.
-
-Seit Build 178 passt studio/window ausschließlich die vorhandene Moderationsfensterhöhe an den vollständigen Inhalt an. Die anfangs verfügbare Clienthöhe bleibt die feste Obergrenze. Leere Sendezeiten, wenige Wünsche und kurze Historienlisten hinterlassen keine große untere Leerreserve; mehr Inhalt wächst innerhalb dieser Grenze und bleibt danach paginiert. Die Senderzeit-Fußzeile der Historie entfällt. Ihre tatsächlichen Zeitstempel und Berliner Tagesregeln bleiben erhalten. Größenabhängige Kompaktgestaltung richtet sich nach der anfänglichen Clientgrenze, damit die eigene Verkürzung keine weitere Schrumpfkaskade auslöst. Andere Overlays und die Radioleiste sind davon unabhängig.
-
-/update meldet knapp das Ergebnis: keine neuen Dateien mit laufender Version, vorgemerkter Neustart mit tatsächlicher Zeitschätzung oder ein klarer Bedien-/Fehlerhinweis. Die Updatebedingungen und Appmanagerrechte bleiben erhalten.
-
-Vorhang ausschließlich per Chat: /vorhang öffnen und /vorhang schließen. Der bisherige Button, sein Binding und seine Styles entfallen; Inhaberprüfung, globale Speicherung, Hörerausnahmen, Fokus, Werbung und Audio bleiben erhalten.
-
-Lokaler Appstand **0.1.178 · Build 178**: drei Moderationsreiter, eine zusammenhängende Sendesteuerung, kompakte Wunschliste, eigene geplante Sendezeiten und eine flächennutzende Tageshistorie. Der Sendungsassistent entfällt. Sendeplan, Rollen, Wunschversand, Radioaudio und native Overlayarchitektur bleiben erhalten. Der bekannte weiße STAPP-Erstöffnungsblitz ist damit nicht neu behoben. Aktuelle Bilder und Prüfungen stehen im [Prüfbericht](docs/pruefung/PRUEFBERICHT.md); Regeln ausschließlich in [AGENTS.md](AGENTS.md).
-
+Die native Inaktivitätstrennung wurde am 05.11.2026 kontrolliert reproduziert. Build 223 behebt den lokalen Zählerfehler; seine native Langzeitabnahme steht noch aus. [Messungen](docs/pruefung/PRUEFBERICHT.md) · [Abnahmeplan](docs/betrieb/LIVE-ABNAHME.md).
 
 ## Zuständigkeiten der Ordner
 
@@ -70,15 +14,15 @@ Lokaler Appstand **0.1.178 · Build 178**: drei Moderationsreiter, eine zusammen
 | --- | --- |
 | app/www/ | Gepflegte Browseroberfläche, Original-Logo und eigene Werbe-MP3 |
 | medien/logos/ und medien/mychannel/ | Zusätzliche Original-Logos und Hintergrundbild für den Knuddels-MyChannel |
-| src/backend/ | 30 gepflegte ES5/Rhino-Backendmodule |
+| src/backend/ | 40 gepflegte ES5/Rhino-Backendmodule |
 | app/server/ und app/main.js | Vom Backendbuild erzeugte Laufzeitkopien und kurzer Einstieg |
-| C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/ | Ausschließlich die 103 fertig geprüften Laufzeitdateien für Knuddels |
+| C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/ | Ausschließlich die 122 fertig geprüften Laufzeitdateien für Knuddels |
 | deployment/live.json | Bestätigtes Ziel und absoluter lokaler Uploadpfad; keine Passwörter |
 | deployment/manifests/ | Fünf Dateinachweise mit Inventar, Bytezahlen und SHA-256 |
 | tools/build/ | backend.cjs erzeugt Laufzeitmodule; prepare-upload.cjs prüft und aktualisiert den Desktop-Upload |
 | tools/checks/ | project, architecture, lengths, upload, delivery, rhino und streampanel prüfen ihre jeweiligen Bereiche |
 | tools/lib/ | Gemeinsames Browserinventar mit ansichtsabhängigen Ladeplänen |
-| website/ | Pausierter eigenständiger Websiteentwurf mit eigenen Abhängigkeiten und Prüfungen |
+| website/ | Eigenständige Homepage und geschützter Arbeitsbereich mit eigenen Abhängigkeiten und Prüfungen |
 | tools/preview/ | Ausschließlich lokale Testvorschau der Knuddels-App und deren Bridge |
 | tools/emulator/ | Strenges lokales Testlabor mit echtem Appcode, getrennten Plattformmodellen und Fehlerkonsole |
 | tests/node/ | Backend, Providerfeldzuordnung, HTTP-Vorschau, Kalender, Übergabe und Uploadintegrität |
@@ -92,7 +36,7 @@ Lokaler Appstand **0.1.178 · Build 178**: drei Moderationsreiter, eine zusammen
 | docs/pruefung/ | Ein aktueller Prüfbericht und die darin verwendeten aktuellen Appbilder unter oberflaeche/ |
 | references/api/ | Zwei unveränderte offizielle Dokumentationsstubs, niemals als Appcode laden |
 
-Die 30 gleichen Backenddateien sind beabsichtigt: src/backend ist die Quelle, app/server die geprüfte Laufzeit und der Desktop-UPLOAD die Auslieferung. Keine dieser notwendigen Kopien ist ein Archiv. app/www besitzt keinen zweiten Frontendquellordner. Git-Metadaten, package.json, pnpm-lock.yaml und node_modules gehören zur Entwicklungsumgebung und bleiben erhalten.
+Die 40 gleichen Backenddateien sind beabsichtigt: src/backend ist die Quelle, app/server die geprüfte Laufzeit und der Desktop-UPLOAD die Auslieferung. Keine dieser notwendigen Kopien ist ein Archiv. app/www besitzt keinen zweiten Frontendquellordner. Git-Metadaten, package.json, pnpm-lock.yaml und node_modules gehören zur Entwicklungsumgebung und bleiben erhalten.
 
 ## Logos und MyChannel-Hintergrund
 
@@ -120,7 +64,7 @@ Diese Medienablage gehört zum Projekt. Das bereits verwendete App-Logo bleibt u
 | pnpm run check | Syntax, Plattformsignaturen, Komponenten, UI-IDs und Laufzeitinventar |
 | pnpm run check:rhino | Rhino 1.7.7.2 und 1.9.1 |
 | pnpm run check:lengths | Alle Laufzeittexte strikt unter 9500 Zeichen |
-| pnpm run prepare:upload | Vollständige Prüfungen und ausschließliche Desktop-Bereitstellung ohne ZIP |
+| pnpm run prepare:upload | Backend-, Node-, Rhino-, Integritätsprüfungen und Desktop-Bereitstellung; Browser separat |
 | pnpm run check:upload | Quellen, tatsächlichen Desktop-Upload und Dateimanifeste abgleichen |
 | pnpm run check:delivery --base-url URL/ | Ausdrücklich gewählte öffentliche HTML-/JS-/CSS-Auslieferung lesend mit lokalen SHA-256 vergleichen |
 | node tools/checks/streampanel.cjs | Lesende Anbieterprüfung; ohne öffentliche Produktdaten ausstehend bei null Netzabrufen |
@@ -131,9 +75,9 @@ Voraussetzungen: Node.js ab 20, pnpm 11.25.0, Edge und Java 11+. Abhängigkeiten
 
 Optionale Bildaufnahmen aus Browserprüfungen landen unter dem System-Tempordner/MischWerk-Pruefbilder und erzeugen keine weiteren Bildsammlungen im Projekt. Dauerhaft behalten werden nur tatsächlich verwendete aktuelle Berichtsbilder.
 
-## Website – pausiert
+## Website und Arbeitsbereich
 
-Der eigenständige Entwurf ist vollständig unter [website/](website/README.md) abgelegt. Websiteprozesse, Mailversand und Appanbindung sind gestoppt. Die normale App-Prüfkette und UPLOAD enthalten keine Website. pnpm run preview startet ausschließlich die lokale Knuddels-App-Testvorschau.
+Die wieder aufgenommene Homepage liegt unter [website/](website/README.md). Aus diesem Ordner startet pnpm start den eigenen Node-Webserver; Node.js ab 22 ist erforderlich. Öffentliche Reiter sind unter /, /sendeplan, /team, /mitmachen und /wunschbox erreichbar. /arbeitsbereich enthält die geschützten Fachansichten. Die Appadapter laufen ausschließlich nach Besitzerfreigabe; die Website selbst gehört nicht zum UPLOAD. Mailversand bleibt ausgeschaltet. STREAMPANEL/DataDachs ist geplant, die erforderliche moderne Node-Laufzeit im konkreten Tarif noch unbestätigt. Einrichtung, Rechte und native Abnahme stehen in [website/docs/ANBINDUNG.md](website/docs/ANBINDUNG.md). pnpm run preview im PROJEKT-Ordner bleibt die lokale Knuddels-App-Testvorschau.
 
 ## App im Testlabor prüfen
 
@@ -161,7 +105,7 @@ Auch aus einem Codex-Worktree wird ausschließlich C:/Users/Yves/Desktop/MischWe
 
 Moderation seit 0.1.177: Deine Sendung, Musikwünsche und Heute gespielt, manuelle Wunschregie und private Übergabenotizen. [Bedienung](docs/betrieb/INBETRIEBNAHME.md#moderation-verwenden). manifest-studio.json trennt die Studioauslieferung von gemeinsamen Browserdateien.
 
-Verwaltung öffnet unmittelbar die Mitgliederverwaltung im festen nativen Rahmen von 560 × 630 px. Längere Mitgliederlisten bleiben scrollbar; eine Statusansicht und Reiternavigation gibt es nicht mehr.
+Die native Verwaltung öffnet im festen Rahmen von 560 × 630 px mit den Bereichen Radio-Team und Bot-Texte. Die frühere Statuszentrale bleibt entfernt.
 
 Auslieferung ab Build 172: prepare-upload erzeugt kleine Bündel aus vollständigen, unveränderten Quellmodulen ausschließlich im festen Desktop-UPLOAD. Die Quelldateien unter app/www bleiben modular. bundled=true im Manifest und check:upload/check:delivery prüfen die reproduzierbaren tatsächlichen Auslieferungsbytes. Alle Dateien bleiben unter 9500 Zeichen. tools/checks/startup.cjs misst lokale Kaltstarts mit ausdrücklich gewähltem Appordner und optionaler Ressourcenverzögerung; dies ist keine echte Knuddels-Ladezeit.
 

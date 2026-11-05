@@ -27,6 +27,18 @@ function deliveredFile(view,file){
 }
 
 
+for(const k3 of [true,false])test('Knuddels-Heartbeat bleibt bei wiederkehrenden kurzen Engpässen in '+(k3?'K3':'STAPP')+' fällig',async t=>{
+ const {page,state,errors}=await setup(t,{station:true,clock:true,activityAudio:true,k3});
+ await page.evaluate(state=>{let revision=state.revision;const send=Client.sendEvent;Client.sendEvent=function(type,data){send.call(this,type,data);if(type==='mw:refresh')__emit('mw:state',{...state,revision:++revision,refreshRequestId:data.requestId});};},state);
+ await page.locator('#play-button').click();
+ for(let i=0;i<7;i++){
+  await page.clock.runFor(55000);await page.locator('#radio-audio').evaluate(a=>{Object.defineProperty(a,'currentTime',{configurable:true,value:a.currentTime});Object.defineProperty(a,'readyState',{configurable:true,value:2});a.dispatchEvent(new Event('waiting'));});
+  await page.clock.runFor(2000);await page.locator('#radio-audio').evaluate(a=>{delete a.currentTime;delete a.readyState;});await page.clock.runFor(3000);
+ }
+ const slashes=await page.evaluate(()=>__slashCommands);assert.equal(slashes.length,2);assert.ok(slashes[1].at-slashes[0].at>=180000);assert.ok(slashes.every(s=>s.command==='/confirm'));
+ await page.locator('#play-button').click();await page.clock.runFor(190000);assert.equal(await page.evaluate(()=>__slashCommands.length),2);assert.deepEqual(errors,[]);
+});
+
 for(const k3 of [true,false])test('Wiedergabe-Heartbeat in '+(k3?'K3':'STAPP')+' bleibt an Medienfortschritt und frische Channelantwort gebunden',async t=>{
  const {page,state,errors}=await setup(t,{station:true,clock:true,activityAudio:true,k3});
  await page.evaluate(state=>{
@@ -74,7 +86,9 @@ test('Vinyl Deck bleibt über alle Leistenbreiten, Rollen und Pixeldichten errei
     assert.equal(row.background,'rgb(20, 20, 20)');assert.match(row.vinyl,/repeating-radial-gradient/);assert.match(row.titleFont,/Fraunces/);assert.match(row.uiFont,/Outfit/);
     assert.equal(row.controls.length,role==='owner'?5:role==='radioModerator'?4:3,detail);
     for(const c of row.controls){assert.ok(c.width>=44&&c.height>=44,detail);assert.ok(c.x>=0&&c.x+c.width<=width+.5,detail);if(height===160)assert.ok(c.y>=0&&c.y+c.height<=160.5,detail);}
+    await publicActionContentsFit(page);
     for(const id of ['mute-button','volume','volume-value']){await page.locator('#'+id).scrollIntoViewIfNeeded();const c=await page.locator('#'+id).boundingBox();assert.ok(c.x>=0&&c.x+c.width<=width+.5,detail);}
+    await muteButtonFits(page);
     if(deviceScaleFactor===1&&role==='owner'&&[320,700,1280,2290].includes(width)&&height===160)await captureDesign(page,'Vinyl-Deck-'+width);
    }
    const text='Langer vollständiger Musikwunsch '.repeat(10).slice(0,300);
@@ -82,9 +96,11 @@ test('Vinyl Deck bleibt über alle Leistenbreiten, Rollen und Pixeldichten errei
    for(const width of [320,700,701,900,901,1199,1200,1280,3840]){
     await resizeViewport(page,{width,height:160});
     for(const id of ['show-topic','host-name','own-wish-rank','own-wish-title','mute-button'])await page.locator('#'+id).scrollIntoViewIfNeeded();
+    await muteButtonFits(page);
     assert.equal(await page.locator('#radio-metadata').evaluate(n=>n.scrollWidth>n.clientWidth),false,'Lange Inhalte bei '+width);
     assert.equal(await page.locator('#own-wish-title').getAttribute('title'),text);
     if(width>=1200){const portions=await page.evaluate(()=>{const m=document.getElementById('radio-metadata');return ['.now-playing','.radio-context','#own-wish-position'].map(s=>document.querySelector(s).getBoundingClientRect().width/m.clientWidth);});assert.ok(Math.max(...portions)<=.45&&Math.min(...portions)>=.23,'Mit Wunsch teilen alle drei Bereiche die Breite: '+JSON.stringify({width,role,portions}));}
+    if(width>=1200)assert.ok(await page.locator('#radio-metadata').evaluate(m=>{m.scrollTop=0;return ['.track-eyebrow','.topic-label','.own-wish-label'].every(s=>document.querySelector(s).getBoundingClientRect().top>=m.getBoundingClientRect().top-.5);}),'Auch lange Textgruppen bleiben oben vollständig erreichbar: '+JSON.stringify({width,role,deviceScaleFactor}));
    }
    assert.ok(requests.every(url=>!url.includes('fonts.googleapis.com')&&!url.includes('fonts.gstatic.com')),'Schriften ausschließlich lokal');
    assert.deepEqual(errors,[]);await page.context().close();
@@ -95,6 +111,33 @@ test('Vinyl Deck bleibt über alle Leistenbreiten, Rollen und Pixeldichten errei
 test.before(async () => { browser = await chromium.launch({ headless: true, channel: 'msedge' }); });
 test.after(async () => { await browser?.close(); });
 function radioSong(song) { return song ? {title:song.title,artist:typeof song.artist==='string'?song.artist:song.artist?.name} : null; }
+for(const k3 of [true,false]) {
+  test('Neuer Player übersteht knappen Puffer und Ereignisflut in '+(k3?'K3':'STAPP'),async t=>{
+    const {page,errors}=await setup(t,{station:true,realAudio:true,clock:true,k3});
+    await page.locator('#play-button').click();await waitRadioPlaying(page);
+    await page.locator('#volume').evaluate(n=>{n.value='73';n.dispatchEvent(new Event('input'));});
+    await page.locator('#radio-audio').evaluate(a=>{window.__plays=0;const play=a.play;a.play=function(){window.__plays++;return play.call(this);};Object.defineProperty(a,'readyState',{configurable:true,value:2});for(let i=0;i<50;i++){a.dispatchEvent(new Event('waiting'));a.dispatchEvent(new Event('stalled'));}});
+    const source=await page.locator('#radio-audio').getAttribute('src');
+    for(let i=0;i<3;i++){await new Promise(r=>setTimeout(r,300));await page.clock.runFor(7000);}
+    assert.equal(await page.locator('#radio-audio').getAttribute('src'),source);assert.equal(await page.evaluate(()=>__plays),0);assert.equal(await page.locator('#radio-audio').evaluate(a=>a.volume),.73);
+    await page.locator('#radio-audio').evaluate(a=>{delete a.readyState;});await page.waitForFunction(()=>document.body.classList.contains('playing'));
+    assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'true');assert.deepEqual(errors,[]);
+  });
+  for(const cause of ['ohne Ereignis','playing-Flut','rückwärts gestellte Uhr'])test('Echter Stillstand verbindet in '+(k3?'K3':'STAPP')+' automatisch neu: '+cause,async t=>{
+    const {page,errors}=await setup(t,{station:true,activityAudio:true,clock:true,k3});
+    await page.locator('#play-button').click();await page.clock.runFor(5000);
+    await page.locator('#radio-audio').evaluate(a=>{window.__plays=0;const play=a.play;a.play=function(){window.__plays++;return play.call(this);};Object.defineProperty(a,'currentTime',{configurable:true,value:a.currentTime});});
+    if(cause==='rückwärts gestellte Uhr')await page.clock.setSystemTime(await page.evaluate(()=>Date.now()-3600000));
+    for(let i=0;i<17;i++){await page.clock.runFor(1000);if(cause==='playing-Flut')await page.locator('#radio-audio').evaluate(a=>a.dispatchEvent(new Event('playing')));}
+    assert.equal(await page.evaluate(()=>__plays),1);assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'true');
+    await page.locator('#radio-audio').evaluate(a=>{delete a.currentTime;});await page.clock.runFor(2000);assert.equal(await page.locator('#stream-label').textContent(),'LIVE');
+    await page.locator('#play-button').click();await page.clock.runFor(60000);assert.equal(await page.evaluate(()=>__plays),1);assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);assert.deepEqual(errors,[]);
+  });
+  test('Unerwartete native Pause setzt in '+(k3?'K3':'STAPP')+' dieselbe Quelle fort',async t=>{
+    const {page,errors}=await setup(t,{station:true,realAudio:true,k3});await page.locator('#play-button').click();await waitRadioPlaying(page);const source=await page.locator('#radio-audio').getAttribute('src');
+    await page.locator('#radio-audio').evaluate(a=>a.pause());await waitRadioPlaying(page);assert.equal(await page.locator('#radio-audio').getAttribute('src'),source);assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'true');assert.deepEqual(errors,[]);
+  });
+}
 async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight, role = 'owner', curtainClosed = false, nick, parserIncludes = false, deviceScaleFactor = 1, station = false, delayedSong = false, delayedStatus = false, providerStatus = 'started', throwingPlay = false, clock = false, k3 = true, realAudio = false, activityAudio = false, cors = true, savedVolume, loadingDelay, loadingPause = 0, initialRequest = false, view = 'radio', overlayState, viewport = { width: 960, height: 760 } } = {}) {
   const h = createHarness(); configureStream(h.config, station ? 'test-radio' : '');
   const owner=h.user(1,'Otterchen','owner'),ownerSession=h.open(owner);
@@ -172,8 +215,11 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
       return;
     }
     HTMLMediaElement.prototype.load = function () {};
-    HTMLMediaElement.prototype.pause = function () {};
+    const paused=new WeakMap();
+    Object.defineProperty(HTMLMediaElement.prototype,'paused',{configurable:true,get(){return paused.get(this)!==false;}});
+    HTMLMediaElement.prototype.pause = function () {paused.set(this,true);};
     HTMLMediaElement.prototype.play = function () {
+      paused.set(this,false);
       if(this.id==='curtain-audio'){
         window.__adPlays.push({src:this.src,volume:this.volume,muted:this.muted});
         return new Promise((resolve,reject)=>window.__adRejects.push(reject));
@@ -832,6 +878,23 @@ async function resizeViewport(page, viewport) {
   await page.setViewportSize(viewport);
   await page.waitForFunction(() => document.documentElement.classList.contains('mw-ready'));
 }
+async function publicActionContentsFit(page) {
+ const measurements=await page.locator('#open-schedule,#open-wishes').evaluateAll(buttons=>buttons.map(button=>{
+  const b=button.getBoundingClientRect(),icon=button.querySelector('.public-action-icon').getBoundingClientRect(),copy=button.querySelector('.wish-button-copy'),c=copy.getBoundingClientRect();
+  return {id:button.id,width:innerWidth,inside:[icon,c].every(r=>r.left>=b.left-.5&&r.right<=b.right+.5&&r.top>=b.top-.5&&r.bottom<=b.bottom+.5),textFits:copy.scrollWidth<=copy.clientWidth+1,separate:icon.right<=c.left+.5||icon.bottom<=c.top+.5};
+ }));
+ for(const row of measurements)assert.ok(row.inside&&row.textFits&&row.separate,'Symbol und vollständige Beschriftung passen ohne Überlagerung in die Radiotaste: '+JSON.stringify(row));
+}
+async function muteButtonFits(page) {
+ await page.locator('#mute-button').scrollIntoViewIfNeeded();
+ const row=await page.locator('#mute-button').evaluate(button=>{
+  const b=button.getBoundingClientRect(),m=document.getElementById('radio-metadata').getBoundingClientRect(),f=document.querySelector('.radio-program-face').getBoundingClientRect();
+  const points=[[b.left+1,b.top+b.height/2],[b.right-1,b.top+b.height/2],[b.left+b.width/2,b.top+1],[b.left+b.width/2,b.bottom-1]];
+  const actions=Array.from(document.querySelectorAll('#open-schedule,#open-wishes,#studio-tab,#team-tab')).filter(n=>n.getClientRects().length).map(n=>n.getBoundingClientRect());
+  return {viewport:[innerWidth,innerHeight],button:b.toJSON(),metadata:m.toJSON(),inside:[m,f].every(r=>b.left>=r.left-.5&&b.right<=r.right+.5&&b.top>=r.top-.5&&b.bottom<=r.bottom+.5),separate:actions.every(r=>b.right<=r.left+.5||b.left>=r.right-.5||b.bottom<=r.top+.5||b.top>=r.bottom-.5),hit:points.every(([x,y])=>document.elementFromPoint(x,y)?.closest('button')===button)};
+ });
+ assert.ok(row.button.width>=44&&row.button.height>=44&&row.inside&&row.separate&&row.hit,'Lautstärketaste bleibt vollständig innerhalb der Leiste, ohne Überlagerung und an allen vier Rändern bedienbar: '+JSON.stringify(row));
+}
 async function radioAction(page, selector) {
   await page.locator(selector).scrollIntoViewIfNeeded();
   await page.locator(selector).click();
@@ -993,18 +1056,14 @@ test('Verspätete Play-Ablehnung eines alten Versuchs stoppt keinen neuen Start'
   assert.equal(await page.locator('#play-button').getAttribute('aria-label'), 'Radio stoppen');
   assert.equal(await page.locator('#radio-audio').getAttribute('src'), 'https://stream.example.com/test-radio'); assert.deepEqual(errors, []);
 });
-test('Synchroner Wiedergabefehler wird direkt angezeigt', async t => {
-  const { page, errors } = await setup(t, { station: true, throwingPlay: true });
-  await page.locator('#play-button').click();
-  await page.locator('#playback-status').filter({ hasText: 'nicht erreichbar' }).waitFor();
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'), null); assert.deepEqual(errors, []);
+test('Synchroner Verbindungsfehler hält Hörwunsch und kündigt Wiederherstellung an',async t=>{
+ const {page,errors}=await setup(t,{station:true,throwingPlay:true,clock:true});await page.locator('#play-button').click();await page.locator('#playback-status').filter({hasText:'automatisch wieder'}).waitFor();
+ assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'true');await page.clock.runFor(60000);assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'true');await page.locator('#play-button').click();assert.deepEqual(errors,[]);
 });
-test('Externe Audio-Pause setzt Anzeige und Stream zurück', async t => {
-  const { page } = await setup(t, { station: true }); await page.locator('#play-button').click();
-  await page.evaluate(() => document.getElementById('radio-audio').dispatchEvent(new Event('pause')));
-  await page.locator('#playback-status').filter({ hasText: 'unterbrochen' }).waitFor();
-  assert.equal(await page.locator('#play-button').getAttribute('aria-label'), 'Radio abspielen');
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'), null);
+test('Späte Medienereignisse nach bewussten Stop bleiben wirkungslos',async t=>{
+ const {page}=await setup(t,{station:true,clock:true});await page.locator('#play-button').click();await page.locator('#play-button').click();
+ await page.locator('#radio-audio').evaluate(a=>['pause','ended','error','playing','stalled'].forEach(type=>a.dispatchEvent(new Event(type))));await page.clock.runFor(60000);
+ assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'false');assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
 });
 test('Alte Songantwort darf eine entfernte Senderkonfiguration nicht überschreiben', async t => {
   const { page, state, releaseSong } = await setup(t, { station: true, delayedSong: true });
@@ -1140,7 +1199,7 @@ test('Studioleiste nutzt sehr breite Fenster vollständig und gruppiert auch ohn
     assert.ok(actions.x-music.x-music.width<=16,'Musik und Bedienung bleiben unmittelbar benachbart');
     assert.equal(await page.locator('#radio-topic').isVisible(),true);assert.equal(await page.locator('#show-topic').textContent(),'MischWerk Radio Show');
     assert.equal(await page.locator('#open-wishes').isDisabled(),true);
-    assert.equal(await page.locator('#open-wishes').evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(31, 31, 31)','Gesicherte Wunschbox behält die dunkle Vinylfläche und bleibt nativ gesperrt');
+    assert.equal(await page.locator('#open-wishes').evaluate(node=>getComputedStyle(node).backgroundColor),'rgba(0, 0, 0, 0)','Gesperrte Wunschbox behält die offene Deckdarstellung und bleibt nativ gesperrt');
     assert.equal(await page.locator('#on-air-sign').textContent(),'Radio MischWerk');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     if(width===2291)await captureDesign(page,'Radio-Studio-2291');
@@ -1184,7 +1243,7 @@ test('Hohe Auflösungen und Bildschirmskalierungen erhalten lesbare Gruppen, dir
     assert.ok(light.left<=metadata.x&&light.left+light.outerWidth>metadata.x+metadata.width,'Weißer Rahmen folgt der Musikkarte einschließlich Player und Hörertasten');
     assert.ok(light.left>0&&light.right>0&&light.outerWidth<width&&light.top>=0&&light.height<=160);
     const music=await page.locator('.radio-program-face').boundingBox(),volume=await page.locator('.volume-control').boundingBox();
-    assert.ok(Math.abs(volume.x+10-(await page.locator('#track-title').boundingBox()).x)<1,'Lautstärke und Musik besitzen dieselbe linke Kante');
+    assert.ok(Math.abs(volume.x-(await page.locator('#track-title').boundingBox()).x)<1,'Lautstärke und Musik besitzen dieselbe linke Kante');
     const roleLabel=role==='owner'?'Inhaber':'Hoerer';
     if(deviceScaleFactor===1||(deviceScaleFactor===2&&width===3840&&role==='owner'))await captureDesign(page,'Aufloesung-'+roleLabel+'-'+width+'-DPR'+deviceScaleFactor);
     if(process.env.MISCHWERK_DESIGN_CAPTURE&&deviceScaleFactor===1&&role==='owner'&&(width===1920||width===3840))await page.locator('.radio-program-face').screenshot({path:path.join(require('node:os').tmpdir(), 'MischWerk-Pruefbilder', 'design','Musikkarte-Hintergrund-'+width+'.png')});
@@ -1388,8 +1447,8 @@ test('Deaktivierte Wunschbox ist sichtbar gesperrt, sendet keine Popup-Anfrage u
       assert.equal(await page.locator('#wish-button-caption').textContent(),'Deaktiviert');
       assert.equal(await page.locator('#open-wishes .wish-icon-lock').evaluate(n=>getComputedStyle(n).display!=='none'),true);
       assert.equal(await page.locator('#open-wishes .wish-icon-music').isVisible(),false);
-      assert.equal(await page.locator('#open-wishes').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(31, 31, 31)','Gesperrte Wunschbox behält die gemeinsame dunkle Vinylfläche bei '+width);
-      assert.equal(await page.locator('#open-wishes').evaluate(n=>getComputedStyle(n).borderTopColor),await page.locator('#open-schedule').evaluate(n=>getComputedStyle(n).borderTopColor),'Beide öffentlichen Aktionen behalten dieselbe Goldkontur bei '+width);
+      assert.equal(await page.locator('#open-wishes').evaluate(n=>getComputedStyle(n).backgroundColor),'rgba(0, 0, 0, 0)','Gesperrte Wunschbox bleibt offen auf der gemeinsamen Deckfläche bei '+width);
+      await publicActionContentsFit(page);
       assert.equal(await page.locator('#open-wishes .wish-button-arrow').isVisible(),false);
       assert.match(await page.locator('#open-wishes').getAttribute('title'),/deaktiviert/);
       await page.locator('#open-wishes').evaluate(button=>{button.click();button.dispatchEvent(new MouseEvent('click',{bubbles:true}));});
@@ -1427,7 +1486,7 @@ test('Popup zeigt nur seinen Bereich und verändert weder Headerbar-Höhe noch A
       await validDialogSizes(page);
     }
     assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
-    assert.equal((await page.locator('.dialog-brand img:visible').boundingBox()).width,57);
+    assert.equal((await page.locator('.dialog-brand img:visible').boundingBox()).width,80);
     assert.deepEqual(errors,[]);
   }
 });
@@ -1532,8 +1591,7 @@ test('RGB-Lichthof wechselt fließend ohne Farbsprung und folgt nativer Wiederga
     if(viewport.width===390) {
       await page.locator('#radio-metadata').focus();await page.keyboard.press('End');assert.deepEqual(await frame(),reduced);
     }
-    if(viewport.width===320)await page.locator('#radio-audio').evaluate(audio=>audio.pause());
-    else await page.locator('#play-button').click();
+    await page.locator('#play-button').click();
     assert.deepEqual(await frame(),resting,'Bei Pause bleibt nur die unveränderte neutrale Kartenkontur');
     assert.equal(await page.locator('#radio-audio').evaluate(audio=>audio.paused),true);
     assert.deepEqual(await page.locator('#radio-panel').boundingBox(),bounds);
@@ -1576,6 +1634,8 @@ test('Glowauslauf erhält seinen Hintergrund in K3 und STAPP auch bei begrenzter
 test('Wiedergabestatus folgt echter Wiedergabe statt dem Play-Klick', async t => {
   const {page}=await setup(t,{station:true,viewport:{width:1200,height:160}});
   const shadow=()=>page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).boxShadow);
+  const buttonGlow=()=>page.locator('#play-button').evaluate(node=>({halo:getComputedStyle(node,'::after').boxShadow,symbol:getComputedStyle(document.getElementById('play-icon')).filter,pointer:getComputedStyle(node,'::after').pointerEvents}));
+  const buttonDark=await buttonGlow();assert.equal(buttonDark.halo,'none');assert.equal(buttonDark.symbol,'none');
   assert.equal(await page.locator('#stream-label').textContent(),'Bereit');
   assert.equal(await shadow(),'none');
   await page.locator('#play-button').click();
@@ -1583,24 +1643,28 @@ test('Wiedergabestatus folgt echter Wiedergabe statt dem Play-Klick', async t =>
   assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),false);
   assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(58, 58, 58)');
   assert.equal(await shadow(),'none','Play-Versuch allein aktiviert keinen Lichthof');
+  assert.deepEqual(await buttonGlow(),buttonDark,'Playbutton leuchtet erst bei Wiedergabe');
   for(const type of ['waiting','stalled','pause','ended','error']) {
     await page.evaluate(()=>document.getElementById('radio-audio').dispatchEvent(new Event('playing')));
     assert.equal(await page.locator('#stream-label').textContent(),'LIVE');
     assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),true);
     assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).animationName),'mw-halo-rgb');
     assert.match(await shadow(),/84px 16px/);
-    await page.evaluate(type=>document.getElementById('radio-audio').dispatchEvent(new Event(type)),type);
+    const lit=await buttonGlow();assert.notEqual(lit.halo,'none');assert.match(lit.symbol,/drop-shadow/);assert.equal(lit.pointer,'none','Goldschein fängt keine Klicks ab');
+    await page.evaluate(type=>{const a=document.getElementById('radio-audio');if(type==='pause')a.pause();if(type==='ended')Object.defineProperty(a,'ended',{configurable:true,value:true});if(type==='error')Object.defineProperty(a,'error',{configurable:true,value:{code:2}});a.dispatchEvent(new Event(type));},type);
     assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),false,type);
     assert.equal(await shadow(),'none','Lichthof sofort aus bei '+type);
+    assert.deepEqual(await buttonGlow(),buttonDark,'Goldener Playbutton sofort dunkel bei '+type);
     assert.equal(await page.locator('.radio-program-face').evaluate(node=>getComputedStyle(node).borderTopColor),'rgb(58, 58, 58)');
     if(!['waiting','stalled'].includes(type)) {
-      await page.locator('#play-button').click();assert.equal(await shadow(),'none','Erneuter Versuch bleibt ohne Lichthof');
+      await page.locator('#play-button').click();await page.locator('#radio-audio').evaluate(a=>{delete a.ended;delete a.error;});await page.locator('#play-button').click();assert.equal(await shadow(),'none','Erneuter Versuch bleibt ohne Lichthof');
     }
   }
   await page.locator('#play-button').click();
   assert.equal(await page.locator('#stream-label').textContent(),'Gestoppt');
   await page.evaluate(()=>document.getElementById('radio-audio').dispatchEvent(new Event('playing')));
   assert.equal(await shadow(),'none','Spätes Medienereignis nach Stop schaltet kein Licht ein');
+  assert.deepEqual(await buttonGlow(),buttonDark,'Spätes Medienereignis nach Stop schaltet auch den Playbutton nicht ein');
   await page.emulateMedia({reducedMotion:'reduce'});
 });
 
@@ -1641,7 +1705,8 @@ test('Bestätigte Moderation ersetzt AutoDJ in der Hauptanzeige; Abmeldung zeigt
   assert.equal(await host.textContent(),moderator.nick);assert.equal(await host.isVisible(),true);
   assert.equal(await host.getAttribute('data-prefix'),'');
   assert.equal(await page.locator('.presenter').getAttribute('data-mode'),'live');
-  assert.equal(await sign.evaluate(n=>getComputedStyle(n).color),'rgb(245, 245, 242)');
+  assert.equal(await sign.evaluate(n=>getComputedStyle(n).color),'rgb(255, 154, 143)');
+  assert.equal(await host.evaluate(n=>getComputedStyle(n).color),'rgb(255, 154, 143)');
   for(const value of ['relay','autodj_live','']){
     mode=value;await refresh('Es moderiert',unknownTitle);
     assert.equal(await page.locator('.presenter').getAttribute('data-mode'),'moderation');
@@ -1654,10 +1719,10 @@ test('Bestätigte Moderation ersetzt AutoDJ in der Hauptanzeige; Abmeldung zeigt
   assert.equal(await sign.textContent(),'MischWerk spielt live');assert.equal(await host.isVisible(),false,'Keine erfundene Identität aus Anbieterwerten');
   assert.equal(await page.locator('body').evaluate(n=>n.classList.contains('moderator-on-air')),false);
   mode='autodj';transmission='stopped';await refresh('Sendepause','Radio Mischwerk meldet eine Sendepause.');
-  assert.equal(await host.isVisible(),false);assert.equal(await page.locator('#play-button').isDisabled(),true);
+  assert.equal(await host.isVisible(),false);assert.equal(await page.locator('#play-button').isEnabled(),true);
   await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator});
   assert.equal(await sign.textContent(),'Es moderiert');assert.equal(await host.isVisible(),true);
-  assert.match(await sign.getAttribute('title'),/Sendepause/);assert.equal(await page.locator('#play-button').isDisabled(),true,'Moderationsanzeige hebt die echte Sendepause nicht auf');
+  assert.match(await sign.getAttribute('title'),/Sendepause/);assert.equal(await page.locator('#play-button').isEnabled(),true,'Sendestatus sperrt den direkten Höreranschluss nicht');
   await page.evaluate(()=>{window.__disconnectedAt=Date.now();});await page.clock.fastForward(66000);
   assert.equal(await host.isVisible(),false,'Bei verlorener Channelbestätigung wird kein alter Nick als aktuell gezeigt');
   await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator:null});
@@ -1702,9 +1767,19 @@ test('Stummschaltung stellt Lautstärke wieder her und gesperrter Speicher block
   await page.locator('#mute-button').click();
   assert.equal(await page.locator('#radio-audio').evaluate(node=>node.volume),0);
   assert.equal(await page.locator('#volume-value').textContent(),'0 %');
-  await page.locator('#mute-button').click();
+  assert.equal(await page.locator('#mute-button').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#mute-button .mute-cross').isVisible(),true);
+  assert.equal(await page.locator('#mute-button .sound-waves').first().isVisible(),false);
+  await page.locator('#mute-button').focus();await page.keyboard.press('Enter');
   assert.equal(await page.locator('#radio-audio').evaluate(node=>node.volume),.43);
   assert.equal(await page.locator('#volume-value').textContent(),'43 %');
+  await page.keyboard.press('Space');
+  assert.equal(await page.locator('#radio-audio').evaluate(node=>node.volume),0);
+  await page.keyboard.press('Enter');
+  assert.equal(await page.locator('#radio-audio').evaluate(node=>node.volume),.43);
+  assert.equal(await page.locator('#mute-button').getAttribute('aria-pressed'),'false');
+  assert.equal(await page.locator('#mute-button .sound-waves').first().isVisible(),true);
+  await muteButtonFits(page);
   assert.deepEqual(errors,[]);
 });
 
@@ -1895,13 +1970,15 @@ test('Studio zeigt eigene Anmeldung, Ablauf und echte Abmelderechte; Verbindungs
   assert.equal(await page.locator('#studio-connection').isVisible(),false);
   let next={...state,revision:2,moderator:{nick:'Otterchen',since:Date.now(),expiresAt:Date.now()+3600000,sessionKey:'session-1'},user:{...state.user,isOnAir:true,canEndModeration:true}};
   await page.evaluate(s=>window.__emit('mw:state',s),next);
-  assert.equal(await page.locator('#on-air').textContent(),'Anmeldung verlängern');
+  assert.equal(await page.locator('#on-air').textContent(),'Endzeit ändern');
   assert.equal(await page.locator('#handover-open').evaluate(n=>n.parentElement.id),'studio-controls','Übergabe gehört zur An-/Abmeldegruppe');
   assert.equal(await page.locator('#studio-handover-card').isVisible(),false,'Ohne empfangene Notiz gibt es keine separate Übergabezeile');
   assert.equal(await page.locator('#off-air').isDisabled(),false);
   assert.equal(await page.locator('body').evaluate(n=>n.classList.contains('moderator-on-air')),true);
   assert.match(await page.locator('#studio-session').textContent(),/Angemeldet bis .* Uhr/);
   await page.locator('#on-air').click();
+  await page.locator('#studio-end-mode').selectOption('openEnd');
+  await page.locator('#studio-end-save').click();
   const renew=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:onAir'));
   assert.equal(renew.data.expectedModerator,'session-1');
   await page.evaluate(s=>window.__emit('mw:result',{ok:true,action:s.type,requestId:s.data.requestId,message:'Studio-Anmeldung bestätigt.'}),renew);
@@ -2322,7 +2399,7 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   await mod.locator('#off-air').click(); // Channelinhaber beendet die vorhandene Demo-Moderation ausdrücklich.
   await mod.locator('#studio-host').filter({hasText:'Keine Moderation angemeldet'}).waitFor();
   await mod.locator('#on-air').click();
-  await mod.locator('#on-air').filter({hasText:'Anmeldung verlängern'}).waitFor();
+  await mod.locator('#on-air').filter({hasText:'Endzeit ändern'}).waitFor();
   assert.equal(await mod.locator('#off-air').isDisabled(),false);
   await radio.evaluate(()=>Client.sendEvent('mw:refresh',{}));
   await radio.locator('#host-name').filter({hasText:'Testleitung'}).waitFor();
@@ -2497,6 +2574,17 @@ test('STREAMPANEL-Metadatenfehler erhalten den letzten Titel und stoppen keinen 
   assert.deepEqual(errors,[]);
 });
 
+test('Änderungen und Fehler ausschließlich der Datenanschlüsse erhalten die Audioverbindung',async t=>{
+ const {page,state,errors}=await setup(t,{station:true,realAudio:true});await page.locator('#play-button').click();await waitRadioPlaying(page);
+ const source=await page.locator('#radio-audio').getAttribute('src');let revision=2;
+ await page.locator('#radio-audio').evaluate(a=>{window.__newAudioLoads=0;a.addEventListener('loadstart',()=>__newAudioLoads++);});
+ for(const change of [{metadataUrl:'https://foreign.example.com/invalid'},{historyUrl:''},{fields:{...state.station.fields,title:'changed'}},{statusUrl:''}]){
+  await page.evaluate(({state,change,revision})=>__emit('mw:state',{...state,revision,station:{...state.station,...change}}),{state,change,revision:revision++});
+  assert.equal(await page.locator('#radio-audio').getAttribute('src'),source);assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),false);
+ }
+ assert.equal(await page.evaluate(()=>__newAudioLoads),0);assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'true');assert.deepEqual(errors,[]);
+});
+
 test('STREAMPANEL-Senderwechsel stoppt den alten Stream; verspätete Antworten überschreiben keine neuen Titel', async t=>{
   const {page,state,releaseSong,errors}=await setup(t,{station:true,delayedSong:true});
   await page.locator('#play-button').click();
@@ -2531,7 +2619,7 @@ test('STREAMPANEL blockiert manipulierte Hörer-/API-Adressen und Zugangsdaten a
     {provider:'unknown'}
   ]){
     await page.evaluate(({state,station,revision})=>window.__emit('mw:state',{...state,station,revision}),{state,station:{...base,...patch},revision:revision++});
-    assert.equal(await page.locator('#play-button').isDisabled(),true);
+    assert.equal(await page.locator('#play-button').isDisabled(),!!patch.streamUrl||!!patch.provider,'Ungültige Datenquelle darf nur ihre Datenabfrage sperren');
     assert.equal(await page.locator('#station-link').isVisible(),false);
     assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
   }
@@ -2539,89 +2627,25 @@ test('STREAMPANEL blockiert manipulierte Hörer-/API-Adressen und Zugangsdaten a
   assert.deepEqual(errors,[]);
 });
 
-test('Bestätigt gestoppter Sender sperrt Play neutralgrau, auch nach Push und synthetischem Klick',async t=>{
-  const {page,state,errors,requests}=await setup(t,{station:true,providerStatus:'stopped',realAudio:true,viewport:{width:2124,height:160}});
-  assert.equal(await page.locator('#stream-label').textContent(),'Sendepause');
-  assert.equal(await page.locator('#play-button').isDisabled(),true);
-  assert.equal(await page.locator('#play-button').getAttribute('aria-disabled'),'true');
-  assert.match(await page.locator('#play-button').getAttribute('title'),/Radio Mischwerk meldet eine Sendepause/);
-  assert.equal(requests.some(url=>url.includes('/track/current')),false,'Keine aussichtslose Titelabfrage bei bestätigter Pause');
-  assert.equal(requests.some(url=>url.startsWith('https://stream.example.com')),false,'Kein Audio zum Prüfen laden');
-  await page.evaluate(s=>window.__emit('mw:state',{...s,revision:2,moderator:{nick:'Otterchen'},topic:'80er und 90er'}),state);
-  assert.equal(await page.locator('#play-button').isDisabled(),true,'Knuddels-Push darf die Sendepause nicht entsperren');
-  assert.equal(await page.locator('body').evaluate(n=>n.classList.contains('moderator-on-air')),true,'Studioanmeldung ist unabhängig vom Radioserver');
-  for(const width of [320,681,900,901,1500,2124]){
-    await resizeViewport(page,{width,height:radioHeight(width)});
-    const color=await page.locator('#play-button').evaluate(n=>getComputedStyle(n).backgroundColor);
-    assert.match(color,/85, 85, 85/);assert.doesNotMatch(color,/255, 190, 46/);
-    await page.locator('#play-button').evaluate(b=>{b.click();b.dispatchEvent(new MouseEvent('click',{bubbles:true}));});
-    assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
-    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth||document.documentElement.scrollHeight>innerHeight),false);
-    if(process.env.MISCHWERK_CAPTURE_RADIO_STATUS&&[320,2124].includes(width)){
-      const folder=path.join(require('node:os').tmpdir(), 'MischWerk-Pruefbilder', 'radiostatus');fs.mkdirSync(folder,{recursive:true});
-      await page.locator('.transport').screenshot({path:path.join(folder,'Sendepause-'+width+'.png')});
-      await page.locator('#radio-panel').screenshot({path:path.join(folder,'Sendepause-Leiste-'+width+'.png')});
-    }
-  }
-  assert.deepEqual(errors,[]);
+test('Sendestatus bleibt Hinweis und verhindert keinen bewussten Hörversuch',async t=>{
+ const {page,state,errors,requests}=await setup(t,{station:true,providerStatus:'stopped',realAudio:true});assert.equal(await page.locator('#stream-label').textContent(),'Sendepause');assert.equal(await page.locator('#play-button').isEnabled(),true);
+ assert.equal(requests.some(url=>url.startsWith('https://stream.example.com')),false);await page.evaluate(s=>window.__emit('mw:state',{...s,revision:2,topic:'Neue Sendung'}),state);
+ await page.locator('#play-button').click();await waitRadioPlaying(page);assert.equal(await page.locator('#stream-label').textContent(),'LIVE');assert.deepEqual(errors,[]);
 });
 
-test('Senderstart entsperrt Play ohne Autostart; bestätigte Sendepause beendet laufende native Wiedergabe',async t=>{
-  const {page,errors}=await setup(t,{station:true,providerStatus:'stopped',realAudio:true});
-  let status='started';
-  await page.route('https://stats.example.com/widget/radio/test-radio',route=>route.fulfill({json:{slug:'test-radio',stream_status:status,status:'active',live:null}}));
-  await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
-  await page.locator('#stream-label').filter({hasText:'Bereit'}).waitFor();
-  assert.equal(await page.locator('#play-button').isEnabled(),true);
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
-  assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'false');
-  await page.locator('#play-button').click();await waitRadioPlaying(page);
-  status='stopped';await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
-  await page.locator('#stream-label').filter({hasText:'Sendepause'}).waitFor();
-  assert.equal(await page.locator('#play-button').isDisabled(),true);
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
-  assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),true);
-  assert.equal(await page.locator('#track-title').isVisible(),false);
-  assert.equal(await page.locator('#notice').isVisible(),false,'Sendepause ist kein technischer Fehler');
-  status='started';await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
-  await page.locator('#play-button:not([disabled])').waitFor();
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null,'Nach Senderneustart erneut bewusst Play drücken');
-  assert.deepEqual(errors,[]);
+test('Widersprechende Sendepause und Senderstart beeinflussen laufendes natives Audio nicht',async t=>{
+ const {page,errors}=await setup(t,{station:true,realAudio:true});await page.locator('#play-button').click();await waitRadioPlaying(page);const src=await page.locator('#radio-audio').getAttribute('src');let status='stopped';
+ await page.route('https://stats.example.com/widget/radio/test-radio',r=>r.fulfill({json:{slug:'test-radio',stream_status:status}}));
+ for(const value of ['stopped','started']){status=value;const response=page.waitForResponse('https://stats.example.com/widget/radio/test-radio');await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await(await response).finished();
+ assert.equal(await page.locator('#radio-audio').getAttribute('src'),src);assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),false);assert.equal(await page.locator('#stream-label').textContent(),'LIVE');}assert.deepEqual(errors,[]);
 });
 
-test('Tatsächliches SPCast-Antwortformat sperrt Play bei Sendestopp und prüft Nachladen sofort ohne Audioprobe',async t=>{
-  const h=createHarness(),u=h.user(1,'Otterchen','owner'),product=h.state(u,h.open(u)).station;
-  const {spcastStatistics}=require('../fixtures/stream.cjs');
-  const {page,state,errors,requests}=await setup(t,{station:true,realAudio:true,clock:true});
-  let online=false,broken=false;
-  await page.route(product.statusUrl,route=>broken?route.fulfill({status:503,body:'unavailable'}):route.fulfill({json:spcastStatistics({online,listeners:online?6:0})}));
-  await page.route(product.metadataUrl,route=>route.fulfill({json:{currentSong:'SPCast-Testtitel',currentArtist:'Testband'}}));
-  await page.route(product.modeUrl,route=>route.fulfill({contentType:'text/plain',body:'autodj'}));
-  await page.route(product.streamUrl,route=>route.fulfill({contentType:'audio/wav',body:require('../fixtures/audio.cjs').audioFixture()}));
-  const start=requests.length;
-  await page.evaluate(({state,product})=>__emit('mw:state',{...state,revision:2,station:product}),{state,product});
-  await page.locator('#stream-label').filter({hasText:'Sendepause'}).waitFor();
-  assert.equal(await page.locator('#play-button').isDisabled(),true);
-  assert.equal(requests.slice(start).some(url=>url===product.streamUrl||url===product.metadataUrl),false);
-  online=true;await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
-  await page.locator('#track-title').filter({hasText:'SPCast-Testtitel'}).waitFor();
-  assert.equal(await page.locator('#play-button').isEnabled(),true);
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
-  await page.locator('#play-button').click();await waitRadioPlaying(page);
-  broken=true;await page.locator('#radio-audio').evaluate(a=>a.dispatchEvent(new Event('stalled')));
-  await page.waitForFunction(()=>document.getElementById('play-button').title.includes('momentan nicht prüfbar'));
-  assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),false);
-  broken=false;online=false;
-  await page.locator('#radio-audio').evaluate(a=>a.dispatchEvent(new Event('waiting')));
-  await page.locator('#stream-label').filter({hasText:'Sendepause'}).waitFor();
-  assert.equal(await page.locator('#play-button').isDisabled(),true);
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
-  assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),true);
-  online=true;await page.clock.runFor(30001);
-  await page.locator('#play-button:not([disabled])').waitFor();
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null,'Rückkehr der Übertragung startet keinen Ton');
-  assert.deepEqual(errors,[]);
-
+test('SPCast-Statistik bleibt unabhängig von Audio und Nachladeereignissen',async t=>{
+ const h=createHarness(),u=h.user(1,'Otterchen','owner'),product=h.state(u,h.open(u)).station;const {spcastStatistics}=require('../fixtures/stream.cjs');const {page,state,errors}=await setup(t,{station:true,realAudio:true});let checks=0;
+ await page.route(product.statusUrl,r=>{checks++;return r.fulfill({json:spcastStatistics({online:false,listeners:0})});});await page.route(product.streamUrl,r=>r.fulfill({contentType:'audio/wav',body:require('../fixtures/audio.cjs').audioFixture()}));
+ await page.evaluate(({state,product})=>__emit('mw:state',{...state,revision:2,station:product}),{state,product});await page.locator('#stream-label').filter({hasText:'Sendepause'}).waitFor();
+ await page.locator('#play-button').click();await waitRadioPlaying(page);const before=checks;await page.locator('#radio-audio').evaluate(a=>{for(let i=0;i<20;i++){a.dispatchEvent(new Event('waiting'));a.dispatchEvent(new Event('stalled'));}});
+ await page.waitForFunction(()=>document.body.classList.contains('playing'));assert.equal(checks,before);assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),false);assert.deepEqual(errors,[]);
 });
 
 test('Nicht prüfbarer oder unbekannter Anbieterstatus sperrt nicht dauerhaft und unterbricht keinen Ton',async t=>{
@@ -2642,7 +2666,7 @@ test('Nicht prüfbarer oder unbekannter Anbieterstatus sperrt nicht dauerhaft un
     assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused),false);
   }
   await page.locator('#play-button').click();
-  assert.equal(await page.locator('#stream-label').textContent(),'Status unbekannt');
+  assert.equal(await page.locator('#stream-label').textContent(),'Gestoppt');
   assert.equal(await page.locator('#play-button').isEnabled(),true);
   assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
   assert.deepEqual(errors,[]);
@@ -2650,8 +2674,8 @@ test('Nicht prüfbarer oder unbekannter Anbieterstatus sperrt nicht dauerhaft un
 
 test('Verspäteter Stop-Status eines alten Senders sperrt keinen neu gewählten Sender',async t=>{
   const {page,state,releaseStatus,errors}=await setup(t,{station:true,providerStatus:'stopped',delayedStatus:true});
-  assert.equal(await page.locator('#play-button').isDisabled(),true);
-  assert.equal(await page.locator('#stream-label').textContent(),'Prüfe …');
+  assert.equal(await page.locator('#play-button').isEnabled(),true);
+  assert.equal(await page.locator('#stream-label').textContent(),'Bereit');
   await page.route('https://stats.example.com/widget/radio/other-radio',route=>route.fulfill({json:{slug:'other-radio',stream_status:'started'}}));
   await page.route('https://stats.example.com/widget/radio/other-radio/track/current',route=>route.fulfill({json:{title:'Neuer Titel',artist:'Neue Band'}}));
   await page.evaluate(s=>window.__emit('mw:state',{...s,revision:2,station:{...s.station,stationId:'other-radio',streamUrl:'https://stream.example.com/other-radio',metadataUrl:'https://stats.example.com/widget/radio/other-radio/track/current',statusUrl:'https://stats.example.com/widget/radio/other-radio'}}),state);
@@ -2665,28 +2689,15 @@ test('Verspäteter Stop-Status eines alten Senders sperrt keinen neu gewählten 
   assert.deepEqual(errors,[]);
 });
 
-test('Zeitüberschreitung bei erster Statusprüfung gibt manuellen Hörversuch wieder frei',async t=>{
-  const {page,releaseStatus,errors}=await setup(t,{station:true,delayedStatus:true,clock:true});
-  assert.equal(await page.locator('#stream-label').textContent(),'Prüfe …');
-  assert.equal(await page.locator('#play-button').isDisabled(),true);
-  await page.clock.runFor(11000);
-  await page.locator('#track-title').filter({hasText:'Testtitel'}).waitFor();
-  assert.equal(await page.locator('#stream-label').textContent(),'Status unbekannt');
-  assert.equal(await page.locator('#play-button').isEnabled(),true);
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
-  releaseStatus();assert.deepEqual(errors,[]);
+test('Langsame erste Statusprüfung verzögert den direkten Hörversuch nicht',async t=>{
+ const {page,releaseStatus,errors}=await setup(t,{station:true,delayedStatus:true,clock:true,realAudio:true});assert.equal(await page.locator('#play-button').isEnabled(),true);
+ await page.locator('#play-button').click();await waitRadioPlaying(page);await page.clock.runFor(11000);assert.equal(await page.locator('#stream-label').textContent(),'LIVE');releaseStatus();assert.deepEqual(errors,[]);
 });
 
-test('Medienfehler prüft den Senderstatus sofort und wird bei gestopptem Sender zur Sendepause',async t=>{
-  const {page,errors}=await setup(t,{station:true});
-  let checks=0;
-  await page.route('https://stats.example.com/widget/radio/test-radio',route=>{checks++;return route.fulfill({json:{slug:'test-radio',stream_status:'stopped'}});});
-  await page.locator('#play-button').click();await page.evaluate(()=>window.__rejects[0](new Error('offline')));
-  await page.locator('#stream-label').filter({hasText:'Sendepause'}).waitFor();
-  assert.equal(checks,1);assert.equal(await page.locator('#play-button').isDisabled(),true);
-  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
-  assert.equal(await page.locator('#notice').isVisible(),false);
-  assert.deepEqual(errors,[]);
+test('Medienfehler verbindet neu ohne zusätzliche Statusabfrage und bleibt stoppbar',async t=>{
+ const {page,errors}=await setup(t,{station:true,clock:true});let checks=0;await page.route('https://stats.example.com/widget/radio/test-radio',r=>{checks++;return r.fulfill({json:{slug:'test-radio',stream_status:'stopped'}});});
+ await page.locator('#play-button').click();await page.evaluate(()=>__rejects[0](new Error('offline')));assert.equal(await page.locator('#stream-label').textContent(),'Verbinde erneut');await page.clock.runFor(2100);
+ assert.equal(await page.evaluate(()=>__rejects.length),2);assert.equal(checks,0);await page.locator('#play-button').click();await page.clock.runFor(10000);assert.equal(await page.evaluate(()=>__rejects.length),2);assert.deepEqual(errors,[]);
 });
 
 test('Titel wechseln im Fünfsekundentakt ohne Browsercache; Status bleibt bei 30 Sekunden, Popups und Hintergrund bleiben ruhig',async t=>{
@@ -3095,12 +3106,13 @@ for(const k3 of [true,false])test('HTML-Vorlagenraster erhält in '+(k3?'K3':'ST
  const {page,state,errors}=await setup(t,{station:true,k3,nativeSizing:!k3,curtainClosed:true,viewport:{width:1920,height:160}});
  await page.route('https://stats.example.com/widget/radio/test-radio/track/current',r=>r.fulfill({json:{title:'Big City Life',artist:'Mattafix'}}));
  await page.reload();await page.waitForFunction(()=>document.getElementById('track-title').textContent==='Big City Life');
- await page.evaluate(s=>window.__emit('mw:state',{...s,revision:2,topic:'Testmusik!',wishPositions:{generation:'radio-info',revision:1,available:true,total:1,page:0,pages:1,nextPosition:1,items:[]}}),state);
+ await page.evaluate(s=>window.__emit('mw:state',{...s,revision:2,topic:'Testmusik!',wishPositions:{generation:'radio-info',revision:1,available:true,total:1,page:0,pages:1,nextPosition:1,items:[{id:1,text:'Queen – We Will Rock You',position:1,stage:'queued'}],nextItem:{id:1,text:'Queen – We Will Rock You',position:1,stage:'queued'}}}),state);
  await page.locator('#play-button').click();await page.evaluate(()=>{window.__orderedAudio=document.getElementById('radio-audio');__orderedAudio.dispatchEvent(new Event('playing'));});
- for(const width of [320,390,560,561,700,768,850,851,1024,1350,1351,1600,1920,2290]){
+ for(const width of [320,390,560,561,700,768,850,851,1024,1199,1200,1201,1350,1351,1600,1920,2290]){
   await resizeViewport(page,{width,height:160});
   await page.waitForTimeout(80);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'Kein horizontaler Überlauf bei '+width);
+  assert.deepEqual(await page.evaluate(()=>['.track-eyebrow','.topic-label','.own-wish-label'].map(s=>getComputedStyle(document.querySelector(s)).color)),Array(3).fill('rgb(230, 199, 123)'),'Informationsüberschriften einheitlich in warmem Gold bei '+width);
   const buttons=await Promise.all(['open-schedule','open-wishes'].map(id=>page.locator('#'+id).boundingBox()));
   assert.ok(Math.abs(buttons[0].width-buttons[1].width)<1&&buttons.every(b=>b.height>=44));
   assert.ok(Math.abs(buttons[0].y-buttons[1].y)<1&&buttons[1].x>=buttons[0].x+buttons[0].width);
@@ -3112,6 +3124,19 @@ for(const k3 of [true,false])test('HTML-Vorlagenraster erhält in '+(k3?'K3':'ST
    if(width>850)assert.ok(topic.x>=music.x+music.width-1,'Musik steht links von den Sendungsinformationen');
    assert.deepEqual(await page.locator('#show-topic').evaluate(n=>{const s=getComputedStyle(n);return[s.fontSize,s.fontWeight,s.color];}),[width<=700?'17px':'18px','700','rgb(245, 245, 242)']);
    assert.equal(await page.locator('#own-wish-rank').evaluate(n=>getComputedStyle(n).color),'rgb(245, 245, 242)');
+   if(width<=900)assert.ok(await page.locator('.track-eyebrow').evaluate(n=>n.getBoundingClientRect().top-document.getElementById('radio-metadata').getBoundingClientRect().top>=10),'Natürliche schmale Ansicht hat Luft über Jetzt läuft bei '+width);
+   if(width>=1200){
+    const spacing=await page.evaluate(()=>{
+     const rect=s=>document.querySelector(s).getBoundingClientRect(),m=rect('#radio-metadata'),music=rect('.track-copy'),v=rect('.volume-control');
+     const topic=rect('.topic-label'),value=rect('#show-topic'),status=rect('.presenter'),wish=rect('.own-wish-label'),rank=rect('.own-wish-rank'),stage=rect('.own-wish-stage');
+     return {musicInset:music.top-m.top,musicBottom:music.bottom,volumeTop:v.top,topicCenter:(topic.top+status.bottom-m.top-m.bottom)/2,wishCenter:(wish.top+stage.bottom-m.top-m.bottom)/2,topicGap:value.top-topic.bottom,wishGap:rank.top-wish.bottom,scroll:m.height<document.getElementById('radio-metadata').scrollHeight-1};
+    });
+    const detail=JSON.stringify({width,k3,...spacing});
+    assert.ok(spacing.musicInset>=14&&spacing.musicBottom<=spacing.volumeTop+1,'Musik tiefer und ohne Überlappung zum Regler: '+detail);
+    assert.ok(Math.abs(spacing.topicCenter)<1&&Math.abs(spacing.wishCenter)<1,'Thema und Wunsch ausgewogen in der Höhe: '+detail);
+    assert.ok(spacing.topicGap>=6&&spacing.wishGap>=5,'Mehr Luft zwischen Beschriftung und Inhalt: '+detail);
+    assert.equal(spacing.scroll,false,'Kurze vollständige Angaben passen ohne Informationsscrollen: '+detail);
+   }
   }else{
    for(const id of ['volume','show-topic','own-wish-rank'])await page.locator('#'+id).scrollIntoViewIfNeeded();
   }

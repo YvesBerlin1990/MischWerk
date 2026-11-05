@@ -7,6 +7,24 @@ MischWerkModules.attachModeration = function (runtime, config) {
             sessionKey: String(runtime.now()) + '-' + String(runtime.state.revision + 1),
             expiresAt: runtime.now() + config.moderatorSessionHours * 3600000 };
     }
+    function setEnd(moderator, data) {
+        if (data.endMode === 'openEnd') {
+            moderator.expiresAt = null;
+            moderator.openEnd = true;
+            return 'Open End gespeichert. Deine Anmeldung gilt bis zur Abmeldung.';
+        }
+        if (data.endMode !== 'fixed' || typeof data.endLocal !== 'string' ||
+                !/^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$/.test(data.endLocal)) {
+            throw runtime.failure('Bitte ein gültiges Ende oder Open End auswählen.');
+        }
+        var date = data.endLocal.slice(0, 10), time = data.endLocal.slice(11);
+        var until = runtime.scheduleTimestamp(date, time, true);
+        if (until <= runtime.now()) { throw runtime.failure('Die Endzeit muss in der Zukunft liegen.'); }
+        moderator.expiresAt = until;
+        delete moderator.openEnd;
+        return 'Endzeit auf ' + date.slice(8) + '.' + date.slice(5, 7) + '.' + date.slice(0, 4) +
+            ' um ' + time + ' Uhr gespeichert.';
+    }
 
     runtime.invalidateModerator = function () { inactiveModeratorKey = runtime.moderatorKey(); };
 
@@ -15,7 +33,11 @@ MischWerkModules.attachModeration = function (runtime, config) {
     };
 
     runtime.moderatorIsActive = function () {
-        if (!runtime.state.moderator || runtime.state.moderator.expiresAt <= runtime.now() ||
+        var moderator = runtime.state.moderator;
+        var openEnd = moderator && moderator.openEnd === true && moderator.expiresAt === null;
+        var timed = moderator && typeof moderator.expiresAt === 'number' && isFinite(moderator.expiresAt) &&
+            moderator.expiresAt > runtime.now();
+        if (!moderator || (!openEnd && !timed) ||
                 runtime.moderatorKey() === inactiveModeratorKey) { return false; }
         return KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).some(function (user) {
             return runtime.userId(user) === runtime.state.moderator.userId && runtime.isModerator(user);
@@ -41,12 +63,24 @@ MischWerkModules.attachModeration = function (runtime, config) {
             throw runtime.failure('Die Moderation wurde inzwischen geändert. Bitte erneut prüfen.');
         }
         var next = runtime.copy(runtime.state);
+        var message = null;
         if (type === 'mw:onAir') {
             if (next.moderator && next.moderator.userId !== userId) {
                 throw runtime.failure('Bitte die Sendung über eine bestätigte Übergabe übernehmen.');
             }
             next.moderator = newModerator(user);
             if (runtime.state.moderator) { next.moderator.since = runtime.state.moderator.since; }
+            if (data.endMode !== undefined) {
+                if (!runtime.state.moderator || typeof data.expectedModerator !== 'string' || !runtime.moderatorIsActive()) {
+                    throw runtime.failure('Nur eine aktive eigene Anmeldung kann eine neue Endzeit erhalten.');
+                }
+                message = setEnd(next.moderator, data);
+            } else if (runtime.state.moderator) {
+                if (runtime.state.moderator.openEnd === true) {
+                    next.moderator.openEnd = true;
+                    next.moderator.expiresAt = null;
+                } else { next.moderator.expiresAt = Math.max(next.moderator.expiresAt, runtime.state.moderator.expiresAt); }
+            }
         } else {
             if (!next.moderator) { throw runtime.failure('Niemand ist als Moderation angemeldet.'); }
             if (next.moderator.userId !== userId && !user.isChannelOwner()) {
@@ -56,6 +90,7 @@ MischWerkModules.attachModeration = function (runtime, config) {
             next.topic = '';
         }
         runtime.persist(next);
+        return message;
     };
     runtime.transferModeration = function (user, expectedModerator, topic) {
         if (!runtime.isModerator(user) || !runtime.moderatorIsActive() ||

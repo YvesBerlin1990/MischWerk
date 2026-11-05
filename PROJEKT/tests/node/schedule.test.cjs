@@ -27,6 +27,77 @@ function save(f, values = {}) {
     date: selected, start: '19:00', end: '21:00', nick: f.owner.nick, topic: '80er und 90er', ...values })
     .find(item => item.type === 'mw:schedule.result').data;
 }
+
+test('AutoDJ ist eine eigene geprüfte Sendeart ohne Knuddels-Nick oder fremde User-ID', () => {
+  const f = fixture();
+  assert.equal(save(f, { kind: 'autodj', nick: 'Nicht vorhandener Nick', userId: 77 }).ok, true);
+  const entry = read(f).entries[0];
+  assert.equal(entry.kind, 'autodj'); assert.equal(entry.nick, 'MischWerk');
+  assert.equal(f.h.store.data['mischwerk.schedule.v1.' + week].entries[0].userId, null);
+  assert.equal('userId' in entry, false);
+  assert.equal(save(f, { start: '21:00', end: '22:00', kind: 'live', nick: 'MischWerk' }).ok, false);
+  for (const input of [{ kind: 'owner' }, { kind: null }, { timing: 'forever' }, { timing: true }]) {
+    assert.equal(save(f, input).ok, false, JSON.stringify(input));
+  }
+  const forged = event(f, 'mw:schedule.save', { week, expectedRevision: 1, date: week,
+    kind: 'autodj', timing: 'allDay', topic: 'Gefälscht' }, f.listener, f.listenerRadio);
+  assert.equal(forged.find(e => e.type === 'mw:schedule.result').data.ok, false);
+  assert.equal(read(f).total, 1);
+});
+
+test('Ganztags belegt genau einen Kalendertag und bleibt nach Neustart eindeutig', () => {
+  const f = fixture();
+  assert.equal(save(f, { kind: 'autodj', timing: 'allDay', start: '', end: '' }).ok, true);
+  const entry = read(f).entries[0];
+  assert.equal(entry.timing, 'allDay'); assert.equal(entry.start, '00:00'); assert.equal(entry.end, '00:00');
+  assert.equal(save(f, { start: '01:00', end: '02:00' }).ok, false);
+  assert.equal(save(f, { date: '2026-10-27', start: '00:00', end: '01:00' }).ok, true);
+  assert.equal(save(f, { date: '2026-11-01', kind: 'autodj', timing: 'allDay' }).ok, true);
+  assert.equal(read(f, '2026-11-02').total, 0, 'Kein leerer Ganztags-Übertrag auf Montag');
+  const restarted = createHarness(f.h.store), owner = restarted.user(1, 'Otterchen', 'owner');
+  assert.equal(read({ h: restarted, owner, session: restarted.open(owner) }).entries[0].timing, 'allDay');
+});
+
+test('Open End hat keine feste Endzeit und wird durch die nächste Sendung begrenzt', () => {
+  const f = fixture();
+  assert.equal(save(f, { timing: 'openEnd', end: '' }).ok, true);
+  assert.equal(read(f).entries[0].end, ''); assert.equal(read(f).entries[0].until, null);
+  assert.equal(save(f, { start: '18:00', end: '20:00' }).ok, false, 'Feste Sendung darf offenen Beginn nicht überdecken');
+  assert.equal(save(f, { start: '19:00', end: '22:00' }).ok, false, 'Gleichzeitiger Beginn bleibt Konflikt');
+  assert.equal(save(f, { start: '21:00', end: '22:00' }).ok, true);
+  assert.equal(read(f).entries[0].until, Date.parse(week + 'T21:00:00Z') / 60000);
+  const id = read(f).entries[1].id;
+  assert.equal(save(f, { id, timing: 'openEnd', start: '21:00', end: '' }).ok, true);
+  assert.equal(read(f).entries[1].until, null);
+  assert.equal(save(f, { start: '17:00', end: '19:00' }).ok, true);
+  assert.equal(save(f, { start: '17:30', timing: 'openEnd', end: '' }).ok, false, 'Offener Beginn innerhalb fester Sendung bleibt Konflikt');
+});
+
+test('Open End reicht über leere Wochen bis zur nächsten Sendung und aktualisiert seine Grenzrevision', () => {
+  const f = fixture(), future = '2026-11-16';
+  assert.equal(save(f, { date: '2026-11-01', start: '22:00', timing: 'openEnd', end: '' }).ok, true);
+  const empty = read(f, '2026-11-09');
+  assert.equal(empty.total, 1); assert.equal(empty.entries[0].week, week);
+  assert.equal(empty.entries[0].timing, 'openEnd'); assert.equal(empty.entries[0].until, null);
+  assert.equal(save(f, { week: future, date: future, start: '08:00', end: '09:00' }).ok, true);
+  const bounded = read(f, '2026-11-09');
+  assert.equal(bounded.entries[0].until, Date.parse(future + 'T08:00:00Z') / 60000);
+  assert.notEqual(empty.boundaryRevision, bounded.boundaryRevision);
+  assert.equal(read(f, future).entries[0].week, week, 'Offene Fortsetzung ist auch beim Folgeprogramm sichtbar');
+  assert.ok(JSON.stringify(bounded).length < 9500);
+  assert.equal(JSON.stringify(bounded).includes('userId'), false);
+});
+
+test('Alte Einträge bleiben Live mit fester Zeit; AutoDJ-Löschung betrifft keine Moderator-Daten', () => {
+  const f = fixture();
+  assert.equal(save(f).ok, true);
+  const stored = f.h.store.data['mischwerk.schedule.v1.' + week].entries[0];
+  delete stored.kind; delete stored.timing;
+  assert.equal(read(f).entries[0].kind, 'live'); assert.equal(read(f).entries[0].timing, 'fixed');
+  assert.equal(save(f, { date: '2026-10-27', kind: 'autodj', timing: 'allDay' }).ok, true);
+  f.h.app.onUserDeleted(f.owner.id);
+  assert.equal(read(f).total, 1); assert.equal(read(f).entries[0].kind, 'autodj');
+});
 test('Sendeplan öffnet für Hörer trotz deaktivierter Wunschbox als eigenes Popup und erhält die Radioleiste', () => {
   const f = fixture();
   f.h.event(f.owner, f.session, 'mw:setRequests', { enabled: false });

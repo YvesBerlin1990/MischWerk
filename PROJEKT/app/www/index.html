@@ -5,24 +5,24 @@
 <title>MischWerk</title>
 <style>
 /* Kritischer Kopf vor dem Parserstart. Nur die Sichtbarkeit ist auf Menüseiten begrenzt. */
-html,body { margin:0; padding:0; background:var(--canvas,#0a0a0a); color-scheme:dark; }
+html,body { margin:0; padding:0; background:var(--canvas,#0f1114); color-scheme:dark; }
 :root { --radio-height:160px; }
 html[data-view=radio] { --canvas:#0f1114; }
 body > * { visibility:hidden; }
-html:not(.mw-ready) { --dialog-logo:57px; --brand-padding:17px; --dialog-title:30px; --dialog-gap:19px; --start-head-height:118px; --start-head-padding:20px 24px; --start-radius:24px; }
+html:not(.mw-ready) { --dialog-logo:80px; --brand-padding:17px; --dialog-title:30px; --dialog-gap:19px; --start-head-height:118px; --start-head-padding:18px 24px; --start-radius:24px; }
 html:not([data-view=radio]):not(.mw-ready) .dialog-shell { display:block; visibility:visible; width:100%; box-sizing:border-box; padding:0; border:1px solid #3a3a3a; border-radius:var(--start-radius); background:#141414; color:#f5f5f2; font:14px/1.5 Outfit,"Segoe UI",Arial,sans-serif; }
-html:not(.mw-ready) .dialog-header { display:grid; grid-template-columns:calc(var(--dialog-logo) + var(--brand-padding)) minmax(0,1fr) calc(var(--dialog-logo) + var(--brand-padding)); align-items:center; gap:var(--dialog-gap); min-height:var(--start-head-height); box-sizing:border-box; padding:var(--start-head-padding); margin:0; border-bottom:1px solid #3a3a3a; border-radius:calc(var(--start-radius) - 1px) calc(var(--start-radius) - 1px) 0 0; background:linear-gradient(116deg,#171717 13%,#141414 62%,#202225); }
+html:not(.mw-ready) .dialog-header { display:grid; grid-template-columns:calc(var(--dialog-logo) + var(--brand-padding) + 1px) minmax(0,1fr) calc(var(--dialog-logo) + var(--brand-padding) + 1px); align-items:center; gap:var(--dialog-gap); min-height:var(--start-head-height); box-sizing:border-box; padding:var(--start-head-padding); margin:0; border-bottom:1px solid #3a3a3a; border-radius:calc(var(--start-radius) - 1px) calc(var(--start-radius) - 1px) 0 0; background:linear-gradient(116deg,#171717 13%,#141414 62%,#202225); }
 html:not(.mw-ready) .dialog-brand { grid-column:1; grid-row:1; box-sizing:border-box; padding-right:var(--brand-padding); border-right:1px solid #3a3a3a; }
-html:not(.mw-ready) .dialog-brand img { display:block; width:var(--dialog-logo); height:calc(var(--dialog-logo) + 10px); object-fit:contain; background:transparent; mix-blend-mode:lighten; }
+html:not(.mw-ready) .dialog-brand img { display:block; width:var(--dialog-logo); height:var(--dialog-logo); object-fit:contain; background:transparent; mix-blend-mode:lighten; }
 html:not(.mw-ready) .dialog-heading { grid-column:2; grid-row:1; min-width:0; text-align:center; }
 html:not(.mw-ready) .dialog-header > button { grid-column:3; grid-row:1; justify-self:end; width:44px; height:44px; }
 html:not(.mw-ready) .eyebrow { display:block; color:#b9bdc3; font-size:11px; line-height:1.4; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; }
 html:not(.mw-ready) h1 { margin:5px 0 0; font:700 var(--dialog-title)/1.15 Fraunces,Georgia,serif; letter-spacing:-.65px; overflow-wrap:anywhere; }
 html:not(.mw-ready) .dialog-content,html:not(.mw-ready) #dialog-notice-slot { visibility:hidden; }
-@media (max-width:640px) { html:not(.mw-ready) { --dialog-logo:47px; --brand-padding:11px; --dialog-title:25px; --dialog-gap:12px; --start-head-height:99px; --start-head-padding:17px 15px; --start-radius:20px; } }
-@media (max-width:380px) { html:not(.mw-ready) { --dialog-logo:44px; --brand-padding:8px; --dialog-title:22px; --dialog-gap:9px; } }
-html[data-view=studio].studio-height-limited:not(.mw-ready) { --dialog-logo:40px; --brand-padding:11px; --dialog-title:20px; --dialog-gap:12px; --start-head-height:72px; --start-head-padding:8px 12px; }
-@media (max-height:700px) { html[data-view=schedule]:not(.mw-ready) { --dialog-logo:40px; --brand-padding:11px; --dialog-title:26px; --start-head-height:72px; --start-head-padding:8px 16px; } }
+@media (max-width:640px) { html:not(.mw-ready) { --dialog-logo:68px; --brand-padding:11px; --dialog-title:25px; --dialog-gap:12px; --start-head-height:99px; --start-head-padding:15px 15px; --start-radius:20px; } }
+@media (max-width:380px) { html:not(.mw-ready) { --dialog-logo:64px; --brand-padding:8px; --dialog-title:22px; --dialog-gap:9px; } }
+html[data-view=studio].studio-height-limited:not(.mw-ready) { --dialog-logo:64px; --brand-padding:8px; --dialog-title:20px; --dialog-gap:8px; --start-head-height:72px; --start-head-padding:3px 12px; }
+@media (max-height:700px) { html[data-view=schedule]:not(.mw-ready) { --dialog-logo:64px; --brand-padding:8px; --dialog-title:26px; --dialog-gap:8px; --start-head-height:72px; --start-head-padding:3px 12px; } }
 @media (max-height:700px) and (max-width:500px) { html[data-view=schedule]:not(.mw-ready) .eyebrow { display:none; } }
 html[data-curtain=closed] #radio-panel { visibility:hidden; pointer-events:none; }
 #startup-error { display:none; margin:12px; padding:12px 16px; border:1px solid #55585b; border-radius:13px; background:#141414; color:#f5f5f2; font:14px/1.5 Outfit,"Segoe UI",Arial,sans-serif; }
@@ -59,6 +59,7 @@ var styles = [
   'css/metadata-layout.css',
   'css/radio-responsive.css',
   'css/schedule.css',
+  'css/schedule-options.css',
   'css/history.css',
   'css/curtain.css'
 ];
@@ -73,7 +74,7 @@ var styleViews = {
   'css/radio-surface.css':'radio', 'css/metadata-layout.css':'radio',
   'css/dialogs.css':'radio wishes studio team schedule', 'css/dialogs-responsive.css':'wishes studio team schedule',
   'css/studio.css':'studio','css/studio-queue.css':'studio', 'css/handover.css':'studio',  'css/wishbox.css':'radio wishes',
-  'css/team.css':'team', 'css/schedule.css':'schedule', 'css/curtain.css':'radio',
+  'css/team.css':'team', 'css/schedule.css':'schedule', 'css/schedule-options.css':'schedule', 'css/curtain.css':'radio',
   'css/history.css':'studio'
 };
 styles.filter(function (file) { return !styleViews[file] || styleViews[file].split(' ').indexOf(view) !== -1; }).forEach(function (file) {

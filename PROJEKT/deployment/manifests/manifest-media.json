@@ -1,6 +1,6 @@
 {
-  "version": "0.1.208",
-  "buildNumber": 208,
+  "version": "0.1.223",
+  "buildNumber": 223,
   "files": [
     {
       "path": "MischWerk/www/img/mischwerk-logo.png",
@@ -11,6 +11,11 @@
       "path": "MischWerk/www/img/mischwerk-radio.png",
       "bytes": 846251,
       "sha256": "989C3BF349FD6DDD433519DA960978D9758FC1FC5E4EA631B46AE662E416542B"
+    },
+    {
+      "path": "MischWerk/www/img/curtain-velvet.png",
+      "bytes": 2364886,
+      "sha256": "605CC0AAF8CE5333FCE02DB4E999D4070924C99888FFDFBF365D131E3C583444"
     },
     {
       "path": "MischWerk/www/audio/werbung.mp3",

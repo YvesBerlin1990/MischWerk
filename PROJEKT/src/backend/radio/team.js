@@ -45,6 +45,7 @@ MischWerkModules.attachRadioTeam = function (runtime, config) {
         } else { throw runtime.failure('Unbekannte Radio-Team-Aktion.'); }
         next.radioModeratorRevision = runtime.state.radioModeratorRevision + 1;
         runtime.persist(next);
+        if (type === 'mw:removeRadioModerator') { runtime.dropWebsiteUser(userId); }
         return nick;
     };
 

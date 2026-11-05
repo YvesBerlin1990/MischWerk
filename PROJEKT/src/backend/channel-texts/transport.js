@@ -17,17 +17,7 @@ MischWerkModules.attachChannelTextTransport = function (runtime) {
             }
             if (runtime.shuttingDown) { throw runtime.failure('MischWerk startet gerade neu. Bitte versuche es gleich erneut.'); }
             if (type !== 'mw:channelTexts.save') { throw runtime.failure('Diese Bot-Text-Aktion ist nicht verfügbar.'); }
-            var previous = runtime.readChannelTexts();
-            if (typeof data.expectedRevision !== 'number' || data.expectedRevision !== previous.revision) {
-                throw runtime.failure('Die Bot-Texte wurden inzwischen geändert. Bitte aktualisieren und deine Eingabe prüfen.');
-            }
-            var valid = runtime.validateChannelTexts(data);
-            var next = { version:1, revision:previous.revision + 1, enabled:valid.enabled, interval:valid.interval,
-                texts:valid.texts, cursor:0, nextAt:valid.enabled ? runtime.now() + valid.interval * 60000 : 0 };
-            runtime.storeChannelTexts(next);
-            runtime.restartChannelTexts();
-            runtime.result(session, true, next.enabled ? 'Bot-Texte gespeichert. Erste Ausgabe in ' + next.interval + ' Minuten.' :
-                'Bot-Texte gespeichert. Automatische Ausgabe ist ausgeschaltet.', type, requestId);
+            runtime.result(session, true, runtime.changeChannelTexts(user, data), type, requestId);
         } catch (error) {
             if (!error.publicMessage) { runtime.warn('CHANNEL_TEXTS_EVENT'); }
             runtime.result(session, false, error.publicMessage || 'Bot-Texte konnten nicht gespeichert werden.', type, requestId);

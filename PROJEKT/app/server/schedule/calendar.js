@@ -33,10 +33,16 @@ MischWerkModules.attachScheduleCalendar = function (runtime) {
         return Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
     };
     runtime.scheduleInterval = function (entry) {
+        var timing = entry.timing === undefined ? 'fixed' : entry.timing;
+        if (['fixed', 'allDay', 'openEnd'].indexOf(timing) === -1) {
+            throw runtime.failure('Bitte eine gültige Laufzeit auswählen.');
+        }
+        var day = runtime.scheduleDate(entry.date) / 60000;
+        if (timing === 'allDay') { return { start: day, end: day + 1440 }; }
         var start = runtime.scheduleMinutes(entry.start);
+        if (timing === 'openEnd') { return { start: day + start, end: Infinity }; }
         var end = runtime.scheduleMinutes(entry.end);
         if (start === end) { throw runtime.failure('Beginn und Ende müssen verschieden sein.'); }
-        var day = runtime.scheduleDate(entry.date) / 60000;
         return { start: day + start, end: day + end + (end < start ? 1440 : 0) };
     };
     runtime.scheduleTimestamp = function (date, time, endOfInterval) {

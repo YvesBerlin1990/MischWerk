@@ -51,4 +51,8 @@
   if (boot.embedded || boot.pageData.overlay) { pollTimer = setTimeout(poll, 100); }
   window.addEventListener('pagehide', function () { ended = true; clearTimeout(pollTimer); });
   document.addEventListener('DOMContentLoaded', function () { document.getElementById('demo-banner').hidden = boot.embedded || boot.pageData.overlay; });
+
+  if(boot.publicRadio){
+  ['playing','pause','ended','error'].forEach(function(type){document.addEventListener(type,function(event){if(event.target.id==='radio-audio')parent.postMessage({type:'website-player-status',active:!event.target.paused&&!event.target.ended&&!!event.target.currentSrc},location.origin);},true);});
+}
 }());

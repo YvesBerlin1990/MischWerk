@@ -35,7 +35,7 @@ function createSiteApi({ env = process.env, mail = createApplicationMail(env), b
     if (req.method !== 'POST' || !['/api/site/applications', '/api/site/wishes'].includes(url.pathname)) {
       respond(res, 405, { message: 'Dieser Aufruf ist nicht verfügbar.' }); return true;
     }
-    if (req.headers.origin !== 'http://' + req.headers.host || !/^application\/json(?:;|$)/i.test(req.headers['content-type'] || '')) {
+    if (req.headers.origin !== (env.MISCHWERK_PUBLIC_ORIGIN || 'http://' + req.headers.host) || !/^application\/json(?:;|$)/i.test(req.headers['content-type'] || '')) {
       respond(res, 403, { message: 'Bitte öffne das Formular auf dieser Website.' }); return true;
     }
     let raw = '';
@@ -67,7 +67,7 @@ function createSiteApi({ env = process.env, mail = createApplicationMail(env), b
       else {
         const cookie = /(?:^|;\s*)mw_visitor=([a-f0-9]{32})(?:;|$)/.exec(req.headers.cookie || '');
         const visitorId = cookie ? cookie[1] : randomBytes(16).toString('hex');
-        if (!cookie) res.setHeader('Set-Cookie', 'mw_visitor=' + visitorId + '; HttpOnly; SameSite=Strict; Path=/api/site/; Max-Age=86400');
+        if (!cookie) res.setHeader('Set-Cookie', 'mw_visitor=' + visitorId + '; HttpOnly; SameSite=Strict; Path=/api/site/; Max-Age=86400'+(String(env.MISCHWERK_PUBLIC_ORIGIN||'').startsWith('https:')?'; Secure':''));
         await bridge.wish({ ...data, visitorId });
       }
       sent.set(key, Date.now());

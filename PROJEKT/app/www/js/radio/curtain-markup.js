@@ -2,6 +2,7 @@
 MischWerkUI.define('curtainMarkup', function (dependencies) {
   'use strict';
   dependencies.dom.mount('curtain-placeholder', `
+    <div class="curtain-drape" aria-hidden="true"></div>
     <section id="radio-curtain" class="radio-curtain" aria-labelledby="curtain-title" hidden>
       <div class="curtain-content">
         <img class="curtain-logo" src="img/mischwerk-logo.png" width="80" height="80" loading="lazy" decoding="async" alt="MischWerk">

@@ -12,7 +12,7 @@ MischWerkUI.define('scheduleView', function (dependencies) {
     dom.setText('schedule-range', calendar.range(data.week));
     dom.setText('schedule-summary', data.entries.length ?
       data.entries.length + (data.entries.length === 1 ? ' Sendung in dieser Woche' : ' Sendungen in dieser Woche') :
-      'Noch keine Sendungen eingetragen.');
+      'AutoDJ (MischWerk) · die ganze Woche');
     var list = dom.el('schedule-days');
     list.textContent = '';
     data.days.forEach(function (day) {
@@ -28,20 +28,30 @@ MischWerkUI.define('scheduleView', function (dependencies) {
       fullDate.dateTime = day; date.appendChild(fullDate); heading.appendChild(date);
       if (day === data.today) { heading.appendChild(dom.element('span', 'schedule-today', 'Heute')); }
       section.appendChild(heading);
-      var entries = data.entries.filter(function (entry) {
-        return entry.date === day || (entry.end < entry.start && entry.end !== '00:00' && calendar.shift(entry.date, 1) === day);
-      });
-      section.classList.add(entries.length ? 'has-shows' : 'is-empty');
-      if (!entries.length) { section.appendChild(dom.element('p', 'schedule-empty', 'Keine Sendung eingetragen')); }
-      entries.forEach(function (entry) {
+      var slots = calendar.slots(data.entries, day);
+      var hasShows = slots.some(function (slot) { return !!slot.entry; });
+      section.classList.add(hasShows ? 'has-shows' : 'is-empty');
+      if (!hasShows) { section.appendChild(dom.element('p', 'schedule-empty', 'Ganztags · AutoDJ (MischWerk)')); }
+      slots.forEach(function (slot) {
+        if (!hasShows) { return; }
+        var entry = slot.entry;
+        if (!entry) {
+          section.appendChild(dom.element('p', 'schedule-autodj-gap',
+            calendar.time(slot.from) + ' – ' + calendar.time(slot.to) + ' · AutoDJ (MischWerk)'));
+          return;
+        }
         var row = dom.element('article', 'schedule-show');
         row.dataset.scheduleKey = entry.week + ':' + entry.id + ':' + day;
         var continued = entry.date !== day;
         var time = continued ? '00:00 – ' + entry.end + ' Uhr · vom Vortag' :
           entry.start + ' – ' + entry.end + ' Uhr' + (entry.end < entry.start ? ' · Ende am Folgetag' : '');
+        if (entry.timing === 'allDay') { time = 'Ganztags'; }
+        if (entry.timing === 'openEnd') {
+          time = (continued ? 'Seit ' + calendar.label(entry.date) : entry.start + ' Uhr') + ' · Open End';
+        }
         var copy = dom.element('div', 'schedule-show-copy');
         copy.appendChild(dom.element('strong', 'schedule-time', time));
-        copy.appendChild(dom.element('span', 'schedule-presenter', 'Mit ' + entry.nick));
+        copy.appendChild(dom.element('span', 'schedule-presenter', entry.kind === 'autodj' ? 'AutoDJ · MischWerk' : 'Mit ' + entry.nick));
         copy.appendChild(dom.element('p', 'schedule-topic', entry.topic));
         row.appendChild(copy);
         if (data.canManage && entry.week === data.week) {

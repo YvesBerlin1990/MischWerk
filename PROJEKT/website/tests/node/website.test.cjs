@@ -5,12 +5,12 @@ const { createHarness } = require('../support/harness.cjs');
 const { createSiteApi } = require('../../tools/preview/site-api.cjs');
 const { createApplicationMail } = require('../../tools/preview/site-mail.cjs');
 const { createSiteBridge } = require('../../tools/preview/site-bridge.cjs');
-test('Pausierter Websiteeinstieg startet ohne ausdrücklichen Testmodus keinen Server', () => {
+test('Isolierter Diagnoseserver bleibt ohne ausdrücklichen Testmodus abgeschaltet', () => {
   const result = require('node:child_process').spawnSync(process.execPath, ['tools/preview/server.cjs'], {
     cwd:require('node:path').resolve(__dirname,'../..'), windowsHide:true, timeout:5000,
     env:{...process.env,MISCHWERK_WEBSITE_TEST:''}, encoding:'utf8'
   });
-  assert.equal(result.status,0); assert.match(result.stdout,/Website PAUSIERT/);
+  assert.equal(result.status,0); assert.match(result.stdout,/Diagnoseserver nur für isolierte Tests/);
   assert.doesNotMatch(result.stdout,/https?:\/\//);
 });
 function fixture() {

@@ -13,10 +13,10 @@ summary:hover { background:#ffffff06; }
 summary:active { background:#0003; }
 summary:focus-visible { outline:2px solid #cfd2d6; outline-offset:2px; }
 @media (max-width:640px) {
-  html:not([data-view=radio]) { --dialog-logo:47px; --dialog-title:25px; --dialog-gap:12px; --brand-padding:11px; }
+  html:not([data-view=radio]) { --dialog-logo:68px; --dialog-title:25px; --dialog-gap:12px; --brand-padding:11px; }
   .dialog-shell { padding-bottom:19px; border-radius:20px; }
   .dialog-content { padding:17px 15px 0; }
-  .dialog-header { min-height:99px; padding:17px 15px; border-radius:19px 19px 0 0; }
+  .dialog-header { min-height:99px; padding:15px 15px; border-radius:19px 19px 0 0; }
   .dialog-heading > .pill { margin-top:4px; }
   .compact-tabs { display:flex; }
   .studio-controls { grid-template-columns:1fr; gap:12px; }
@@ -24,7 +24,7 @@ summary:focus-visible { outline:2px solid #cfd2d6; outline-offset:2px; }
   .card { padding:17px; border-radius:16px; }
 }
 @media (max-width:380px) {
-  html:not([data-view=radio]) { --dialog-logo:44px; --dialog-title:22px; --dialog-gap:9px; --brand-padding:8px; }
+  html:not([data-view=radio]) { --dialog-logo:64px; --dialog-title:22px; --dialog-gap:9px; --brand-padding:8px; }
   .card,.studio-setup,.studio-queue { padding:14px; }
   .pagination { gap:8px; }
   .pagination .secondary-button { padding:8px; }

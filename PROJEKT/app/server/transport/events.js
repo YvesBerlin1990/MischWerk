@@ -94,12 +94,12 @@ MischWerkModules.attachEvents = function (runtime, config) {
                 if (type === 'mw:resolveRequest') { runtime.resolveRequest(user, data); }
                 else if (type === 'mw:setWishStage') { runtime.changeWishStage(user, data); }
                 else if (type === 'mw:setTopic' || type === 'mw:setRequests') { runtime.changeShow(user, type, data); }
-                else { runtime.changeModeration(user, type, data); }
+                else { var moderationMessage = runtime.changeModeration(user, type, data); }
                 runtime.result(session, true, type === 'mw:setTopic' ? (runtime.state.topic ? 'Thema gespeichert.' : 'Thema entfernt.') :
                     type === 'mw:setRequests' ? (runtime.state.requestsEnabled ? 'Wunschbox aktiviert.' : 'Wunschbox deaktiviert.') :
                     type === 'mw:setWishStage' ? 'Wunschstatus aktualisiert.' :
                     type === 'mw:resolveRequest' ? (data.outcome === 'discarded' ? 'Wunsch verworfen.' : 'Wunsch als erledigt entfernt.') :
-                    type === 'mw:onAir' ? 'Studio-Anmeldung bestätigt.' : 'Studio-Anmeldung beendet.', type, requestId);
+                    type === 'mw:onAir' ? moderationMessage || 'Studio-Anmeldung bestätigt.' : 'Studio-Anmeldung beendet.', type, requestId);
             }
             operation = 'STATE_BROADCAST';
             runtime.broadcast();

@@ -28,9 +28,11 @@ MischWerkUI.setComposer(function (factories) {
     var audio = dom.el('radio-audio');
     var volume = null;
     if (factories.volume) { volume = factories.volume({ dom: dom, audio: audio }); }
+    var connection = null;
+    if (factories.radioConnection) { connection = factories.radioConnection({ audio: audio, signals: signals }); }
     var player = null;
     if (factories.player) { player = factories.player({ model: model, dom: dom, api: api, provider: provider,
-      layout: layout, signals: signals, audio: audio, volume: volume }); }
+      signals: signals, volume: volume, connection: connection }); }
     var curtain = null;
     if (factories.curtain) { curtain = factories.curtain({ model:model, dom:dom, signals:signals, player:player, audio:audio }); }
     var wishes = null;
@@ -52,6 +54,8 @@ MischWerkUI.setComposer(function (factories) {
     if(factories.studioPages){studioPages = factories.studioPages({dom:dom,signals:signals});}
     var studio = null;
     if (factories.studio) { studio = factories.studio({ model: model, dom: dom, layout: layout, commands: commands, signals: signals }); }
+    var studioSession = null;
+    if (factories.studioSession) { studioSession = factories.studioSession({ model:model, dom:dom, commands:commands, signals:signals }); }
     var queue = null;
     if (factories.queue) { queue = factories.queue({ model: model, dom: dom, commands: commands, signals: signals, reader:reader }); }
     if(factories.studioWindow){studioWindow = factories.studioWindow({bridge:bridge,model:model,signals:signals,dom:dom,queue:queue});}
@@ -60,6 +64,8 @@ MischWerkUI.setComposer(function (factories) {
     var team = null;
     if (factories.team) { team = factories.team({ model: model, dom: dom, commands: commands, signals: signals }); }
     var channelTexts = null;
+    var channelTextsLayout = null;
+    if (factories.channelTextsLayout) { channelTextsLayout = factories.channelTextsLayout({ dom:dom, signals:signals }); }
     if (factories.channelTexts) { channelTexts = factories.channelTexts({ bridge:bridge, model:model, dom:dom, commands:commands, signals:signals }); }
     var calendar = null;
     if (factories.scheduleCalendar) { calendar = factories.scheduleCalendar({}); }
@@ -86,5 +92,5 @@ MischWerkUI.setComposer(function (factories) {
     var lifecycle = factories.lifecycle({ bridge: bridge, model: model, dom: dom, layout: layout,
       commands: commands, wishes: wishes, provider: provider, player: player, signals: signals });
     lifecycle.start([viewport, layout, commands, volume, player, curtain, wishes, wishFeedback, wishRelay, wishDrawer, wishWindow,
-      studioWindow, workspace, studioPages, reader, studio, handover, queue, team, channelTexts, scheduleEditor, history, scheduleWindow, schedule, updates, overlays]);
+      studioWindow, workspace, studioPages, reader, studio, studioSession, handover, queue, team, channelTextsLayout, channelTexts, scheduleEditor, history, scheduleWindow, schedule, updates, overlays]);
 });

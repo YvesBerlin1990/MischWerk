@@ -23,37 +23,36 @@
     data.days.forEach(function (date) {
       var card = node('article', undefined, 'schedule-day' + (date === data.today ? ' is-today' : ''));
       var parts = dateLabel(date, true).split(', '), heading = node('h3', parts[0]); heading.appendChild(node('span', parts.slice(1).join(', '))); card.appendChild(heading);
-      var entries = data.entries.filter(function (entry) { return entry.date === date || (entry.date === dayOffset(date, -1) && entry.end < entry.start && entry.end !== '00:00'); });
-      if (!entries.length) card.appendChild(node('p', 'Keine Sendung eingetragen.', 'schedule-empty'));
-      entries.forEach(function (entry) {
-        var row = node('div', undefined, 'schedule-entry');
-        row.appendChild(node('time', (entry.date === date ? entry.start : '00:00') + ' – ' + entry.end + (entry.date === date && entry.end < entry.start && entry.end !== '00:00' ? ' (+1 Tag)' : '')));
-        if (entry.topic) row.appendChild(node('h4', entry.topic));
-        row.appendChild(node('p', entry.moderator)); card.appendChild(row);
+      window.MischWerkSiteCalendar.slots(data.entries,date).forEach(function(slot){
+        var entry=slot.entry,row=node('div',undefined,'schedule-entry');
+        var open=entry&&entry.timing==='openEnd'&&entry.date===date;
+        row.appendChild(node('time',slot.from===0&&slot.to===1440&&!open?'Ganztags':window.MischWerkSiteCalendar.time(slot.from)+' – '+(open?'Open End':window.MischWerkSiteCalendar.time(slot.to))));
+        row.appendChild(node('h4',entry&&entry.topic||'MischWerk am Pult'));
+        row.appendChild(node('p',entry&&entry.kind!=='autodj'?entry.moderator:'AutoDJ (MischWerk)'));card.appendChild(row);
       });
       target.appendChild(card);
     });
   }
   async function loadSchedule() {
-    clearTimeout(refreshTimer); if (document.hidden) return;
+    clearTimeout(refreshTimer); if (document.hidden || !['schedule','wishes'].includes(document.body.dataset.siteCurrent)) return;
     if (pending) pending.abort(); var controller = new AbortController(), selected = ++generation; pending = controller;
     var timer = setTimeout(function () { controller.abort(); }, 12000);
     var selectedWeek = week;
     document.getElementById('schedule-week').textContent = dateLabel(week) + ' – ' + dateLabel(dayOffset(week, 6));
     message('schedule-status', 'Der Sendeplan wird geladen …');
     try {
-      var entries = [], data, firstRevision, firstPrevious;
+      var entries = [], data, firstRevision, firstPrevious, firstBoundary;
       for (var page = 0; ; page++) {
         var response = await fetch('/api/site/schedule?week=' + selectedWeek + '&page=' + page, { cache: 'no-store', signal: controller.signal });
         if (!response.ok) throw Error('schedule'); data = await response.json();
         if (data.week !== selectedWeek || data.page !== page || !Array.isArray(data.entries) || !Array.isArray(data.days) || data.days.length !== 7 || !Number.isInteger(data.pages) || data.pages < 1) throw Error('schedule');
-        if (page === 0) { firstRevision = data.revision; firstPrevious = data.previousRevision; }
-        if (data.revision !== firstRevision || data.previousRevision !== firstPrevious) throw Error('changed');
+        if (page === 0) { firstRevision = data.revision; firstPrevious = data.previousRevision; firstBoundary=data.boundaryRevision; }
+        if (data.revision !== firstRevision || data.previousRevision !== firstPrevious || data.boundaryRevision !== firstBoundary) throw Error('changed');
         entries = entries.concat(data.entries); if (page + 1 >= data.pages) break;
       }
       if (selected !== generation) return;
       showWeek(Object.assign({}, data, { entries: entries }));
-      message('schedule-status', data.total ? 'Der aktuelle Plan für diese Woche.' : 'Für diese Woche sind noch keine Sendungen eingetragen.');
+      message('schedule-status', data.total ? 'Der aktuelle Plan für diese Woche.' : 'Freie Sendezeiten übernimmt AutoDJ (MischWerk).');
       setWishAvailability(data.requestsEnabled === true);
     } catch (error) {
       if (selected !== generation) return;
@@ -93,6 +92,7 @@
   document.getElementById('schedule-next').addEventListener('click', function () { week = dayOffset(week, 7); loadSchedule(); });
   document.getElementById('schedule-today').addEventListener('click', function () { week = monday(today()); loadSchedule(); });
   document.addEventListener('visibilitychange', function () { if (document.hidden) { clearTimeout(refreshTimer); generation++; if (pending) pending.abort(); } else loadSchedule(); });
+  document.addEventListener('site-view',function(){if(['schedule','wishes'].includes(document.body.dataset.siteCurrent))loadSchedule();else{clearTimeout(refreshTimer);generation++;if(pending)pending.abort();}});
   window.addEventListener('pagehide', function () { clearTimeout(refreshTimer); generation++; if (pending) pending.abort(); });
   document.querySelector('#site-wish-form textarea').addEventListener('input', function (event) { document.getElementById('site-wish-count').textContent = event.target.value.length + ' / 300 Zeichen · keine Links'; });
   bindForm('application-form', '/api/site/applications', 'application-status', function () { return applicationAvailable; }, 'Bewerbung senden');

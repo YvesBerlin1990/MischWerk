@@ -61,8 +61,9 @@ test('Startseite: direkter Player, vollständige Bedienung und ruhende Audioquel
     const frame = page.frames().find(f => f.url().includes('/preview?'));
     assert.equal(await frame.evaluate(() => MischWerkDemoData.pageData.user.canModerate), false);
   }
+  await page.locator('#site-menu-toggle').click();
   await page.getByRole('link',{name:'Radio hören',exact:true}).click();
-  assert.equal(new URL(page.url()).hash, '#radio');
+  assert.equal(new URL(page.url()).pathname, '/');
   await page.goto(base + '/channel.html?radio=public');
   await page.frameLocator('#radio-frame').locator('html.mw-ready').waitFor();
   await cleanText(page);
@@ -107,9 +108,8 @@ test('Testansichten: neutrale Rollen und Beschriftungen auch in Wunschbox, Sende
         assert.equal(await page.frameLocator('#overlay-frame').locator('html').getAttribute('data-view'),view);
         if (view === 'team') {
           const team = page.frameLocator('#overlay-frame');
-          await team.locator('#team-status-tab').click();
-          await cleanText(page);
-          await team.locator('details summary').click();
+          assert.equal(await team.locator('#team-status-tab').count(),0);
+          await team.locator('#team-texts-tab').click();
           await cleanText(page);
         }
       }
@@ -121,10 +121,14 @@ test('Testansichten: neutrale Rollen und Beschriftungen auch in Wunschbox, Sende
 test('Websitebereiche ohne Einrichtung: öffentliche Profile, gesperrter Versand und keine private Empfängeradresse', async t => {
   const {page, errors} = await setup(t);
   await page.goto(base);
+  await page.getByRole('link',{name:'Das Team',exact:true}).click();
   await page.locator('.team-card').first().waitFor();
   assert.deepEqual(await page.locator('.team-card h3').allTextContents(), ['Yves','Alex']);
+  await page.getByRole('link',{name:'Sendeplan',exact:true}).click();
   await page.locator('#schedule-status.error').waitFor();
+  await page.getByRole('link',{name:'Mitmachen',exact:true}).click();
   assert.equal(await page.locator('#application-form button[type=submit]').isDisabled(), true);
+  await page.getByRole('link',{name:'Wunschbox',exact:true}).click();
   assert.equal(await page.locator('#site-wish-form button[type=submit]').isDisabled(), true);
   assert.doesNotMatch(await page.content(), /yves\.klewer|mailbox\.org|MISCHWERK_SMTP|webhooks\//i);
   const publicContent = await (await page.request.get(base + '/api/site/content')).text();
@@ -153,18 +157,20 @@ test('Websiteformulare und Appplan: paginierte Woche, Mitternacht, Entwurfserhal
     return route.fulfill({json:{ok:true,message:'Danke! Deine Bewerbung wurde per E-Mail übermittelt.'}});
   });
   await page.goto(base);
+  const radio = page.frameLocator('#radio-frame');
+  await radio.locator('#track-title').filter({hasText:'Prüftitel'}).waitFor();
+  await radio.locator('#play-button').click(); await radio.locator('body.playing').waitFor();
+  await page.getByRole('link',{name:'Sendeplan',exact:true}).click();
   await page.locator('.schedule-day').first().waitFor();
   assert.equal(await page.locator('.schedule-day').count(),7);
   assert.equal(await page.getByText('Testsendung über Mitternacht',{exact:true}).count(),2);
   assert.match(await page.locator('.schedule-day').nth(1).innerText(), /00:00 – 01:00/);
   const weekBefore = await page.locator('#schedule-week').textContent();
-  const radio = page.frameLocator('#radio-frame');
-  await radio.locator('#track-title').filter({hasText:'Prüftitel'}).waitFor();
-  await radio.locator('#play-button').click(); await radio.locator('body.playing').waitFor();
   await page.getByRole('button',{name:'Nächste Woche',exact:true}).click();
   await page.waitForFunction(before => document.querySelector('#schedule-week').textContent !== before, weekBefore);
   await page.locator('#schedule-status').filter({hasText:'aktuelle Plan'}).waitFor();
   assert.equal(await radio.locator('#radio-audio').evaluate(a => !a.paused),true);
+  await page.getByRole('link',{name:'Wunschbox',exact:true}).click();
   await page.locator('#site-wish-form textarea').fill('a-ha – Take On Me');
   await page.locator('#site-wish-form button[type=submit]').click();
   await page.locator('#site-wish-status.error').waitFor();
@@ -173,6 +179,7 @@ test('Websiteformulare und Appplan: paginierte Woche, Mitternacht, Entwurfserhal
   await page.locator('#site-wish-status.success').waitFor();
   assert.equal(wishes.length,2); assert.equal(wishes[0].submissionId,wishes[1].submissionId);
   assert.equal(await page.locator('#site-wish-form textarea').inputValue(),'');
+  await page.getByRole('link',{name:'Mitmachen',exact:true}).click();
   await page.locator('#application-form input[name=name]').fill('Testbewerbung');
   await page.locator('#application-form input[name=email]').fill('bewerbung@example.invalid');
   await page.locator('#application-form textarea[name=availability]').fill('Am Wochenende, erste Radioerfahrung.');
@@ -185,6 +192,8 @@ test('Websiteformulare und Appplan: paginierte Woche, Mitternacht, Entwurfserhal
     await page.setViewportSize({width,height:1000});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false,'Websitebereiche ohne Überbreite bei '+width);
   }
+  await page.locator('#site-menu-toggle').click();
+  await page.getByRole('link',{name:'Radio hören',exact:true}).click();
   await cleanText(page); await radio.locator('#play-button').click();
   assert.deepEqual(errors, []); assert.deepEqual(external, []);
 });

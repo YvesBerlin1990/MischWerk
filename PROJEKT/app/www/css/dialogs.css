@@ -1,14 +1,14 @@
 /* Gemeinsames Vinyl-Deck-Design der vier vorhandenen nativen Menüs. */
 html:not([data-view=radio]),html:not([data-view=radio]) body { min-height:100%; overflow-x:hidden; overflow-y:auto; }
-html:not([data-view=radio]) { --bg:#141414; --canvas:#0a0a0a; --surface:#141414; --raised:#1f1f1f; --input:#101010; --line:#3a3a3a; --text:#f5f5f2; --muted:#b4b4b0; --gold:#e9eaec; --gold-ink:#cfd2d6; --live:#ff9a8f; --error:#ff9a8f; --dialog-logo:57px; --dialog-title:30px; --dialog-gap:19px; --brand-padding:17px; --management-card:#1f1f1f; --button-gold:none; background:var(--canvas); }
+html:not([data-view=radio]) { --bg:#141414; --canvas:#0f1114; --surface:#141414; --raised:#1f1f1f; --input:#101010; --line:#3a3a3a; --text:#f5f5f2; --muted:#b4b4b0; --gold:#e9eaec; --gold-ink:#cfd2d6; --live:#ff9a8f; --error:#ff9a8f; --dialog-logo:80px; --dialog-title:30px; --dialog-gap:19px; --brand-padding:17px; --management-card:#1f1f1f; --button-gold:none; background:var(--canvas); }
 html:not([data-view=radio]) body { min-height:100vh; background:var(--canvas); }
 html:not([data-view=radio]) .dialog-shell { display:block; }
 .dialog-shell { width:100%; padding:0 0 24px; border:1px solid var(--line); border-radius:24px; background:var(--surface); }
 .dialog-content { padding:24px 24px 0; }
-.dialog-header { position:relative; isolation:isolate; overflow:hidden; display:grid; grid-template-columns:calc(var(--dialog-logo) + var(--brand-padding)) minmax(0,1fr) calc(var(--dialog-logo) + var(--brand-padding)); align-items:center; gap:var(--dialog-gap); min-height:118px; padding:20px 24px; margin:0; border:0; border-bottom:1px solid var(--line); border-radius:23px 23px 0 0; background:linear-gradient(116deg,#171717 13%,#141414 62%,#202225); }
+.dialog-header { position:relative; isolation:isolate; overflow:hidden; display:grid; grid-template-columns:calc(var(--dialog-logo) + var(--brand-padding) + 1px) minmax(0,1fr) calc(var(--dialog-logo) + var(--brand-padding) + 1px); align-items:center; gap:var(--dialog-gap); min-height:118px; padding:18px 24px; margin:0; border:0; border-bottom:1px solid var(--line); border-radius:23px 23px 0 0; background:linear-gradient(116deg,#171717 13%,#141414 62%,#202225); }
 .dialog-header::before { content:""; position:absolute; z-index:-1; top:-75px; right:-170px; width:240px; height:240px; border:2px solid #b9bdc385; border-radius:50%; background:radial-gradient(circle,#adb1b8 0 28px,transparent 29px),repeating-radial-gradient(circle,#0c0c0c 0 8px,#2a2a2a 9px,#101010 10px 17px); opacity:.35; pointer-events:none; }
-.dialog-brand { grid-column:1; grid-row:1; display:flex; align-items:center; justify-content:center; flex:0 0 calc(var(--dialog-logo) + var(--brand-padding)); min-width:0; padding-right:var(--brand-padding); border-right:1px solid var(--line); }
-.dialog-brand img { width:var(--dialog-logo); height:calc(var(--dialog-logo) + 10px); display:block; object-fit:contain; background:transparent; mix-blend-mode:lighten; }
+.dialog-brand { grid-column:1; grid-row:1; display:flex; align-items:center; justify-content:center; flex:0 0 calc(var(--dialog-logo) + var(--brand-padding) + 1px); min-width:0; padding-right:var(--brand-padding); border-right:1px solid var(--line); }
+.dialog-brand img { width:var(--dialog-logo); height:var(--dialog-logo); display:block; object-fit:contain; background:transparent; mix-blend-mode:lighten; }
 .dialog-heading { grid-column:2; grid-row:1; min-width:0; display:block; text-align:center; }
 .dialog-header > button { grid-column:3; grid-row:1; justify-self:end; }
 .eyebrow { display:block; font-size:11px; color:#b9bdc3; font-weight:700; line-height:1.4; letter-spacing:1.6px; text-transform:uppercase; overflow-wrap:anywhere; }

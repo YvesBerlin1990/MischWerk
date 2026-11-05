@@ -35,7 +35,7 @@ html[data-wish-surface].mw-ready .dialog-shell > .dialog-header { display:none; 
 }
 /* Die bestehende native Anfangshöhe bleibt bei wenig Platz vollständig bedienbar. */
 @media (max-height:380px) {
- .wish-drawer .dialog-header { --dialog-logo:40px; --dialog-title:22px; --dialog-gap:9px; --brand-padding:11px; min-height:76px; padding:12px; }
+ .wish-drawer .dialog-header { --dialog-logo:64px; --dialog-title:22px; --dialog-gap:8px; --brand-padding:8px; min-height:76px; padding:5px 12px; }
  .wish-drawer .dialog-heading > .eyebrow { display:none; }
  .wish-drawer .wish-compose { padding:12px 14px; }
  .wish-drawer .wish-label-row { margin-bottom:6px; }

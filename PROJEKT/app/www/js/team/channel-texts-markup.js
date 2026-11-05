@@ -3,6 +3,7 @@ MischWerkUI.define('channelTextsMarkup', function (dependencies) {
   dependencies.dom.mount('channel-texts-slot', `
 <section id="channel-texts-panel" role="tabpanel" aria-labelledby="team-texts-tab" hidden>
   <form id="channel-texts-form" class="channel-texts-form">
+    <div id="channel-texts-scroll" class="channel-texts-scroll" role="region" aria-label="Bot-Texte bearbeiten" tabindex="0">
     <h2>Öffentliche Bot-Texte</h2>
     <p class="form-hint">Der Bot sendet deine Texte der Reihe nach in den Channel. Leere Felder werden übersprungen.</p>
     <div class="channel-texts-options">
@@ -12,7 +13,8 @@ MischWerkUI.define('channelTextsMarkup', function (dependencies) {
     <p id="channel-texts-status" class="channel-texts-status" role="status" aria-live="polite">Einstellungen werden geladen …</p>
     <div id="channel-texts-fields" class="channel-texts-fields"></div>
     <button id="channel-texts-add" type="button" class="secondary-button">Weiteren Text hinzufügen</button>
-    <div class="channel-texts-actions">
+    </div>
+    <div id="channel-texts-actions" class="channel-texts-actions">
       <button id="channel-texts-save" type="submit" class="primary-button">Speichern</button>
       <button id="channel-texts-refresh" type="button" class="secondary-button">Aktualisieren</button>
       <button id="channel-texts-reload" type="button" class="secondary-button" hidden>Gespeicherte Texte laden</button>

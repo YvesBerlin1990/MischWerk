@@ -1,21 +1,41 @@
-# Radio-Website – PAUSIERT
+# MischWerk – Homepage und Arbeitsbereich
 
-Status: Auf Nutzerauftrag vom 03.11.2026 auf Eis gelegt. Dieser eigenständige Entwurf ist keine Knuddels-App und gehört nicht zum App-Build oder UPLOAD.
+Lokaler Stand **Website 0.2.0**, passend zur Knuddels-App **0.1.223 / Build 223**. Auf Nutzerauftrag vom 05.11.2026 wiederaufgenommen. Die Homepage verwendet das aktuelle Vinyl-Design mit goldenen Radiotasten mit lokalen Outfit-/Fraunces-Schriften und unveränderten Originalmedien.
 
-Hier liegen ausschließlich Websiteoberfläche, Website-Server, private lokale .env, eigene Paketabhängigkeiten, Tests und zugehörige Nachweise. Die Appquellen und deren Testlabor liegen außerhalb dieses Bereichs. Das frühere tools/preview ist nun ausschließlich App-Testvorschau.
+Der öffentliche Teil enthält Radio, Sendeplan, Teamvorstellungen und Musikwünsche. Der eigene Arbeitsbereich unter **/arbeitsbereich** bietet Moderation einschließlich Endzeit/Open End, Thema, Wunschregie, privater Übergabe und Tageshistorie, außerdem Besitzerverwaltung, Bot-Texte und Sendeplanung. Die bestehenden App-Menüs bleiben bis zur erfolgreichen echten Verbindungsabnahme erhalten.
 
-Der normale Website-Start ist gesperrt: pnpm --dir website run preview meldet den pausierten Zustand und öffnet keinen Server. Nur der eigene Regressionstest setzt MISCHWERK_WEBSITE_TEST=1 und öffnet dafür einen kurzlebigen localhost-Port. Mailversand und echte Appbrücke bleiben dabei abgeschaltet. Kein Hintergrundprozess läuft für die Website.
 
-Die Adapter unter integration/ sind nur Vorbereitung. Sie sind aus src/backend, app/server, Appstart, Chatbefehlen und Desktop-UPLOAD entfernt. Die eigenen Vertragstests hängen sie ausdrücklich in ein isoliertes Appmodell ein; die aktive App lädt sie niemals. Für ein späteres Wiederaufnehmen wären Einbindung, Konfiguration und Freigaben neu zu prüfen.
+Die öffentliche Homepage ist aufgeteilt: Start/Radio, Sendeplan, Team, Mitmachen und Wunschbox haben eigene Adressen und einzeln sichtbare Inhalte. Desktopreiter und ein Hamburger-Menü bis 850 px führen durch die Bereiche. Die Startseite zeigt nur Einstieg und Radio. Direktaufruf, Neuladen und Browser-Zurück/Vor funktionieren; laufendes Radio und ungesendete Eingaben bleiben beim öffentlichen Bereichswechsel erhalten. Der geschützte Arbeitsbereich hat eigene Reiter für Moderation, Sendeplan und Verwaltung.
 
-Der bisher besprochene private Bewerbungseingang ist eine Idee und wurde nicht implementiert. Bewerbungsversand bleibt deaktiviert. Fotos von Yves und Alex stehen noch aus.
+## Lokal starten
 
-## Eigene Ablage
+Benötigt: **Node.js 22 oder neuer**, pnpm 11.25.0. Aus dem MischWerk-Hauptordner:
 
-- tools/preview/: Website und lokaler Entwurfsserver.
-- integration/: Abgekapselte vorbereitete Appadapter.
-- tests/: Eigene Websiteprüfungen, außerhalb der App-Prüfkette.
-- docs/: Bisherige Nachweise und zwei Websitebilder.
-- .env: Private lokale Websitekonfiguration, durch die übergeordnete Git-Regel ausgeschlossen.
+```powershell
+pnpm --dir PROJEKT/website install --frozen-lockfile
+pnpm --dir PROJEKT/website run preview
+```
 
-Die Website verwendet den Appplayer, Originalmedien sowie gemeinsame Testfixtures ausschließlich lesend aus dem übergeordneten Projekt. Ihre nodemailer- und Playwright-Abhängigkeiten werden separat verwaltet. pnpm --dir website test prüft nur diesen abgelegten Stand, ohne ihn wieder aufzunehmen oder zu veröffentlichen.
+Standardadresse: **http://127.0.0.1:8766**. Beenden mit Strg+C. Der Website-Server unter tools/server verwendet keine Testrollen oder Appsimulation. Er liest gemeinsame Appmedien, Player-, Kalender- und Historienkomponenten aus dem Projekt; die Laufzeitstruktur deshalb zusammengehörig erhalten. Die Website gehört nicht in den Knuddels-UPLOAD.
+
+Ohne eingerichteten Appanschluss bleibt der öffentliche Radioplayer unabhängig nutzbar. Sendeplan, Wünsche und Anmeldung melden die fehlende Verbindung. Es werden keine Beispielsendungen oder Verwaltungsrechte vorgetäuscht. Radio startet nur nach Play. Bewerbungsversand bleibt ausgeschaltet.
+
+## Appanschluss und Anmeldung
+
+Die Einrichtung und ihre Grenzen stehen in [ANBINDUNG.md](docs/ANBINDUNG.md). Der Anschluss ist im Appcode standardmäßig aus. Nach eigener vollständiger Aktualisierung der App kann ausschließlich der tatsächliche anwesende Channelinhaber **/mischwerk-web aktivieren** verwenden. Die privat zurückgegebene WebHook-Adresse gehört ausschließlich in MISCHWERK_APP_WEBHOOK der privaten Websiteumgebung. MISCHWERK_PUBLIC_ORIGIN muss im Hosting dem exakten HTTPS-Ursprung entsprechen.
+
+Im Arbeitsbereich „Anmeldung beginnen“ wählen und den dort angezeigten einmaligen Befehl selbst im Channel ausführen. Der Code gilt drei Minuten. Die App übernimmt ausschließlich die dabei authentifizierte Channelidentität. Anwesenheit und Rechte werden bei jedem Zugriff geprüft. Logout, Channel-Verlassen, Rechteentzug, App-Neustart sowie Fristen beenden den Zugang. Kein Knuddels-Passwort wird auf der Homepage abgefragt.
+
+## Geplantes Hosting: STREAMPANEL / DataDachs
+
+Der Nutzer plant STREAMPANEL. Die am 05.11.2026 gelesene [offizielle DataDachs-Tarifseite](https://www.datadachs.eu/webhosting/) nennt PHP 8.x sowie Node.js 6–12. Ob im gewählten Tarif eine **aktuell unterstützte Node-LTS-Version ab 22** verfügbar ist, ist noch nicht bestätigt. Dieser Websiteserver ist für die dort öffentlich genannten alten Node-Versionen nicht freigegeben. Vor Veröffentlichung genaue Laufzeit, Node-Anwendungsstart, Domain, HTTPS-Proxy und Umgebungsvariablen beim tatsächlichen Tarif prüfen. Ein separater aktueller Node-Dienst oder eine ausdrücklich umgesetzte PHP-Anpassung wären Alternativen, falls der Tarif keine aktuelle Node-Version anbietet. Kein Tarif gebucht, Support kontaktiert oder Hostingzugang geändert.
+
+## Prüfen
+
+```powershell
+pnpm --dir PROJEKT/website test
+```
+
+Die Website besitzt eigene Node-/Browserprüfungen mit lokalen HTTP- und Knuddels-Modellen. Der alte Diagnoseserver unter tools/preview/server.cjs bleibt ausschließlich durch MISCHWERK_WEBSITE_TEST=1 für diese getrennten Tests erreichbar; er ist kein Produktiveinstieg. Keine echte Mail oder Channelnachricht in Tests.
+
+[Aktueller Prüfbericht](docs/PRUEFUNG.md) · [Desktop](docs/website-startseite.jpg) · [Smartphone](docs/website-mobil.jpg) · [Arbeitsbereich](docs/arbeitsbereich.jpg).

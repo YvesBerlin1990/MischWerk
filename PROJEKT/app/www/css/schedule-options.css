@@ -1,0 +1,19 @@
+/* Eigene Sendearten und Laufzeiten im bestehenden kompakten Editor. */
+.schedule-form select {
+  display:block; width:100%; min-width:0; min-height:44px; margin:4px 0 10px;
+  padding:8px; border:1px solid var(--line); border-radius:13px;
+  background:var(--input); color:var(--text); font-size:16px;
+}
+.schedule-form input[readonly] { color:var(--muted); }
+.schedule-form-grid > [hidden] { display:none; }
+.schedule-form-grid:has(#schedule-end-field[hidden]) #schedule-start-field { grid-column:1 / -1; }
+.schedule-autodj-gap {
+  grid-column:2; margin:6px 0; color:var(--muted); font-size:13px; line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.schedule-autodj-gap + .schedule-show { margin-top:6px; }
+@media (max-height:700px) {
+  .schedule-form select,.schedule-form input { margin-bottom:6px; }
+  .schedule-form h2 { margin-bottom:6px; }
+  .schedule-form-actions { margin-top:8px; }
+}

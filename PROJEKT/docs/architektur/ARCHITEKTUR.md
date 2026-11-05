@@ -1,90 +1,24 @@
-# MischWerk – Architektur 0.1.208 · Build 208
+# MischWerk – Architektur 0.1.223 · Build 223
 
-Sicht-/Bedienprüfung 208: Lange Bot-Texte sind im Eingabefeld mit dem Mausrad und der Tastatur vollständig lesbar. Die vorhandene Aktionsgruppe bleibt bei normalen Rahmen unten sichtbar; Speichern, Aktualisieren sowie Fehler-/Erfolg-/Konflikthinweis sind unmittelbar erreichbar. Nur im Bot-Textbereich CSS und die Position des bestehenden Rückmeldeabsatzes angepasst. Bei weniger als 481 px verfügbarer Höhe nutzt die Gruppe ihren natürlichen Dokumentfluss. Native Fenstermaße, Feldwerte und alle ausführbaren Controller bleiben erhalten. K3/STAPP mit 560/390/320 px, 1×/2×-Pixeldichte, sechs langen Feldern und begrenzter Höhe geprüft.
-
-Paketabsicherung 207: Der bestehende Snapshot erhält optional den Ansichtstyp. Nur Verwaltung (team) lässt die dort ungenutzte duplizierte Studio-Wunschregie queue/queueWindow samt Regiezählern weg. So passt auch der maximale Bot-Textentwurf zusammen mit Thema und Team-Eingabe zuverlässig unter die HTMLFile-/Eventgrenze. Native Fensterlogik und alle übrigen Ansichten einschließlich privater Wunschpositionen und Studio-Regie bleiben erhalten. Der kombinierte Maximalfall ist als eigener Node-Gegenfall abgesichert.
-
-
-Aktueller lokaler Stand **0.1.207 · Build 207**. Die Verwaltung enthält jetzt die Bereiche Radio-Team und Bot-Texte. Ausschließlich der tatsächliche Channelinhaber kann bis zu sechs Textfelder bearbeiten (je höchstens 300 Zeichen), automatische öffentliche Ausgabe ein-/ausschalten und **20, 30, 40 oder 50 Minuten** Abstand wählen. Anfangs ausgeschaltet; gefüllte Texte laufen der Reihe nach, leere Felder werden übersprungen. Nach Speichern beginnt ein voller Abstand. Einstellungen und Rotationszeiger bleiben über Neustarts erhalten; verpasste Termine werden nicht nachgeholt. Öffentlicher Versand über den Standardbot als Klartext. Eigener privater Einstellungszustand, Revisionsschutz, Fehler-/Entwurfserhalt und Löschung beim Rechteverlust. Ein serverseitiger Timeout mit Shutdown-Abbruch; keine zusätzlichen Radioereignisse oder Client-Versandtimer. Vorhandene Radio-/Wunsch-/Sendeplanfunktionen und Gestaltung bleiben erhalten. **111 Laufzeitdateien, 105 Texte, 34 Backendmodule, 75 Browserdateien, 46 Komponenten, 17 Stylesheets, fünf Manifeste.** Der vollständige feste Desktop-UPLOAD ist ausschließlich lokal vorbereitet; keine Live-Aktion.
-
-Bot-Texte sind fachlich getrennt: channel-texts/storage besitzt Schema, Validierung und privaten Persistence-Schlüssel; scheduler besitzt genau einen Hosttimer und den öffentlichen Versand; transport prüft Verwaltungssitzung, Besitzerrecht und erwartete Revision vor dem Speichern. lifecycle startet/stoppt den Timer; transport/views liefert den getrennten Einstellungszustand ausschließlich an die Verwaltung. Keine Rückabhängigkeit von Speicherung oder Scheduler auf UI/Transport. app verbindet die drei neuen Module explizit. manifest-studio enthält jetzt auch die privaten team-Dateien und team.css, damit alle fünf lesbaren Manifeste unter der Zeichengrenze bleiben.
-
-Erhaltene Sendeplankorrektur aus 206: Sendung eintragen und Sendung bearbeiten passen im vorhandenen 630-px-Sendeplanrahmen bei 820/560/390/320 px Breite ohne Dokument-Scrollen. Im Editor stehen nur die Eingaben und Formularaktionen im Mittelpunkt; die weiterhin nutzbare Aktualisierung sitzt rechts im zentrierten Formularkopf. Datum/Moderation und Von/Bis bleiben zweispaltig, das Thema nutzt die volle Breite. Pflichtfelder, 16-px-Eingabetext, mindestens 44-px-Bedienflächen, Fehler/Aktualisieren/Entwurf, Speichern, Zurück und Löschen bleiben erhalten. Nur schedule.css geändert; Fachcontroller und übrige Gestaltung einschließlich RGB-Glow/40-px-Auslauf unverändert. Kalender und native 820 × 630 px bleiben erhalten, tatsächlich kleinere Hostgrenzen behalten ihre native Erreichbarkeit. Fester Desktop-UPLOAD mit 106 Laufzeitdateien lokal bereitgestellt; keine Veröffentlichung oder Live-Aktion.
-
-Platzverteilung aus 201: Die Appleiste verteilt die Mitte ab 1200 px proportional auf Musik/Lautstärke, Thema/Sendestatus und gegebenenfalls den eigenen Wunsch. Ohne Wunsch nutzen die zwei übrigen Informationsbereiche den Platz. Gemeinsame Oberkante, ruhige Trennlinien, passende Innenabstände, eine bis 440 px nutzbare Lautstärkegruppe und ein an der Übergangsbreite angepasster 20–24-px-Titel ersetzen die überbreite Musikspalte mit rechts zusammengedrängten Informationen. Die schmalen Raster unter 1200 px, sämtliche Controller, Fachlogik, Audio und Overlaygestaltung bleiben unverändert. Vollständiger fester Desktop-UPLOAD mit 106 Laufzeitdateien lokal bereitgestellt; keine Live-Aktion.
-
-Versionsstand 200: Ausschließlich Versions- und Buildkennung gegenüber 199 erhöht; Gestaltung und Funktionen sind bytegleich erhalten. Backendkonfiguration, App-Konfiguration, Einstieg und alle fünf Manifeste tragen dieselbe neue Kennung. Vollständiger fester Desktop-UPLOAD mit 106 Laufzeitdateien lokal neu bereitgestellt; keine Live-Aktion. Die nachfolgenden Gestaltungs-/Browsernachweise stammen aus dem unveränderten Stand 199.
-
-Unverändert aus Build 199: Die bestätigten ZIP-Designs sind in der gewünschten Reihenfolge übernommen: Appleiste nach B · Vinyl Deck, anschließend Moderation, Verwaltung, Wunschbox und Sendeplan nach MischWerk_Alle_Menues. Schwarze Flächen, silberne Aktionen, statisches Vinylmotiv und lokal geladene Outfit-/Fraunces-Schriften bilden die gemeinsame Gestaltung. Sämtliche Menüüberschriften sind mittig; die Original-Logos stehen links vor dem ruhigen Kopfzeilenhintergrund ohne abgesetzte schwarze Kachel, das Vinylmotiv rechts und das X bleibt rechts bedienbar. Responsive Appleiste mit direktem Zugriff auf öffentliche und berechtigte private Aktionen, lange Informationen im vorhandenen nativen Lesebereich. Rollen, private Wunschinformation, Entwürfe, Chronologie 197/198, Event-/Sitzungskorrektur und Startabsicherung sind erhalten. **106 Laufzeitdateien, 100 Texte, 31 Backendmodule, 73 Browserdateien, 44 Komponenten, 17 Stylesheets, fünf Manifeste.** Ausschließlich fester Desktop-UPLOAD; keine Live-Aktion.
-
-Erhalten aus Build 198: Die Seitenzählung in Heute gespielt folgt ebenfalls der Zeit: älteste Titel auf Seite 1, neueste auf der letzten Seite. Beim Öffnen werden weiterhin die neuesten Titel auf der letzten Seite gezeigt. Zurück verringert die Seitenzahl, Weiter erhöht sie. Internen Cursor, Sortierung, Navigation und Seitenanker erhalten; ausschließlich die sichtbare Zahl ist angepasst. Frühere Wunsch-, Start-, Event-/Sitzungs- und Audiokorrekturen bleiben erhalten. Nur lokal bereitgestellt, weiterhin 102 Laufzeitdateien; keine Live-Aktion.
-
-Build 197: In Heute gespielt folgt die Navigation der Uhrzeit: Zurück zeigt ältere Titel, Weiter neuere. Auf der neuesten Seite ist Weiter gesperrt, auf der ältesten Zurück. Die neuesten Titel stehen weiterhin oben; Seitennummerierung, Textfortsetzungen und Gestaltung bleiben erhalten. Wunschübersichtsentfernung, Event-/Sitzungskorrektur und Startabsicherung bleiben erhalten. Ausschließlich lokal bereitgestellt, unverändert 102 Laufzeitdateien; keine Live-Aktion.
-
-Build 196: Die doppelte Rubrik Deine offenen Wünsche entfällt vollständig aus der Wunschbox samt Aktualisieren, Liste und Seitennavigation. Nach Abgabe bleiben die kurze Fünf-Sekunden-Bestätigung und Weiteren Wunsch eingeben; Titel, Platz und Bearbeitungsstatus stehen ausschließlich im vorhandenen privaten Wunschbereich der Appleiste. Eingabe, Entwürfe, Fokus, Versand, Radioaudio und natürliche Wunschhöhe bleiben erhalten. Event-/Sitzungskorrektur aus 194 und Startabsicherung aus 195 sind erhalten. Ausschließlich lokale Bereitstellung mit 102 Laufzeitdateien; keine Live-Aktion.
-
-Build 195: Die leere Appleiste direkt nach Beitritt/Aktualisierung ist auf einen öffentlich nachgewiesenen Auslieferungsmischstand zurückgeführt: Ladeplan aktuell, 13 Frontenddateien älter und drei benötigte Dateien nicht vorhanden. Startfehler werden bereits vor der ersten SDK-Dateieinbindung abgesichert und bei fehlenden Pflichtdateien sofort sichtbar gemeldet. Vollständiger Desktop-UPLOAD mit 103 Laufzeitdateien lokal bereitgestellt; die Event-/Sitzungskorrektur aus Build 194 bleibt erhalten. Keine Live-Aktivierung oder Übertragung ausgeführt.
-
-Build 194: Wunschbox-Abgleich gegen das gemeldete Eventlimit korrigiert: Entwürfe lokal sofort anzeigen, Serverabgleich bündeln und identische Rückmeldungen unterdrücken. Vor Schließen/Absenden/Overlaywechsel wird die letzte Eingabe übertragen. Sitzungen werden nur noch aktuell und höchstens einmal geschlossen, auch bei verzögertem Close-Listener und neuen Plattformwrappern. Ausschließlich lokale Bereitstellung; die vorübergehend abgeschaltete Knuddels-App wird nicht automatisch aktiviert oder aktualisiert.
-
-Build 193: Der vorhandene Bereich Dein Wunsch in der Appleiste zeigt Platz, nächsten eigenen Songtitel und Bearbeitungsstatus, bei mehreren Wünschen ergänzt um einen kleinen Zähler. Am Wunschbox-Button entstehen keine Zusatzangaben. Die Detailansicht ordnet Platz/Status über dem vollständigen Titel; der zusätzliche Moderationshinweis entfällt. Erfolgsfeedback verschwindet nach fünf Sekunden, Fehler und laufender Versand bleiben sichtbar.
-
-Build 192: Der Menüpunkt heißt jetzt Verwaltung, einschließlich Tooltip, Screenreaderbeschriftung, frühem und fertigem Dialogtitel sowie nativem Fenstertitel. Überschrift und Leitspruch stehen mittig in der Kopfkarte, Logo links und Schließen-X rechts. Funktionen und Berechtigungen der Teamverwaltung bleiben erhalten.
-
-Build 191: Vollständig leere Wochen verteilen den verfügbaren unteren Platz gleichmäßig auf ihre sieben Tageszeilen. Bestehende Mindesthöhe, Schrift und Kalenderfunktionen bleiben erhalten. Gefüllte Wochen, Pagination und Editor behalten ihre natürliche Anordnung; keine neue Fenstersteuerung.
-
-Build 190: Die Statuszentrale ist vollständig entfernt: Anzeige, Reiter, Prüftaste, Detailseiten und eigene Anbieterabfragen. Radio-Team öffnet direkt die Mitgliederverwaltung. Ernennen/Entziehen, Aktualisieren, Rechte, Entwürfe und feste native Maße bleiben erhalten. Die unabhängige Anbieterprüfung und Wiedergabe der Radioleiste bleiben unverändert.
-
-Build 189 entfernt „Deine Sendezeiten“ vollständig aus der Moderation, einschließlich Kalenderabruf, Aktualisieren und eigenem Modul. Die natürliche Fensterhöhe richtet sich nach den verbleibenden Bediengruppen. Öffentlicher Sendeplan und gespeicherte Termine bleiben erhalten.
-
-Build 188 zentriert Moderation und Leitspruch in der gesamten Kopfkarte. Das Original-Logo bleibt links, das Schließen-X rechts mit 44-px-Bedienfläche. Normale und kompakte Ansicht sowie früher HTML-Kopf sind berücksichtigt; Studiofunktionen, natürliche Höhe und andere Overlays bleiben erhalten.
-
-Build 187 zentriert Sendeplan und Leitspruch in der gesamten Kopfkarte. Das Original-Logo bleibt links, das Schließen-X rechts. Die Ausrichtung gilt bereits für den frühen HTML-Kopf; Kalender, Anfangsmaße, Funktionen und andere Overlays bleiben erhalten.
-
-Build 186 zentriert die Wunschbox-Kopfüberschrift als „MischWerk Wunschbox“ über die gesamte Kopfbreite. Der Schließen-Button bleibt rechts; schmal kann der Titel auf zwei Zeilen umbrechen. Flaches Formular, native Anfangshöhe und Wunsch-/Audiofunktionen bleiben erhalten.
-
-Build 185 entfernt die zusätzliche Kartenfläche um das Wunschformular. Das Formular bleibt funktional erhalten; Textfeld und Sendebutton nutzen die volle Inhaltsbreite. Die eigene Textfeldumrandung bleibt bestehen, das Textfeld erhält mehr Platz. Native Anfangsgröße, Versand, Entwürfe und Quittungen sind unverändert.
-
-Build 184 fasst die Lautstärkebedienung zusammen: Lautstärke steht vor der Stummschalttaste, die jetzt direkt neben dem Regler liegt. Abstände regulär 6 px, kompakt weiterhin 4 px. Native 44-px-Bedienflächen, Prozentfeld, Warnung und sämtliche Audiocontroller bleiben erhalten.
-
-Build 183 vergrößert Schrift und Symbole der öffentlichen Buttons Sendeplan/Wunschbox auf 16/22 px. Schmale Ansichten verwenden passende 14/20 px; begrenzte Verwaltungsrahmen bleiben bedienbar. Die Buttonhöhe bleibt 44 px, einschließlich deaktivierter Wunschbox. Alle Browsercontroller und Audiofunktionen sind unverändert.
-
-Seit Build 182: Die AutoDJ-Anzeige lautet „MischWerk am Pult“. Bestehende Status-/Studioentscheidung, unabhängige Tooltip-/ARIA-Beschreibung, Gestaltung und Wiedergabe einschließlich Heartbeat sind unverändert.
-
-Build 181 ergänzt einen an tatsächlichen Audiofortschritt gebundenen Wiedergabe-Heartbeat in der Radioleiste: alle drei Minuten /confirm über die dokumentierte Client.executeSlashCommand-Methode, erst nach passender frischer mw:refresh-Antwort. Stop, Pause, Nachladen, Fehler, Seitenende und fehlende Verbindung sperren weitere Aufrufe. Im Hintergrund bleibt der bestehende Channel-Leseweg nur bei laufendem Radio aktiv. Gestaltung, vier getrennte Overlays, Rollen, Entwürfe und Wunschtransport bleiben erhalten. Der aktuelle öffentliche OR-Radio-Player belegt diesen Ansatz; eine echte native MischWerk-Timeoutabnahme steht weiterhin aus.
-
-Build 179 nutzt den freien unteren Sendeplanbereich für besser lesbare Tageszeilen: Wochentag 16 px, Datum und Leerhinweis 14 px, Tageszahl 26 px; vollständig leere Wochen nutzen mindestens 50 px hohe Zeilen. Bei vorhandenen Sendungen werden leere Zwischenzeilen kompakter ab 40 px gehalten. Im breiten 820-×-630-Rahmen bleiben alle sieben leeren Tage auf einer Seite; der freie Unterrand sinkt lokal von 118 auf 17 px. An der Oberfläche ausschließlich schedule.css geändert; Farben, vollständige Sendungsinhalte, Pagination, Editor, Rechte und alle JavaScriptmodule bleiben erhalten. Keine neue Hostgrößensteuerung.
-
-
-Themenbearbeitung in Build 178: Eingabe, Zähler, Speichern, Fehler, Bestätigung und Verwerfen behalten feste Feld-/Button-/Folgeabschnittsmaße. Hilfe und Rückmeldung teilen einen festen Statusplatz; Verwerfen wird ohne Layoutänderung sichtbar. Bei diesen Vorgängen erfolgt kein neuer Hostgrößenauftrag. Eine schon sichtbare Studio-Statusmeldung behält während der Themenbearbeitung ihren Platz auch nach ihrem regulären Ausblenden; bewusste Bereichs-/Steuerungswechsel geben ihn frei. Die bestätigte automatische Verkürzung bei anderen Inhalts- und Reiterwechseln bleibt erhalten.
-
-Seit Build 178 passt studio/window ausschließlich die vorhandene Moderationsfensterhöhe an den vollständigen Inhalt an. Die anfangs verfügbare Clienthöhe bleibt die feste Obergrenze. Leere Sendezeiten, wenige Wünsche und kurze Historienlisten hinterlassen keine große untere Leerreserve; mehr Inhalt wächst innerhalb dieser Grenze und bleibt danach paginiert. Die Senderzeit-Fußzeile der Historie entfällt. Ihre tatsächlichen Zeitstempel und Berliner Tagesregeln bleiben erhalten. Größenabhängige Kompaktgestaltung richtet sich nach der anfänglichen Clientgrenze, damit die eigene Verkürzung keine weitere Schrumpfkaskade auslöst. Andere Overlays und die Radioleiste sind davon unabhängig.
-
-Build 177 modernisiert ausschließlich die Moderationsoberfläche in der Farbpalette des Sendeplans. Deine Sendung, Musikwünsche und Heute gespielt besitzen eigene Reiter. Sendestatus mit Anmeldung, Abmeldung und Übergabe, danach Thema, Wunschbox und eigene Sendezeiten stehen untereinander, ohne Kartenraster. Eine separate Übergabezeile entfällt; ein Notizbereich erscheint nur bei tatsächlich empfangenen privaten Hinweisen. Ganze Bediengruppen und vollständige lange Texte werden im vorhandenen Rahmen auf Seiten verteilt. Die Wunschliste zeigt bis zu drei Einträge und eine vollständige, bedienbare Auswahl. Nur die Auswahl wird über den unveränderten Empfangstransport quittiert. Der Sendungsassistent ist aus Backend, Snapshot, Ladeplan und Oberfläche entfernt. Eigene Sendezeiten stammen lesend aus dem vorhandenen mw:schedule-Protokoll. Native Anfangsmaße, getrennte Overlays und eigenständige Headerbar bleiben erhalten.
-
-Build 176 glich ausschließlich die Sendeplanpalette an die Appleiste an. Damals blieben JavaScriptmodule und Geometrie unverändert; Build 177 ergänzt nun den oben beschriebenen Moderationsumbau.
-
-Der Sendeplan ist seit 0.1.175 eine Hörerübersicht. schedule/markup besitzt Teamhinweis und Wochensteuerung, schedule/view stellt vollständige Kalender- und Sendungsdaten dar, schedule.css ausschließlich das neue Aussehen. schedule/pages wählt ohne frühere bewusste Seitenwahl zunächst die erste eingetragene Sendung als Anker; eine manuelle leere Seite bleibt beim Refresh erhalten. Alle sieben Tage bleiben erreichbar. Controller, Editor, Kalenderregeln und schedule/window bleiben unverändert. Der native Rahmen wird nicht nachgeführt.
-
-Vorhang ausschließlich per Chat: /vorhang öffnen und /vorhang schließen. Der bisherige Button, sein Binding und seine Styles entfallen; Inhaberprüfung, globale Speicherung, Hörerausnahmen, Fokus, Werbung und Audio bleiben erhalten.
-
-Die gemessenen Grundinhalte bestimmen seit 0.1.153 ausschließlich die nativen Anfangsmaße: Wunschbox 560 × 340, Moderation 780 × 730, Verwaltung 560 × 630 und Sendeplan 820 × 630 px. Nach bestätigtem Wunsch passt wishes/window die native Wunschhöhe an den tatsächlichen Inhalt an. Andere Overlays behalten ihre festen Maße. Bei echten Hostgrenzen bleiben überlange Inhalte nativ erreichbar.
-
-Alle vier Zusatzbereiche öffnen eine eigene native Overlayseite. ui/overlays prüft Auftrag, Rolle und Radiozuordnung, übernimmt vor dem Wechsel bestätigte Eingaben und übergibt an ui/sessions. Dort entstehen HTMLFile und AppContent.overlayContent mit dem Anfangsmaß des Zielbereichs. Nach canSendAppContent übernimmt sendAppContent selbst das native (Er)setzen und liefert die gespeicherte AppContentSession. Es gibt keinen eigenen Nachschließweg und kein eigenes Ersetzungsflag. Der Close-Listener verwendet den nativen replacing-Parameter; closeView/remove bleibt ausdrücklichem Schließen und dem Sitzungsende vorbehalten. Auch derselbe bewusst erneut gewählte Bereich öffnet frisch; identische Anfrage-IDs werden weiterhin nur einmal ausgeführt. Die Radioleiste bleibt dieselbe Sitzung mit demselben Audioelement.
-
-Die frühere Backend-/Browsernavigation ui/navigation ist gelöscht. Es gibt keine gemeinsame Overlayseite, mw:view-Umschaltung, sharedViews-Ladepläne, allgemeine automatische Höhensteuerung, vorgeladenen fremden Overlaycontroller oder wiederhergestellten Fenster-/Scrollzustände. Ausschließlich wishes/window passt seit 0.1.152 nach bestätigtem Wunsch die native Höhe an den sichtbaren Inhalt an. Die native Ladeansicht der Overlays bleibt in den Appfarben aktiv.
-
-Die Tageshistorie bleibt ein berechtigter Reiter innerhalb der Moderationsseite. Übergreifende Entwürfe und Auswahlwerte liegen ausschließlich im eigenen flüchtigen Radiocache. Laufende Wunschübertragung und private Quittungen besitzen weiterhin ihre bisherigen Fachmodule. Einzelheiten: [Frontend](ARCHITEKTUR-FRONTEND.md), [API](../api/API-NACHWEIS.md), [Prüfung](../pruefung/PRUEFBERICHT.md).
-
-106 Laufzeitdateien: main.js und app.config, 31 Servermodule und 73 Browserdateien einschließlich Original-PNGs und eigener MP3. 44 Frontendkomponenten und 17 Stylesheets.
-
-Die eigenständige Website ist pausiert und vollständig unter website/ abgelegt. Ihr Code und ihre vorbereiteten Adapter werden weder vom Backend noch von der App-Prüfkette oder UPLOAD geladen. tools/preview dient ausschließlich der App-Testvorschau; der normale Websiteeinstieg öffnet keinen Server.
+Stand 05.11.2026. Diese Übersicht beschreibt den aktuellen Aufbau; verbindliche Fach- und Entwicklungsregeln stehen ausschließlich in [AGENTS.md](../../AGENTS.md).
 
 ## Zusammensetzung und Start
 
-main.js lädt server/app.js mit dem dokumentierten KnuddelsServer.execute und übernimmt das globale App. Backendquellen unter src/backend/ werden bytegleich nach app/server/ und beim Paketbau nach UPLOAD/MischWerk/server/ übernommen. Das Kompositionsmodul lädt und verdrahtet Module, verarbeitet aber keine Fachereignisse.
+`app/main.js` lädt `server/app.js` über `KnuddelsServer.execute` und übernimmt das globale `App`. 40 gepflegte ES5/Rhino-Module unter `src/backend/` werden bytegleich nach `app/server/` gebaut. Das Kompositionsmodul verdrahtet Komponenten und Hooks; Fachereignisse liegen in ihren zuständigen Modulen.
 
-index.html fordert Styles und js/start.js während des HTML-Parsens über Client.includeCSS/includeJS an. Das ist wegen der document.write-Implementierung der Plattform erforderlich. ui/composition.js besitzt die explizite Verdrahtung; start.js besitzt den Ladeplan und die einmalige Startfreigabe. Die Zusammensetzung erfolgt nach vollständigem Markup am Bodyende und registrierten Modulen, DOMContentLoaded dient als idempotenter Rückfall. Keine mehrfachen Initialisierungen. Geladenes CSS und fertiges Anfangslayout geben mw-ready frei; langsame Logoantworten blockieren die Radioleiste nicht. Nach 15 Sekunden ohne vollständige Initialisierung erscheint der verständliche Starthinweis. 44 Komponenten und 17 Stylesheets; Pläne siehe [Frontend](ARCHITEKTUR-FRONTEND.md).
+`index.html` fordert CSS und `js/start.js` während des Parsens über `Client.includeCSS/includeJS` an. Das berücksichtigt die `document.write`-Implementierung des SDK. `ui/composition` verdrahtet die benötigten Komponenten einmalig. Vollständiges Markup, registrierte Module und geladenes CSS geben das Anfangslayout frei. Ein langsames Logo blockiert die Radioleiste nicht; fehlende Pflichtressourcen erzeugen einen sichtbaren Fehler. Der einmalige 15-Sekunden-Wächter erkennt einen still fehlgeschlagenen Start.
+
+49 Frontendkomponenten und 18 Stylesheets sind in ansichtsabhängigen Ladeplänen registriert. Die 80 Browser-/Mediendateien, 40 Backenddateien und zwei Einstieg-/Konfigurationsdateien ergeben 122 Laufzeitdateien. [Frontendarchitektur](ARCHITEKTUR-FRONTEND.md).
+
+## Audio, Anbieter und Aktivitätsbestätigung
+
+`radio/connection` besitzt allein Audioquelle, nativen Play/Pause/Load-Zugriff, Hörwunsch, Medienereignisse und den einzelnen Beobachtungs-/Wiederverbindungstimer. `radio/player` bedient den Controller und stellt seinen Zustand dar. Kurze Lücken erhalten Quelle und Browserpuffer; ein bloßes `stalled` bedeutet keinen Audiostopp. Unerwartete Pause wird auf derselben Quelle fortgesetzt. Echte Fehler, Ende oder bestätigter Stillstand führen zu zeitlich gestaffelten neuen Versuchen, solange der Hörwunsch besteht.
+
+Stop, Quellenwechsel, Werbung starten und Seitenende löschen den Hörwunsch. Verspätete Ereignisse/Promises dürfen ihn nicht wiederherstellen. Automatische Erholung erhält Lautstärke und Mute; nur ein bewusster neuer Play-Versuch verwendet die leise Startregel.
+
+`radio/api` prüft die konfigurierte HTTPS-Audioadresse getrennt von den Datenquellen. `radio/provider` besitzt ausschließlich Metadaten, Status, Modus, Abfragegenerationen und Prüfzeiten. Datenfehler oder bestätigte Statuswerte steuern kein Audio. Titel/Interpret bleiben getrennte Originaltexte. Studioanmeldung und Anbieter-LIVE sind unabhängige Fakten, die `radio/presentation` gemeinsam darstellt.
+
+`transport/lifecycle` nutzt den bestehenden Sekundentakt für den Wiedergabe-Heartbeat. Während desselben Hörwunschs bleibt der Drei-Minuten-Termin über Nachladephasen erhalten. `/confirm` setzt tatsächlichen Audiofortschritt, eine passende frische `mw:refresh`-Antwort und danach weiteren Fortschritt voraus. Stop/Seitenende löschen den Zeitplan. Kein zweiter Audio- oder Heartbeatweg bleibt aktiv. [Native Ursache und Tests](../pruefung/PRUEFBERICHT.md).
 
 ## Backendkomponenten
 
@@ -101,14 +35,24 @@ index.html fordert Styles und js/start.js während des HTML-Parsens über Client
 | radio/team.js | Ernennen, Entziehen und paginierte Radio-Team-Ansicht |
 | radio/moderation.js | moderatorKey, invalidateModerator, moderatorIsActive, prune, changeModeration, transferModeration; ausdrückliche Abmeldung leert atomar das Thema |
 | radio/announcements.js | initializeStudioAnnouncements, announceStudioStatus; öffentliche Bottexte und laufzeitinterner Vergleich der Moderator-ID |
-| radio/assistant.js | refreshAssistant, assistantSnapshot, removeAssistantUser; lesender flüchtiger Plancache und echte Studiozeit |
 | radio/handover.js | changeHandover, handoverSnapshot, pruneHandover, dropHandoverForUser; berechtigte Teilnehmer und flüchtige Anfrage |
 | radio/show.js | Thema und Wunschboxstatus mit bestätigten Vorwerten ändern |
 | radio/curtain.js | curtainState, changeCurtain; authentifizierte Ausnahmen, Otterchen als tatsächlicher Inhaber, globalen Vorhang über persist ändern |
 | wishes/queue.js | Flüchtige Queue, Annahme, Deduplizierung, Empfang, Entfernen und private wishPositions aus authentifiziertem User |
 | wishes/transport.js | Wunschprotokoll und sichtbaren Moderationsempfang prüfen |
+| wishes/website.js | Anonyme Websiteherkunft, Inhalt und Wiederholung in derselben flüchtigen Queue |
+| website/access.js | Einmalcode, authentifizierte Kopplung, Rollen-/Präsenzprüfung, Ablauf und Wiederholungsschutz |
+| website/public.js | Öffentliche Radiodaten und Kalenderprojektion ohne interne Identitäten |
+| website/commands.js | Bestätigte Webaufträge an bestehende Fachaktionen verteilen |
+| website/transport.js | HTTP-Callback, begrenzte Antworten und Raten, bewusste Besitzerfreigabe |
+| channel-texts/storage.js | Persistente Bot-Einstellungen und Revisionsmodell |
+| channel-texts/settings.js | Gemeinsame bestätigte Fachänderung für native und Websiteverwaltung |
+| channel-texts/scheduler.js | Ein vorhandener Timer für öffentliche Bot-Ausgabe und Rotationszeiger |
+| channel-texts/transport.js | Native Sitzungskontrolle vor gemeinsamen Bot-Einstellungen |
 | ui/snapshot.js | Berechtigte Ansichtsmodelle und Wunschdarstellung |
 | ui/wish-surface.js | Ausschließlich gepaarte Eingaben und Darstellung weiterreichen; kein Öffnen, Schließen oder Einreihen |
+| ui/loading.js | Optionale native Ladefarben und leere Overlayabdeckung |
+| ui/session-state.js | Aktuelle Sessionmitgliedschaft und Öffnungszeit prüfen |
 | ui/sessions.js | Aktive Sitzung prüfen; openView / closeView und private prepareView; einziger nativer Lebenszyklus, authentifizierte Header-/Overlayzuordnung und Lebensdauer |
 | ui/overlays.js | openOverlay / handleOverlayEvent / expireOverlays; bestätigter Wechsel, flüchtige private Entwürfe, Token und Wiederfreigabe |
 | transport/views.js | send, refresh, broadcast und allgemeines result |
@@ -123,32 +67,33 @@ index.html fordert Styles und js/start.js während des HTML-Parsens über Client
 
 
 
+
 ## Zustand und Datenfluss
 
-state/persistence besitzt den allgemeinen dauerhaften Zustand und Commit; Sendeplanwochen haben einen eigenen Speicheradapter. radio/moderation besitzt ON AIR und private Sperrmarker, radio/handover die flüchtige bestätigte Übergabe. radio/curtain besitzt den globalen Vorhang; Werbewiedergabe bleibt ausschließlich lokal. wishes/queue besitzt die flüchtige Queue und private aktuelle Positionen, wishes/transport die bestehende Wunschübertragung. ui/sessions besitzt authentifizierte Ansichten; Identität und Rechte kommen immer vom Server.
+`state/persistence` besitzt den allgemeinen dauerhaften Zustand und Commit. Sendeplanwochen und Bot-Einstellungen besitzen getrennte Speicheradapter. `radio/moderation` verwaltet die Studioanmeldung einschließlich fester Endzeit oder explizitem Open End; `radio/handover` besitzt die flüchtige bestätigte Übergabe und private Notizen.
 
-Backend wishes/transport und Frontend wishes/wishbox bleiben bytegleich. Der Versandcontroller lebt ausschließlich in der Radioleiste; das native Wunschoverlay reicht Eingaben und Darstellung zwischen authentifizierten gepaarten Sitzungen weiter. ui/overlays übernimmt vor einer neuen Öffnung bestätigte Eingaben und ausstehende Aktionen über Token, Frist und Entwurfsrevision. Neue native Sitzungen erhalten ihre eigenen Öffnungskennungen. Ereignisse geschlossener alter Sitzungen sind unwirksam. Rechteverlust löscht private Verwaltungsentwürfe im flüchtigen Radiocache. Fehlgeschlagene neue Öffnungen erhalten das bisherige Overlay und dessen bestätigte Wunsch-Eingabesequenz.
+`wishes/queue` hält Wünsche ausschließlich im Arbeitsspeicher. Authentifizierte Hörer erhalten ihre eigenen offenen Wünsche; nur berechtigte Moderation sieht fremde Wünsche und Absender. Manuelle Stufen und Entfernen ändern keinen Audiostream. Ein tatsächlicher App-Neustart leert die Queue.
 
-Private Wunschpositionen stammen aus derselben Moderationsqueue, ein eigener Eintrag pro Seite. Generation und Queue-Revision verwerfen alte Antworten. Erledigt/Verwerfen entfernt den ausgewählten Wunsch und lässt Folgeplätze nachrücken; es ist keine automatische Erkennung tatsächlich gespielter Titel. Nur die Moderation sieht fremde Wünsche/Nicks. Ein wirklicher App-Neustart leert die Queue.
+Der Wunschversandcontroller `wishes/wishbox` lebt in der Radioleiste. Das native Wunschfenster reicht Eingaben und Darstellung zwischen authentifizierten gepaarten Sitzungen weiter. Entwurfsabgleich ist gebündelt; Schlusszeichen werden vor Absenden/Schließen übernommen. `ui/overlays` sichert Wechsel mit Token, Frist und Revision. Rechteverlust löscht private Entwürfe; alte geschlossene Sitzungen dürfen keine neuen schließen oder überschreiben.
 
-## Fenster und Anbieter
+## Native Ansichten
 
-ui/layout passt ausschließlich den Inhalt an den tatsächlich vorhandenen Rahmen an. Die Moderation verwendet bei knapper Fläche ihre Arbeitsreiter; Kalender und Historie paginieren weiter innerhalb des vorhandenen Rahmens. Alle übrigen längeren Inhalte bleiben nativ scrollbar. Moderation, Team und Sendeplan fordern nach der Öffnung keine Größenänderung an. Die Wunschbox verwendet weiterhin ihre vorhandene inhaltsgerechte Höhenanpassung über wishes/window und HostFrame.setSize; setMinSize, setMaxSize und setResizable werden nicht verwendet. Die Anfangsmaße stehen im nativen Konstruktor in ui/sessions. radio/viewport besitzt ausschließlich die Radioleistenhöhe.
+`ui/sessions` ist alleiniger Ort für HTMLFile, AppContent, Versand und Schließen. Radio ist eine Headerbar; Wunschbox, Moderation, Verwaltung und Sendeplan sind getrennte native Overlays. `sendAppContent` übernimmt die native Ersetzung. Wiederholte Aufträge mit gleicher Anfrage-ID werden dedupliziert. Die bestehende Headerbar bleibt bei Menüwechseln erhalten.
 
-radio/station validiert ausschließlich explizit konfigurierte öffentliche HTTPS-Adressen und erlaubte Datenhosts. radio/api liest zugeordnete JSON-Felder; keine vom früheren Anbieter abgeleiteten Routen. Seit 0.1.135 liefert die bestätigte SPCast-Statistik Übertragungsstatus für Stream-ID 1 mit Pfad-/Identitätsprüfung; keine feste Arrayposition. Explizite leere Nullantwort bestätigt Stopp, fehlende/fremde/widersprüchliche Daten nicht. Aktive Backupquelle erhalten. Der eigene Player liefert getrennte Titel/Interpret und den ergänzenden Sendemodusdienst; nur autodj/live werden in die interne Boolean-Darstellung umgesetzt. Fehlende Daten bleiben unbekannt. Status- und Titelanfragen behalten eigene Timer und Generationen; parallele Leser derselben URL teilen einen HTTP-Aufruf. LIVE/AutoDJ benötigt bestätigte Übertragung und frischen bekannten Modus; die App-Studioanmeldung bleibt unabhängig. Native Bufferereignisse prüfen den Status zusätzlich sofort, ohne Audioprobe. Stopp sperrt Play und trennt Audio, Wiederanlauf gibt nur Play frei.
+| Ansicht | Anfangsmaß | Inhaltsanpassung |
+| --- | --- | --- |
+| Radio | 200 px hoch | Eigene Höhenlogik in `radio/viewport`; kompakter Fallback bei Clientgrenzen |
+| Wunschbox | 560 × 340 px | `wishes/window` passt die benötigte Inhaltshöhe an |
+| Moderation | 780 × 730 px | `studio/window`, Gruppen-/Textseiten; stabile Geometrie während Themenbearbeitung |
+| Verwaltung | 560 × 630 px | Fester Rahmen, Radio-Team-Pagination und ein Inhalts-Scrollbereich für Bot-Texte |
+| Sendeplan | 820 × 630 px | Fester Rahmen, Kalenderpagination und natürlich erreichbare Inhalte |
 
-[API-Nachweis](../api/API-NACHWEIS.md) · [STREAMPANEL-Einrichtung](../betrieb/INBETRIEBNAHME.md#streampanel-einrichten) · [Prüfbericht](../pruefung/PRUEFBERICHT.md). Öffentlicher Produktanschluss lesend im HTTP-/Edge-Test bestätigt; echte Knuddels-/K3-/STAPP-Abnahme bleibt gesondert offen. Kein Upload oder Neustart ausgeführt.
+Native Overlays erhalten eine aktive leere Ladeabdeckung in #0f1114. Früher HTML-Untergrund passt dazu. Die SDK-Readiness bleibt unverändert; ein verbleibender nativer Erstöffnungsblitz ist nicht als vollständig behoben abgenommen.
 
-wishes/queue besitzt manuelle Wunschstufen mit Vorwertvergleich und Queue-Revision. wishes/transport bleibt bytegleich. ui/snapshot ergänzt für berechtigte Moderatoren ausschließlich queueWindow (höchstens drei Datensätze) und queueStart, ohne die bestehende Einzelauswahl queue/page zu ändern. Vorschauauswahl verwendet mw:refresh; die bisherige Sitzungsauswahl bleibt der Empfangsschutz. Planpersistenz wird ausschließlich bei expliziter Planlesung gelesen; keine Assistentenaktualisierung im Wunschbroadcast. Private Übergabenotizen liegen weiterhin flüchtig in radio/handover.
+## Website und Auslieferung
 
-Die fünf Dateinachweise unter deployment/manifests teilen Server, gemeinsamen Browsercode, Studio und Medien fachlich auf. tools/lib/upload-manifests.cjs liefert die gemeinsame Gruppierung; Builder und unabhängiger Uploadprüfer prüfen vollständiges Inventar und jeden Hash. tools/lib/release-identity.cjs prüft seit Build 163 außerdem die gemeinsame Versions-/Buildkennung aus package.json gegen app.config und die Backendkonfiguration. Die Kennung erscheint im erzeugten Einstieg, im internen Startprotokoll und in allen fünf Manifesten; der Build bleibt reproduzierbar.
+Die Website besitzt einen eigenen Node-Server. Der standardmäßig ausgeschaltete App-WebHook verwendet dieselben Fachaktionen, Rollen und Revisionen. Einmalcode und Bestätigung im Channel koppeln die Identität; private Tokens bleiben auf dem Websiteserver. Es entsteht keine zweite Plan-/Wunschdatenbank. [Anbindung](../../website/docs/ANBINDUNG.md).
 
-Verwaltung (technischer Ansichtstyp team) enthält die Mitgliederverwaltung. Statusmodule, Statusstylesheet, Reiternavigation und gemeinsame Gridreserve sind entfernt. radio/api wird ausschließlich im Radio geladen. Ernennungsentwurf, Entzugsbestätigung, Fokus und privater Overlayentwurf bleiben erhalten; alte Statusauswahl wird ignoriert.
+Fünf Manifeste unter `deployment/manifests/` belegen Server, Browsercode, Studio und Medien. `prepare-upload` bündelt vollständige Quellmodule ausschließlich zur Auslieferung, ohne Minifizierung. `check:upload` prüft Inventar, Zeichenlängen, Bytezahlen und SHA-256. Alle Texte und Manifeste bleiben unter 9500 Zeichen. Der feste Desktop-UPLOAD ist lokal; GitHub-Push, FTP-Übertragung und Knuddels-Update sind getrennte Schritte.
 
-Aktualisieren seit 0.1.120: transport/events prüft optionale Anfrage-IDs vor den vorbereitenden Leseoperationen, damit auch Lesefehler zugeordnet werden können. transport/views ergänzt ausschließlich das ausdrücklich angeforderte mw:state um refreshRequestId. Broadcast und automatische Lesung behalten ihre bisherigen Pakete. Die optionale Kennung ändert weder Persistenz noch Fachrevision, Seitenzuordnung oder das separate Wunschprotokoll.
-
-Sendeplan: Jede native Öffnung beginnt mit 820 × 630 px; danach bestimmt der tatsächliche Viewport die Pagination. Datenladen, Wochenwechsel, Editor und Rückmeldungen ändern das Fenstermaß nicht.
-
-Build 172: ui/loading konfiguriert ausschließlich optionale native Ladeeigenschaften, ui/sessions bleibt alleiniger Öffnungs-/Versandort. prepare-upload.createDelivery erzeugt ausschließlich die Auslieferungstransformation aus vollständigen Quellmodulen; app/www, Architekturprüfung und Längenprüfung bleiben die modulare Quelle. check:upload und check:delivery vergleichen bei bundled=true die reproduzierten Bündelbytes. Keine Vorladefunktion im aktuellen lifecycle.
-
-Build 173: sessions übergibt an loading ausdrücklich, ob eine native Abdeckung aktiv sein soll. Nur die vier Overlays aktivieren die leere dunkle Abdeckung; die eigenständige Radioleiste bleibt bei ihrer bisherigen Abschaltung. Der Emulator modelliert den weißen Loader-Unterbau getrennt von den konfigurierten Ladefarben.
+[API-Nachweis](../api/API-NACHWEIS.md) · [Betrieb](../betrieb/INBETRIEBNAHME.md) · [Prüfbericht](../pruefung/PRUEFBERICHT.md).

@@ -4,6 +4,64 @@ const {createHarness}=require('../support/knuddels.cjs');
 const {configureStream,spcastStatistics}=require('../fixtures/stream.cjs');
 const {playbackHarness}=require('../support/playback.cjs');
 
+test('Neuer Verbindungsweg hält 24 Stunden mit genau einem Play und erhält Statusfehler',()=>{
+ const p=playbackHarness();p.play();p.audio.volume=.73;p.audio.muted=true;p.advance(86400000);
+ p.signals.emit('provider-status',{status:'stopped',previous:'started'});
+ assert.equal(p.audio.playCalls,1);assert.equal(p.audio.paused,false);assert.equal(p.connection.state().wanted,true);
+ assert.equal(p.audio.volume,.73);assert.equal(p.audio.muted,true);
+});
+test('Kurze Engpässe und Ereignisflut erhalten dieselbe Verbindung ohne Anbieterabfragen',()=>{
+ const p=playbackHarness();p.play();p.advance(5000);p.freeze(true);p.audio.readyState=2;
+ for(let i=0;i<100;i++){p.audio.emit('waiting');p.audio.emit('stalled');p.audio.emit('playing');}
+ p.advance(8000);p.freeze(false);p.audio.readyState=4;p.advance(2000);
+ assert.equal(p.audio.playCalls,1);assert.equal(p.connection.state().phase,'playing');assert.equal(p.providerPolls.length,0);
+});
+for(const signal of ['keine','playing'])test('Echter Dauerstillstand verbindet automatisch neu trotz '+signal,()=>{
+ const p=playbackHarness();p.play();p.advance(5000);p.freeze(true);
+ for(let i=0;i<17;i++){p.advance(1000);if(signal==='playing')p.audio.emit('playing');}
+ assert.equal(p.audio.playCalls,2);assert.equal(p.connection.state().wanted,true);
+ p.freeze(false);p.advance(2000);assert.equal(p.connection.state().phase,'playing');
+});
+for(const event of ['error','ended'])test('Transportabbruch '+event+' verbindet selbstständig neu ohne Lautstärkeänderung',()=>{
+ const p=playbackHarness();p.play();p.advance(5000);p.audio.volume=.81;p.audio.muted=true;
+ if(event==='error')p.audio.error={code:2};else p.audio.ended=true;p.audio.emit(event);
+ assert.equal(p.connection.state().phase,'reconnecting');assert.equal(p.connection.state().wanted,true);
+ for(let i=0;i<20;i++)p.audio.emit(event);p.advance(1000);
+ assert.equal(p.audio.playCalls,2);assert.equal(p.audio.volume,.81);assert.equal(p.audio.muted,true);
+ p.advance(2000);assert.equal(p.connection.state().phase,'playing');
+});
+test('Unerwartete native Pause setzt dieselbe Quelle fort',()=>{
+ const p=playbackHarness();p.play();p.advance(5000);const src=p.audio.src;p.audio.pause();
+ assert.equal(p.audio.paused,false);assert.equal(p.audio.playCalls,2);assert.equal(p.audio.src,src);
+});
+test('Wiederholte Ausfälle erhalten Hörwunsch mit begrenzter Rücknahme der Versuchsrate',()=>{
+ const p=playbackHarness();let attempts=0;p.audio.play=()=>{attempts++;throw Error('network');};p.play();
+ p.advance(600000);assert.ok(attempts>=20&&attempts<=30,attempts);assert.equal(p.connection.state().wanted,true);
+ p.stop();const before=attempts;p.window.emit('online');p.advance(600000);assert.equal(attempts,before);
+});
+test('Späte Play-Ablehnung und Ereignisse können nach Stop keinen Neustart auslösen',async()=>{
+ const p=playbackHarness();let reject;p.audio.play=()=>new Promise((resolve,fail)=>{reject=fail;});p.play();p.stop();
+ reject(Error('late'));await Promise.resolve();p.audio.emit('playing');p.audio.error={code:2};p.audio.emit('error');p.window.emit('online');p.advance(600000);
+ assert.equal(p.connection.state().wanted,false);assert.equal(p.connection.state().phase,'stopped');
+});
+test('Explizite Browserfreigabe wird verständlich verlangt ohne heimliche Wiederholungen',async()=>{
+ const p=playbackHarness();let calls=0;p.audio.play=()=>{calls++;return Promise.reject({name:'NotAllowedError'});};p.play();await Promise.resolve();p.advance(600000);
+ assert.equal(calls,1);assert.equal(p.connection.state().phase,'blocked');assert.match(p.document.getElementById('playback-status').textContent,/Freigabe/);
+});
+test('Online-Signal zieht nur eine fällige Wiederverbindung vor, laufender Ton bleibt unangetastet',()=>{
+ const p=playbackHarness();p.play();p.advance(5000);p.window.emit('online');assert.equal(p.audio.playCalls,1);
+ p.audio.error={code:2};p.audio.emit('error');p.window.emit('online');assert.equal(p.audio.playCalls,2);
+ p.stop();p.window.emit('online');p.advance(60000);assert.equal(p.audio.playCalls,2);
+});
+test('Fallback ohne Performance-Uhr hält auch bei Uhrkorrektur die Wiederverbindung fällig',()=>{
+ const p=playbackHarness();p.play();p.advance(5000);p.audio.error={code:2};p.audio.emit('error');
+ p.shiftWall(-3600000);p.advance(3000);assert.equal(p.audio.playCalls,2);assert.equal(p.connection.state().wanted,true);
+});
+for(const invalid of ['seeking','error','paused'])test('Ungültiger Fortschritt bei '+invalid+' verhindert Wiederherstellung nicht',()=>{
+ const p=playbackHarness();p.play();p.advance(5000);p.freeze(true);p.audio[invalid]=invalid==='error'?{code:3}:true;
+ p.audio.currentTime+=100;p.audio.emit('timeupdate');p.advance(17000);assert.equal(p.audio.playCalls,2);assert.equal(p.connection.state().wanted,true);
+});
+
 test('Wiedergabe-Heartbeat sendet ausschließlich alle drei Minuten mit frischer Antwort',()=>{
  const p=playbackHarness();p.advance(600000);assert.equal(p.slashes.length,0);
  p.play();p.advance(180000);assert.equal(p.slashes.length,0);p.advance(2000);assert.equal(p.slashes.length,1);
@@ -11,19 +69,37 @@ test('Wiedergabe-Heartbeat sendet ausschließlich alle drei Minuten mit frischer
  for(let i=1;i<p.slashes.length;i++)assert.ok(p.slashes[i].at-p.slashes[i-1].at>=180000);
  assert.deepEqual(p.errors,[]);
 });
-for(const action of ['stop','pause','waiting','stalled','error','ended','station','provider','offline','pagehide'])test('Heartbeat endet bei '+action+' ohne weiteren Klick',()=>{
+test('Wiederkehrende kurze Datenlücken verschieben den Knuddels-Heartbeat nicht endlos',()=>{
+ const p=playbackHarness();p.play();
+ for(let i=0;i<7;i++){
+  p.advance(55000);p.freeze(true);p.audio.readyState=2;p.audio.emit('waiting');p.advance(2000);
+  p.freeze(false);p.audio.readyState=4;p.advance(3000);
+ }
+ assert.equal(p.slashes.length,2);assert.equal(p.audio.playCalls,1);
+ assert.ok(p.slashes.every(s=>s.command==='/confirm'));assert.ok(p.slashes[1].at-p.slashes[0].at>=180000);
+});
+test('Ein Engpass während einer ausstehenden Heartbeatantwort wartet nicht erneut drei Minuten',()=>{
+ const p=playbackHarness();p.ack('hold');p.play();p.advance(182000);assert.equal(p.activityRequests().length,1);
+ p.freeze(true);p.audio.readyState=2;p.audio.emit('waiting');p.advance(2000);
+ p.freeze(false);p.audio.readyState=4;p.ack('all');p.advance(15000);
+ assert.equal(p.slashes.length,1);assert.ok(p.activityRequests().length<=2);
+});
+for(const action of ['stop','waiting','stalled','offline','pagehide'])test('Heartbeat endet bei '+action+' ohne weiteren Klick',()=>{
  const p=playbackHarness();p.play();p.advance(182000);assert.equal(p.slashes.length,1);
  if(action==='stop')p.stop();
- else if(action==='station')p.signals.emit('station-changed',{configured:true});
- else if(action==='provider')p.signals.emit('provider-status',{status:'stopped',previous:'started'});
  else if(action==='offline'){p.navigator.onLine=false;p.window.emit('offline');}
  else if(action==='pagehide')p.window.emit('pagehide');
- else p.audio.emit(action);
+ else {if(action==='waiting'||action==='stalled'){p.freeze(true);p.audio.readyState=2;}p.audio.emit(action);}
  const queries=p.activityRequests().length;p.advance(600000);assert.equal(p.slashes.length,1);assert.equal(p.activityRequests().length,queries);
 });
-test('Stehende Medienzeit und Zeitsprünge erzeugen keinen Heartbeat; Fortschritt kann neu beginnen',()=>{
+for(const event of ['waiting','stalled'])test('Fortschreitendes Audio übersteht '+event+' auch ohne neues playing und gibt Heartbeat erneut frei',()=>{
+ const p=playbackHarness();p.play();p.advance(182000);assert.equal(p.slashes.length,1);
+ p.audio.emit(event);p.advance(21000);assert.equal(p.audio.paused,false);
+ p.advance(182000);assert.equal(p.slashes.length,2);assert.deepEqual(p.errors,[]);
+});
+test('Stehende Medienzeit und Zeitsprünge erzeugen keinen Heartbeat; bewusster Neustart gibt ihn wieder frei',()=>{
  const p=playbackHarness();p.play();p.freeze(true);p.advance(300000);assert.equal(p.slashes.length,0);
- p.freeze(false);p.advance(182000);assert.equal(p.slashes.length,1);
+ assert.equal(p.connection.state().wanted,true);p.freeze(false);p.stop();p.play();p.advance(182000);assert.equal(p.slashes.length,1);
  p.audio.currentTime+=600;p.advance(10000);assert.equal(p.slashes.length,1);p.advance(180000);assert.equal(p.slashes.length,2);
 });
 test('Direkt vor Fälligkeit eingefrorene Medienzeit darf keinen Heartbeat erzeugen',()=>{

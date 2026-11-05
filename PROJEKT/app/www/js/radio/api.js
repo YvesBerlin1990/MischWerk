@@ -16,6 +16,10 @@ MischWerkUI.define('radioApi', function () {
       return !secret;
     } catch (error) { return false; }
   }
+  function audioUrl(station) {
+    return station && station.configured && station.provider === 'streampanel' &&
+      publicUrl(station.streamUrl, station.allowedHosts) ? station.streamUrl : null;
+  }
   function streamUrls(station) {
     if (!station || !station.configured || station.provider !== 'streampanel' ||
         !publicUrl(station.streamUrl, station.allowedHosts) || !station.fields || !station.statusValues) { return null; }
@@ -118,6 +122,6 @@ MischWerkUI.define('radioApi', function () {
         isLive: typeof live === 'boolean' ? live : responses[1] };
     });
   }
-  return { streamUrls: streamUrls, fetchProviderStatus: fetchProviderStatus,
+  return { audioUrl: audioUrl, streamUrls: streamUrls, fetchProviderStatus: fetchProviderStatus,
     fetchStationStatus: fetchStationStatus, fetchMetadata: fetchMetadata };
 });

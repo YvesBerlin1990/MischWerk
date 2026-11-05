@@ -7,7 +7,7 @@ MischWerkUI.define('studio', function (dependencies) {
   var commands = dependencies.commands;
   var signals = dependencies.signals;
   var topicDirty = false;
-  var topicRequest = null, serverAnchor=0, localAnchor=0;
+  var topicRequest = null;
   function releaseTopicSpace() { dom.el('notice').removeAttribute('data-topic-reserved'); }
   function refreshControls() { signals.emit('controls'); }
   function topicFeedback(message, error) {
@@ -38,18 +38,10 @@ MischWerkUI.define('studio', function (dependencies) {
     ['on-air', 'off-air', 'toggle-wishes'].forEach(function (id) { dom.el(id).disabled = !!commands.pending() || !live || !model.current().user.canModerate; });
     dom.el('off-air').disabled = dom.el('off-air').disabled || !model.current().user.canEndModeration;
     dom.el('on-air').disabled = dom.el('on-air').disabled || !!(model.current().moderator && !model.current().user.isOnAir);
-    dom.setText('on-air', model.current().user.isOnAir ? 'Anmeldung verlängern' : model.current().moderator ? 'Moderation läuft' : 'Moderation übernehmen');
+    dom.setText('on-air', model.current().user.isOnAir ? 'Endzeit ändern' : model.current().moderator ? 'Moderation läuft' : 'Moderation übernehmen');
     dom.setText('off-air', model.current().moderator && !model.current().user.isOnAir ? 'Moderation beenden' : 'Abmelden');
-    dom.el('on-air').title = model.current().user.isOnAir ? 'Deine Studio-Anmeldung erneut für bis zu sechs Stunden bestätigen' : model.current().moderator ? 'Bitte die aktive Moderation um eine Übergabe bitten' : 'Dich als Moderation in der Channel-Leiste anzeigen';
+    dom.el('on-air').title = model.current().user.isOnAir ? 'Endzeit deiner Moderation festlegen oder Open End auswählen' : model.current().moderator ? 'Bitte die aktive Moderation um eine Übergabe bitten' : 'Dich als Moderation in der Channel-Leiste anzeigen';
     dom.el('off-air').title = !model.current().moderator ? 'Niemand ist als Moderation angemeldet' : model.current().user.canEndModeration ? 'Studio-Anmeldung beenden' : 'Nur die aktive Moderation oder der Channel-Besitzer kann abmelden';
-    var expiresAt = model.current().moderator && model.current().moderator.expiresAt;
-    dom.el('studio-session').hidden = !live || !expiresAt;
-    dom.setText('studio-session', expiresAt ? 'Angemeldet bis ' + dom.time(expiresAt) + ' Uhr' : '');
-    var presenter=model.current().moderator;
-    dom.el('studio-timing').hidden=!live||!presenter;
-    dom.setText('studio-started',presenter?dom.time(presenter.since)+' Uhr':'');
-    var elapsed=presenter?Math.max(0,Math.floor(((serverAnchor||model.current().serverTime)+Date.now()-localAnchor-presenter.since)/60000)):0;
-    dom.setText('studio-duration',Math.floor(elapsed/60)+' Std. '+(elapsed%60)+' Min.');
     dom.el('toggle-wishes').setAttribute('aria-checked', String(model.current().requestsEnabled));
     dom.setText('toggle-label', model.current().requestsEnabled ? 'Ein' : 'Aus');
     dom.setText('studio-wish-state', model.current().requestsEnabled ? 'Musikwünsche sind offen' : 'Musikwünsche sind geschlossen');
@@ -64,7 +56,6 @@ MischWerkUI.define('studio', function (dependencies) {
       dom.el(id).addEventListener('click',releaseTopicSpace);
     });
     signals.on('studio-selection',function(selection){if(selection.tab!=='programme')releaseTopicSpace();});
-    signals.on('snapshot',function(){serverAnchor=model.current().serverTime;localAnchor=Date.now();});
     signals.on('overlay-capture', function (state) {
       if (model.view !== 'studio') { return; }
       state.studio = { topic:topicDirty ? dom.el('studio-topic').value : null };
@@ -77,7 +68,10 @@ MischWerkUI.define('studio', function (dependencies) {
         topicFeedback('Ungespeicherte Änderungen', false); refreshControls();
       }
     });
-    dom.el('on-air').addEventListener('click', function () { commands.send('mw:onAir', {}, true); });
+    dom.el('on-air').addEventListener('click', function () {
+      if (model.current().user.isOnAir) { signals.emit('studio-end-edit'); }
+      else { commands.send('mw:onAir', {}, true); }
+    });
     dom.el('off-air').addEventListener('click', function () { commands.send('mw:offAir', {}, true); });
     dom.el('studio-topic').addEventListener('input', function () {
       topicDirty = this.value !== (model.current().topic || '');

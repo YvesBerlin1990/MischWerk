@@ -7,6 +7,7 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         runtime.load();
         runtime.loadWishes();
         runtime.startChannelTexts();
+        runtime.startWebsite();
         try { runtime.refreshUiCache(); }
         catch (error) { runtime.warn('APP_UI_CACHE', error); }
         KnuddelsServer.getDefaultLogger().info('MischWerk ' + config.version + ' (Build ' + config.buildNumber + '): Radioleiste mit Channel-Overlays für Moderation, Verwaltung, Wunschbox und Sendeplan gestartet. ' +
@@ -22,6 +23,7 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
 
     runtime.prepareShutdown = function () {
         runtime.shuttingDown = true;
+        runtime.clearWebsiteLogins();
         runtime.stopChannelTexts();
         runtime.broadcast();
     };
@@ -31,6 +33,7 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         try {
             runtime.load();
             var userId = runtime.userId(user);
+            runtime.dropWebsiteUser(userId);
             if (runtime.state.moderator && runtime.state.moderator.userId === userId) {
                 runtime.invalidateModerator();
                 changed = true;
@@ -49,6 +52,7 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         runtime.loadWishes();
         runtime.removeWishesForUser(userId);
         userId = runtime.numericUserId(userId);
+        runtime.dropWebsiteUser(userId);
         runtime.dropHandoverForUser(userId, true);
         var next = runtime.copy(runtime.state);
         if (next.moderator && next.moderator.userId === userId) { next.moderator = null; }

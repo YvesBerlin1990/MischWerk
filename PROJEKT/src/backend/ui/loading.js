@@ -3,8 +3,8 @@ MischWerkModules.configureLoading = function (loading, enabled) {
     'use strict';
     [
         ['setText', ''],
-        ['setForegroundColor', '#0a0a0a'],
-        ['setBackgroundColor', '#0a0a0a'],
+        ['setForegroundColor', '#0f1114'],
+        ['setBackgroundColor', '#0f1114'],
         ['setEnabled', enabled === true]
     ].forEach(function (setting) {
         try {

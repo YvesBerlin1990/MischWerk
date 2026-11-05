@@ -101,7 +101,7 @@ html[data-view=schedule] input { border-color:var(--line); }
 
 /* Im festen 630-px-Rahmen bleibt eine leere breite Woche vollständig sichtbar. */
 @media (max-height:700px) {
- html[data-view=schedule] .dialog-header { --dialog-logo:40px; --dialog-title:26px; --brand-padding:11px; min-height:72px; padding:8px 16px; }
+ html[data-view=schedule] .dialog-header { --dialog-logo:64px; --dialog-title:26px; --brand-padding:8px; --dialog-gap:8px; min-height:72px; padding:3px 12px; }
  html[data-view=schedule] .dialog-shell { padding-bottom:16px; }
  html[data-view=schedule] .dialog-content { padding:16px 16px 0; }
  .schedule-intro { margin-bottom:8px; }

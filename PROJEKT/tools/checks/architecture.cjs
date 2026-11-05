@@ -12,7 +12,9 @@ function checkArchitecture() {
   const allBackend = Object.values(backend).join('\n');
   assert.doesNotMatch(allBackend, /KnuddelsServer\.(?:set|clear)(?:Timeout|Interval)\s*\(/, 'Hosttimer sind globale Funktionen, keine unbelegten KnuddelsServer-Methoden');
   assert.equal((allBackend.match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Genau ein serverseitiger Versandtimer');
-  assert.doesNotMatch(allBackend, /attachWebsite|registerWebsite|submitWebsiteWish|getWebHookAccess|mischwerk-web/, 'Pausierte Website ist nicht Teil der Radio-App');
+  assert.match(backend['website/transport.js'], /getWebHookAccess\(\)\.registerWebHook\('website', handle\)/, 'Website verwendet ausschließlich dokumentierten WebHook');
+  assert.doesNotMatch(backend['website/commands.js'], /handleEvent|handleScheduleEvent|handleChannelTextEvent|new User|sendAppContent/, 'Webadapter verwendet Fachaktionen ohne native Sitzungsattrappe');
+  assert.match(backend['website/access.js'], /runtime\.isModerator\(person\)/, 'Websitzung prüft aktuelle Channelrechte');
   for (const method of ['sendAppContent', 'overlayContent', 'headerbarContent', 'remove']) {
     assert.equal((allBackend.match(new RegExp('\\.' + method + '\\s*\\(', 'g')) || []).length, 1, 'Genau ein nativer Lebenszykluspfad: ' + method);
   }
@@ -54,6 +56,12 @@ function checkArchitecture() {
     assert.ok(!/Client\.includeJS|factories\./.test(source), 'Fachmodule dürfen keine anderen Module laden: ' + file);
   }
   const frontend = frontendFiles.filter(file => file.endsWith('.js')).map(file => read('app/www/' + file)).join('\n');
+  assert.doesNotMatch(frontend, /playbackFailed|playbackTimedOut|wantedPlayback|station-changed/, 'Abgelöste Verbindungssteuerung vollständig entfernt');
+  const radioController = read('app/www/js/radio/player.js') + read('app/www/js/radio/provider.js');
+  assert.doesNotMatch(radioController, /audio\.(?:src|play|pause|load)|provider\.poll\(/, 'Nur radio/connection besitzt die Audioquelle; keine Statusabfrage durch Medienereignisse');
+  const radioConnection = read('app/www/js/radio/connection.js');
+  assert.doesNotMatch(radioConnection, /provider|fetch\(|XMLHttpRequest|AudioContext|new Audio/, 'Ein direkter nativer Stream ohne parallele Anbieter-/Audiowege');
+  assert.equal((radioConnection.match(/setTimeout\(/g) || []).length, 1, 'Ein Timer für Verbindung und Wiederherstellung');
   assert.doesNotMatch(frontend, /sharedViews|model\.shared|switchView|view-select|view-changed|enterView|dialogLimit|studioHostTimer|mw:view/, 'Alte gemeinsame Navigation und automatische Overlaygrößen entfernt');
   assert.doesNotMatch(read('app/www/js/ui/layout.js'), /getHostFrame|setSize|setMinSize|setMaxSize|setResizable/, 'Overlaylayout verändert keine nativen Fenstermaße');
   const wishWindow = read('app/www/js/wishes/window.js');

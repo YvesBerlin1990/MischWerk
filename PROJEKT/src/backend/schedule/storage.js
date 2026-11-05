@@ -19,6 +19,15 @@ MischWerkModules.attachScheduleStorage = function (runtime) {
         if (!Array.isArray(list)) { throw new Error('schedule index'); }
         return list;
     }
+    runtime.scheduleNeighbour = function (week, direction) {
+        var list = weeks().filter(function (item) { return direction < 0 ? item < week : item > week; }).sort();
+        if (direction < 0) { list.reverse(); }
+        for (var index = 0; index < list.length; index += 1) {
+            var saved = runtime.readScheduleWeek(list[index]);
+            if (saved.entries.length) { return { week: list[index], revision: saved.revision, entries: saved.entries }; }
+        }
+        return { week: '', revision: 0, entries: [] };
+    };
     runtime.writeScheduleWeek = function (week, next) {
         var saved = runtime.copy(next);
         saved.revision += 1;

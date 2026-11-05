@@ -1,12 +1,13 @@
 {
-  "name": "mischwerk-website-pausiert",
-  "version": "0.1.0",
+  "name": "mischwerk-website",
+  "version": "0.2.0",
   "private": true,
-  "description": "Pausierter eigenständiger Radio-Websiteentwurf; kein Teil der Knuddels-App",
+  "description": "MischWerk Homepage und geschützter Arbeitsbereich mit dokumentierter App-Anbindung",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "preview": "node tools/preview/server.cjs",
-    "test": "node --test tests/node/website.test.cjs tests/browser/website.browser.test.cjs"
+    "preview": "node tools/server/server.cjs",
+    "test": "node --test tests/node/website.test.cjs tests/node/workspace.test.cjs tests/browser/website.browser.test.cjs tests/browser/workspace.browser.test.cjs",
+    "start": "node tools/server/server.cjs"
   },
   "dependencies": {
     "nodemailer": "10.3.1"
@@ -15,6 +16,6 @@
     "playwright": "1.57.0"
   },
   "engines": {
-    "node": ">=20.12"
+    "node": ">=22"
   }
 }

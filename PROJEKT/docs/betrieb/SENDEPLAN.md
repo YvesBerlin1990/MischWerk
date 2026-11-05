@@ -1,38 +1,30 @@
 # MischWerk – Sendeplan
 
-Der Button **Sendeplan** steht in der Radioleiste direkt über der Wunschbox. Er zeigt den Plan in der gemeinsamen Zusatzoberfläche; eine bereits geöffnete Sitzung bleibt beim Bereichswechsel erhalten. Radioleiste und laufender Ton bleiben bestehen. Seit 0.1.139 zeigt dieser öffentliche Bereich ausschließlich den Kalender.
-
-Die Titelhistorie steht ausschließlich dem Channelinhaber und ernannten Radiomoderatoren unter **Moderation → Heute gespielt** zur Verfügung. [Bedienung](INBETRIEBNAHME.md#tageshistorie-verwenden).
+Stand **0.1.223 / Build 223**. Eigenes natives Channel-Overlay; Radioleiste und Ton bleiben bestehen. Öffentlich ist nur der Kalender. Die Titelhistorie gehört ausschließlich zur berechtigten [Moderation](INBETRIEBNAHME.md#tageshistorie-verwenden).
 
 ## Wochenübersicht
 
-Die Ansicht startet mit der aktuellen Woche von Montag bis Sonntag. Jeder Tag zeigt Wochentag und Datum. Geplante Sendungen enthalten Von-/Bis-Zeit, Moderator und Thema; leere Tage zeigen „Keine Sendung geplant“. Der heutige Tag wird markiert. Zeiten sind deutsche Ortszeit; die Datumsgrenze berücksichtigt MEZ/MESZ unabhängig von der Serverzeitzone.
+Start mit der aktuellen Woche Montag bis Sonntag. Tage zeigen Datum, Zeiten, Moderation und Thema. Freie Zeiten erscheinen als **AutoDJ (MischWerk)**; daraus entstehen keine zusätzlichen gespeicherten Einträge. Der heutige Tag ist markiert. Zeiten gelten in Europe/Berlin einschließlich Sommer-/Winterzeit.
 
-Mit den Pfeilen wechseln Sie zur vorherigen oder nächsten Woche. **Diese Woche** kehrt zur aktuellen Woche zurück. Solange diese Ansicht ausgewählt bleibt, folgt sie auch dem nächsten Wochenwechsel. Bewusst ausgewählte andere Wochen bleiben stehen. Seit 0.1.122 öffnet das Desktopfenster unmittelbar mit 820 × 660 px. Es bleibt beim Laden, Wochenwechsel und Bearbeiten in dieser Größe. Reicht der tatsächlich verfügbare Platz für den Plan nicht aus, erscheinen **Zurück**, **Weiter** und eine Seitenangabe unter der Liste. Auch lange einzelne Tage werden vollständig auf Folgeseiten fortgesetzt. Alle Termine werden bei Bedarf über mehrere kleine Datenpakete nachgeladen; diese Übertragung ist unabhängig von der sichtbaren Seiteneinteilung.
-
-Ein Ende vor dem Beginn bedeutet den Folgetag, beispielsweise Sonntag 22:00 bis Montag 02:00. Die Fortsetzung ist auch am Montag der Folgewoche sichtbar. Gleiche Anfangs- und Endzeiten sowie sich überschneidende Sendungen werden zurückgewiesen. Es handelt sich um datierte Einträge, nicht um automatisch wiederkehrende Termine.
+Pfeile wechseln die Woche, **Diese Woche** kehrt zurück. Bewusst ausgewählte andere Wochen bleiben beim Aktualisieren erhalten. Anfangsgröße **820 × 630 px**, ohne nachträgliche Größenaufträge. Alle Einträge bleiben bei knappen Rahmen über Seiten und natürlichen Überlauf erreichbar.
 
 ## Nur der Channelinhaber bearbeitet
 
-Alle Nutzer können lesen. Ausschließlich der tatsächliche Channelinhaber sieht **Sendung eintragen** und **Bearbeiten** und darf Änderungen speichern. Radiomoderatoren, Channelmoderatoren und Appmanager erhalten dadurch keine Schreibrechte.
+Alle dürfen lesen. Nur der tatsächliche Channelinhaber darf eintragen, bearbeiten und löschen; Radiomoderatoren, Channelmoderatoren und Appmanager erhalten keine Schreibrechte.
 
-1. **Sendung eintragen** öffnen. Die Woche kann vorab über die Pfeile gewählt werden; das ist für Zukunftstermine nicht mehr erforderlich.
-2. Datum frei im Kalender auswählen, auch in zukünftigen Wochen, Monaten oder Jahren. Die passende Woche wird automatisch geladen. Bereits eingegebene Zeiten, Nick und Thema bleiben erhalten. **Speichern** wird freigegeben, sobald die Zielwoche geladen ist. Vorhandenen Knuddels-Nick, Anfangs-/Endzeit und Thema bis 80 Zeichen angeben.
-3. **Speichern** wählen. Der Moderator muss der Channelinhaber oder ein bereits im Radio-Team ernannter Radiomoderator sein.
-4. Zum Ändern **Bearbeiten** an der Sendung wählen. Dort kann die Sendung auch gelöscht werden. Für einen Wechsel in eine andere Kalenderwoche den Eintrag in der alten Woche entfernen und in der Zielwoche neu anlegen.
+1. **Sendung eintragen** öffnen und Datum wählen, auch in zukünftigen Wochen. Die Zielwoche wird geladen; Eingaben bleiben erhalten.
+2. **Sendeart:** Live mit berechtigtem Moderator oder AutoDJ mit dem Namen MischWerk.
+3. **Laufzeit:** Feste Zeit, Ganztags oder Open End. Thema bis 80 Zeichen.
+4. **Speichern** bestätigt den Eintrag. Bearbeiten erlaubt Änderungen und Löschen. Wechsel in eine andere Speicherwoche durch Entfernen und erneutes Anlegen.
 
-Die Planung meldet niemanden automatisch im Studio an und steuert keinen Anbieter-Encoder. Die tatsächliche ON-AIR-Anmeldung bleibt unabhängig.
+Bei fester Zeit bedeutet Ende vor Beginn den Folgetag; gleiche Zeiten sind ungültig. Ganztags gilt von 00:00 bis 00:00 am Folgetag. Open End reicht ohne erfundene Endzeit bis zur nächsten geplanten Sendung, gegebenenfalls über Wochen. Feste Überschneidungen werden abgewiesen. Datierte Einträge wiederholen sich nicht automatisch.
+
+Planung meldet niemanden im Studio an und steuert weder AutoDJ noch Encoder. Der frühere Sendungsassistent und Deine Sendezeiten sind entfernt.
 
 ## Verlässliche Änderungen
 
-Das Backend prüft bei jedem Schreibzugriff die authentifizierte Sitzung, tatsächlichen Channelbesitz, Kalenderdaten und Wochenrevision. Ein veralteter Entwurf überschreibt keine zwischenzeitliche Änderung. Bei Speicherfehlern bleibt der Entwurf erhalten. Neue Einträge lassen sich nach einem App-Neustart wieder lesen.
+Backend prüft Sitzung, Channelbesitz, Kalenderdaten und Wochenrevision. Veraltete Entwürfe überschreiben keine zwischenzeitliche Änderung; Fehler erhalten Eingaben. Wochenpläne bleiben über Neustarts gespeichert, getrennt von der flüchtigen Wunschqueue.
 
-Wochenpläne liegen getrennt vom allgemeinen Appzustand unter `mischwerk.schedule.v1.<Montag>`. Ein eigener Wochenindex ermöglicht die personenbezogene Bereinigung bei Nutzerlöschung. Öffentlich übertragen werden Datum, Zeiten, Nick und Thema, keine interne User-ID. Die flüchtige Wunschqueue und deren unbegrenzte Annahme bleiben unabhängig.
+`mw:schedule.*` überträgt kleine Pakete und prüft konsistente Revisionen einschließlich benachbarter Wochen und Open-End-Grenzen. Keine interne User-ID in öffentlichen Daten. Vollständige Wochen werden vor Darstellung zusammengesetzt; Datenpakete und sichtbare Seiten sind getrennt.
 
-Die Client-/Server-Kommunikation verwendet `mw:schedule.get`, `.data`, `.save`, `.delete`, `.result` und `.changed`. Je Paket höchstens 20 Einträge; der Client setzt die vollständige Woche zusammen und prüft Anfrage-ID sowie Revision der aktuellen und vorherigen Woche. Die übrigen Ansichten erhalten keine zusätzlichen Planlisten im allgemeinen Statuspaket.
-
-Architektur: vier Backendmodule unter `src/backend/schedule/`, sieben Frontendkomponenten unter `app/www/js/schedule/` und das zuständige Stylesheet `app/www/css/schedule.css`. Tests: `tests/node/schedule.test.cjs` und `tests/browser/schedule.browser.test.cjs`. Einzelheiten zum lokalen Paket und verbleibender echter Knuddels-Abnahme: [PRUEFBERICHT.md](../pruefung/PRUEFBERICHT.md).
-
-Seit 0.1.46 entfällt die Verbindungsplakette im Kopf des Sendeplans. Lade-, Speicher- und Fehlerrückmeldungen erscheinen weiterhin direkt im Plan.
-
-Seit 0.1.118 liest der Sendungsassistent der Moderation passende Planzeiten und nächste Moderation, ohne Schreibrechte zu erhalten. Ein geplantes Thema kann als Entwurf übernommen werden; die ausdrückliche Themenbestätigung bleibt nötig. Planänderungen benachrichtigen ein bereits geöffnetes Studio. Anmeldung, tatsächliche Ausstrahlung und geplanter Termin bleiben getrennt.
+Vier Backendmodule, sieben Frontendkomponenten sowie `schedule.css` und `schedule-options.css` trennen Fachlogik, Speicherung, Transport und Darstellung. [Prüfbericht](../pruefung/PRUEFBERICHT.md).

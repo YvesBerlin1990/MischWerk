@@ -35,13 +35,15 @@ MischWerkUI.define('scheduleMarkup', function (dependencies) {
         <fieldset id="schedule-fields">
           <h2 id="schedule-editor-title">Sendung eintragen</h2>
           <div class="schedule-form-grid">
+            <label for="schedule-kind">Sendeart<select id="schedule-kind"><option value="live">Live</option><option value="autodj">AutoDJ</option></select></label>
+            <label for="schedule-timing">Laufzeit<select id="schedule-timing"><option value="fixed">Feste Zeit</option><option value="allDay">Ganztags</option><option value="openEnd">Open End</option></select></label>
             <label for="schedule-date">Datum<input id="schedule-date" type="date" required></label>
             <label for="schedule-nick">Moderator<input id="schedule-nick" type="text" maxlength="50" required autocomplete="off" placeholder="Knuddels-Nick"></label>
-            <label for="schedule-start">Von<input id="schedule-start" type="time" required></label>
-            <label for="schedule-end">Bis<input id="schedule-end" type="time" required></label>
+            <label id="schedule-start-field" for="schedule-start">Von<input id="schedule-start" type="time" required></label>
+            <label id="schedule-end-field" for="schedule-end">Bis<input id="schedule-end" type="time" required></label>
           </div>
           <label for="schedule-topic">Thema<input id="schedule-topic" type="text" maxlength="80" required placeholder="Thema der Sendung"></label>
-          <p class="form-hint">Ein Ende vor dem Beginn liegt am Folgetag. Moderator: Channelinhaber oder ernanntes Radio-Team.</p>
+          <p id="schedule-timing-hint" class="form-hint">Ein Ende vor dem Beginn liegt am Folgetag. Live: Channelinhaber oder Radio-Team.</p>
           <div class="schedule-form-actions">
             <button id="schedule-save" class="primary-button" type="submit">Speichern</button>
             <button id="schedule-cancel" class="secondary-button" type="button">Zurück zur Woche</button>

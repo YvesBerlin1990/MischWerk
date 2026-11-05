@@ -1,27 +1,32 @@
-/* Silberne Deck-Tasten; Funktionen, Rollen und tatsächliche Sperren erhalten. */
-.presenter { display:flex; align-items:center; flex-wrap:wrap; gap:0 6px; min-width:0; max-width:100%; border:0; padding:0; background:transparent; font-size:13px; line-height:18px; }
+/* Runde Vinyl-Aktionen; Funktionen, Rollen und tatsächliche Sperren erhalten. */
+.presenter { display:flex; align-items:center; flex-wrap:wrap; gap:0 6px; min-width:0; max-width:100%; border:0; padding:0; background:transparent; font-size:16px; line-height:22px; }
 .on-air-sign { display:inline-flex; align-items:center; gap:6px; min-width:0; font-size:inherit; font-weight:600; color:var(--muted); }
 .on-air-sign::before { content:""; width:6px; height:6px; flex-shrink:0; border-radius:50%; background:var(--muted); }
-.presenter[data-mode=mix] .on-air-sign::before { content:"♪"; display:grid; place-items:center; width:14px; height:18px; background:none; color:#b9bdc3; font-size:17px; }
-.presenter[data-mode=live] .on-air-sign,.presenter[data-mode=moderation] .on-air-sign { color:var(--text); }
+.presenter[data-mode=mix] .on-air-sign::before { content:"♪"; display:grid; place-items:center; width:16px; height:22px; background:none; color:#b9bdc3; font-size:19px; }
+.presenter[data-mode=live] .on-air-sign,.presenter[data-mode=moderation] .on-air-sign { color:var(--live); }
 .presenter[data-mode=live] .on-air-sign::before { background:var(--live); }
-.presenter[data-mode=moderation] .on-air-sign::before { background:#cfd2d6; }
+.presenter[data-mode=moderation] .on-air-sign::before { background:var(--live); }
 #host-name { flex-basis:100%; min-width:0; max-width:100%; overflow-wrap:anywhere; font-size:inherit; font-weight:600; color:var(--text); }
 #host-name::before { content:attr(data-prefix); font-weight:400; color:var(--muted); }
-.presenter[data-mode=live] #host-name,.presenter[data-mode=moderation] #host-name { flex-basis:auto; }
+.presenter[data-mode=live] #host-name,.presenter[data-mode=moderation] #host-name { flex-basis:auto; color:var(--live); }
 .radio-actions-panel { grid-column:4; grid-row:1; display:flex; align-items:center; min-width:0; min-height:84px; padding:0; }
 .bar-actions { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:stretch; width:100%; gap:10px; }
-.wish-button { --action-font:13px; --action-icon:26px; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; min-width:0; min-height:84px; padding:8px 4px; gap:8px; border:1px solid #444; border-radius:18px; background:#1f1f1f; color:#e9eaec; box-shadow:none; text-shadow:none; }
-.wish-button:hover:enabled { background:#292929; border-color:#b9bdc3; }
-.wish-button:active:enabled { background:#141414; }
-.wish-button:disabled { opacity:.6; color:#b4b4b0; }
+.wish-button { --action-font:13px; --action-icon:22px; --action-disc:44px; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; min-width:0; min-height:84px; padding:4px 2px; gap:6px; border:1px solid transparent; border-radius:16px; background:transparent; color:#e9eaec; box-shadow:none; text-shadow:none; }
+.wish-button:hover:enabled { background:#ffffff06; color:#fff5dc; }
+.wish-button:active:enabled { background:#0003; }
+.wish-button:focus-visible { outline:2px solid #e6c77b; outline-offset:-2px; }
+.wish-button:disabled { opacity:.72; color:#b4b4b0; }
+.public-action-icon { display:grid; place-items:center; flex:none; width:var(--action-disc); height:var(--action-disc); border:1px solid #827354; border-radius:50%; color:#e6c77b; background:radial-gradient(circle,#25231e 0 48%,transparent 50%),repeating-radial-gradient(circle,#171817 0 3px,#38362f 4px,#171817 5px 7px); box-shadow:inset 0 1px 0 #fff2,inset 0 -2px 3px #0008; }
+.wish-button:hover:enabled .public-action-icon { border-color:#e6c77b; color:#ffe2a1; box-shadow:inset 0 1px 0 #fff4,inset 0 0 12px #e6c77b18; }
+.wish-button:active:enabled .public-action-icon { border-color:#ad9360; box-shadow:inset 0 2px 5px #000b; }
+.wish-button:disabled .public-action-icon { border-color:#555650; color:#b4b4b0; }
 .wish-button-copy { min-width:0; }
-.wish-button-copy strong { display:block; font-size:var(--action-font); font-weight:700; letter-spacing:0; line-height:1.25; white-space:nowrap; }
+.wish-button-copy strong { display:block; font-size:var(--action-font); font-weight:600; letter-spacing:0; line-height:1.25; white-space:nowrap; }
 #wish-button-caption,#schedule-button-caption { display:none; font-size:12px; line-height:14px; }
 .public-action-icon svg { width:var(--action-icon); height:var(--action-icon); }
 .wish-button-icon .wish-icon-lock,.wishes-closed .wish-icon-music { display:none; }
 .wishes-closed .wish-icon-lock,.wishes-closed #wish-button-caption { display:block; }
-.wishes-closed { padding-block:4px; gap:5px; }
+.wishes-closed { --action-disc:32px; padding-block:4px; gap:5px; }
 .bar-utility-links { grid-column:5; grid-row:1; display:flex; flex-direction:column; justify-self:center; width:100%; max-width:112px; min-width:0; }
 .radio-bar .studio-link { display:flex; align-items:center; justify-content:flex-start; flex:none; width:100%; min-width:44px; height:44px; padding:0 4px; gap:8px; border:1px solid transparent; border-radius:8px; background:transparent; box-shadow:none; text-shadow:none; color:#b4b4b0; font-size:13px; font-weight:600; letter-spacing:0; line-height:18px; white-space:nowrap; }
 .radio-bar .studio-link svg { width:16px; height:16px; color:#b9bdc3; }

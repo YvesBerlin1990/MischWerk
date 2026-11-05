@@ -45,7 +45,7 @@ html[data-view=radio] body::after {
   opacity:.7;
 }
 .radio-program-face { overflow:hidden; border:1px solid #3a3a3a; border-radius:24px; background:#141414; box-shadow:none; }
-.radio-program-face::before { content:""; position:absolute; left:-44px; top:50%; width:200px; height:200px; transform:translateY(-50%); border:2px solid #b9bdc3; border-radius:50%; background:radial-gradient(circle,#a4a9b0 0 39px,transparent 40px),repeating-radial-gradient(circle,#050505 0 9px,#262626 10px 11px,#050505 12px 20px); }
+.radio-program-face::before { content:""; position:absolute; left:-44px; top:50%; width:200px; height:200px; transform:translateY(-50%); border:2px solid #827354; border-radius:50%; background:radial-gradient(circle,#171817 0 39px,transparent 40px),repeating-radial-gradient(circle,#050505 0 9px,#262626 10px 11px,#050505 12px 20px); }
 .radio-program-face::after {
   content:"";
   position:absolute;
@@ -135,16 +135,41 @@ html[data-view=radio] body::after {
       inset 0 0 21px rgba(140,224,238,.075);
   }
 }
-.play-button { border:0; background:#e9eaec; box-shadow:0 0 0 10px #a4a9b0; }
-.play-button:hover:enabled { background:#fff; }
-.play-button:active:enabled { background:#cfd2d6; }
-.play-button.is-offline:disabled { opacity:1; background:#555; color:#b4b4b0; box-shadow:0 0 0 10px #333; transition:none; }
+/* Goldene Vinyl-Taste: unveränderte 60-px-Bedienfläche, ruhige Materialzustände. */
+.play-button {
+  position:relative; border:1px solid #ad9360; color:#e6c77b; background:
+    radial-gradient(circle at 38% 25%,#3c3524,transparent 65%),
+    radial-gradient(circle,#25231e 0 59%,transparent 61%),
+    repeating-radial-gradient(circle,#171817 0 3px,#38362f 4px,#171817 5px 7px);
+  box-shadow:0 0 0 5px #11120f,0 0 0 6px #6f6043,inset 0 1px 0 #fff2,inset 0 -2px 4px #0008;
+}
+.play-button:hover:enabled { border-color:#ffe2a1; color:#ffe2a1; box-shadow:0 0 0 5px #171711,0 0 0 6px #ad9360,inset 0 1px 0 #fff4; }
+.play-button:active:enabled { border-color:#ad9360; color:#e6c77b; box-shadow:0 0 0 5px #11120f,0 0 0 6px #6f6043,inset 0 3px 8px #000b; }
+.play-button:focus-visible { outline:2px solid #ffe2a1; outline-offset:-5px; }
+.play-button:disabled { opacity:1; border-color:#5a5c57; color:#b4b4b0; background:#252525; box-shadow:0 0 0 5px #141414,0 0 0 6px #454740; }
+.play-button.is-offline:disabled { background:#555; transition:none; }
 #play-icon { filter:none; }
+/* Der vorhandene echte Wiedergabestatus schaltet den warmen Goldschein direkt. */
+.playing .play-button:enabled { border-color:#ffe2a1; color:#ffe2a1; }
+.playing .play-button:enabled::after {
+  content:""; position:absolute; inset:-6px; border-radius:50%; pointer-events:none;
+  box-shadow:0 0 12px 2px #e6c77b66,0 0 24px 4px #e6c77b2b;
+}
+.playing .play-button:enabled #play-icon { filter:drop-shadow(0 0 4px #e6c77b66); }
 #radio-panel svg { stroke-width:1.8; }
 .volume-control.is-high { --volume-thumb:#ff8a7e; }
-.volume-control #mute-button { border-color:transparent; border-radius:8px; background:transparent; color:var(--muted); box-shadow:none; }
-.volume-control #mute-button svg { width:18px; height:18px; }
-.volume-control #mute-button:hover:enabled { background:#252525; border-color:#444; }
-.volume-control #mute-button[aria-pressed=true] { background:#252525; border-color:#b9bdc3; }
+/* Kleine sichtbare Scheibe mit Abstand zum Leistenrand; Bedienfläche bleibt 44 px. */
+.volume-control #mute-button { position:relative; border:0; border-radius:50%; background:transparent; color:#e6c77b; box-shadow:none; }
+.volume-control #mute-button::before {
+  content:""; position:absolute; inset:6px; border:1px solid #827354; border-radius:50%;
+  background:radial-gradient(circle at 40% 25%,#302d25,#181818 75%); pointer-events:none;
+}
+.volume-control #mute-button svg { position:relative; width:18px; height:18px; }
+.volume-control #mute-button:hover:enabled { color:#fff0c6; }
+.volume-control #mute-button:hover:enabled::before { border-color:#e6c77b; background:#302b21; }
+.volume-control #mute-button:active:enabled::before { background:#141414; }
+.volume-control #mute-button:focus-visible { outline:2px solid #e6c77b; outline-offset:-3px; }
+.volume-control #mute-button[aria-pressed=true] { color:#ff9a8f; }
+.volume-control #mute-button[aria-pressed=true]::before { border-color:#a06e65; background:#2a1c19; }
 .volume-control.is-high output { color:#ff9a8f; border-color:#ff8a7e; background:#2a1613; padding-inline:1px; }
 .volume-control.is-high output::before { content:"!"; display:inline-grid; place-items:center; width:12px; height:12px; flex-shrink:0; margin-right:4px; border:1px solid currentColor; border-radius:50%; font-size:12px; line-height:1; }

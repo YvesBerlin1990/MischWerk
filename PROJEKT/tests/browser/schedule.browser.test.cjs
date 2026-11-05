@@ -134,6 +134,46 @@ async function scheduleReachable(page) {
     assert.ok(await control.evaluate(node=>{const box=node.getBoundingClientRect();return box.top>=0&&box.bottom<=innerHeight+1;}));
   }
 }
+
+test('Sendeoptionen: AutoDJ ganztags speichern und bearbeiten; Open End begrenzt die freien Planzeiten', async t => {
+  const { owner, listener, errors } = await setup(t);
+  assert.equal(await owner.locator('.schedule-empty').count(), 7);
+  assert.match(await owner.locator('.schedule-empty').first().innerText(), /Ganztags.*AutoDJ.*MischWerk/);
+  await owner.locator('#schedule-new').click();
+  assert.equal(await owner.locator('#schedule-kind').count(), 1);
+  await owner.locator('#schedule-kind').selectOption('autodj');
+  assert.equal(await owner.locator('#schedule-nick').inputValue(), 'MischWerk');
+  assert.equal(await owner.locator('#schedule-nick').getAttribute('readonly'), '');
+  await owner.locator('#schedule-timing').selectOption('allDay');
+  assert.equal(await owner.locator('#schedule-start').isVisible(), false);
+  assert.equal(await owner.locator('#schedule-end').isVisible(), false);
+  await owner.locator('#schedule-save').click();
+  await owner.locator('#schedule-form').waitFor({state:'hidden'});
+  await owner.locator('.schedule-show:visible .schedule-edit').first().click();
+  assert.equal(await owner.locator('#schedule-kind').inputValue(), 'autodj');
+  assert.equal(await owner.locator('#schedule-timing').inputValue(), 'allDay');
+  await owner.locator('#schedule-kind').selectOption('live');
+  await owner.locator('#schedule-nick').fill('Testleitung');
+  await owner.locator('#schedule-timing').selectOption('openEnd');
+  await owner.locator('#schedule-start').fill('18:00');
+  await owner.locator('#schedule-topic').fill('Abend ohne feste Endzeit');
+  const date = await owner.locator('#schedule-date').inputValue();
+  await owner.locator('#schedule-refresh').click();
+  await owner.waitForFunction(() => !document.getElementById('schedule-refresh').disabled);
+  assert.equal(await owner.locator('#schedule-timing').inputValue(), 'openEnd');
+  assert.equal(await owner.locator('#schedule-topic').inputValue(), 'Abend ohne feste Endzeit');
+  await owner.locator('#schedule-save').click();
+  await owner.locator('#schedule-form').waitFor({state:'hidden'});
+  const row = owner.locator('.schedule-show').filter({hasText:'Abend ohne feste Endzeit'}).first();
+  assert.match(await row.innerText(), /18:00.*Open End/);
+  await listener.locator('#schedule-refresh').click();
+  await listener.locator('.schedule-topic').filter({hasText:'Abend ohne feste Endzeit'}).first().waitFor({state:'attached'});
+  assert.equal(await listener.locator('.schedule-edit').count(), 0);
+  const day = owner.locator('.schedule-day[data-schedule-date="'+date+'"]');
+  assert.match(await day.locator('.schedule-autodj-gap').first().innerText(), /00:00.*18:00.*AutoDJ/);
+  assert.equal(await day.locator('.schedule-autodj-gap').count(), 1, 'Keine erfundene AutoDJ-Lücke nach offenem Ende');
+  assert.deepEqual(errors, []);
+});
 test('Sendeplan: Anlegen, Bearbeiten und Löschen durch den Besitzer; Hörer sehen sieben datierte Tage', async t => {
   const { owner, listener, errors } = await setup(t);
   assert.equal(await listener.locator('#schedule-new').isVisible(), false);

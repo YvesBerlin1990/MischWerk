@@ -4,34 +4,35 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Radio MischWerk. Die Mischung macht’s. Hier direkt Radio hören.">
   <title>Radio MischWerk · Die Mischung macht’s.</title>
-  <link rel="stylesheet" href="/preview.css"><link rel="stylesheet" href="/sections.css"><script src="/channel.js" defer></script><script src="/sections.js" defer></script>
+  <link rel="stylesheet" href="/preview.css"><link rel="stylesheet" href="/sections.css"><script src="/site-navigation.js" defer></script><script src="/channel.js" defer></script><script src="/site-components.js" defer></script><script src="/app/www/js/schedule/calendar.js" defer></script><script src="/sections.js" defer></script>
 </head>
-<body class="home-page">
+<body class="home-page" data-site-current="radio">
   <a class="skip-link" href="#radio">Zum Radio</a>
-  <header class="site-header wrap"><a class="wordmark" href="/" aria-label="Radio MischWerk – Startseite">MischWerk<span>RADIO</span></a><nav class="site-nav" aria-label="Hauptnavigation"><a class="header-link" href="#radio">Radio hören</a><a href="#sendeplan">Sendeplan</a><a href="#team">Das Team</a><a href="#bewerbung">Mitmachen</a><a href="#musikwunsch">Musikwunsch</a></nav></header>
+  <header class="site-header wrap" data-menu-open="false"><a class="wordmark" href="/" data-site-link="radio" aria-label="Radio MischWerk – Startseite">MischWerk<span>RADIO</span></a><button id="site-menu-toggle" class="menu-button" type="button" aria-controls="site-navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menü</span></button><nav id="site-navigation" class="site-nav" aria-label="Hauptnavigation"><a href="/" data-site-link="radio">Radio hören</a><a href="/sendeplan" data-site-link="schedule">Sendeplan</a><a href="/team" data-site-link="team">Das Team</a><a href="/mitmachen" data-site-link="applications">Mitmachen</a><a href="/wunschbox" data-site-link="wishes">Wunschbox</a><a class="workspace-link" href="/arbeitsbereich">Arbeitsbereich</a></nav></header>
+  <a id="site-listening" class="listening-link wrap" href="/" data-site-link="radio" hidden>Radio läuft · Zum Player</a>
   <main class="wrap">
-    <section class="hero" aria-labelledby="welcome">
+    <section data-site-page="radio" class="hero" aria-labelledby="welcome">
       <div class="hero-copy"><p class="eyebrow">Radio MischWerk</p><h1 id="welcome">Die Mischung<br><em>macht’s.</em></h1><p class="intro">Schön, dass du da bist.<br>Mach’s dir bequem und schalt ein.</p><a class="text-link" href="#radio">Hier läuft das Radio <span aria-hidden="true">↓</span></a></div>
       <div class="brand-art"><img src="/app/www/img/mischwerk-logo.png" width="1254" height="1254" alt="MischWerk – Zahnrad, Schallplatte und Mischpult" fetchpriority="high"></div>
     </section>
-    <section id="radio" class="listen-section" aria-labelledby="listen-title">
+    <section data-site-page="radio" id="radio" class="listen-section" aria-labelledby="listen-title">
       <div class="section-heading"><div><p class="eyebrow">Zum Einschalten</p><h2 id="listen-title">Hier spielt die Musik.</h2></div><p>Ein Klick auf Play, und du bist dabei.</p></div>
-      <div class="player-shell"><iframe id="radio-frame" title="Radio MischWerk – Player" allow="autoplay" src="/preview?embedded=1&amp;radio=public"></iframe></div>
+      <div class="player-shell"><iframe id="radio-frame" title="Radio MischWerk – Player" allow="autoplay" data-player-src="/preview?embedded=1&amp;radio=public"></iframe></div>
       <p class="player-note">Du bestimmst, wann es losgeht. Der Player startet leise.</p>
     </section>
-    <section id="sendeplan" class="site-section" aria-labelledby="schedule-heading">
+    <section data-site-page="schedule" id="sendeplan" class="site-section" aria-labelledby="schedule-heading">
       <div class="section-heading"><div><p class="eyebrow">Das Programm</p><h2 id="schedule-heading">Der Sendeplan.</h2></div><p>Alle Zeiten sind in deutscher Ortszeit angegeben.</p></div>
       <div class="week-navigation"><button id="schedule-previous" class="small-button" type="button" aria-label="Vorige Woche">←</button><p id="schedule-week" aria-live="polite"></p><button id="schedule-next" class="small-button" type="button" aria-label="Nächste Woche">→</button><button id="schedule-today" class="small-button week-today" type="button">Diese Woche</button></div>
       <p id="schedule-status" class="section-status" role="status">Der Sendeplan wird geladen …</p>
       <div id="schedule-weekdays" class="schedule-grid"></div>
       <noscript><p>Bitte aktiviere JavaScript, um den Sendeplan zu laden.</p></noscript>
     </section>
-    <section id="team" class="site-section" aria-labelledby="team-heading">
+    <section data-site-page="team" id="team" class="site-section" aria-labelledby="team-heading">
       <div class="section-heading"><div><p class="eyebrow">Hinter dem Mikrofon</p><h2 id="team-heading">Das ist MischWerk.</h2></div><p>Die Menschen hinter dem Radio.</p></div>
       <div id="team-list" class="team-grid"><p class="section-status">Die Vorstellungen werden geladen …</p></div>
     </section>
     <div class="forms-grid">
-      <section id="bewerbung" class="site-section" aria-labelledby="application-heading">
+      <section data-site-page="applications" id="bewerbung" class="site-section" aria-labelledby="application-heading">
         <div class="section-heading"><div><p class="eyebrow">Mitmachen</p><h2 id="application-heading">Dein Platz am Mikrofon.</h2></div></div>
         <p class="section-intro">Du möchtest selbst moderieren? Erzähl uns ein bisschen von dir und wann du Zeit zum Senden hättest.</p>
         <form id="application-form" class="site-form">
@@ -43,7 +44,7 @@
           <button class="submit-button" type="submit" disabled>Bewerbung senden</button><p id="application-status" class="section-status" role="status">Der Versand wird geprüft …</p>
         </form>
       </section>
-      <section id="musikwunsch" class="site-section" aria-labelledby="wish-heading">
+      <section data-site-page="wishes" id="musikwunsch" class="site-section" aria-labelledby="wish-heading">
         <div class="section-heading"><div><p class="eyebrow">Dein Song</p><h2 id="wish-heading">Was möchtest du hören?</h2></div></div>
         <p class="section-intro">Schreib uns Interpret und Titel. Wann dein Wunsch läuft, entscheidet die Moderation.</p>
         <form id="site-wish-form" class="site-form">
@@ -54,6 +55,6 @@
       </section>
     </div>
   </main>
-  <footer class="wrap site-footer"><span>Radio MischWerk <span aria-hidden="true">/</span> Die Mischung macht’s.</span><div class="footer-links"><span>Pausierter Website-Entwurf</span><a href="/channel.html?role=listener">Testansichten</a><a href="/app/www/fonts/OFL.txt">Schriftlizenz</a></div></footer>
+  <footer class="wrap site-footer"><span>Radio MischWerk <span aria-hidden="true">/</span> Die Mischung macht’s.</span><div class="footer-links"><span>Lokaler Website-Entwurf</span><a href="/channel.html?role=listener">Testansichten</a><a href="/app/www/fonts/outfit-OFL.txt">Schriftlizenzen</a></div></footer>
 </body>
 </html>

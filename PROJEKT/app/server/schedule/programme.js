@@ -9,7 +9,7 @@ MischWerkModules.attachScheduleProgramme = function (runtime) {
     }
     function publicEntry(entry, week) {
         return { id: entry.id, week: week, date: entry.date, start: entry.start, end: entry.end,
-            nick: entry.nick, topic: entry.topic };
+            nick: entry.nick, topic: entry.topic, kind: entry.kind || 'live', timing: entry.timing || 'fixed' };
     }
     runtime.schedulePage = function (user, date, page) {
         var today = runtime.scheduleToday();
@@ -18,15 +18,23 @@ MischWerkModules.attachScheduleProgramme = function (runtime) {
         var previous = runtime.scheduleDay(week, -7);
         var previousSaved = runtime.readScheduleWeek(previous);
         var entries = saved.entries.map(function (entry) { return publicEntry(entry, week); });
-        previousSaved.entries.forEach(function (entry) {
-            if (entry.date === runtime.scheduleDay(week, -1) && entry.end < entry.start && entry.end !== '00:00') {
-                entries.push(publicEntry(entry, previous));
-            }
-        });
+        var before = runtime.scheduleNeighbour(week, -1), after = runtime.scheduleNeighbour(week, 1);
+        if (before.entries.length) { entries.push(publicEntry(ordered(before.entries).pop(), before.week)); }
+        if (after.entries.length) { entries.push(publicEntry(ordered(after.entries)[0], after.week)); }
         entries = ordered(entries);
+        var beginning = runtime.scheduleDate(week) / 60000, finish = beginning + 7 * 1440;
+        entries = entries.filter(function (entry, index, timeline) {
+            var interval = runtime.scheduleInterval(entry);
+            if (entry.timing === 'openEnd') {
+                interval.end = index + 1 < timeline.length ? runtime.scheduleInterval(timeline[index + 1]).start : Infinity;
+                entry.until = isFinite(interval.end) ? interval.end : null;
+            }
+            return interval.start < finish && interval.end > beginning;
+        });
         var pages = Math.max(1, Math.ceil(entries.length / 20));
         page = Math.max(0, Math.min(pages - 1, Math.floor(Number(page) || 0)));
         return { week: week, today: today, revision: saved.revision, previousRevision: previousSaved.revision,
+            boundaryRevision: before.week + ':' + before.revision + '/' + after.week + ':' + after.revision,
             canManage: runtime.isChannelOwner(user),
             days: [0, 1, 2, 3, 4, 5, 6].map(function (offset) { return runtime.scheduleDay(week, offset); }),
             entries: entries.slice(page * 20, (page + 1) * 20), page: page, pages: pages, total: entries.length };
@@ -48,16 +56,24 @@ MischWerkModules.attachScheduleProgramme = function (runtime) {
             saved.entries = saved.entries.filter(function (entry) { return entry.id !== id; });
         } else if (type === 'mw:schedule.save') {
             if (runtime.scheduleWeek(data.date) !== week) { throw runtime.failure('Das Datum muss in der angezeigten Woche liegen.'); }
-            var interval = runtime.scheduleInterval(data);
-            var nick = runtime.text(data.nick, 50, true);
-            var access = KnuddelsServer.getUserAccess();
-            if (!access.exists(nick)) { throw runtime.failure('Dieser Knuddels-Nick existiert nicht.'); }
-            var userId = runtime.numericUserId(access.getUserId(nick));
-            if (userId !== runtime.userId(user) && runtime.state.radioModeratorUserIds.indexOf(userId) === -1) {
-                throw runtime.failure('Bitte diesen Moderator zuerst in der Verwaltung ernennen.');
+            var kind = data.kind === undefined ? 'live' : data.kind;
+            if (['live', 'autodj'].indexOf(kind) === -1) { throw runtime.failure('Bitte eine gültige Sendeart auswählen.'); }
+            var interval = runtime.scheduleInterval(data), timing = data.timing || 'fixed';
+            var userId = null, nick = 'MischWerk';
+            if (kind === 'live') {
+                nick = runtime.text(data.nick, 50, true);
+                var access = KnuddelsServer.getUserAccess();
+                if (!access.exists(nick)) { throw runtime.failure('Dieser Knuddels-Nick existiert nicht.'); }
+                userId = runtime.numericUserId(access.getUserId(nick));
+                if (userId !== runtime.userId(user) && runtime.state.radioModeratorUserIds.indexOf(userId) === -1) {
+                    throw runtime.failure('Bitte diesen Moderator zuerst in der Verwaltung ernennen.');
+                }
+                nick = runtime.text(String(access.getNick(userId)), 50, true);
             }
-            var entry = { id: id || saved.nextId, date: data.date, start: data.start, end: data.end,
-                userId: userId, nick: runtime.text(String(access.getNick(userId)), 50, true),
+            var entry = { id: id || saved.nextId, date: data.date, kind: kind, timing: timing,
+                start: timing === 'allDay' ? '00:00' : data.start,
+                end: timing === 'allDay' ? '00:00' : timing === 'openEnd' ? '' : data.end,
+                userId: userId, nick: nick,
                 topic: runtime.text(data.topic, 80, true) };
             [-7, 0, 7].forEach(function (offset) {
                 var otherWeek = runtime.scheduleDay(week, offset);
@@ -65,7 +81,10 @@ MischWerkModules.attachScheduleProgramme = function (runtime) {
                 other.entries.forEach(function (item) {
                     if (offset === 0 && item.id === id) { return; }
                     var occupied = runtime.scheduleInterval(item);
-                    if (interval.start < occupied.end && interval.end > occupied.start) {
+                    // Ein offenes Ende reicht bis zum nächsten geplanten Beginn; gleiche Anfänge bleiben Konflikte.
+                    if (interval.start === occupied.start ||
+                            (interval.start < occupied.start && entry.timing !== 'openEnd' && interval.end > occupied.start) ||
+                            (occupied.start < interval.start && item.timing !== 'openEnd' && occupied.end > interval.start)) {
                         throw runtime.failure('Diese Sendezeit überschneidet sich mit einer bereits geplanten Sendung.');
                     }
                 });

@@ -15,7 +15,7 @@ test('Ladeeigenschaften bleiben einzeln optional, auch bei Fehlern oder fehlende
   const applied = {};
   const loading = { setEnabled() { throw Error('Nicht verfügbar'); }, setText:value => { applied.text=value; },
     setBackgroundColor:value => { applied.background=value; }, setForegroundColor:value => { applied.foreground=value; } };
-  configure(loading);assert.deepEqual(applied,{text:'',foreground:'#0a0a0a',background:'#0a0a0a'});
+  configure(loading);assert.deepEqual(applied,{text:'',foreground:'#0f1114',background:'#0f1114'});
   delete scope.Color;assert.doesNotThrow(() => configure(loading));
   for(const enabled of [false,true]){
     let applied;configure({setEnabled:value => {applied=value;}},enabled);assert.equal(applied,enabled);
@@ -25,7 +25,7 @@ test('Ladeeigenschaften bleiben einzeln optional, auch bei Fehlern oder fehlende
 test('Aktive leere dunkle Ladeabdeckung steht vor Fähigkeitsprüfung und Versand fest', () => {
   for (const action of ['mw:openWishes', 'mw:openStudio', 'mw:openRadioTeam', 'mw:openSchedule']) {
     const { h, owner, os } = fixture();
-    assert.deepEqual(os.content.loading, { background:'#0A0A0A', foreground:'#0A0A0A', text:'', enabled:false });
+    assert.deepEqual(os.content.loading, { background:'#0F1114', foreground:'#0F1114', text:'', enabled:false });
     const checked = [];
     for (const method of ['canSendAppContent', 'sendAppContent']) {
       const original = owner[method];
@@ -36,7 +36,7 @@ test('Aktive leere dunkle Ladeabdeckung steht vor Fähigkeitsprüfung und Versan
     }
     h.event(owner, os, action);
     assert.deepEqual(checked, ['canSendAppContent', 'sendAppContent'].map(method => ({ method, mode:'Overlay',
-      loading:{ background:'#0A0A0A', foreground:'#0A0A0A', text:'', enabled:true } })), action);
+      loading:{ background:'#0F1114', foreground:'#0F1114', text:'', enabled:true } })), action);
     assert.equal(os.removed, false);
   }
 });
@@ -302,8 +302,8 @@ test('main.js laedt fachlich getrennte Serverdateien statt eines Sammelbundles',
 });
 test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
   const result = require('../../tools/checks/architecture.cjs').checkArchitecture();
-  assert.equal(result.backendModules, 34);
-  assert.equal(result.frontendComponents, 46);
+  assert.equal(result.backendModules, 40);
+  assert.equal(result.frontendComponents, 49);
 });
 
 test('Laufzeitprüfung verweigert fremde und fehlende Dateien vor der Paketfreigabe', t => {
@@ -978,7 +978,7 @@ test('Knuddels-Ansicht ist responsiv und schließt den alten JFX-Browser aus', (
 });
 test('Channelbeitritt und Appstart öffnen die Leiste; Wiederöffnen hinterlässt keine doppelte Sitzung', () => {
   const h = createHarness(); const user = h.user(9, 'Hörer');
-  assert.deepEqual(Object.keys(h.app.chatCommands).sort(), ['mischwerk', 'update', 'vorhang']);
+  assert.deepEqual(Object.keys(h.app.chatCommands).sort(), ['mischwerk', 'mischwerk-web', 'update', 'vorhang']);
   h.app.onUserJoined(user); const first = user.sessions[0];
   assert.equal(first.content.viewMode, 'Headerbar');
   h.app.chatCommands.mischwerk(user);

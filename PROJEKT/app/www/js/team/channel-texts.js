@@ -18,6 +18,7 @@ MischWerkUI.define('channelTexts', function (dependencies) {
     });
     dom.el('team-members').hidden = selected !== 'members';
     dom.el('channel-texts-panel').hidden = selected !== 'texts';
+    signals.emit('channel-texts-panel', selected === 'texts');
     if (focus) { dom.el(tabIds[selected]).focus(); }
   }
   function availability() {
@@ -32,6 +33,7 @@ MischWerkUI.define('channelTexts', function (dependencies) {
   }
   function changed() { dirty = true; availability(); }
   function fields(texts) {
+    signals.emit('channel-texts-before-fields');
     var container = dom.el('channel-texts-fields'); container.textContent = '';
     texts.forEach(function (text, index) {
       var row = dom.element('div', 'channel-texts-entry'), heading = dom.element('div', 'channel-texts-entry-heading');
@@ -50,6 +52,7 @@ MischWerkUI.define('channelTexts', function (dependencies) {
       heading.appendChild(label); heading.appendChild(counter); heading.appendChild(remove);
       row.appendChild(heading); row.appendChild(field); container.appendChild(row);
     });
+    signals.emit('channel-texts-fields');
   }
   function fill(data) {
     dom.el('channel-texts-enabled').checked = data.enabled;
