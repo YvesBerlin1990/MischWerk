@@ -75,6 +75,32 @@ test('Direkte Übernahme einer besetzten Moderation bleibt auch mit manipulierte
   assert.equal(h.bot.messages.length, 1);
 });
 
+test('Otterchen als Inhaber empfängt Übergaben ohne Eintrag und behält offene Anfragen beim Entfernen eines optionalen Eintrags',()=>{
+  const {h,owner,os,dj,ds}=fixture();h.event(owner,os,'mw:offAir');h.event(dj,ds,'mw:onAir');
+  const send=()=>h.event(dj,ds,'mw:handover.request',{nick:owner.nick,expectedModerator:h.state(dj,ds).moderator.sessionKey});
+  assert.equal(h.state(dj,ds).handover.candidates.includes(owner.nick),true);
+  assert.equal(result(send()).ok,true);const first=h.state(owner,os).handover.incoming.id;
+  h.event(owner,os,'mw:addRadioModerator',{nick:owner.nick});assert.equal(h.state(dj,ds).handover.outgoing.id,first);
+  assert.equal(result(send()).ok,true);
+  h.event(owner,os,'mw:removeRadioModerator',{userId:owner.id});
+  assert.equal(h.state(owner,os).handover.incoming.id,first);
+  assert.equal(result(h.event(owner,os,'mw:handover.accept',{id:first,topic:'Inhabersendung'})).ok,true);
+  assert.equal(h.state(owner,os).user.isOnAir,true);
+});
+
+test('Privater Annahmebeleg bestätigt die genaue Anfrage auch ohne Notizen und endet mit der übernommenen Sendung',()=>{
+ const {h,owner,os,dj,ds,other,ss,request}=fixture(),id=request();
+ assert.equal(h.state(dj,ds).handover.acceptedId,null);
+ const write=h.store.setObject;h.store.setObject=()=>{throw Error('storage-failed');};
+ assert.equal(result(h.event(dj,ds,'mw:handover.accept',{id})).ok,false);assert.equal(h.state(dj,ds).handover.acceptedId,null);
+ h.store.setObject=write;assert.equal(result(h.event(dj,ds,'mw:handover.accept',{id})).ok,true);
+ assert.equal(h.state(dj,ds).handover.acceptedId,id);assert.equal(h.state(dj,ds).handover.receivedNotes,null);
+ for(const [user,session] of [[owner,os],[other,ss]])assert.equal(h.state(user,session).handover.acceptedId,null);
+ h.event(owner,os,'mw:setTopic',{topic:'Spätere Themenänderung'});h.event(dj,ds,'mw:onAir');assert.equal(h.state(dj,ds).handover.acceptedId,id);
+ h.event(dj,ds,'mw:offAir');assert.equal(h.state(dj,ds).handover.acceptedId,null);
+ h.event(dj,ds,'mw:onAir');assert.equal(h.state(dj,ds).handover.acceptedId,null);
+});
+
 test('Ablehnen, Abbrechen und doppelte Anfrage lassen die bisherige Sendung unverändert', () => {
   const { h, owner, os, dj, ds, other, ss, request } = fixture();
   let id = request();

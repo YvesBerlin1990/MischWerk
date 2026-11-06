@@ -13,5 +13,6 @@ MischWerkModules.attachWebsiteWishes = function (runtime) {
         var item = { id:queue.nextId, senderKey:'website:' + data.visitorId, nick:'Website', text:value,
             submissionId:'web-' + data.submissionId, createdAt:runtime.now(), delivery:null };
         queue.nextId += 1; queue.submissionIds[key] = item.id; queue.items.push(item); queue.revision += 1;
+        runtime.changed('wishes');
     };
 };

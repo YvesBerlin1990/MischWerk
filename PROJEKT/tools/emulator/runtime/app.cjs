@@ -130,7 +130,7 @@ class AppRuntime {
     if (command === '/confirm' && params === '') {
       this.emit('platformCommand', { nick:record.state.nick, command, idleEffect:'not-modelled' }); return;
     }
-    const fn = this.app.chatCommands?.[command];
+    const fn = this.app.chatCommands?.[command.toLowerCase()];
     if (typeof fn !== 'function') throw new Error('Unbekannter Appbefehl.');
     this.invokeFunction(fn, [record.user, String(params), command]);
   }

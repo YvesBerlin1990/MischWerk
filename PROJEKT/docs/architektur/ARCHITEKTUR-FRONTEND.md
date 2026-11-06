@@ -1,18 +1,26 @@
-# MischWerk – Frontendarchitektur 0.1.223 · Build 223
+# MischWerk – Frontendarchitektur 0.1.239 · Build 239
 
-Stand 05.11.2026: **49 Komponenten, 18 Stylesheets, 80 Browser-/Mediendateien**. Das gepflegte Frontend liegt unter `app/www/`. Ladepläne und vollständiges Inventar: `tools/lib/frontend-files.cjs`.
+Stand 06.11.2026: **49 Komponenten, 18 Stylesheets, 80 Browser-/Mediendateien**. Das gepflegte Frontend liegt unter `app/www/`. Ladepläne und vollständiges Inventar: `tools/lib/frontend-files.cjs`.
 
 ## Öffnung und Inhalt
 
-Die Radioleiste bleibt ein eigenes Dokument mit einem Audioelement. Vier Einstiegstasten öffnen jeweils ein getrenntes natives Overlay. Der Server prüft Zielinhalt, Fähigkeit, Identität und Rolle; `sendAppContent` ersetzt die bisherige Overlayansicht. Fachliche Eingaben und laufende Aktionen werden vorher bestätigt übernommen. Gleiche Anfrage-IDs öffnen keine zweite Instanz.
+Die Radioleiste bleibt ein eigenes Dokument mit einem Audioelement. Sendeplan, Wunschbox und die für eingetragene Radiomoderatoren sichtbare Moderation öffnen ein getrenntes natives Overlay; Verwaltung ist über /MW Verwaltung erreichbar. Der Server prüft Zielinhalt, Fähigkeit, Identität und Rolle; `sendAppContent` ersetzt die bisherige Overlayansicht. Fachliche Eingaben und laufende Aktionen werden vorher bestätigt übernommen. Gleiche Anfrage-IDs öffnen keine zweite Instanz.
 
 Der SDK-Ladeweg läuft während des HTML-Parsens. Markup und benötigte Komponenten werden einmalig zusammengesetzt; vollständiges CSS und Anfangslayout setzen `mw-ready`. Pflichtressourcenfehler werden sichtbar gemeldet. Langsame Logos blockieren den Start nicht. Keine private SDK-Readiness-Manipulation, alte gemeinsame Overlaynavigation oder versteckte Vorabfenster.
 
 `ui/layout` passt Inhalte an den tatsächlichen Rahmen an. Native Größen besitzen ausschließlich die fachlich zuständigen Radio-, Wunsch- und Studio-Fenstermodule. Verwaltung und Sendeplan behalten ihre Anfangsmaße. Moderationsgruppen, Historientexte und Kalender bleiben über Seiten vollständig erreichbar; Bot-Texte haben eine gemeinsame Inhalts-Scrollfläche.
 
+Schmale Radioansichten trennen Schallplatte, Musikangaben und Aktionen. Bei höchstens 420 px hoher Moderation scrollt der Wunschbereich mit vollständig erhaltenen Textseiten und Aktionen; die übrigen Radioflächen bleiben erhalten.
+
+studio/pages hält pro Bereich eine logische DOM-Gruppe als Anker. Explizite Seitennavigation geht vor Fokusankern; Größenwechsel und Refresh erhalten Gruppe und Leseposition. Einzelne zu große Gruppen besitzen einen internen nativen Scrollweg. commands.send kann ein fachliches Bestätigungsprädikat erhalten; ausschließlich die bestätigte eigene Übergabe beendet so eine ausstehende Annahme ohne erfundene RPC-Antwort. Der ausschließlich für den Empfänger sichtbare flüchtige acceptedId-Beleg bestätigt dabei die genaue Anfrage auch nach einer späteren Themenänderung. Das Übergabemodul besitzt die Zustandsprüfung und liest nach erfolgreicher Quittung einmal über den bestehenden Refreshweg nach.
+
 ## Fachzustand und Schutz
 
 Der Wunschversandcontroller bleibt in der Radioleiste. `wishes/drawer` und `wishes/relay` übertragen ausschließlich gepaarte Eingaben und Darstellung. Entwurfsabgleich ist gebündelt und identische Rückmeldungen werden dedupliziert. Vor Absenden, X/Escape oder Wechsel wird die letzte Eingabe übernommen. Die kurze Erfolgsquittung besitzt genau einen Darstellungstimer.
+
+Die serverseitige Freigabe enthält automatisch den tatsächlichen Inhaber Otterchen und regulär ernannte Radiomoderatoren. Der Browser leitet keine Inhaberrechte aus dem Nick ab. Die Buttonsichtbarkeit für Moderation benötigt showModerationButton === true und canModerate === true aus demselben bestätigten Snapshot. Fehlende Angaben erzeugen keine Freigabe. Eintragung oder Entfernung kommen über den bestehenden Zustandsbroadcast; der Listenstand wird nicht aus privaten Mitgliedernamen im Browser abgeleitet.
+
+Die Verwaltung hat keinen Button oder Click-Binding in der Appleiste. `/MW Verwaltung` verwendet serverseitig den bestehenden Overlayweg; nach Schließen ist Sendeplan das erreichbare Fokusziel.
 
 Eigene Studio-/Verwaltungs-/Kalenderentwürfe liegen im flüchtigen Cache der Radio-Sitzung. Rechteverlust löscht private Entwürfe. Geschlossene Sitzungen dürfen keine neuen Seiten schließen oder Daten zurückschreiben. Historie lädt ausschließlich in der berechtigten Moderation; Rechteverlust beendet Abrufe und leert private Anzeige/Caches.
 

@@ -2,6 +2,21 @@
 MischWerkModules.attachSessions = function (runtime, config) {
     'use strict';
     var views = [], surfaceSequence = 0;
+    runtime.createChannelContent = function (user, kind, data) {
+        var htmlFile = new HTMLFile(kind === 'relay-settings' ? 'relay-settings.html' : 'index.html', data);
+        var content = kind === 'radio' ? AppContent.headerbarContent(htmlFile, 176) :
+            AppContent.overlayContent(htmlFile, kind === 'schedule' ? 820 : kind === 'studio' ? 780 : 560,
+                kind === 'schedule' ? 630 : kind === 'studio' ? 730 : kind === 'team' ? 630 : kind === 'relay-settings' ? 640 : 340);
+        content.setResponsive(true); content.setAllowJFXBrowser(false);
+        try { MischWerkModules.configureLoading(content.getLoadConfiguration(), kind !== 'radio'); }
+        catch (ignored) { /* Ältere Clients ohne Ladeeigenschaften bleiben bedienbar. */ }
+        if (!user.canSendAppContent(content)) {
+            throw runtime.failure(kind === 'radio' ? 'Dieser Client unterstützt die MischWerk-Channelleiste nicht.' :
+                'Dieser Client unterstützt diese Channelansicht nicht. Die bisherige Ansicht bleibt geöffnet.');
+        }
+        return content;
+    };
+    runtime.deliverChannelContent = function (user, content) { return user.sendAppContent(content); };
     runtime.closeView = function (view) {
         if (!view || view.closed || view.closing) { return; }
         try {
@@ -27,9 +42,9 @@ MischWerkModules.attachSessions = function (runtime, config) {
         var drafts = radio.overlayDrafts;
         if (!runtime.isModerator(user)) { delete drafts.studio; }
         if (!runtime.isChannelOwner(user)) {
-            delete drafts.team;
             if (drafts.schedule) { delete drafts.schedule.scheduleEditor; }
         }
+        if (!runtime.canAdminister(user)) { delete drafts.team; }
         return drafts[kind] || null;
     };
     function selection(opening, kind) {
@@ -44,7 +59,7 @@ MischWerkModules.attachSessions = function (runtime, config) {
         }))) { throw runtime.failure('Bitte öffne die Ansicht in der Radioleiste.'); }
         runtime.load(); runtime.loadWishes();
         if (kind === 'studio' && !runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf das Moderationsmenü öffnen.'); }
-        if (kind === 'team' && !runtime.isChannelOwner(user)) { throw runtime.failure('Nur der Channelinhaber darf das Radio-Team verwalten.'); }
+        if (kind === 'team' && !runtime.canAdminister(user)) { throw runtime.failure('Nur Otterchen als Channelinhaber darf die Verwaltung öffnen.'); }
         runtime.prune();
         if (kind === 'wishes' && !runtime.state.requestsEnabled) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
         var selected = selection(opening, kind), page = selected.page || 0;
@@ -62,18 +77,7 @@ MischWerkModules.attachSessions = function (runtime, config) {
             data.wishSurface = kind === 'wishes'; data.wishSurfaceId = opening.surfaceId; data.wishPresentation = opening.presentation;
         }
         if (JSON.stringify(data).length >= 10000) { throw runtime.failure('Die Ansicht ist gerade zu umfangreich. Bitte erneut versuchen.'); }
-        var htmlFile = new HTMLFile('index.html', data);
-        var content = kind === 'radio' ? AppContent.headerbarContent(htmlFile, 200) :
-            AppContent.overlayContent(htmlFile, kind === 'schedule' ? 820 : kind === 'studio' ? 780 : 560,
-                kind === 'schedule' ? 630 : kind === 'studio' ? 730 : kind === 'team' ? 630 : 340);
-        content.setResponsive(true); content.setAllowJFXBrowser(false);
-        try { MischWerkModules.configureLoading(content.getLoadConfiguration(), kind !== 'radio'); }
-        catch (ignored) { /* Ältere Clients ohne Ladeeigenschaften bleiben bedienbar. */ }
-        if (!user.canSendAppContent(content)) {
-            throw runtime.failure(kind === 'radio' ? 'Dieser Client unterstützt die MischWerk-Channelleiste nicht.' :
-                'Dieser Client unterstützt diese Channelansicht nicht. Die bisherige Ansicht bleibt geöffnet.');
-        }
-        return content;
+        return runtime.createChannelContent(user, kind, data);
     }
     runtime.openView = function (user, kind, automatic, opening) {
         if (kind === 'radio' && automatic === true && views.some(function (view) {
@@ -99,7 +103,7 @@ MischWerkModules.attachSessions = function (runtime, config) {
             if (entry.transition && entry.transition.cancel) { entry.transition.cancel(); }
             if (entry.radioContent) {
                 var radio = views.filter(function (view) { return view.content === entry.radioContent; })[0];
-                if (radio && (closedKind !== 'studio' || runtime.isModerator(user)) && (closedKind !== 'team' || runtime.isChannelOwner(user))) {
+                if (radio && (closedKind !== 'studio' || runtime.isModerator(user)) && (closedKind !== 'team' || runtime.canAdminister(user))) {
                     if (!radio.overlaySelections) { radio.overlaySelections = {}; }
                     radio.overlaySelections[closedKind] = { page:entry.page, myPage:entry.myPage, queueId:entry.queueId, radioModeratorPage:entry.radioModeratorPage };
                 }
@@ -118,7 +122,7 @@ MischWerkModules.attachSessions = function (runtime, config) {
         };
         content.addCloseListener(function (closedUser, closedContent, replacing) { entry.finishClose(replacing); });
         // sendAppContent (er)setzt nativ. Kein zweiter Schließauftrag an den alten Inhalt.
-        entry.session = user.sendAppContent(content);
+        entry.session = runtime.deliverChannelContent(user, content);
         if (!entry.session) { throw runtime.failure('MischWerk konnte die Ansicht gerade nicht öffnen. Bitte erneut versuchen.'); }
         views.push(entry);
         if (entry.radioContent) {

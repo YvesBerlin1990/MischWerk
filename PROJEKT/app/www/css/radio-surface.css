@@ -8,17 +8,17 @@ html[data-view=radio] body::after {
   display:block;
   position:relative;
   z-index:1;
-  height:40px;
+  height:16px;
   flex:1 1 0;
   min-height:0;
-  max-height:40px;
+  max-height:16px;
   pointer-events:none;
-  background:linear-gradient(to bottom,transparent,var(--canvas));
+  background:linear-gradient(to bottom,transparent,var(--canvas) calc(100% - 1px));
 }
 /* Begrenzte/ignorierte Hosthöhen behalten ihre vollständige Bedienfläche.
    Innerhalb des verbleibenden Randes weich auf die Grundfarbe auslaufen. */
-@media (max-height:199px) {
-  html[data-view=radio] body::after { position:fixed; inset:auto 0 0; height:18px; }
+@media (max-height:175px) {
+  html[data-view=radio] body::after { position:fixed; inset:auto 0 0; height:16px; }
   html[data-view=radio].radio-constrained body::after { height:8px; }
 }
 .radio-bar {

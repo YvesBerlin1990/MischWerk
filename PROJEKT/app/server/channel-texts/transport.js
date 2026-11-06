@@ -12,7 +12,7 @@ MischWerkModules.attachChannelTextTransport = function (runtime) {
             var view = runtime.getViews().filter(function (item) {
                 return item.userId === runtime.userId(user) && item.content === session.getAppContent();
             })[0];
-            if (!runtime.isChannelOwner(user) || !view || view.kind !== 'team' || data.view !== 'team' || data.viewRevision !== view.viewRevision) {
+            if (!runtime.canAdminister(user) || !view || view.kind !== 'team' || data.view !== 'team' || data.viewRevision !== view.viewRevision) {
                 throw runtime.failure('Nur der Channelinhaber darf Bot-Texte in der Verwaltung ändern.');
             }
             if (runtime.shuttingDown) { throw runtime.failure('MischWerk startet gerade neu. Bitte versuche es gleich erneut.'); }

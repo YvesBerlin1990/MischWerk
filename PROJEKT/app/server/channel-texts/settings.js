@@ -2,7 +2,7 @@
 MischWerkModules.attachChannelTextSettings = function (runtime) {
     'use strict';
     runtime.changeChannelTexts = function (user, data) {
-        if (!runtime.isChannelOwner(user)) { throw runtime.failure('Nur der Channelinhaber darf Bot-Texte ändern.'); }
+        if (!runtime.canAdminister(user)) { throw runtime.failure('Nur der Channelinhaber darf Bot-Texte ändern.'); }
         if (runtime.shuttingDown) { throw runtime.failure('MischWerk startet gerade neu. Bitte später versuchen.'); }
         var previous = runtime.readChannelTexts();
         if (typeof data.expectedRevision !== 'number' || data.expectedRevision !== previous.revision) {

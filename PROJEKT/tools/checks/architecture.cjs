@@ -11,7 +11,9 @@ function checkArchitecture() {
   const backend = Object.fromEntries(modules.map(file => [file, read('src/backend/' + file)]));
   const allBackend = Object.values(backend).join('\n');
   assert.doesNotMatch(allBackend, /KnuddelsServer\.(?:set|clear)(?:Timeout|Interval)\s*\(/, 'Hosttimer sind globale Funktionen, keine unbelegten KnuddelsServer-Methoden');
-  assert.equal((allBackend.match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Genau ein serverseitiger Versandtimer');
+  assert.equal((backend['channel-texts/scheduler.js'].match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Ein Bot-Versandtimer');
+  assert.equal((backend['android/publisher.js'].match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Ein eigener Android-Heartbeat, nur bei eingerichtetem Transport');
+  assert.equal((allBackend.match(/\bsetTimeout\s*\(/g) || []).length, 2, 'Keine weiteren Servertimer');
   assert.match(backend['website/transport.js'], /getWebHookAccess\(\)\.registerWebHook\('website', handle\)/, 'Website verwendet ausschließlich dokumentierten WebHook');
   assert.doesNotMatch(backend['website/commands.js'], /handleEvent|handleScheduleEvent|handleChannelTextEvent|new User|sendAppContent/, 'Webadapter verwendet Fachaktionen ohne native Sitzungsattrappe');
   assert.match(backend['website/access.js'], /runtime\.isModerator\(person\)/, 'Websitzung prüft aktuelle Channelrechte');
@@ -21,7 +23,7 @@ function checkArchitecture() {
   assert.equal((allBackend.match(/new\s+HTMLFile\s*\(/g) || []).length, 1, 'Genau eine HTMLFile-Erzeugung');
   assert.doesNotMatch(allBackend, /toggleWishSurface|newSurfaceId|runtime\.prepareView|entry\.switching/, 'Abgelöste Öffnungs-/Ersetzungswege');
   assert.doesNotMatch(backend['ui/sessions.js'], /\.replacing\s*=|previousRadio|closeView\(previous\)/, 'Ersetzen bleibt bei sendAppContent, ohne eigenen Nachschließweg');
-  assert.match(backend['ui/sessions.js'], /entry\.session\s*=\s*user\.sendAppContent\(content\)/, 'Native Rückgabesitzung besitzt den Schließweg');
+  assert.match(backend['ui/sessions.js'], /entry\.session\s*=\s*runtime\.deliverChannelContent\(user, content\)/, 'Native Rückgabesitzung besitzt den gemeinsamen Schließweg');
   assert.doesNotMatch(backend['ui/wish-surface.js'], /runtime\.(?:openView|closeView)\s*\(|AppContent\./, 'Wunschrelay besitzt keine Fenster');
   const providers = {};
   for (const [file, text] of Object.entries(backend)) {

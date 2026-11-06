@@ -1,11 +1,11 @@
 {
-  "version": "0.1.223",
-  "buildNumber": 223,
+  "version": "0.1.239",
+  "buildNumber": 239,
   "files": [
     {
       "path": "MischWerk/www/index.html",
-      "bytes": 9500,
-      "sha256": "080B967CCFD1A39C3FF5D259A1AD33D90FDD6504052E5E52F71AF2AF4A17808D"
+      "bytes": 9473,
+      "sha256": "858356BB245CC9D90C8AECCFDECBB4B52CA84F02F2C73B76F248392CBC7A0D55"
     },
     {
       "path": "MischWerk/www/js/start.js",
@@ -29,13 +29,13 @@
     },
     {
       "path": "MischWerk/www/js/core/model.js",
-      "bytes": 3148,
-      "sha256": "41744A5E9E7F1663006035DE3FB0D4683429614DFA65370FEEC15BB07C262FC4"
+      "bytes": 3260,
+      "sha256": "20EA483D9EA7026A9018429E2781426F2AB3B92E2D7F4A5B60FC5D6C23D142E4"
     },
     {
       "path": "MischWerk/www/js/radio/markup.js",
-      "bytes": 8184,
-      "sha256": "1CFEFB19B5DC4C1718BE1EC1DB260C345211AE4CA20FC14AFE4AC0FE72865E65"
+      "bytes": 7842,
+      "sha256": "5B41304591476470E5F2D07C6B3A99A421F080F252D729FD0FE6915E5E5C41C7"
     },
     {
       "path": "MischWerk/www/js/radio/curtain-markup.js",
@@ -45,12 +45,12 @@
     {
       "path": "MischWerk/www/js/radio/curtain.js",
       "bytes": 6192,
-      "sha256": "2B87318EBAAD84DEAEBD171DCC14E894B4F90D075329AA1AE436DBD0790CC482"
+      "sha256": "D25BC1F07E0C7668A2F9FA6381EEB91FCFD75A9E8E8EC9E5636A336BDF162A44"
     },
     {
       "path": "MischWerk/www/js/radio/viewport.js",
       "bytes": 2319,
-      "sha256": "B43185D9282C65BE32CE2790F33344E37A8745F478DB25ED3D04F40523DE51D6"
+      "sha256": "691ED4D062A1F33C171400164A8BCD867BFE1A316524A7603258C053CAEE4A17"
     },
     {
       "path": "MischWerk/www/js/wishes/markup.js",
@@ -64,8 +64,8 @@
     },
     {
       "path": "MischWerk/www/js/transport/commands.js",
-      "bytes": 7083,
-      "sha256": "C2245D9DD8918859D9466279DC451459AEBEEEB4D71E28E54BBDB8A840FCAF94"
+      "bytes": 7274,
+      "sha256": "0387A7D8F4FB2EBC9A7A82D6F43972534953609A959DC3D2B780DBBEE8CA91B0"
     },
     {
       "path": "MischWerk/www/js/radio/api.js",
@@ -174,13 +174,13 @@
     },
     {
       "path": "MischWerk/www/js/ui/overlays.js",
-      "bytes": 8991,
-      "sha256": "79BEDEF007A0B42B857EA6F0026426C6CA751C85DFA7FC1E8A5D84EAC75074BC"
+      "bytes": 8821,
+      "sha256": "4D1A9EE1DC7446F4CC6358780D45A822DD66396C0003C4BC8164D1871128F670"
     },
     {
       "path": "MischWerk/www/js/ui/updates.js",
-      "bytes": 3159,
-      "sha256": "01E3F3E1DB0D6551EE52E2C0F05BA24D867BA0B2AA2A6DBA0A9E1C07478F8FF2"
+      "bytes": 2984,
+      "sha256": "5DA733F3297A3A1D019065A027E926984FB315FA09F6DECAC0B6E48ECBDD177C"
     },
     {
       "path": "MischWerk/www/js/transport/lifecycle.js",
@@ -194,13 +194,13 @@
     },
     {
       "path": "MischWerk/www/css/radio.css",
-      "bytes": 9043,
-      "sha256": "C3CBF0CB0D40BF8839E5EF5A577DFFDCCEAF3C9938CA584B15494A1CE9584838"
+      "bytes": 8581,
+      "sha256": "5C43ABF22FAAB73087F16D8A048F1692FBB8C9D562C6B4BC53CEECE796F9984C"
     },
     {
       "path": "MischWerk/www/css/radio-actions.css",
-      "bytes": 4886,
-      "sha256": "4E7FB49146C751B2778F7C1348D02B021D04D13D4B8326FE5F666E22B5B8C9B4"
+      "bytes": 4424,
+      "sha256": "44BD0725CA5B42A817AD966302C48FDF6B871604C09B235976F377A783870077"
     },
     {
       "path": "MischWerk/www/css/dialogs.css",
@@ -224,18 +224,18 @@
     },
     {
       "path": "MischWerk/www/css/radio-surface.css",
-      "bytes": 8346,
-      "sha256": "8EDB461665B1430580EE8EF6147EC92145F8DA66416130580F1B6CBC0BFEA150"
+      "bytes": 8363,
+      "sha256": "610871470FBA58C1BC948418331D37D60F338AD3BF62606911341D6743BCB4D3"
     },
     {
       "path": "MischWerk/www/css/metadata-layout.css",
-      "bytes": 9433,
-      "sha256": "AC06A17753703B4790D41D8D07AEC6757628AED89F7EFCE40E7FD34EA542874A"
+      "bytes": 3062,
+      "sha256": "0EBBEA716EEEEFDB6911FA75246D33C6D53C80F2A373201AEA0030F94879C5DB"
     },
     {
       "path": "MischWerk/www/css/radio-responsive.css",
-      "bytes": 6370,
-      "sha256": "EFBFF29E084DAC04EB0C1CC369DA8DF0334EF91B41C132B33449B69FB997E940"
+      "bytes": 6550,
+      "sha256": "006A3DBA495647D9C3BD5C29600C9C7BF623C0AAF05B2C0018CA8CB4AC3EFC2A"
     },
     {
       "path": "MischWerk/www/css/schedule.css",

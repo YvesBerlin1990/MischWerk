@@ -1,6 +1,6 @@
 {
-  "version": "0.1.223",
-  "buildNumber": 223,
+  "version": "0.1.239",
+  "buildNumber": 239,
   "files": [
     {
       "path": "MischWerk/www/js/studio/markup.js",
@@ -29,8 +29,8 @@
     },
     {
       "path": "MischWerk/www/js/studio/controls.js",
-      "bytes": 6762,
-      "sha256": "3E113CAAA35614E2A10D0316BDDDDAF79D1B3C65E35D24A5F5D65D94658C77FB"
+      "bytes": 6802,
+      "sha256": "2C04F5C57257DCF70C8CD9CEC4F6C68BA810FDB4140DB4B4DA5D87EAD2CFF4C8"
     },
     {
       "path": "MischWerk/www/js/studio/session.js",
@@ -39,18 +39,18 @@
     },
     {
       "path": "MischWerk/www/js/studio/handover.js",
-      "bytes": 7868,
-      "sha256": "EDA2B0D9A9DF605BE14AAA75A5B23BD8ACBAEE7C60815E4B1DA2E44408B83054"
+      "bytes": 8649,
+      "sha256": "865EE1D17A6F32EEDB99147477403A208710E2E974FC2E2B719687D5A1C774A6"
     },
     {
       "path": "MischWerk/www/js/studio/workspace.js",
-      "bytes": 8714,
-      "sha256": "8D57477556CCC2D7122C75F861FB90931D3FABA05CAD7396A01BA69058D3D3BA"
+      "bytes": 9046,
+      "sha256": "0B52D5E044FB194C9E4F562803B6EC40DC1B325529B5FC77FC2E9948B768F0E7"
     },
     {
       "path": "MischWerk/www/js/studio/pages.js",
-      "bytes": 3603,
-      "sha256": "564C0964A177F21D9F37E74F55FF6B5D7E19D7FBF3DC469D3D1F20B679C6B4B9"
+      "bytes": 3935,
+      "sha256": "937772EF78943F402B3612D254EB71498CDB79D93BCCA30D752970218BD0AD7D"
     },
     {
       "path": "MischWerk/www/js/studio/window.js",
@@ -79,13 +79,13 @@
     },
     {
       "path": "MischWerk/www/css/studio.css",
-      "bytes": 8781,
-      "sha256": "08CB9BD6AB9B05CF5BCD4741172597F2062CF5003024B5D9E47DBBCEA7ED3EF7"
+      "bytes": 8851,
+      "sha256": "DA90E01026AC948742C0D911467BF0E8FACE098ABD48767CFF5A43B12DCEB8A1"
     },
     {
       "path": "MischWerk/www/css/studio-queue.css",
-      "bytes": 5871,
-      "sha256": "16B42D2F0ABA710541347E54ED518DE224E41BADA34D2C5CA05EA8D5D14636A4"
+      "bytes": 6290,
+      "sha256": "AC3911203C0BB1E3451B4A4DD0113FD5FF47B61C2D3C2179E71F3A2B1CF5C974"
     },
     {
       "path": "MischWerk/www/css/handover.css",
@@ -96,6 +96,16 @@
       "path": "MischWerk/www/css/team.css",
       "bytes": 7575,
       "sha256": "54BD6D64455D8895D5D84AC8C95CD0555682B1A8E304974A0E5C89CC7C1303D5"
+    },
+    {
+      "path": "MischWerk/www/relay-settings.html",
+      "bytes": 3234,
+      "sha256": "2CB35406ADC5990DC59524CC8A061935B8D2FC40B39677FD47C6B2D682738CC6"
+    },
+    {
+      "path": "MischWerk/www/js/operator/relay-settings.js",
+      "bytes": 3692,
+      "sha256": "C863D3F65758DEA75647071F9FEED82D3213EF097C284E43B91A375E2577EB6A"
     }
   ]
 }

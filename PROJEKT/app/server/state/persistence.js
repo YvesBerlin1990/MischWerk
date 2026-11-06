@@ -60,6 +60,7 @@ MischWerkModules.attachPersistence = function (runtime, config) {
             }
         }
         runtime.state = next;
+        runtime.changed('station');
     };
 
     runtime.readState = function () {

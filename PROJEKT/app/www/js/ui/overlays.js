@@ -7,7 +7,7 @@ MischWerkUI.define('overlays', function (dependencies) {
   var enabled = bridge && bridge.pageData && (bridge.pageData.overlay || bridge.pageData.wishSurface);
   var revision = 0, restored = false, restoring = false, timer, saveTimer, closeTimer;
   var lockedToken = null, lastToken = 0, lockedFocus = null;
-  var entries = { wishes:'open-wishes', studio:'studio-tab', team:'team-tab', schedule:'open-schedule' };
+  var entries = { wishes:'open-wishes', studio:'studio-tab', team:'open-schedule', schedule:'open-schedule' };
   function capture() {
     var state = {};
     signals.emit('overlay-capture', state);

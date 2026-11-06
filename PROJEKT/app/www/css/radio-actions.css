@@ -9,9 +9,13 @@
 #host-name { flex-basis:100%; min-width:0; max-width:100%; overflow-wrap:anywhere; font-size:inherit; font-weight:600; color:var(--text); }
 #host-name::before { content:attr(data-prefix); font-weight:400; color:var(--muted); }
 .presenter[data-mode=live] #host-name,.presenter[data-mode=moderation] #host-name { flex-basis:auto; color:var(--live); }
-.radio-actions-panel { grid-column:4; grid-row:1; display:flex; align-items:center; min-width:0; min-height:84px; padding:0; }
-.bar-actions { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:stretch; width:100%; gap:10px; }
-.wish-button { --action-font:13px; --action-icon:22px; --action-disc:44px; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; min-width:0; min-height:84px; padding:4px 2px; gap:6px; border:1px solid transparent; border-radius:16px; background:transparent; color:#e9eaec; box-shadow:none; text-shadow:none; }
+.radio-bar { --radio-action-gap:20px; }
+@media (min-width:1200px) {
+ .radio-bar:has(.bar-utility-links:not([hidden])) { grid-template-columns:170px 120px minmax(300px,1fr) 200px 90px; }
+}
+.radio-actions-panel { grid-column:4; grid-row:1; display:flex; align-items:center; min-width:0; min-height:92px; padding:0; }
+.bar-actions { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:stretch; width:100%; gap:var(--radio-action-gap); }
+.wish-button { --action-font:13px; --action-icon:22px; --action-disc:44px; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; min-width:0; min-height:92px; padding:4px 2px; gap:6px; border:1px solid transparent; border-radius:16px; background:transparent; color:#e9eaec; box-shadow:none; text-shadow:none; }
 .wish-button:hover:enabled { background:#ffffff06; color:#fff5dc; }
 .wish-button:active:enabled { background:#0003; }
 .wish-button:focus-visible { outline:2px solid #e6c77b; outline-offset:-2px; }
@@ -20,19 +24,13 @@
 .wish-button:hover:enabled .public-action-icon { border-color:#e6c77b; color:#ffe2a1; box-shadow:inset 0 1px 0 #fff4,inset 0 0 12px #e6c77b18; }
 .wish-button:active:enabled .public-action-icon { border-color:#ad9360; box-shadow:inset 0 2px 5px #000b; }
 .wish-button:disabled .public-action-icon { border-color:#555650; color:#b4b4b0; }
-.wish-button-copy { min-width:0; }
+.wish-button-copy { min-width:0; min-height:calc(var(--action-font) * 1.25 + 14px); }
 .wish-button-copy strong { display:block; font-size:var(--action-font); font-weight:600; letter-spacing:0; line-height:1.25; white-space:nowrap; }
 #wish-button-caption,#schedule-button-caption { display:none; font-size:12px; line-height:14px; }
 .public-action-icon svg { width:var(--action-icon); height:var(--action-icon); }
 .wish-button-icon .wish-icon-lock,.wishes-closed .wish-icon-music { display:none; }
 .wishes-closed .wish-icon-lock,.wishes-closed #wish-button-caption { display:block; }
-.wishes-closed { --action-disc:32px; padding-block:4px; gap:5px; }
 .bar-utility-links { grid-column:5; grid-row:1; display:flex; flex-direction:column; justify-self:center; width:100%; max-width:112px; min-width:0; }
-.radio-bar .studio-link { display:flex; align-items:center; justify-content:flex-start; flex:none; width:100%; min-width:44px; height:44px; padding:0 4px; gap:8px; border:1px solid transparent; border-radius:8px; background:transparent; box-shadow:none; text-shadow:none; color:#b4b4b0; font-size:13px; font-weight:600; letter-spacing:0; line-height:18px; white-space:nowrap; }
-.radio-bar .studio-link svg { width:16px; height:16px; color:#b9bdc3; }
-.radio-bar .studio-link:hover:enabled { background:#ffffff08; color:#f5f5f2; }
-.radio-bar .studio-link:active:enabled { background:#0005; }
-.radio-bar .studio-link:focus-visible { outline-offset:-3px; }
 .radio-listener-brand { position:relative; grid-column:5; grid-row:1; justify-self:center; width:100px; aspect-ratio:1; }
 .radio-listener-logo { display:block; width:100%; height:auto; object-fit:contain; background:transparent; mix-blend-mode:lighten; }
 .radio-listener-emblem { display:block; width:100%; height:74.286%; overflow:hidden; }

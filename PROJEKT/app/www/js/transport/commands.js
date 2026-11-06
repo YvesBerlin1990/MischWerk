@@ -48,7 +48,7 @@ MischWerkUI.define('commands', function (dependencies) {
   }
   function nextId(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + (++requestSequence) + '-' + Math.random().toString(36).slice(2, 10); }
   function refreshControls() { signals.emit('controls'); }
-  function send(type, data, mutation) {
+  function send(type, data, mutation, confirmed) {
     if (!bridge || (mutation && !model.connected())) { layout.notify('Die Verbindung zum Channel fehlt. Bitte öffne MischWerk erneut.', true); return; }
     if (mutation && (pending || manualRefresh)) { return; }
     data = data || {};
@@ -61,7 +61,7 @@ MischWerkUI.define('commands', function (dependencies) {
       if (type === 'mw:addRadioModerator' || type === 'mw:removeRadioModerator') { data.expectedRadioModeratorRevision = model.current().radioModeratorRevision; }
       requestId = nextId('mw');
       data.requestId = requestId;
-      pending = { type: type, requestId: requestId }; refreshControls();
+      pending = { type: type, requestId: requestId, confirmed:confirmed }; refreshControls();
       if (type === 'mw:setTopic') {
         signals.emit('topic-started', { requestId: requestId, value: data.topic });
       }
@@ -99,8 +99,11 @@ MischWerkUI.define('commands', function (dependencies) {
   }
   function start() {
     signals.on('snapshot', function (change) {
-      if (!manualRefresh || change.refreshRequestId !== manualRefresh.requestId) { return; }
       var state = model.current();
+      if (pending && typeof pending.confirmed === 'function' && model.connected() && pending.confirmed(state)) {
+        pending = null; clearTimeout(pendingTimer); refreshControls();
+      }
+      if (!manualRefresh || change.refreshRequestId !== manualRefresh.requestId) { return; }
       if (!model.connected()) { finishRefresh('Verbindung fehlt', true, 'Bitte öffne MischWerk gleich erneut.'); }
       else if ((model.view === 'studio' && !state.user.canModerate) || (model.view === 'team' && !state.user.canManageRadioModerators)) {
         finishRefresh('Zugriff beendet', true, 'Deine Berechtigung hat sich geändert.');
@@ -111,7 +114,7 @@ MischWerkUI.define('commands', function (dependencies) {
     });
     if (model.view !== 'radio') { return; }
     [['open-wishes','mw:openWishes'], ['open-schedule','mw:openSchedule'],
-      ['studio-tab','mw:openStudio'], ['team-tab','mw:openRadioTeam']].forEach(function (action) {
+      ['studio-tab','mw:openStudio']].forEach(function (action) {
       document.getElementById(action[0]).addEventListener('click', function () {
         if (!this.disabled && !this.hidden && model.connected()) { send(action[1], {}, true); }
       });

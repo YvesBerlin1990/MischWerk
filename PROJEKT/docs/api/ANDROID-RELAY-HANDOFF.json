@@ -1,0 +1,879 @@
+{
+  "schemaVersion": 1,
+  "status": "partial",
+  "repository": {
+    "changedFiles": [
+      "PROJEKT/README.md",
+      "PROJEKT/app/app.config",
+      "PROJEKT/app/main.js",
+      "PROJEKT/app/server/android/connection.js",
+      "PROJEKT/app/server/android/diagnostics.js",
+      "PROJEKT/app/server/android/publisher.js",
+      "PROJEKT/app/server/android/receipts.js",
+      "PROJEKT/app/server/android/settings.js",
+      "PROJEKT/app/server/android/webhook.js",
+      "PROJEKT/app/server/app.js",
+      "PROJEKT/app/server/config.js",
+      "PROJEKT/app/server/core/changes.js",
+      "PROJEKT/app/server/lifecycle.js",
+      "PROJEKT/app/server/state/persistence.js",
+      "PROJEKT/app/server/transport/events.js",
+      "PROJEKT/app/server/ui/sessions.js",
+      "PROJEKT/app/server/wishes/queue.js",
+      "PROJEKT/app/server/wishes/website.js",
+      "PROJEKT/app/www/js/operator/relay-settings.js",
+      "PROJEKT/app/www/relay-settings.html",
+      "PROJEKT/deployment/manifests/manifest-live.json",
+      "PROJEKT/deployment/manifests/manifest-media.json",
+      "PROJEKT/deployment/manifests/manifest-server.json",
+      "PROJEKT/deployment/manifests/manifest-studio.json",
+      "PROJEKT/deployment/manifests/manifest-www.json",
+      "PROJEKT/docs/api/ANDROID-RELAY-HANDOFF.json",
+      "PROJEKT/docs/api/API-NACHWEIS.md",
+      "PROJEKT/docs/architektur/ARCHITEKTUR.md",
+      "PROJEKT/docs/betrieb/INBETRIEBNAHME.md",
+      "PROJEKT/docs/pruefung/PRUEFBERICHT.md",
+      "PROJEKT/package.json",
+      "PROJEKT/src/backend/android/connection.js",
+      "PROJEKT/src/backend/android/diagnostics.js",
+      "PROJEKT/src/backend/android/publisher.js",
+      "PROJEKT/src/backend/android/receipts.js",
+      "PROJEKT/src/backend/android/settings.js",
+      "PROJEKT/src/backend/android/webhook.js",
+      "PROJEKT/src/backend/app.js",
+      "PROJEKT/src/backend/config.js",
+      "PROJEKT/src/backend/core/changes.js",
+      "PROJEKT/src/backend/lifecycle.js",
+      "PROJEKT/src/backend/state/persistence.js",
+      "PROJEKT/src/backend/transport/events.js",
+      "PROJEKT/src/backend/ui/sessions.js",
+      "PROJEKT/src/backend/wishes/queue.js",
+      "PROJEKT/src/backend/wishes/website.js",
+      "PROJEKT/tests/browser/android-settings.browser.test.cjs",
+      "PROJEKT/tests/node/android-settings.test.cjs",
+      "PROJEKT/tests/node/android.test.cjs",
+      "PROJEKT/tests/node/backend.test.cjs",
+      "PROJEKT/tests/rhino/android-settings.js",
+      "PROJEKT/tests/rhino/android.js",
+      "PROJEKT/tests/rhino/wishes.js",
+      "PROJEKT/tools/build/backend.cjs",
+      "PROJEKT/tools/build/prepare-upload.cjs",
+      "PROJEKT/tools/checks/architecture.cjs",
+      "PROJEKT/tools/checks/lengths.cjs",
+      "PROJEKT/tools/checks/project.cjs",
+      "PROJEKT/tools/lib/frontend-files.cjs",
+      "PROJEKT/tools/lib/upload-manifests.cjs",
+      "README.md"
+    ],
+    "diffContainsVisualChanges": true,
+    "localOnly": true,
+    "operatorDeploymentReported": true,
+    "localGitChangesUncommitted": true,
+    "visualChangeScope": "Nur neue getrennte Betreiberansicht; bisherige 82 geschützte Dateien bytegleich."
+  },
+  "runtime": {
+    "appServerVersion": "SNAPSHOT-",
+    "webhookApi": {
+      "available": true,
+      "registrationImplemented": true,
+      "urlCreated": false,
+      "urlTransferredSecurely": false
+    },
+    "externalHttps": {
+      "available": true,
+      "restrictions": [
+        "Nutzerbericht Build 226 bestätigt canAccessURL für beide festen HTTPS-Ziele; separate Domainliste ohne bisherigen exakten Treffer.",
+        "Tatsächliche HTTP-Übertragung, Kodierung, Header und Antworten noch nicht verifiziert; keine Aktivierung.",
+        "Native Konfiguration und runtimeVerified exakt true weiterhin erforderlich; geschützter Provisionierungsweg offen."
+      ],
+      "domainAccessVerified": true,
+      "runtimeVerified": false
+    },
+    "appServerId": "apps7@78.46.113.167",
+    "releaseTimestampComparable": false,
+    "webhookMinimumVersionSatisfied": null
+  },
+  "contracts": {
+    "incomingWishWebhook": {
+      "method": "POST",
+      "route": "/v1/wishes",
+      "requestSchemaConfirmed": true,
+      "responseSchemaConfirmed": true,
+      "urlIncluded": false
+    },
+    "firebaseStatePublish": {
+      "function": "publishKnuddelsState",
+      "region": "europe-west3",
+      "endpointUrlKnown": true,
+      "payloadConfirmed": true
+    }
+  },
+  "secretSetup": [
+    {
+      "name": "KNUDDELS_RELAY_SECRET",
+      "secureKnuddelsStorageAvailable": null,
+      "configured": false,
+      "valueIncluded": false
+    },
+    {
+      "name": "KNUDDELS_SYNC_SECRET",
+      "secureKnuddelsStorageAvailable": null,
+      "configured": false,
+      "valueIncluded": false
+    }
+  ],
+  "tests": {
+    "performed": [
+      "Isolierte Node-/Knuddels-/HTTPS-Port-Fakes",
+      "Vollständige Node-Suite im abschließenden lokalen Paketbau",
+      "Vollständige Browser-/Emulatorsuite für den normalen Einstieg mit gesperrter Android-Brücke",
+      "Separates Websiteprojekt",
+      "Echte Rhino-Engines 1.7.7.2 und 1.9.1 mit lokalen Plattform-Fakes",
+      "Architektur, Backendgleichheit, API-Inventar, Dateilängen, Paket und Manifeste",
+      "SHA-256-Abgleich der unveränderten Oberfläche, Medien und bisherigen Wunschtransportdateien",
+      "Native postURL-Wrapper-/Header-/Antwort-/Domainprüfungen mit isolierten Fakes in Node und Rhino",
+      "Build 226: rein lesende Eigentümerdiagnose mit isolierten Plattformobjekten, ohne echte AppServer-Ausführung.",
+      "Build 226: vollständiger lokaler Paketbau einschließlich Node, API-/Architektur-/Längen- und Rhino-Prüfung; Uploadinventar und Bytevergleich.",
+      "Öffentlicher HTTP-GET auf knuddelsAccess.txt vom lokalen Entwickler-PC, ohne Relayaufruf.",
+      "Vom Nutzer übermittelter nativer Build-226-Diagnosebericht ausgewertet; Herkunft und Grenzen ausdrücklich dokumentiert.",
+      "Build 227: drei neue Node-Gegenprüfungen einschließlich vorheriger roter Stringobjekt-/Portfälle; zusätzliche Java-/JavaScript-Stringobjekttests in beiden echten Rhino-Engines.",
+      "Build 227: vollständiger lokaler Paketbau und anschließende Inventarprüfung sowie Bytevergleich der 82 geschützten Dateien.",
+      "Native Benutzerberichte aus Build 227/228 ausgewertet; in Build 228 Originalstrings samt Datentypen sichtbar.",
+      "Build 228: Rückgabebeobachtung mit 326 Nodefällen und je 947 Rhino-Prüfungen lokal geprüft.",
+      "Build 229: Snapshot-/Server-ID-Formatregressionen vor Korrektur rot, danach vollständiger Paketbau mit 328 Nodefällen und je 951 Rhino-Prüfungen grün.",
+      "Offizielle AppPersistence-/ServerInfo-/WebHookAccess-Referenzen erneut gelesen; Speicherzugriff und API-Verträge vom weiterhin offenen privaten Eingabeweg getrennt.",
+      "Echten Nutzerbericht aus Build 229 nach Betreiberupload/-update ausgewertet: ServerInfo-Formatkorrektur erfolgreich, errors:[].",
+      "Build 230: 14 private Einrichtungsfälle in Node einschließlich Rollen-/Sitzungsbindung, Zustand-/Speicherfehler, Revision, Wiederholung, Ablauf und Cleanup.",
+      "Build 230: zusätzlicher nativer Adapterwechsel-/Abbruch-Gegenfall; drei abschließende Fehlerpfade vor Korrektur rot nachgewiesen.",
+      "Build 230: vollständige Browser-/Emulatorrunde am tatsächlichen Desktop-UPLOAD, gezielter K3-/STAPP-Overlaylogo-Nachlauf und sieben private Dialogfälle auf endgültigem Paket.",
+      "Build 230: lokale visuelle Dialogprüfung mit leeren Feldern, schmale Breite und Tastaturbedienung; keine echten Secrets verwendet."
+    ],
+    "passed": [
+      "Build 230: 343 Nodefälle, davon 46 Android-Vertrags-/Adapter- und 14 Einrichtungsfälle",
+      "Build 230: je 965 Prüfungen in Rhino 1.7.7.2 und 1.9.1",
+      "279 Browser-/Emulatorfälle ausgeführt: 278 initial bestanden; bestehender STAPP-Timeout im gezielten Nachlauf bestanden, K3-Gegenstück ebenfalls bestanden",
+      "Alle sieben neuen Dialog-Browserfälle auf dem endgültigen UPLOAD erneut bestanden",
+      "131 lokale Laufzeitdateien, 124 Texte, 47 Backendmodule, fünf Manifeste; Maximum einschließlich Manifesten 9477 Zeichen",
+      "82 bisherige Oberflächen-/Medien-/Wunschtransportdateien bytegleich zu HEAD; zwei getrennte neue Betreiberdateien",
+      "Letzter echter Knuddels-Befund unverändert Build 229: errors:[], gelesene ServerInfo-Strings, beide URL-Freigaben true und WebHook-API vorhanden",
+      "Separates unverändertes Websiteprojekt zuletzt mit 22 Fällen in vorheriger Phase geprüft, hier nicht erneut ausgeführt"
+    ],
+    "failed": [],
+    "notRun": [
+      "Native Ausführung von Build 230 und Abnahme des privaten Einstellungs-/Speicherwegs im echten Knuddels-Client",
+      "Echte gemeinsame Secrets/Firebase Secret Manager eingerichtet und native HTTP-/Header-/Payload-/Antwortprüfung",
+      "Echte Android-Wunsch-Hookregistrierung, geschützte URL-Übergabe und Ende-zu-Ende-Lauf",
+      "Firebase-Emulator-/Rules-/Auth-/App-Check-Prüfungen im fremden Gegenprojekt"
+    ],
+    "transientFailures": [
+      {
+        "test": "Alle Overlaylogos sind in stapp groß und vollständig sichtbar, mit mittigem Titel und freiem Schließen",
+        "firstRun": "frame.waitForFunction Timeout 30000ms",
+        "targetedRecheck": "Beide K3-/STAPP-Varianten bestanden; keine Änderung an diesem Test oder den bestehenden Frontenddateien.",
+        "resolvedByTargetedRecheck": true
+      }
+    ]
+  },
+  "blockers": [
+    "Build 230 mit privatem Betreiber-Eingabeweg ist lokal geprüft, noch nicht durch den Betreiber installiert und nativ abgenommen. Letzter installierter/fehlerfrei diagnostizierter Stand ist Build 229.",
+    "Gemeinsamer Sync-Schlüssel noch nicht über den neuen Betreiberweg und Firebase Secret Manager eingerichtet; native Eingabe-/Speicherabnahme steht aus.",
+    "publishKnuddelsState laut unverändertem Firebase-Abschnitt weiterhin nicht deployed. Echte native Statusübertragung noch offen.",
+    "Für späteren Android-Wunschversand fehlen zusätzlich separates Relay-Secret, echte Hookregistrierung und geschützt übergebene Hook-URL."
+  ],
+  "androidNextSteps": [
+    "Betreiber installiert den vollständigen lokalen Build 230 und öffnet als anwesender tatsächlicher Channelinhaber /mischwerk-relay einrichten. Zuvor andere offene Channelansicht schließen; normale Radioleiste bleibt bestehen.",
+    "Privaten Einrichtungsweg auf dem echten Client abnehmen. Schlüssel nur aus geschütztem Schlüsselspeicher in dieses Formular und Firebase Secret Manager eingeben; niemals in Chat oder Brückenstand. Der Sync-Schlüssel ist zunächst erforderlich, Relay-Schlüssel optional.",
+    "Nach Speicherung die Einrichtung erneut öffnen und ausschließlich Vorhandenseins-/Freigabestatus zurückmelden. Bestehende Werte werden nie angezeigt. enabled/runtimeVerified bleiben nach jeder Speicherung false.",
+    "Sobald derselbe Sync-Schlüssel sicher auf beiden Seiten bereitsteht, stellt die Firebase-Seite publishKnuddelsState gezielt bereit. Anschließend echte native Header-/Payload-/Kodierungs-/Antwortabnahme durchführen; keine automatische Freigabe aus bloßer Speicherung.",
+    "Später separates Relay-Secret und echte Hook-URL geschützt bereitstellen, Wunsch-WebHook registrieren und echten Wunsch-/Status-Ende-zu-Ende-Lauf gesondert abnehmen."
+  ],
+  "deploymentPerformed": false,
+  "localVersion": "0.1.230",
+  "localBuildNumber": 230,
+  "updatedAt": "2026-11-05T21:26:02Z",
+  "sharedStateInput": {
+    "file": "/Familienbereich/MischWerk-Brückenstand.json",
+    "revision": 9,
+    "dropboxFileRev": "0165f8da64a6d1c0000000361c48d63"
+  },
+  "runtimeDiagnostics": {
+    "command": "/mischwerk-relay pruefen",
+    "source": "PROJEKT/src/backend/android/diagnostics.js",
+    "runtimeCopy": "PROJEKT/app/server/android/diagnostics.js",
+    "authorization": "Nur der tatsächliche, im Channel anwesende Channelinhaber; Appmanager-/Entwickler-/Moderatorrolle genügt nicht.",
+    "output": "Privater JSON-Bericht; keine öffentliche Meldung, andere freigegebene Domains und Exceptiondetails werden nicht ausgegeben.",
+    "reads": [
+      "AppServerInfo.getVersion/getServerId",
+      "Verfügbarkeit von WebHookAccess, ohne Registrierung",
+      "ExternalServerAccess.canAccessURL für die feste Hosting-Relayadresse und knuddelsAccess.txt",
+      "ExternalServerAccess.getAllAccessibleDomains/Domain.getDomainName mit exaktem Zielvergleich"
+    ],
+    "writesConfiguration": false,
+    "readsSecrets": false,
+    "sendsHttpRequests": false,
+    "registersWebHook": false,
+    "changesWishes": false,
+    "setsRuntimeVerified": false,
+    "localTestsPassed": true,
+    "installedInRealAppServer": false,
+    "liveReport": {
+      "schemaVersion": 1,
+      "app": {
+        "version": "0.1.229",
+        "buildNumber": 229
+      },
+      "checkedAt": 1793911021204,
+      "appServer": {
+        "version": "SNAPSHOT-",
+        "serverId": "apps7@78.46.113.167",
+        "versionComparable": false,
+        "webhookMinimumVersionSatisfied": null,
+        "valueDiagnostics": {
+          "version": {
+            "returned": true,
+            "type": "string",
+            "isNull": false,
+            "tag": "[object String]",
+            "text": "SNAPSHOT-",
+            "textLength": 9,
+            "truncated": false,
+            "stringAccepted": true,
+            "error": null
+          },
+          "serverId": {
+            "returned": true,
+            "type": "string",
+            "isNull": false,
+            "tag": "[object String]",
+            "text": "apps7@78.46.113.167",
+            "textLength": 19,
+            "truncated": false,
+            "stringAccepted": true,
+            "error": null
+          }
+        }
+      },
+      "webhook": {
+        "apiPresent": true,
+        "registrationTested": false
+      },
+      "externalHttps": {
+        "targetUrl": "https://radio-mischwerk.web.app/api/publishKnuddelsState",
+        "relayTargetAllowed": true,
+        "accessFileAllowed": true,
+        "targetListed": false,
+        "domainCount": 3,
+        "listComplete": true
+      },
+      "errors": []
+    },
+    "actualServerVersion": "SNAPSHOT-",
+    "actualDomainAccess": true,
+    "versionComparisonIsNotWebHookProof": true,
+    "localBuildNumber": 230,
+    "installedInRealAppServerMeaning": "Neuer lokaler Build 230 mit Betreiberansicht noch nicht installiert/abgenommen. Letzter bestätigter nativer Build bleibt 229.",
+    "lastObservedNativeAppVersion": "0.1.229",
+    "lastObservedNativeAppBuildNumber": 229,
+    "latestLocalBuildInstalled": false,
+    "liveReportSource": "Vom Nutzer übermittelte private MischWerkBot-Antwort aus Build 229.",
+    "liveReportReceivedAt": "2026-11-05T20:39:19Z",
+    "apiStringNormalizationImplemented": true,
+    "httpsDefaultPortRecognized": true,
+    "liveReportHistory": [
+      {
+        "schemaVersion": 1,
+        "app": {
+          "version": "0.1.226",
+          "buildNumber": 226
+        },
+        "checkedAt": 1793907938808,
+        "appServer": {
+          "version": null,
+          "serverId": null,
+          "webhookMinimumVersionSatisfied": null
+        },
+        "webhook": {
+          "apiPresent": true,
+          "registrationTested": false
+        },
+        "externalHttps": {
+          "targetUrl": "https://radio-mischwerk.web.app/api/publishKnuddelsState",
+          "relayTargetAllowed": true,
+          "accessFileAllowed": true,
+          "targetListed": false,
+          "domainCount": 3,
+          "listComplete": true
+        },
+        "errors": [
+          "server-version-invalid",
+          "server-id-invalid"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "app": {
+          "version": "0.1.228",
+          "buildNumber": 228
+        },
+        "checkedAt": 1793909624189,
+        "appServer": {
+          "version": null,
+          "serverId": null,
+          "webhookMinimumVersionSatisfied": null,
+          "valueDiagnostics": {
+            "version": {
+              "returned": true,
+              "type": "string",
+              "isNull": false,
+              "tag": "[object String]",
+              "text": "SNAPSHOT-",
+              "textLength": 9,
+              "truncated": false,
+              "stringAccepted": true,
+              "error": null
+            },
+            "serverId": {
+              "returned": true,
+              "type": "string",
+              "isNull": false,
+              "tag": "[object String]",
+              "text": "apps7@78.46.113.167",
+              "textLength": 19,
+              "truncated": false,
+              "stringAccepted": true,
+              "error": null
+            }
+          }
+        },
+        "webhook": {
+          "apiPresent": true,
+          "registrationTested": false
+        },
+        "externalHttps": {
+          "targetUrl": "https://radio-mischwerk.web.app/api/publishKnuddelsState",
+          "relayTargetAllowed": true,
+          "accessFileAllowed": true,
+          "targetListed": false,
+          "domainCount": 3,
+          "listComplete": true
+        },
+        "errors": [
+          "server-version-invalid",
+          "server-id-invalid"
+        ]
+      }
+    ],
+    "actualServerId": "apps7@78.46.113.167",
+    "valueDiagnosticsImplemented": true,
+    "releaseTimestampComparable": false,
+    "actualIssueIdentified": true,
+    "requiresAnotherImmediateInstallationForThisFinding": false,
+    "diagnosticErrors": [],
+    "nativeCorrectionVerified": true
+  },
+  "publicAccessFileCheck": {
+    "checkedAt": "2026-11-05T19:31:06Z",
+    "url": "https://radio-mischwerk.web.app/knuddelsAccess.txt",
+    "httpStatus": 200,
+    "contentType": "text/plain; charset=utf-8",
+    "expectedDeveloperIdMatches": true,
+    "origin": "local-developer-pc",
+    "actualKnuddelsAppServerCheck": false
+  },
+  "deployment": {
+    "performed": false,
+    "performedMeaning": "Neuer lokaler Build 230 noch nicht produktiv installiert.",
+    "performedByThisCodex": false,
+    "localPackagePrepared": true,
+    "localVersion": "0.1.230",
+    "localBuildNumber": 230,
+    "localUploadPath": "C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk",
+    "files": 131,
+    "operatorManaged": true,
+    "latestLocalBuildInstalled": false,
+    "lastConfirmedOperatorDeployment": {
+      "version": "0.1.229",
+      "buildNumber": 229,
+      "checkedAt": 1793911021204,
+      "source": "Nutzer bestätigt Upload/Update und liefert die private fehlerfreie Diagnose.",
+      "diagnosticErrors": [],
+      "completeFtpTransferIndependentlyVerified": false
+    },
+    "details": [
+      "Build 230 nur lokal gebaut und geprüft. Build 229 bleibt die durch den Betreiber bereits bestätigte Installation.",
+      "Keine FTP-/Update-/Neustartaktion durch diesen Codex und kein Firebase-Deployment.",
+      "Keine echten Secretwerte geschrieben, kein echter Hook registriert und kein echter Relay-HTTP-Aufruf."
+    ]
+  },
+  "nativeRuntimeEvidence": {
+    "source": "Nutzer bestätigt Upload/Update von Build 229 und übermittelt die private native Diagnoseantwort.",
+    "receivedByThisWorkAt": "2026-11-05T20:39:19Z",
+    "checkedAtUtc": "2026-11-05T20:37:01.204Z",
+    "report": {
+      "schemaVersion": 1,
+      "app": {
+        "version": "0.1.229",
+        "buildNumber": 229
+      },
+      "checkedAt": 1793911021204,
+      "appServer": {
+        "version": "SNAPSHOT-",
+        "serverId": "apps7@78.46.113.167",
+        "versionComparable": false,
+        "webhookMinimumVersionSatisfied": null,
+        "valueDiagnostics": {
+          "version": {
+            "returned": true,
+            "type": "string",
+            "isNull": false,
+            "tag": "[object String]",
+            "text": "SNAPSHOT-",
+            "textLength": 9,
+            "truncated": false,
+            "stringAccepted": true,
+            "error": null
+          },
+          "serverId": {
+            "returned": true,
+            "type": "string",
+            "isNull": false,
+            "tag": "[object String]",
+            "text": "apps7@78.46.113.167",
+            "textLength": 19,
+            "truncated": false,
+            "stringAccepted": true,
+            "error": null
+          }
+        }
+      },
+      "webhook": {
+        "apiPresent": true,
+        "registrationTested": false
+      },
+      "externalHttps": {
+        "targetUrl": "https://radio-mischwerk.web.app/api/publishKnuddelsState",
+        "relayTargetAllowed": true,
+        "accessFileAllowed": true,
+        "targetListed": false,
+        "domainCount": 3,
+        "listComplete": true
+      },
+      "errors": []
+    },
+    "interpretation": {
+      "version": "SNAPSHOT-",
+      "serverId": "apps7@78.46.113.167",
+      "bothApiCallsSucceeded": true,
+      "primitiveStringReturns": true,
+      "releaseTimestampComparable": false,
+      "webhookMinimumVersionSatisfied": null,
+      "diagnosticErrors": [],
+      "formatCorrectionVerifiedOnRealServer": true,
+      "doesNotProveHookRegistrationOrHttpTransport": true
+    },
+    "confirmed": [
+      "Build 229 ist durch den Nutzer hochgeladen/aktualisiert und auf Knuddels ausgeführt.",
+      "ServerInfo-Felder korrekt erhalten; errors ist leer.",
+      "Konkrete URL-Freigaben beider Zieladressen true und WebHook-API vorhanden."
+    ],
+    "notConfirmed": [
+      "Datierte Releaseversion hinter SNAPSHOT-.",
+      "Echte Hookregistrierung, geschützte Einrichtung sowie native HTTP-/Header-/Payload-/Antwort- und Ende-zu-Ende-Abnahme."
+    ]
+  },
+  "diagnosticsCorrection": {
+    "localVersion": "0.1.229",
+    "localBuildNumber": 229,
+    "rootCauseKnown": true,
+    "rootCause": "Versionsregex verlangte ausschließlich Datum-Uhrzeit; Server-ID-Zeichensatz schloss @ aus. Tatsächliche API-Rückgaben waren gültige primitive Strings.",
+    "evidenceAppBuild": 228,
+    "previousJavaStringHypothesisConfirmedOnActualServer": false,
+    "fix": "Gültige beschreibende Informationsstrings unverändert erhalten. Datumsformat ausschließlich für separaten Releasevergleich verwenden; SNAPSHOT- ergibt keinen erfundenen Vergleich.",
+    "valueDiagnosticsPreserved": true,
+    "nodeCasesPassed": 328,
+    "androidCasesPassed": 45,
+    "rhinoAssertionsPerEngine": 951,
+    "localOnly": false,
+    "live229RetestPerformed": true,
+    "anotherImmediateNativeRetestRequiredToKnowReportedValues": false,
+    "changesSecretsOrActivation": false,
+    "live229RetestPassed": true,
+    "nativeReportCheckedAt": 1793911021204
+  },
+  "revisionHandling": {
+    "revision": 10,
+    "latestSourceRevision": 9,
+    "taskStartedFromRevision": 9,
+    "instructionSource": "Erneuter Nutzerauftrag: nächste Schritte der aktuellen Datei bearbeiten und anschließend aktualisieren.",
+    "previousSharedWritePauseEnded": true,
+    "sameRevisionUpdate": false
+  },
+  "sharedStateOutput": {
+    "file": "/Familienbereich/MischWerk-Brückenstand.json",
+    "revision": 10,
+    "dropboxFileRev": "0165f8e2e7ee9f20000000361c48d63",
+    "uploaded": true,
+    "readBackMatchesEntirePreparedJson": true,
+    "firebaseSectionPreserved": true,
+    "previousHandoffSnapshotPreserved": true,
+    "otherCoordinationFieldsPreserved": true,
+    "localBuild": 230,
+    "lastConfirmedNativeBuild": 229,
+    "operatorSettingsLocallyVerified": true,
+    "nativeBuild230AcceptancePending": true,
+    "nativeHttpTransportVerified": false
+  },
+  "lastSharedPublication": {
+    "file": "/Familienbereich/MischWerk-Brückenstand.json",
+    "revision": 7,
+    "dropboxFileRev": "0165f8d817b75a20000000361c48d63",
+    "updatedInSameRevisionAtExplicitUserRequest": true,
+    "uploaded": true,
+    "readBackMatchesEntirePreparedJson": true,
+    "firebaseSectionPreserved": true,
+    "nativeBuild229InstalledAndPassed": true
+  },
+  "sharedWritePause": {
+    "active": false,
+    "previousBaseRevision": 5,
+    "endedAtExplicitUserRequest": true,
+    "latestReturnedRevisionRead": 6,
+    "preparedOutputRevision": 7,
+    "outputPublished": true
+  },
+  "pendingNativeRuntimeEvidence": {
+    "source": "Nutzer bestätigt Upload/Update von Build 229 und übermittelt die private native Diagnoseantwort.",
+    "receivedByThisWorkAt": "2026-11-05T20:39:19Z",
+    "checkedAtUtc": "2026-11-05T20:37:01.204Z",
+    "report": {
+      "schemaVersion": 1,
+      "app": {
+        "version": "0.1.229",
+        "buildNumber": 229
+      },
+      "checkedAt": 1793911021204,
+      "appServer": {
+        "version": "SNAPSHOT-",
+        "serverId": "apps7@78.46.113.167",
+        "versionComparable": false,
+        "webhookMinimumVersionSatisfied": null,
+        "valueDiagnostics": {
+          "version": {
+            "returned": true,
+            "type": "string",
+            "isNull": false,
+            "tag": "[object String]",
+            "text": "SNAPSHOT-",
+            "textLength": 9,
+            "truncated": false,
+            "stringAccepted": true,
+            "error": null
+          },
+          "serverId": {
+            "returned": true,
+            "type": "string",
+            "isNull": false,
+            "tag": "[object String]",
+            "text": "apps7@78.46.113.167",
+            "textLength": 19,
+            "truncated": false,
+            "stringAccepted": true,
+            "error": null
+          }
+        }
+      },
+      "webhook": {
+        "apiPresent": true,
+        "registrationTested": false
+      },
+      "externalHttps": {
+        "targetUrl": "https://radio-mischwerk.web.app/api/publishKnuddelsState",
+        "relayTargetAllowed": true,
+        "accessFileAllowed": true,
+        "targetListed": false,
+        "domainCount": 3,
+        "listComplete": true
+      },
+      "errors": []
+    },
+    "interpretation": {
+      "version": "SNAPSHOT-",
+      "serverId": "apps7@78.46.113.167",
+      "bothApiCallsSucceeded": true,
+      "primitiveStringReturns": true,
+      "releaseTimestampComparable": false,
+      "webhookMinimumVersionSatisfied": null,
+      "diagnosticErrors": [],
+      "formatCorrectionVerifiedOnRealServer": true,
+      "doesNotProveHookRegistrationOrHttpTransport": true
+    },
+    "confirmed": [
+      "Build 229 ist durch den Nutzer hochgeladen/aktualisiert und auf Knuddels ausgeführt.",
+      "ServerInfo-Felder korrekt erhalten; errors ist leer.",
+      "Konkrete URL-Freigaben beider Zieladressen true und WebHook-API vorhanden."
+    ],
+    "notConfirmed": [
+      "Datierte Releaseversion hinter SNAPSHOT-.",
+      "Echte Hookregistrierung, geschützte Einrichtung sowie native HTTP-/Header-/Payload-/Antwort- und Ende-zu-Ende-Abnahme."
+    ],
+    "uploadedToSharedState": true,
+    "preparedOutputRevision": 7,
+    "mergedIntoRevision": 7
+  },
+  "nativeRuntimeEvidenceHistory": [
+    {
+      "source": "user-provided-private-MischWerkBot-message",
+      "receivedAt": "2026-11-05T19:52:22Z",
+      "checkedAtUtc": "2026-11-05T19:45:38.808Z",
+      "report": {
+        "schemaVersion": 1,
+        "app": {
+          "version": "0.1.226",
+          "buildNumber": 226
+        },
+        "checkedAt": 1793907938808,
+        "appServer": {
+          "version": null,
+          "serverId": null,
+          "webhookMinimumVersionSatisfied": null
+        },
+        "webhook": {
+          "apiPresent": true,
+          "registrationTested": false
+        },
+        "externalHttps": {
+          "targetUrl": "https://radio-mischwerk.web.app/api/publishKnuddelsState",
+          "relayTargetAllowed": true,
+          "accessFileAllowed": true,
+          "targetListed": false,
+          "domainCount": 3,
+          "listComplete": true
+        },
+        "errors": [
+          "server-version-invalid",
+          "server-id-invalid"
+        ]
+      },
+      "confirmed": [
+        "Build 226 wurde auf Knuddels ausgeführt.",
+        "WebHook-API vorhanden; Registrierung nicht getestet.",
+        "canAccessURL für feste HTTPS-Relayadresse und knuddelsAccess.txt jeweils true."
+      ],
+      "notConfirmed": [
+        "Tatsächliche AppServer-Version und Server-ID: Diagnose 226 meldet ungültige Werte, Rohwerte/Rohdatentypen fehlen.",
+        "Ursache für targetListed=false bei drei gelisteten Domains.",
+        "Native HTTP-/Header-/Payload-/Antwortübertragung, echte Hook-URL und Ende-zu-Ende-Betrieb."
+      ]
+    },
+    {
+      "source": "Nutzerbericht während der Dropbox-Schreibpause, lokal vorgemerkt",
+      "report": {
+        "schemaVersion": 1,
+        "app": {
+          "version": "0.1.227",
+          "buildNumber": 227
+        },
+        "checkedAt": 1793908867195,
+        "appServer": {
+          "version": null,
+          "serverId": null,
+          "webhookMinimumVersionSatisfied": null
+        },
+        "webhook": {
+          "apiPresent": true,
+          "registrationTested": false
+        },
+        "externalHttps": {
+          "targetUrl": "https://radio-mischwerk.web.app/api/publishKnuddelsState",
+          "relayTargetAllowed": true,
+          "accessFileAllowed": true,
+          "targetListed": false,
+          "domainCount": 3,
+          "listComplete": true
+        },
+        "errors": [
+          "server-version-invalid",
+          "server-id-invalid"
+        ]
+      },
+      "interpretation": "Build 227 bestätigte weiterhin Domainrechte/API, behob die Versions-/ID-Auswertung auf dem echten Server noch nicht."
+    },
+    {
+      "source": "Vom Nutzer in diesem Chat übermittelte private MischWerkBot-Antwort; nicht eigenständig durch diesen Codex aus dem AppServer abgerufen.",
+      "receivedByThisWorkAt": "2026-11-05T20:23:02Z",
+      "checkedAtUtc": "2026-11-05T20:13:44.189Z",
+      "report": {
+        "schemaVersion": 1,
+        "app": {
+          "version": "0.1.228",
+          "buildNumber": 228
+        },
+        "checkedAt": 1793909624189,
+        "appServer": {
+          "version": null,
+          "serverId": null,
+          "webhookMinimumVersionSatisfied": null,
+          "valueDiagnostics": {
+            "version": {
+              "returned": true,
+              "type": "string",
+              "isNull": false,
+              "tag": "[object String]",
+              "text": "SNAPSHOT-",
+              "textLength": 9,
+              "truncated": false,
+              "stringAccepted": true,
+              "error": null
+            },
+            "serverId": {
+              "returned": true,
+              "type": "string",
+              "isNull": false,
+              "tag": "[object String]",
+              "text": "apps7@78.46.113.167",
+              "textLength": 19,
+              "truncated": false,
+              "stringAccepted": true,
+              "error": null
+            }
+          }
+        },
+        "webhook": {
+          "apiPresent": true,
+          "registrationTested": false
+        },
+        "externalHttps": {
+          "targetUrl": "https://radio-mischwerk.web.app/api/publishKnuddelsState",
+          "relayTargetAllowed": true,
+          "accessFileAllowed": true,
+          "targetListed": false,
+          "domainCount": 3,
+          "listComplete": true
+        },
+        "errors": [
+          "server-version-invalid",
+          "server-id-invalid"
+        ]
+      },
+      "interpretation": {
+        "version": "SNAPSHOT-",
+        "serverId": "apps7@78.46.113.167",
+        "bothApiCallsSucceeded": true,
+        "primitiveStringReturns": true,
+        "releaseTimestampComparable": false,
+        "webhookMinimumVersionSatisfied": null,
+        "reason": "Eigene Diagnosefilter akzeptierten nur datierte Releases und Server-IDs ohne @. Der tatsächliche Server liefert gültige Stringwerte mit anderem Format. Die API-Abfragen waren erfolgreich.",
+        "javaStringHypothesisExplainsActualIssue": false,
+        "doesNotProveHookRegistrationOrHttpTransport": true
+      },
+      "confirmed": [
+        "Knuddels-Build 228 läuft und hat beide ServerInfo-Getter erfolgreich aufgerufen.",
+        "Tatsächliches Versionslabel SNAPSHOT- und tatsächliche Server-ID mit @ vollständig als primitive Strings sichtbar.",
+        "WebHook-API vorhanden; beide konkrete canAccessURL-Prüfungen true."
+      ],
+      "notConfirmed": [
+        "Datierte Releaseversion hinter SNAPSHOT-; Mindestversionsvergleich bleibt unbekannt.",
+        "Ursache der separaten Domainlistenabweichung.",
+        "Echte WebHookregistrierung, Hook-URL, geschützte Konfiguration und native Header-/Payload-/Antwortübertragung."
+      ]
+    }
+  ],
+  "handoffToAndroidFirebase": {
+    "readyForReviewNow": true,
+    "doNotWaitForAnotherServerInfoInstallation": true,
+    "confirmedFacts": [
+      "Build 229 ist durch den Betreiber installiert und nativ fehlerfrei diagnostiziert.",
+      "Build 230 mit privatem Eingabeweg ist lokal implementiert und geprüft, noch nicht nativ abgenommen.",
+      "Keine echten Secretwerte gesetzt. Firebase muss erst nach sicherer identischer Sync-Secret-Einrichtung publishKnuddelsState bereitstellen."
+    ],
+    "caveat": "Aus SNAPSHOT- keine datierte Releaseversion ableiten. Registrierung und HTTP-Transport werden durch API-Verfügbarkeit nicht bewiesen.",
+    "firebaseSectionStaleStatements": [],
+    "peerSectionEdited": false,
+    "operatorDeploymentUpdate": {
+      "version": "0.1.229",
+      "buildNumber": 229,
+      "uploadedAndUpdatedByOperatorReported": true,
+      "nativeExecutionConfirmed": true,
+      "diagnosisPassed": true,
+      "diagnosticErrors": [],
+      "checkedAt": 1793911021204,
+      "action": "Build 229 ist bereits installiert; vorhandenen erfolgreichen Nachweis übernehmen. Nächster Schritt bleibt geschützte Einrichtung und HTTP-Abnahme."
+    },
+    "acceptedNative229EvidenceInFirebaseRevision9": true,
+    "nativeSetupRequiresNewBuild230": true,
+    "operatorInputPathLocallyPrepared": true,
+    "operatorInputPathNativelyAccepted": false
+  },
+  "secretProvisioningReview": {
+    "reviewedAt": "2026-11-05T21:26:02Z",
+    "status": "implemented_and_locally_verified_native_acceptance_pending",
+    "apiSupportedNativePathPrepared": true,
+    "localGuardAndBrowserTestsPassed": true,
+    "nativeOperatorInputAcceptancePending": true,
+    "documentedStorageApi": "KnuddelsServer.getPersistence() / AppPersistence.getObject/setObject",
+    "source": "https://developer.knuddels.de/docs/classes/AppPersistence.html",
+    "scope": "Eigener privater Knuddels-UI-/Sessionablauf auf dokumentierten APIs implementiert. Lokale Browser-/Plattform-/Rhino-Prüfungen bestanden; echte Ausführung und Einrichtung auf Knuddels nach Betreiberinstallation noch offen.",
+    "nextRequired": "Betreiber installiert Build 230 und öffnet /mischwerk-relay einrichten. Tatsächlichen privaten Sitzungs-/Speicherweg bestätigen; Sync-Schlüssel anschließend nur über diesen Betreiberweg und Firebase Secret Manager bereitstellen. runtimeVerified bleibt bis echter HTTP-Abnahme false."
+  },
+  "deploymentPerformedByThisCodex": false,
+  "deploymentPerformedByOperator": true,
+  "operatorInputPath": {
+    "status": "implemented_and_locally_verified_native_acceptance_pending",
+    "command": "/mischwerk-relay einrichten",
+    "serverModule": "PROJEKT/src/backend/android/settings.js",
+    "privateHtml": "PROJEKT/app/www/relay-settings.html",
+    "privateController": "PROJEKT/app/www/js/operator/relay-settings.js",
+    "authentication": "Tatsächlicher im Channel anwesender Channelinhaber; native User-/Sessionobjekte und ausschließlich die eröffnete private Sitzung.",
+    "notAuthorizedByRoles": [
+      "AppManager",
+      "Entwickler",
+      "Channelmoderator",
+      "Radiomoderator ohne Channelinhaberrecht"
+    ],
+    "nativeApis": [
+      "AppContent.overlayContent",
+      "User.canSendAppContent/sendAppContent",
+      "Client.sendEvent/addEventListener",
+      "App.onEventReceived",
+      "AppContentSession.getUser/getAppContent/getOpenTimestamp/sendEvent",
+      "AppPersistence.getObject/setObject"
+    ],
+    "privateStorageKey": "mischwerk.android.private.v1",
+    "editableFields": [
+      "syncSecret",
+      "relaySecret"
+    ],
+    "optionalInitialField": "relaySecret",
+    "fixedSyncUrl": "https://radio-mischwerk.web.app/api/publishKnuddelsState",
+    "flagsSetOnEverySave": {
+      "enabled": false,
+      "runtimeVerified": false
+    },
+    "configurationRevisionChecked": true,
+    "requestReplayRejected": true,
+    "unknownFieldsRejected": true,
+    "sessionLifetimeMinutes": 10,
+    "permissionRecheckedForEveryReadAndWrite": true,
+    "revokedOn": [
+      "Schließen",
+      "Rechteverlust",
+      "Channelverlassen",
+      "Shutdown",
+      "Ablauf bei nächster Aktion"
+    ],
+    "existingValuesReturnedToClient": false,
+    "browserStorageUsed": false,
+    "inputFieldsClearedBeforeSendAndOnPageEnd": true,
+    "logsContainSecretValues": false,
+    "customHttpProvisioningEndpointCreated": false,
+    "secretsInChatCommandParameters": false,
+    "opensExistingPublicOverlayDrafts": false,
+    "registersWebHook": false,
+    "sendsHttpPost": false,
+    "localTestsPassed": true,
+    "nativeAcceptancePassed": false,
+    "realSecretsConfiguredByThisCodex": false,
+    "platformStorageEncryptionOrVaultGuaranteeConfirmed": false,
+    "loggingScope": "Keine Secretwerte in durch diese Anwendung geschriebenen Logs; zusätzliche SDK-/Plattformgarantien werden nicht behauptet."
+  }
+}

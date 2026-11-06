@@ -15,11 +15,11 @@ MischWerkUI.define('viewport', function (dependencies) {
     var constrained = small && window.innerHeight < 360;
     root.classList.toggle('radio-constrained', constrained);
     if (bridge && !bridge.isK3Client()) { root.classList.remove('radio-constrained'); }
-    // 40 px Hintergrund für den Glow, unabhängig vom Wiedergabestatus.
-    var contentHeight = Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + 40;
+    // 16 px Hintergrund für den Glow, unabhängig vom Wiedergabestatus.
+    var contentHeight = Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + 16;
     var height = Math.min(500, contentHeight);
     if (bridge && !bridge.isK3Client()) { constrained = small && window.innerHeight + 1 < contentHeight; }
-    if (bridge && bridge.isK3Client()) { height = 200; }
+    if (bridge && bridge.isK3Client()) { height = 176; }
     root.style.setProperty('--radio-height', height + 'px');
     if (bridge && !bridge.isK3Client() && height !== requestedHeight) {
       requestedHeight = height;

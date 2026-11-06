@@ -302,7 +302,7 @@ test('main.js laedt fachlich getrennte Serverdateien statt eines Sammelbundles',
 });
 test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
   const result = require('../../tools/checks/architecture.cjs').checkArchitecture();
-  assert.equal(result.backendModules, 40);
+  assert.equal(result.backendModules, 48);
   assert.equal(result.frontendComponents, 49);
 });
 
@@ -621,7 +621,8 @@ test('Channelinhaber verwaltet das Radio-Team über eine eigene persistente Roll
   assert.equal(h.state(channelModerator,cms).user.canModerate,true);
   assert.equal(lastResult(h.event(owner,os,'mw:addRadioModerator',{nick:'KanalMod',expectedRadioModeratorRevision:state.radioModeratorRevision})).ok,false,'Doppelte Ernennung ablehnen');
   assert.equal(lastResult(h.event(owner,os,'mw:addRadioModerator',{nick:listener.nick,expectedRadioModeratorRevision:revision})).ok,false,'Veraltete Team-Änderung ablehnen');
-  assert.equal(lastResult(h.event(owner,os,'mw:addRadioModerator',{nick:owner.nick,expectedRadioModeratorRevision:state.radioModeratorRevision})).ok,false,'Besitzer ist dauerhaft berechtigt');
+  assert.equal(lastResult(h.event(owner,os,'mw:addRadioModerator',{nick:owner.nick,expectedRadioModeratorRevision:state.radioModeratorRevision})).ok,true,'Besitzer kann den Button ausdrücklich freigeben');
+  removeRadioModerator(h,owner,os,owner);
   removeRadioModerator(h,owner,os,channelModerator);
   state=h.state(owner,os);
   assert.deepEqual(state.radioModerators,[]);
@@ -974,11 +975,11 @@ test('Knuddels-Ansicht ist responsiv und schließt den alten JFX-Browser aus', (
   const { h, os } = fixture();
   assert.equal(os.content.responsive, true); assert.equal(os.content.allowJFXBrowser, false);
   assert.equal(os.content.htmlFile.getAssetPath(), 'index.html');
-  assert.equal(os.content.viewMode, 'Headerbar'); assert.equal(os.content.height, 200);
+  assert.equal(os.content.viewMode, 'Headerbar'); assert.equal(os.content.height, 176);
 });
 test('Channelbeitritt und Appstart öffnen die Leiste; Wiederöffnen hinterlässt keine doppelte Sitzung', () => {
   const h = createHarness(); const user = h.user(9, 'Hörer');
-  assert.deepEqual(Object.keys(h.app.chatCommands).sort(), ['mischwerk', 'mischwerk-web', 'update', 'vorhang']);
+  assert.deepEqual(Object.keys(h.app.chatCommands).sort(), ['mischwerk', 'mischwerk-relay', 'mischwerk-web', 'mw', 'update', 'vorhang']);
   h.app.onUserJoined(user); const first = user.sessions[0];
   assert.equal(first.content.viewMode, 'Headerbar');
   h.app.chatCommands.mischwerk(user);

@@ -7,6 +7,10 @@ const { chromium } = require('playwright');
 const { createEmulator } = require('../../tools/emulator/server.cjs');
 const {reveal:revealStudio}=require('../support/studio-browser.cjs');
 let browser;
+async function openRadioAction(radio,button) {
+  if(button==='team-tab') { assert.equal(await radio.locator('#team-tab').count(),0); await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung')); }
+  else { await radio.locator('#'+button+':not([disabled])').click(); }
+}
 
 for(const client of ['k3','stapp']) {
   test('Echtes Audioende vor ended verbindet in '+client+' ohne neuen Klick wieder',async t=>{
@@ -97,7 +101,7 @@ for(const client of ['k3','stapp'])test('Moderations-Endzeit in '+client+' setzt
     return value.replace(' ','T');
   });
   await studio.locator('#studio-end-at').fill(target);
-  await radio.locator('#team-tab:not([disabled])').click();await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));await overlayView(page,'team');
   await radio.locator('#studio-tab:not([disabled])').click();studio=await overlayView(page,'studio');
   await studio.locator('#studio-end-form').waitFor();assert.equal(await studio.locator('#studio-end-at').inputValue(),target);
   await page.locator('#width').fill('320');await page.locator('#width').dispatchEvent('change');await studio.waitForFunction(()=>innerWidth===320);
@@ -155,7 +159,7 @@ for (const client of ['k3','stapp']) test('Alle Overlaylogos sind in '+client+' 
   }
   for(const [button,kind] of [['open-wishes','wishes'],['studio-tab','studio'],['team-tab','team'],['open-schedule','schedule']]) {
     await page.locator('#width').fill('1280');await page.locator('#width').dispatchEvent('change');
-    await radio.locator('#'+button+':not([disabled])').click();const frame=await overlayView(page,kind);
+    await openRadioAction(radio,button);const frame=await overlayView(page,kind);
     await assertHeader(frame,64);
     await page.locator('#width').fill('320');await page.locator('#width').dispatchEvent('change');
     await frame.waitForFunction(()=>innerWidth===320);await assertHeader(frame,64);
@@ -181,7 +185,7 @@ for (const client of ['k3','stapp']) test('Neue Sendeoptionen behalten in '+clie
   await schedule.locator('#schedule-timing').selectOption('openEnd');
   await schedule.locator('#schedule-start').fill('22:30');
   await schedule.locator('#schedule-topic').fill('Nacht mit MischWerk');
-  await radio.locator('#team-tab:not([disabled])').click();await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));await overlayView(page,'team');
   await radio.locator('#open-schedule:not([disabled])').click();schedule=await overlayView(page,'schedule');
   await schedule.locator('#schedule-form').waitFor({state:'visible'});
   assert.equal(await schedule.locator('#schedule-kind').inputValue(),'autodj');
@@ -206,7 +210,7 @@ for (const client of ['k3','stapp']) test('Neue Sendeoptionen behalten in '+clie
 for (const client of ['k3','stapp']) test('Bot-Texte scrollen in '+client+' ausschließlich im festen Inhaltsbereich', async t => {
   const lab=await setup(t,{},false,{deviceScaleFactor:client==='stapp'?2:1}),{page,radio}=await lab.join('Otterchen',client);
   await page.setViewportSize({width:1800,height:1400});
-  await radio.locator('#team-tab:not([disabled])').click();const team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(page,'team');
   await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
   assert.equal(await team.locator('#channel-texts-scroll').count(),1,'Genau eine eigene Inhalts-Scrollfläche');
   const pane=team.locator('#channel-texts-scroll');
@@ -266,7 +270,7 @@ for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' speichern, ro
   await radio.locator('#play-button:not([disabled])').click();
   await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
   await radio.evaluate(()=>{window.__botTextsAudio=document.getElementById('radio-audio');});
-  await radio.locator('#team-tab:not([disabled])').click();let team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));let team=await overlayView(page,'team');
   assert.equal(await team.locator('#dialog-title').textContent(),'Verwaltung');
   await team.locator('#team-texts-tab').click();
   await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
@@ -291,7 +295,7 @@ for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' speichern, ro
   await team.locator('#channel-texts-feedback').filter({hasText:'Aktualisiert'}).waitFor();
   assert.equal(await team.locator('#channel-texts-fields textarea').nth(0).inputValue(),'Mein ungespeicherter Bot-Text');
   await radio.locator('#open-schedule:not([disabled])').click();await overlayView(page,'schedule');
-  await radio.locator('#team-tab:not([disabled])').click();team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));team=await overlayView(page,'team');
   assert.equal(await team.locator('#team-texts-tab').getAttribute('aria-selected'),'true');
   assert.equal(await team.locator('#channel-texts-fields textarea').nth(0).inputValue(),'Mein ungespeicherter Bot-Text');
   assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===window.__botTextsAudio&&!window.__botTextsAudio.paused),true);
@@ -311,7 +315,7 @@ for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' speichern, ro
 for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' bleiben bei 560 und 320 Pixeln erreichbar und behalten Fehlerentwürfe', async t => {
   const lab=await setup(t),{page,radio}=await lab.join('Otterchen',client,1280);
   await page.setViewportSize({width:1800,height:1400});
-  await radio.locator('#team-tab:not([disabled])').click();const team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(page,'team');
   await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
   await team.locator('#channel-texts-fields textarea').nth(0).fill('Ein Text für unsere Hörerinnen und Hörer.');
   await team.locator('#channel-texts-fields textarea').nth(1).fill('Deinen Musikwunsch kannst du in der Wunschbox abgeben.');
@@ -338,7 +342,7 @@ for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' bleiben bei 5
 
 for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' schützen ungespeicherte Eingaben bei einer neueren Serverrevision', async t => {
   const lab=await setup(t),{page,radio}=await lab.join('Otterchen',client);
-  await radio.locator('#team-tab:not([disabled])').click();const team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(page,'team');
   await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
   await team.locator('#channel-texts-fields textarea').first().fill('Mein noch nicht gespeicherter Entwurf');
   await team.evaluate(()=>Client.sendEvent('mw:channelTexts.save',{requestId:'other-owner-edit',view:'team',viewRevision:1,
@@ -362,7 +366,7 @@ for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' schützen ung
 
 test('Bot-Texte erhalten bei verlorener Speicherquittung die globale Hinweisbox und einen erreichbaren Wiederanlauf', async t => {
   const lab=await setup(t,{},true),{page,radio}=await lab.join('Otterchen','k3');
-  await radio.locator('#team-tab:not([disabled])').click();const team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(page,'team');
   await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
   await team.locator('#channel-texts-fields textarea').first().fill('Text mit verlorener Bestätigung');
   lab.hub.faults.dropServerType='mw:result';lab.hub.faults.dropServer=1;
@@ -447,7 +451,7 @@ for(const client of ['k3','stapp'])test('Moderationshistorie erhält in '+client
 for(const client of ['k3','stapp'])test('Historienrechte werden in '+client+' serverseitig vergeben und beim Entzug auch im offenen Studio gelöscht',async t=>{
   const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client);
   lab.hub.runtime.command('Otterchen','vorhang','öffnen');
-  await owner.radio.locator('#team-tab').click();const team=await overlayView(owner.page,'team');
+  await owner.radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(owner.page,'team');
   await team.locator('#radio-moderator-nick').fill('DJ-Test');await team.locator('#radio-moderator-form button[type=submit]').click();
   await team.locator('#radio-moderator-list').filter({hasText:'DJ-Test'}).waitFor();
   const dj=await lab.join('DJ-Test',client);await dj.radio.locator('#studio-tab:not([disabled])').click();
@@ -478,9 +482,9 @@ for(const client of ['k3','stapp'])test('Wechsel während der ersten HTML-Ladeph
   try{
     await radio.locator('#studio-tab').click();await page.locator('#overlays iframe[title$=" · studio"]').waitFor();
     await assertEventually(()=>typeof release==='function');
-    await radio.locator('#team-tab:not([disabled])').waitFor();
+    assert.equal(await radio.locator('#team-tab').count(),0);
     lab.hub.faults.dropServer=1;lab.hub.faults.dropServerType='mw:overlay.prepare';
-    await radio.locator('#team-tab').click();
+    await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));
     await page.waitForFunction(()=>window.EmulatorLab.trace.some(e=>e.kind==='droppedServer'&&e.eventType==='mw:overlay.prepare'));
     release();const team=await overlayView(page,'team');
     await team.locator('#radio-moderator-nick:not([disabled])').fill('Unfertiger Entwurf');
@@ -488,7 +492,7 @@ for(const client of ['k3','stapp'])test('Wechsel während der ersten HTML-Ladeph
     assert.equal(lab.hub.trace.filter(e=>e.kind==='contentShow'&&e.mode==='Overlay').length,2);
     assert.equal(lab.hub.trace.filter(e=>e.kind==='sessionEvent'&&e.eventType==='mw:overlay.prepare').length,2);
     await radio.locator('#open-schedule:not([disabled])').click();await overlayView(page,'schedule');
-    await radio.locator('#team-tab:not([disabled])').click();const back=await overlayView(page,'team');
+    await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const back=await overlayView(page,'team');
     assert.equal(await back.locator('#radio-moderator-nick').inputValue(),'Unfertiger Entwurf');
     assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
   }finally{if(release)release();}
@@ -499,7 +503,7 @@ for(const client of ['k3','stapp'])test('SDK-Ladeübergabe zeigt in '+client+' b
   await page.waitForFunction(()=>window.EmulatorLab.trace.some(e=>e.kind==='nativeReady'));
   assert.equal(lab.hub.trace.find(e=>e.kind==='nativeReady').visibleAtHandoff,true,'Radio vor dem SDK-DOMContentLoaded-Listener fertig');
   for(const [button,kind] of [['studio-tab','studio'],['team-tab','team'],['open-schedule','schedule'],['open-wishes','wishes']]){
-    const from=lab.hub.trace.length;await radio.locator('#'+button+':not([disabled])').click();
+    const from=lab.hub.trace.length;await openRadioAction(radio,button);
     const frame=await overlayView(page,kind);
     await page.waitForFunction(n=>window.EmulatorLab.trace.slice(n).some(e=>e.kind==='nativeReady'),from);
     const opening=lab.hub.trace.slice(from),handoff=opening.findIndex(e=>e.kind==='nativeReady');
@@ -517,7 +521,7 @@ for (const client of ['k3','stapp']) test('Aktive Ladeabdeckung verhindert in '+
   await page.setViewportSize({width:1800,height:1600});
   let release; await page.route('**/frame/**',async route=>{await new Promise(resolve=>{release=resolve;});await route.continue();});
   for(const [button,kind] of [['studio-tab','studio'],['team-tab','team'],['open-schedule','schedule'],['open-wishes','wishes']]) {
-    await radio.locator('#'+button+':not([disabled])').click();
+    await openRadioAction(radio,button);
     await page.locator('#overlays iframe').waitFor();
     const loading=page.locator('#overlays .app-loading');assert.equal(await loading.count(),1);
     const opened=lab.hub.trace.findLast(e=>e.kind==='contentShow'&&e.mode==='Overlay');
@@ -608,7 +612,7 @@ for(const client of ['k3','stapp'])test('Erster HTML-Anstrich zeigt in '+client+
  try {
   for(const [button,kind,title] of [['open-wishes','wishes','Wunschbox'],['studio-tab','studio','Moderation'],['team-tab','team','Verwaltung'],['open-schedule','schedule','Sendeplan']]){
    await network.send('Network.clearBrowserCache');
-   await radio.locator('#'+button+':not([disabled])').click();await assertEventually(()=>typeof release==='function');
+   await openRadioAction(radio,button);await assertEventually(()=>typeof release==='function');
    const frame=await (await page.waitForSelector('#overlays iframe')).contentFrame();
    await frame.locator('.dialog-header').waitFor({timeout:2000});
    assert.equal(await frame.locator('#dialog-title').textContent(),title);
@@ -649,7 +653,7 @@ async function overlayView(page,kind) {
 
 test('Geschlossener Vorhang erhält beim Schließen eines Verwaltungs-Overlays ein sichtbares Fokusziel',async t=>{
   const lab=await setup(t),owner=await lab.join('Otterchen','stapp');
-  await owner.radio.locator('#team-tab').click();const team=await overlayView(owner.page,'team');
+  await owner.radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(owner.page,'team');
   await team.locator('#radio-moderator-nick').fill('DJ-Test');
   await team.locator('#radio-moderator-form button[type=submit]').click();
   await team.locator('#radio-moderator-list').filter({hasText:'DJ-Test'}).waitFor();
@@ -669,14 +673,14 @@ test('Verlorene Overlaybestätigung lässt den Entwurf stehen; Abbrechen und feh
   await studio.locator('#studio-topic:not([disabled])').fill('Diesen Entwurf behalten');
   lab.hub.faults.dropClient=1;lab.hub.faults.clientEventType='mw:overlay.ready';
   const at=lab.hub.trace.filter(e=>e.kind==='droppedClient').length;
-  await radio.locator('#team-tab:not([disabled])').click();
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));
   await page.waitForFunction(n=>window.EmulatorLab.trace.filter(e=>e.kind==='droppedClient').length>n,at);
   assert.equal(await studio.locator('.dialog-content').evaluate(n=>n.inert),true);
   assert.equal(await studio.locator('#studio-topic').inputValue(),'Diesen Entwurf behalten');
   await studio.locator('#close-overlay').click();
   await studio.waitForFunction(()=>!document.querySelector('.dialog-content').inert);
   assert.equal(await page.locator('#overlays iframe').count(),1);
-  await radio.locator('#team-tab:not([disabled])').click();const team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(page,'team');
   await team.locator('#radio-moderator-nick:not([disabled])').fill('Bleibt auch ohne Fähigkeit');
   await page.locator('#no-overlay').check();
   await page.waitForFunction(()=>EmulatorLab.state.users.find(u=>u.nick==='Otterchen').capabilities.Overlay===false);
@@ -686,7 +690,7 @@ test('Verlorene Overlaybestätigung lässt den Entwurf stehen; Abbrechen und feh
   assert.equal(await page.locator('#popups iframe').count(),0);
   await team.locator('#radio-moderator-nick').focus();await page.keyboard.press('Escape');
   await page.locator('#overlays iframe').waitFor({state:'detached'});
-  assert.equal(await radio.locator('#team-tab').evaluate(n=>document.activeElement===n),true);
+  assert.equal(await radio.locator('#open-schedule').evaluate(n=>document.activeElement===n),true);
   assert.deepEqual(lab.errors,[]);
 });
 for(const client of ['k3','stapp'])test('Alle Channel-Overlays in '+client+' erhalten Entwürfe, Wunschversand, Fokus und Audio beim Wechsel',async t=>{
@@ -700,7 +704,7 @@ for(const client of ['k3','stapp'])test('Alle Channel-Overlays in '+client+' erh
   await studio.evaluate(()=>{window.__keptDocument=document;});
   const firstSource=await page.locator('#overlays iframe').getAttribute('src');
   await studio.locator('#studio-topic:not([disabled])').fill('Mein ungespeichertes Thema');
-  await radio.locator('#team-tab:not([disabled])').click();let team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));let team=await overlayView(page,'team');
   await team.locator('#radio-moderator-nick:not([disabled])').fill('Unfertiger Nick');
   await radio.locator('#open-schedule:not([disabled])').click();let schedule=await overlayView(page,'schedule');
   await schedule.locator('#schedule-new:not([disabled])').click();
@@ -709,7 +713,7 @@ for(const client of ['k3','stapp'])test('Alle Channel-Overlays in '+client+' erh
   await radio.locator('#studio-tab:not([disabled])').click();studio=await overlayView(page,'studio');
   assert.equal(await studio.locator('#studio-topic').inputValue(),'Mein ungespeichertes Thema');
   assert.equal(await studio.locator('#reset-topic').isVisible(),true);
-  await radio.locator('#team-tab:not([disabled])').click();team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));team=await overlayView(page,'team');
   assert.equal(await team.locator('#radio-moderator-nick').inputValue(),'Unfertiger Nick');
   await radio.locator('#open-schedule:not([disabled])').click();schedule=await overlayView(page,'schedule');
   await schedule.locator('#schedule-form').waitFor();
@@ -822,7 +826,7 @@ async function setup(t, faults = {}, clock = false, contextOptions = {}) {
     await context.close(); await instance.close();
     assert.ok(path.basename(directory).startsWith('MischWerk-Emulator-Browser-')); fs.rmSync(directory, { recursive: true, force: true });
   });
-  async function join(nick = 'Otterchen', client = 'k3', width = 1280) {
+  async function join(nick = 'Otterchen', client = 'k3', width = 1280, registeredOwner = true) {
     const page = await context.newPage();
     if(clock) await page.clock.install();
     await page.goto(instance.origin + '/?nick=' + encodeURIComponent(nick));
@@ -832,6 +836,12 @@ async function setup(t, faults = {}, clock = false, contextOptions = {}) {
     await page.locator('#width').fill(String(width)); await page.locator('#width').dispatchEvent('change');
     await page.locator('#join').click();
     const radio = await view(page, 'Headerbar');
+    const operator=instance.hub.runtime.users.find(nick);
+    if(registeredOwner&&nick==='Otterchen'&&operator.state.role==='owner') {
+      const saved=instance.hub.runtime.persistence.api().getObject('mischwerk.state.v1');
+      if(!(saved?.radioModeratorUserIds||[]).includes(operator.state.id))await radio.evaluate(()=>Client.sendEvent('mw:addRadioModerator',{nick:'Otterchen'}));
+      await radio.locator('#studio-tab:not([hidden])').waitFor();
+    }
     return { page, radio };
   }
   return { ...instance, context, join, errors, external };
@@ -883,7 +893,7 @@ for (const client of ['k3','stapp']) {
 for(const client of ['k3','stapp']) {
   test('Hörerplan zeigt in '+client+' beide Moderationen, vollständige Sendungen und erhält bewusst gewählte Seiten',async t=>{
     const lab=await setup(t),owner=await lab.join('Otterchen',client);
-    await owner.radio.locator('#team-tab').click();const team=await overlayView(owner.page,'team');
+    await owner.radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(owner.page,'team');
     await team.locator('#radio-moderator-nick').fill('Polaroid');
     await team.locator('#radio-moderator-form button[type=submit]').click();
     await team.locator('#radio-moderator-list').filter({hasText:'Polaroid'}).waitFor();
@@ -1055,7 +1065,7 @@ for(const client of ['k3','stapp']) {
   test('Aktualisieren in beiden echten Appfenstern: '+client+' bestätigt Antwort, Fehler und Wiederholung',async t=>{
     const lab=await setup(t,{},true),{page,radio}=await lab.join('Otterchen',client);
     for(const kind of ['studio','team']) {
-      await radio.locator(kind==='studio'?'#studio-tab':'#team-tab').click();
+      await openRadioAction(radio,kind==='studio'?'studio-tab':'team-tab');
       const frame=await view(page,'Overlay');
       const button=frame.locator(kind==='studio'?'#refresh-queue':'#refresh-radio-team');
       const feedback=frame.locator(kind==='studio'?'#queue-refresh-feedback':'#team-refresh-feedback');
@@ -1105,7 +1115,7 @@ for(const client of ['k3','stapp']) {
 test('Parserstart zeigt alle Besitzeraktionen und korrekte Client-/Cacheverträge', async t => {
   const lab = await setup(t), { page, radio } = await lab.join();
   assert.equal(await radio.locator('#studio-tab').isVisible(), true);
-  assert.equal(await radio.locator('#team-tab').isVisible(), true);
+  assert.equal(await radio.locator('#team-tab').count(), 0);
   assert.deepEqual(await radio.evaluate(() => [Client.isK3Client(), Client.getHostFrame().getAppViewMode(),
     Client.getCacheInvalidationId() === Client.getCacheInvalidationId()]), [true, 'HEADERBAR', true]);
   assert.ok(await radio.evaluate(() => Array.from(document.scripts).filter(script => script.src.includes('/app/')).every(script => new URL(script.src).searchParams.has('v'))));
@@ -1121,7 +1131,7 @@ test('Zwei echte Nutzer: natives Overlay, Entwurf, doppeltes Senden und Erledigt
   await listener.radio.locator('#open-wishes').click();
   let surface = await view(listener.page, 'Overlay');
   assert.equal((await listener.page.locator('#channel').boundingBox()).y, before.y);
-  assert.equal(await listener.radio.evaluate(() => innerHeight), 200);
+  assert.equal(await listener.radio.evaluate(() => innerHeight), 176);
   assert.equal(await surface.evaluate(() => Client.getHostFrame().getAppViewMode()), 'OVERLAY');
   await surface.locator('#wish-text').fill('a-ha – Take On Me');
   await surface.locator('#close-wishes').click();
@@ -1168,7 +1178,7 @@ test('320 und 2290 Pixel sind tatsächliche Framebreiten, Overlay verändert den
   assert.equal(await radio.evaluate(() => innerWidth), 320);
   await radio.locator('#open-wishes').click(); const surface = await view(page, 'Overlay');
   assert.ok(await surface.locator('#submit-wish').isVisible());
-  assert.equal(await radio.evaluate(() => innerHeight), 200);
+  assert.equal(await radio.evaluate(() => innerHeight), 176);
   await page.locator('#width').fill('2290'); await page.locator('#width').dispatchEvent('change');
   await radio.waitForFunction(() => innerWidth === 2290);
   assert.equal(await radio.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
@@ -1177,7 +1187,7 @@ test('320 und 2290 Pixel sind tatsächliche Framebreiten, Overlay verändert den
 });
 test('Team-Popup öffnet die Verwaltung direkt und bleibt bei schrittweisen Hostantworten stabil', async t => {
   const lab = await setup(t, { hostSizing: 'stepped' }), { page, radio } = await lab.join('Otterchen', 'stapp');
-  await radio.locator('#team-tab').click(); const team = await view(page, 'Overlay');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung')); const team = await view(page, 'Overlay');
   await page.waitForFunction(() => [...window.EmulatorLab.frames.sessions.values()].some(entry => entry.mode === 'Overlay' && entry.height === 630));
   assert.deepEqual(await team.evaluate(()=>[innerWidth,innerHeight]),[560,630]);
   const initialHeight = await team.evaluate(() => innerHeight);
@@ -1259,7 +1269,9 @@ test('Async-Stresstest, langsame Dateien und Rollenwechsel funktionieren ohne si
   assert.equal(await radio.locator('#studio-tab').isVisible(), false);
   assert.equal(await radio.locator('#team-tab').isVisible(), false);
   await page.locator('#role').selectOption('owner'); await page.locator('#apply-role').click();
-  await radio.locator('#team-tab:not([hidden])').waitFor();
+  await page.waitForFunction(()=>window.EmulatorLab.state.users.find(u=>u.nick==='AppManager').role==='owner');
+  assert.equal(await radio.locator('#studio-tab').isVisible(),false,'Inhaberrolle ersetzt keinen Radio-Team-Eintrag');
+  assert.equal(await radio.locator('#team-tab').count(),0);
   assert.deepEqual(lab.errors, []);
 });
 
@@ -1267,7 +1279,7 @@ test('Moderationserweiterung im strengen Emulator: private Wunschregie, Themenen
   const lab=await setup(t,{hostSizing:'stepped'}),owner=await lab.join('Otterchen','stapp');
   await owner.page.setViewportSize({width:1800,height:1400});
   lab.hub.runtime.command('Otterchen','vorhang','öffnen');
-  await owner.radio.locator('#team-tab').click();let team=await view(owner.page,'Overlay');
+  await owner.radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));let team=await view(owner.page,'Overlay');
   await team.locator('#radio-moderator-nick').fill('DJ-Test');await team.locator('#add-radio-moderator').click();
   await team.locator('#radio-moderator-list').filter({hasText:'DJ-Test'}).waitFor();
   const dj=await lab.join('DJ-Test','k3'),listener=await lab.join('Testhoerer','stapp');
@@ -1303,6 +1315,36 @@ test('Moderationserweiterung im strengen Emulator: private Wunschregie, Themenen
   assert.equal(runtime.errors.length,0);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
+for(const client of ['k3','stapp'])test('Übergabe in '+client+' bleibt bei 320 × 360 und verlorener Annahmequittung vollständig bedienbar',async t=>{
+  const lab=await setup(t,{provider:'online',hostSizing:'stepped'}),owner=await lab.join('Otterchen','stapp',320);
+  lab.hub.runtime.command('Otterchen','vorhang','öffnen');
+  await owner.radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(owner.page,'team');
+  await team.locator('#radio-moderator-nick').fill('DJ-Test');await team.locator('#add-radio-moderator').click();
+  await team.locator('#radio-moderator-list').filter({hasText:'DJ-Test'}).waitFor();
+  await team.locator('#close-overlay').click();await owner.page.locator('#overlays iframe').waitFor({state:'detached'});
+  const dj=await lab.join('DJ-Test',client,320);
+  for(const person of [owner,dj]){await person.radio.locator('#play-button:not([disabled])').click();await person.radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);await person.radio.locator('#radio-audio').evaluate(a=>{a.loop=true;});}
+  await owner.radio.locator('#studio-tab').click();const source=await overlayView(owner.page,'studio');
+  await source.locator('#on-air').click();await source.locator('#on-air').filter({hasText:'Endzeit ändern'}).waitFor();
+  await owner.page.setViewportSize({width:1800,height:490});await dj.page.setViewportSize({width:1800,height:490});
+  await source.waitForFunction(()=>innerHeight===360);await revealStudio(source,'#handover-open');await source.locator('#handover-open').click();
+  const notes='Private Notizen für die nächste Sendung. '.repeat(14).slice(0,500).trim();
+  await revealStudio(source,'#handover-notes','handover');await source.locator('#handover-notes').fill(notes);
+  await revealStudio(source,'#handover-request','handover');await source.locator('#handover-request').click();await source.locator('#handover-cancel').waitFor();
+  await dj.radio.locator('#studio-tab').click();const target=await overlayView(dj.page,'studio');await revealStudio(target,'#handover-open');await target.locator('#handover-open').click();
+  assert.equal(await require('../support/studio-browser.cjs').readText(target,'#handover-note-text','handover'),notes);
+  await revealStudio(target,'#handover-topic','handover');await target.locator('#handover-topic').fill('Die neue bestätigte Sendung');
+  await revealStudio(target,'#handover-accept','handover');lab.hub.faults.dropServerType='mw:result';lab.hub.faults.dropServer=1;
+  await target.locator('#handover-accept').click();await target.locator('#handover-panel').waitFor({state:'hidden'});
+  await revealStudio(target,'#on-air');assert.equal(await target.locator('#on-air').isDisabled(),false);
+  assert.equal(await target.locator('#studio-topic').inputValue(),'Die neue bestätigte Sendung');
+  assert.equal(await require('../support/studio-browser.cjs').readText(target,'#studio-notes-text'),notes);
+  assert.equal(lab.hub.runtime.persistence.api().getObject('mischwerk.state.v1').moderator.userId,lab.hub.runtime.users.find('DJ-Test').state.id);
+  assert.ok(lab.hub.trace.some(e=>e.kind==='droppedServer'&&e.nick==='DJ-Test'&&e.eventType==='mw:result'));
+  for(const person of [owner,dj])assert.equal(await person.radio.locator('#radio-audio').evaluate(a=>!a.paused&&a.currentTime>0),true);
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
 test('Native Wunschliste zeigt drei Einträge, erhält die Auswahl über Fensterseiten und quittiert nur den ausgewählten Wunsch',async t=>{
   const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen','stapp');
   lab.hub.runtime.command('Otterchen','vorhang','öffnen');
@@ -1333,12 +1375,12 @@ test('Native Wunschliste zeigt drei Einträge, erhält die Auswahl über Fenster
 
 for(const client of ['k3','stapp'])test('Alle nativen Öffnungen in '+client+' behalten getrennte native Anfänge und ausschließlich freigegebene Inhaltshöhen',async t=>{
  const lab=await setup(t,{provider:'online',resourceDelayMs:10}),{page,radio}=await lab.join('Otterchen',client,2290);await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);const entries=[['studio-tab','studio',780,730],['team-tab','team',560,630],['open-schedule','schedule',820,630],['open-wishes','wishes',560,340]];
- for(const [from,kind] of entries){const previous=await page.locator('#overlays iframe').count()?await page.locator('#overlays iframe').getAttribute('src'):null;await radio.locator('#'+from+':not([disabled])').click();await page.waitForFunction(previous=>{const n=document.querySelector('#overlays iframe');return n&&n.getAttribute('src')!==previous;},previous);await overlayView(page,kind);for(const [button,target,width,height] of entries){const old=await page.locator('#overlays iframe').getAttribute('src');await radio.locator('#'+button+':not([disabled])').click();await page.waitForFunction(old=>document.querySelector('#overlays iframe')?.getAttribute('src')!==old,old);const frame=await overlayView(page,target);const actual=await frame.evaluate(()=>[innerWidth,innerHeight]);assert.equal(actual[0],width);if(target==='studio')assert.ok(actual[1]>0&&actual[1]<=height);else assert.equal(actual[1],height);assertAllowedOverlaySizes(lab);assert.equal(await frame.locator('#'+target+'-panel').isVisible(),true);}}
+ for(const [from,kind] of entries){const previous=await page.locator('#overlays iframe').count()?await page.locator('#overlays iframe').getAttribute('src'):null;await openRadioAction(radio,from);await page.waitForFunction(previous=>{const n=document.querySelector('#overlays iframe');return n&&n.getAttribute('src')!==previous;},previous);await overlayView(page,kind);for(const [button,target,width,height] of entries){const old=await page.locator('#overlays iframe').getAttribute('src');await openRadioAction(radio,button);await page.waitForFunction(old=>document.querySelector('#overlays iframe')?.getAttribute('src')!==old,old);const frame=await overlayView(page,target);const actual=await frame.evaluate(()=>[innerWidth,innerHeight]);assert.equal(actual[0],width);if(target==='studio')assert.ok(actual[1]>0&&actual[1]<=height);else assert.equal(actual[1],height);assertAllowedOverlaySizes(lab);assert.equal(await frame.locator('#'+target+'-panel').isVisible(),true);}}
  assert.equal(await radio.evaluate(()=>!document.getElementById('radio-audio').paused),true);assert.equal(lab.hub.trace.some(e=>e.eventType==='mw:view'),false);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
 test('Rechteverlust löscht gespeicherte native Verwaltungsentwürfe vor erneuter Öffnung',async t=>{
- const lab=await setup(t),{page,radio}=await lab.join('Otterchen','stapp',2290);await radio.locator('#studio-tab:not([disabled])').click();let frame=await overlayView(page,'studio');await frame.locator('#studio-topic').fill('Privater Studioentwurf');await radio.locator('#team-tab:not([disabled])').click();frame=await overlayView(page,'team');await frame.locator('#radio-moderator-nick').fill('Privater Teamnick');await radio.locator('#open-schedule:not([disabled])').click();frame=await overlayView(page,'schedule');await frame.locator('#schedule-new').click();await frame.locator('#schedule-topic').fill('Privater Planentwurf');await radio.locator('#open-wishes:not([disabled])').click();await overlayView(page,'wishes');const runtime=lab.hub.runtime,record=runtime.users.find('Otterchen');record.state.role='listener';let id=[...runtime.contents.sessions.keys()].find(id=>runtime.contents.describe(id).mode==='Overlay');runtime.event('Otterchen',id,'mw:refresh',{});await radio.locator('#team-tab').waitFor({state:'hidden'});record.state.role='owner';runtime.event('Otterchen',id,'mw:refresh',{});await radio.evaluate(()=>Client.sendEvent('mw:refresh',{}));await radio.locator('#open-schedule:not([disabled])').click();frame=await overlayView(page,'schedule');assert.equal(await frame.locator('#schedule-form').isHidden(),true);await radio.locator('#studio-tab:not([disabled])').click();frame=await overlayView(page,'studio');assert.equal(await frame.locator('#studio-topic').inputValue(),'');assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+ const lab=await setup(t),{page,radio}=await lab.join('Otterchen','stapp',2290);await radio.locator('#studio-tab:not([disabled])').click();let frame=await overlayView(page,'studio');await frame.locator('#studio-topic').fill('Privater Studioentwurf');await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));frame=await overlayView(page,'team');await frame.locator('#radio-moderator-nick').fill('Privater Teamnick');await radio.locator('#open-schedule:not([disabled])').click();frame=await overlayView(page,'schedule');await frame.locator('#schedule-new').click();await frame.locator('#schedule-topic').fill('Privater Planentwurf');await radio.locator('#open-wishes:not([disabled])').click();await overlayView(page,'wishes');const runtime=lab.hub.runtime,record=runtime.users.find('Otterchen');const headerId=[...runtime.contents.sessions.keys()].find(id=>runtime.contents.describe(id).mode==='Headerbar');runtime.event('Otterchen',headerId,'mw:removeRadioModerator',{userId:record.state.id});record.state.role='listener';let id=[...runtime.contents.sessions.keys()].find(id=>runtime.contents.describe(id).mode==='Overlay');runtime.event('Otterchen',id,'mw:refresh',{});await radio.locator('#studio-tab').waitFor({state:'hidden'});record.state.role='owner';runtime.event('Otterchen',headerId,'mw:addRadioModerator',{nick:'Otterchen'});runtime.event('Otterchen',id,'mw:refresh',{});await radio.evaluate(()=>Client.sendEvent('mw:refresh',{}));await radio.locator('#open-schedule:not([disabled])').click();frame=await overlayView(page,'schedule');assert.equal(await frame.locator('#schedule-form').isHidden(),true);await radio.locator('#studio-tab:not([disabled])').click();frame=await overlayView(page,'studio');assert.equal(await frame.locator('#studio-topic').inputValue(),'');assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
 test('Wiederöffnen über Moderation erhält den Wunschentwurf und setzt die Eingabesequenz der neuen Sitzung zurück',async t=>{
@@ -1378,7 +1420,7 @@ for(const client of ['k3','stapp'])for(const width of [320,2290])test('Overlayde
   const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,width);
   // Primäraktionen sind silbern, der Hörerplan verwendet eine dunkle Sekundäraktion.
   for(const [entry,kind,control]of [['studio-tab','studio','on-air'],['team-tab','team','add-radio-moderator'],['open-schedule','schedule','schedule-new'],['open-wishes','wishes','submit-wish']]){
-    await radio.locator('#'+entry+':not([disabled])').click();const frame=await overlayView(page,kind);
+    await openRadioAction(radio,entry);const frame=await overlayView(page,kind);
     if(kind==='team')await frame.locator('#radio-moderator-nick').fill('DJ-Test');
     if(kind==='wishes')await frame.locator('#wish-text:not([disabled])').fill('a-ha – Take On Me');
     if(kind==='studio'||kind==='team')assert.equal(await frame.locator('#studio-connection').isVisible(),false);
@@ -1410,12 +1452,12 @@ for(const client of ['k3','stapp'])test('Overlaydesign: kompakte Rückmeldungen 
     assert.equal(await box.evaluate(n=>{const s=getComputedStyle(n);return s.position==='static'&&s.fontSize===(n.id==='topic-feedback'?'12px':'13px')&&s.boxShadow==='none'&&n.scrollWidth<=n.clientWidth+1;}),true);
     await box.scrollIntoViewIfNeeded();
   }
-  await radio.locator('#team-tab:not([disabled])').click();let frame=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));let frame=await overlayView(page,'team');
   await frame.locator('#radio-moderator-nick').fill('DieserNickExistiertNicht');await frame.locator('#add-radio-moderator').click();
   await inline(frame,'#notice.error','radio-moderator-form');assert.equal(await frame.locator('#notice').getAttribute('role'),'alert');
   await frame.locator('#radio-moderator-nick').fill('DJ-Test');await frame.locator('#add-radio-moderator').click();await frame.locator('.team-member').filter({hasText:'DJ-Test'}).waitFor();
   await inline(frame,'#notice:not(.error)','radio-moderator-form');
-  await frame.locator('.team-member > button').click();lab.hub.faults.failPersistence=true;
+  await frame.locator('.team-member').filter({hasText:'DJ-Test'}).locator(':scope > button').click();lab.hub.faults.failPersistence=true;
   await frame.locator('[data-confirm-removal]').click();await frame.locator('.team-removal-feedback:not([hidden])').waitFor();
   assert.equal(await frame.locator('#notice.error:visible').count(),0,'Entzugsfehler wird ausschließlich am betroffenen Mitglied ausgegeben');
   lab.hub.faults.failPersistence=false;
@@ -1566,4 +1608,60 @@ for(const client of ['k3','stapp'])test('Wunschrelay in '+client+' bündelt glei
  assert.equal(records.filter(e=>e.kind==='sessionRemoveRepeated').length,0,'Keine doppelten nativen Schließaufträge beim Verlassen mit offenen Wunschfenstern');
  console.log('Eventbudget '+client+': '+JSON.stringify(peaks)+' Serverevents je Nutzer im stärksten 5-s-Fenster bei drei gleichzeitigen Schreibern');
  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+
+for (const client of ['k3','stapp']) test('Verwaltung wird in '+client+' über den eingegebenen Chatbefehl geöffnet und erhält Radio und Entwurf', async t => {
+  const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,2290);
+  assert.equal(await radio.locator('#team-tab').count(),0);
+  await radio.locator('#play-button:not([disabled])').click();
+  await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
+  await radio.evaluate(()=>{window.__administrationAudio=document.getElementById('radio-audio');__administrationAudio.loop=true;});
+  async function command() { await page.locator('#chat-input').fill('/MW Verwaltung'); await page.locator('#chat-form button').click(); }
+  await command(); let team=await overlayView(page,'team');
+  await team.locator('#radio-moderator-nick:not([disabled])').fill('Privater Verwaltungsentwurf');
+  await team.locator('#close-overlay').click(); await page.locator('#overlays iframe').waitFor({state:'detached'});
+  assert.equal(await radio.locator('#open-schedule').evaluate(n=>document.activeElement===n),true);
+  await command(); team=await overlayView(page,'team');
+  assert.equal(await team.locator('#radio-moderator-nick').inputValue(),'Privater Verwaltungsentwurf');
+  assert.equal(await radio.evaluate(()=>window.__administrationAudio===document.getElementById('radio-audio')&&!__administrationAudio.paused),true);
+  assert.ok(lab.hub.trace.some(e=>e.kind==='contentShow'&&e.mode==='Overlay'));
+  await team.locator('#close-overlay').click(); await page.locator('#overlays iframe').waitFor({state:'detached'});
+  if (process.env.MISCHWERK_ADMIN_CAPTURE && client==='stapp') {
+    await page.setViewportSize({width:2700,height:1400});
+    await radio.evaluate(()=>document.fonts.ready);
+    if(process.env.MISCHWERK_GLOW_CAPTURE)await radio.locator('.radio-program-face').evaluate(n=>{for(const a of n.getAnimations()){a.pause();a.currentTime=32000;}});
+    const directory=path.resolve(__dirname,'../../docs/pruefung/oberflaeche');
+    await page.locator('#headerbars iframe').screenshot({path:path.join(directory,'vinyl-glow-desktop.png')});
+    const preview=path.join(os.tmpdir(),'MischWerk-Pruefbilder');fs.mkdirSync(preview,{recursive:true});
+    await radio.locator('#studio-tab').screenshot({path:path.join(preview,'moderation-button.png')});
+    await page.locator('#width').fill('390'); await page.locator('#width').dispatchEvent('change');
+    await radio.waitForFunction(()=>innerWidth===390); await page.locator('#headerbars iframe').screenshot({path:path.join(directory,'vinyl-glow-mobil.png')});
+  }
+  assert.deepEqual(lab.errors,[]); assert.deepEqual(lab.external,[]);
+});
+
+
+for(const client of ['k3','stapp'])test('Otterchen hat in '+client+' automatisch Vollzugriff; andere Moderatoren brauchen einen Eintrag',async t=>{
+  const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client,1280,false);
+  assert.equal(await owner.radio.locator('#studio-tab').isVisible(),true,'Otterchen als Inhaber erhält automatisch Zugriff');
+  lab.hub.runtime.command('Otterchen','vorhang','öffnen');
+  const dj=await lab.join('DJ-Test',client,390),manager=await lab.join('AppManager',client,390);
+  assert.equal(await dj.radio.locator('#studio-tab').isVisible(),false);assert.equal(await manager.radio.locator('#studio-tab').isVisible(),false);
+  await owner.page.locator('#chat-input').fill('/MW Verwaltung');await owner.page.locator('#chat-form button').click();const team=await overlayView(owner.page,'team');
+  async function add(nick){await team.locator('#radio-moderator-nick').fill(nick);await team.locator('#radio-moderator-form button[type=submit]:not([disabled])').click();await team.locator('.team-member').filter({hasText:nick}).waitFor();}
+  async function remove(nick){await team.locator('.team-member').filter({hasText:nick}).locator(':scope > button').click();await team.locator('[data-confirm-removal]:not([disabled])').click();await team.locator('.team-member').filter({hasText:nick}).waitFor({state:'detached'});}
+  await add('DJ-Test');await dj.radio.locator('#studio-tab:not([hidden])').waitFor();assert.equal(await owner.radio.locator('#studio-tab').isVisible(),true);assert.equal(await manager.radio.locator('#studio-tab').isVisible(),false);
+  await remove('DJ-Test');await dj.radio.locator('#studio-tab').waitFor({state:'hidden'});
+  await add('Otterchen');await owner.radio.locator('#studio-tab:not([hidden])').waitFor();
+  await remove('Otterchen');assert.equal(await owner.radio.locator('#studio-tab').isVisible(),true);assert.equal(await team.locator('#radio-moderator-form').isVisible(),true,'Verwaltung bleibt für den Inhaber erreichbar');
+  await add('DJ-Test');await dj.radio.locator('#studio-tab:not([hidden])').waitFor();
+  await dj.radio.locator('#studio-tab').click();const source=await overlayView(dj.page,'studio');await source.locator('#on-air').click();
+  await source.locator('#on-air').filter({hasText:'Endzeit ändern'}).waitFor();await revealStudio(source,'#handover-open');await source.locator('#handover-open').click();
+  await revealStudio(source,'#handover-target','handover');await source.locator('#handover-target').selectOption('Otterchen');
+  await revealStudio(source,'#handover-request','handover');await source.locator('#handover-request').click();
+  await owner.radio.locator('#studio-tab').click();const target=await overlayView(owner.page,'studio');await revealStudio(target,'#handover-open');await target.locator('#handover-open').click();
+  await revealStudio(target,'#handover-accept','handover');await target.locator('#handover-accept').click();await target.locator('#handover-panel').waitFor({state:'hidden'});
+  await revealStudio(target,'#on-air');assert.equal(await target.locator('#on-air').textContent(),'Endzeit ändern');
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });

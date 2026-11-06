@@ -30,8 +30,7 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
       </nav>
       </section>
         <div id="radio-private-actions" class="bar-utility-links" aria-label="Radio verwalten" hidden>
-          <button id="studio-tab" class="studio-link" type="button" aria-label="Moderation" title="Moderation" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19v3"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><rect x="9" y="2" width="6" height="13" rx="3"></rect></svg><span class="action-label">Moderation</span></button>
-          <button id="team-tab" class="studio-link" type="button" aria-label="Verwaltung" title="Verwaltung" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg><span class="action-label">Verwaltung</span></button>
+          <button id="studio-tab" class="wish-button studio-link" type="button" aria-label="Moderation" title="Moderation" aria-haspopup="dialog" hidden><span class="public-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 19v3"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><rect x="9" y="2" width="6" height="13" rx="3"></rect></svg></span><span class="wish-button-copy action-label"><strong>Moderation</strong></span></button>
         </div>
         <div id="radio-listener-brand" class="radio-listener-brand" aria-hidden="true" hidden>
           <span class="radio-listener-emblem"><img class="radio-listener-logo" src="img/mischwerk-radio.png" width="140" height="140" loading="lazy" decoding="async" alt=""></span>

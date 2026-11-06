@@ -9,6 +9,7 @@ MischWerkUI.define('handover', function (dependencies) {
   var reader=dependencies.reader;
   var opened = false;
   var incomingId = null;
+  var incomingModerator = null;
   var candidateKey = null;
   function details() { return model.current().handover || { candidates: [], outgoing: null, incoming: null }; }
   function close() {
@@ -28,6 +29,7 @@ MischWerkUI.define('handover', function (dependencies) {
     if (!model.current()) { return; }
     var state = model.current(), handover = details();
     var incoming = handover.incoming, outgoing = handover.outgoing;
+    var completed=incomingId===handover.acceptedId&&incomingId&&!incoming&&state.user.isOnAir&&state.moderator&&state.moderator.sessionKey!==incomingModerator;
     var available = state.user.canModerate && (state.user.isOnAir || incoming);
     var disabled = !model.connected() || commands.pending() || !state.user.canModerate;
     var received=state.user.canModerate&&state.handover&&state.handover.receivedNotes;
@@ -39,11 +41,13 @@ MischWerkUI.define('handover', function (dependencies) {
     dom.el('handover-open').hidden = !available;
     dom.el('handover-open').disabled = disabled;
     dom.setText('handover-open-label', incoming ? 'Übergabe ansehen' : outgoing ? 'Übergabe läuft …' : 'Sendung übergeben');
-    if (!available) { close(); layout.resizeDialog(); return; }
     if (incomingId !== (incoming && incoming.id)) {
       incomingId = incoming && incoming.id;
+      incomingModerator = incoming && state.moderator && state.moderator.sessionKey;
       dom.el('handover-topic').value = '';
     }
+    if(completed){signals.emit('studio-topic-reset');close();}
+    if (!available) { close(); layout.resizeDialog(); return; }
     if (!opened) { layout.resizeDialog(); return; }
     dom.el('handover-panel').hidden = false;
     dom.setText('handover-title', incoming ? 'Sendung übernehmen' : 'Sendung übergeben');
@@ -111,7 +115,12 @@ MischWerkUI.define('handover', function (dependencies) {
     dom.el('handover-accept-form').addEventListener('submit', function (event) {
       event.preventDefault();
       if (!this.reportValidity() || dom.el('handover-accept').disabled || !details().incoming) { return; }
-      commands.send('mw:handover.accept', { id: details().incoming.id, topic: dom.el('handover-topic').value }, true);
+      var previous=model.current().moderator&&model.current().moderator.sessionKey, revision=details().revision;
+      var id=details().incoming.id, topic=dom.el('handover-topic').value;
+      commands.send('mw:handover.accept', { id: id, topic: topic }, true, function(state){
+        return state.user.canModerate&&state.user.isOnAir&&state.moderator&&state.moderator.sessionKey!==previous&&
+          state.handover&&state.handover.revision>revision&&!state.handover.incoming&&state.handover.acceptedId===id;
+      });
     });
     dom.el('handover-decline').addEventListener('click', function () {
       if (details().incoming) { commands.send('mw:handover.decline', { id: details().incoming.id }, true); }
@@ -124,7 +133,7 @@ MischWerkUI.define('handover', function (dependencies) {
     signals.on('controls', render);
     signals.on('command-result', function (response) {
       if (!response.ok || response.action.indexOf('mw:handover.') !== 0) { return; }
-      if (response.action === 'mw:handover.accept') { signals.emit('studio-topic-reset'); }
+      if (response.action === 'mw:handover.accept') { signals.emit('studio-topic-reset'); commands.send('mw:refresh',{},false); }
       if (response.action === 'mw:handover.request') {
         dom.el('handover-notes').value = ''; dom.setText('handover-notes-count', '0 / 500');
       }

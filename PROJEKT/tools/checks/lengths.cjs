@@ -4,9 +4,9 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { TextDecoder } = require('node:util');
 const { modules } = require('../build/backend.cjs');
-const { frontendFiles } = require('../lib/frontend-files.cjs');
+const { frontendFiles, operatorFiles } = require('../lib/frontend-files.cjs');
 const root = path.resolve(__dirname, '../..');
-const runtimeFiles = ['main.js', 'app.config', ...modules.map(file => 'server/' + file), ...frontendFiles.map(file => 'www/' + file)];
+const runtimeFiles = ['main.js', 'app.config', ...modules.map(file => 'server/' + file), ...frontendFiles.concat(operatorFiles).map(file => 'www/' + file)];
 const decoder = new TextDecoder('utf-8', { fatal: true });
 function isBinary(file) { return /\.(png|mp3|woff2)$/.test(file); }
 function checkText(file) {

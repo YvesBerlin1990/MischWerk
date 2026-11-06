@@ -28,6 +28,7 @@ function clearTimeout(id) { delete channelTextTasks[id]; }
         runtime.now = function () { return channelTextTime; };
         runtime.warn = function () {};
         runtime.isChannelOwner = function (user) { return user === 'owner'; };
+        runtime.canAdminister = runtime.isChannelOwner;
         MischWerkModules.attachChannelTextStorage(runtime);
         MischWerkModules.attachChannelTextScheduler(runtime);
         return runtime;

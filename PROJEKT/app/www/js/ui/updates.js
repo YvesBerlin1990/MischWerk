@@ -16,11 +16,9 @@ MischWerkUI.define('updates', function (dependencies) {
   var signals = dependencies.signals;
   function radioAvailability() {
     var state = model.current(), live = model.connected(), pending = commands.pending();
-    dom.el('studio-tab').hidden = !state.user.canModerate;
-    dom.el('team-tab').hidden = !state.user.canManageRadioModerators;
-    dom.el('studio-tab').disabled = !live || pending || !state.user.canModerate;
-    dom.el('team-tab').disabled = !live || pending || !state.user.canManageRadioModerators;
-    dom.el('radio-private-actions').hidden = !state.user.canModerate && !state.user.canManageRadioModerators;
+    dom.el('studio-tab').hidden = !state.user.showModerationButton;
+    dom.el('studio-tab').disabled = !live || pending || !state.user.showModerationButton;
+    dom.el('radio-private-actions').hidden = !state.user.showModerationButton;
     dom.el('radio-listener-brand').hidden = !dom.el('radio-private-actions').hidden;
     dom.el('radio-actions').classList.toggle('public-only', dom.el('radio-private-actions').hidden);
     dom.el('open-schedule').disabled = !live || pending;

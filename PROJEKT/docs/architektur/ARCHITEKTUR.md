@@ -1,14 +1,14 @@
-# MischWerk – Architektur 0.1.223 · Build 223
+# MischWerk – Architektur 0.1.239 · Build 239
 
 Stand 05.11.2026. Diese Übersicht beschreibt den aktuellen Aufbau; verbindliche Fach- und Entwicklungsregeln stehen ausschließlich in [AGENTS.md](../../AGENTS.md).
 
 ## Zusammensetzung und Start
 
-`app/main.js` lädt `server/app.js` über `KnuddelsServer.execute` und übernimmt das globale `App`. 40 gepflegte ES5/Rhino-Module unter `src/backend/` werden bytegleich nach `app/server/` gebaut. Das Kompositionsmodul verdrahtet Komponenten und Hooks; Fachereignisse liegen in ihren zuständigen Modulen.
+`app/main.js` lädt `server/app.js` über `KnuddelsServer.execute` und übernimmt das globale `App`. 47 gepflegte ES5/Rhino-Module unter `src/backend/` werden bytegleich nach `app/server/` gebaut. Das Kompositionsmodul verdrahtet Komponenten und Hooks; Fachereignisse liegen in ihren zuständigen Modulen. `android/diagnostics` liefert dem anwesenden Channelinhaber eine rein lesende Server-/Domainprüfung. `android/settings` besitzt ausschließlich private Einrichtungssitzungen und den geschützten Speicheradapter. `ui/sessions` stellt für bisherige Ansichten und Betreiberansicht denselben nativen Erzeugungs-, Versand- und Schließweg bereit.
 
 `index.html` fordert CSS und `js/start.js` während des Parsens über `Client.includeCSS/includeJS` an. Das berücksichtigt die `document.write`-Implementierung des SDK. `ui/composition` verdrahtet die benötigten Komponenten einmalig. Vollständiges Markup, registrierte Module und geladenes CSS geben das Anfangslayout frei. Ein langsames Logo blockiert die Radioleiste nicht; fehlende Pflichtressourcen erzeugen einen sichtbaren Fehler. Der einmalige 15-Sekunden-Wächter erkennt einen still fehlgeschlagenen Start.
 
-49 Frontendkomponenten und 18 Stylesheets sind in ansichtsabhängigen Ladeplänen registriert. Die 80 Browser-/Mediendateien, 40 Backenddateien und zwei Einstieg-/Konfigurationsdateien ergeben 122 Laufzeitdateien. [Frontendarchitektur](ARCHITEKTUR-FRONTEND.md).
+49 bisherige Frontendkomponenten und 18 Stylesheets sind in ansichtsabhängigen Ladeplänen registriert. Dazu kommen zwei getrennt inventarisierte Betreiberdateien `relay-settings.html` und `js/operator/relay-settings.js`. Die 80 bisherigen Browser-/Mediendateien, zwei Betreiberdateien, 48 Backenddateien und zwei Einstieg-/Konfigurationsdateien ergeben 132 Laufzeitdateien. Private Betreiberdateien stehen im bestehenden Manifest der privaten Arbeitsflächen; sie werden nicht in öffentliche Ladepläne aufgenommen. [Frontendarchitektur](ARCHITEKTUR-FRONTEND.md).
 
 ## Audio, Anbieter und Aktivitätsbestätigung
 
@@ -27,11 +27,13 @@ Stop, Quellenwechsel, Werbung starten und Seitenende löschen den Hörwunsch. Ve
 | config.js | Öffentliche Sender-, Rollen- und Längenkonfiguration |
 | core/runtime.js | Laufzeitkonstanten, now, copy, failure, jsonBytes |
 | core/diagnostics.js | Datensparsame warn-Diagnose mit eigener Meldedrossel |
+| core/changes.js | Interne Änderungssignale; Beobachterfehler verändern keine native Fachaktion |
 | core/validation.js | Textnormalisierung und unveränderte Rhino-kompatible Linkprüfung |
 | users/identity.js | Primitive Userwerte, Anwesenheit und serverseitige Rollen |
 | state/persistence.js | initialState, readState, persist und Bereinigung historischer Marker |
 | state/initialization.js | load: beim ersten Laden Speicher lesen, danach Studio-Anmeldung prüfen |
 | radio/station.js | Geprüfte öffentliche Senderadressen |
+| ui/administration.js | /MW Verwaltung prüfen und an den zentralen Overlayweg übergeben |
 | radio/team.js | Ernennen, Entziehen und paginierte Radio-Team-Ansicht |
 | radio/moderation.js | moderatorKey, invalidateModerator, moderatorIsActive, prune, changeModeration, transferModeration; ausdrückliche Abmeldung leert atomar das Thema |
 | radio/announcements.js | initializeStudioAnnouncements, announceStudioStatus; öffentliche Bottexte und laufzeitinterner Vergleich der Moderator-ID |
@@ -45,6 +47,10 @@ Stop, Quellenwechsel, Werbung starten und Seitenende löschen den Hörwunsch. Ve
 | website/public.js | Öffentliche Radiodaten und Kalenderprojektion ohne interne Identitäten |
 | website/commands.js | Bestätigte Webaufträge an bestehende Fachaktionen verteilen |
 | website/transport.js | HTTP-Callback, begrenzte Antworten und Raten, bewusste Besitzerfreigabe |
+| android/connection.js | Private Verbindungskonfiguration, Laufzeit-/Domainfreigabe und nativen postURL-Adapter kapseln |
+| android/receipts.js | Begrenzte Annahme-/Endstatusmarker und ausstehende Statusübertragungen, ohne Texte/Namen |
+| android/publisher.js | Firebase-Vertragsprojektion, Heartbeat, Antwortprüfung und Lebensdauer des injizierten HTTPS-Ports |
+| android/webhook.js | Authentisierter POST-Wunschvertrag, Drosselung, Idempotenz und sichere Startsperre |
 | channel-texts/storage.js | Persistente Bot-Einstellungen und Revisionsmodell |
 | channel-texts/settings.js | Gemeinsame bestätigte Fachänderung für native und Websiteverwaltung |
 | channel-texts/scheduler.js | Ein vorhandener Timer für öffentliche Bot-Ausgabe und Rotationszeiger |
@@ -76,13 +82,21 @@ Stop, Quellenwechsel, Werbung starten und Seitenende löschen den Hörwunsch. Ve
 
 Der Wunschversandcontroller `wishes/wishbox` lebt in der Radioleiste. Das native Wunschfenster reicht Eingaben und Darstellung zwischen authentifizierten gepaarten Sitzungen weiter. Entwurfsabgleich ist gebündelt; Schlusszeichen werden vor Absenden/Schließen übernommen. `ui/overlays` sichert Wechsel mit Token, Frist und Revision. Rechteverlust löscht private Entwürfe; alte geschlossene Sitzungen dürfen keine neuen schließen oder überschreiben.
 
+## Android-Vorbereitung
+
+Die Android-Vorbereitung verwendet dieselbe flüchtige Wunschqueue. Herkunft und vorhandenes Absenderfeld tragen Android; keine Knuddels-Identität wird erzeugt. Der getrennte technische Markerbestand ist keine Queue: Er enthält keine Wunschtexte, Namen oder Reihenfolgeentscheidung. Endzustände werden vor dem Entfernen festgehalten; ein Neustart markiert offene Android-IDs als verworfen. Die Laufzeit behält höchstens 256 Marker, Endzustände sieben Tage. Schalter-/Studiowechsel und Queueänderungen informieren Beobachter über core/changes, ohne zyklische Fachabhängigkeit.
+
+android/connection erzeugt den nativen HTTPS-Port nur nach privatem enabled=true, explizitem runtimeVerified=true und bestätigter Domainfreigabe. postURL erhält data.payload als JSON-String und header.Authorization; Firebase Hosting soll den Wrapper an publishKnuddelsState weiterreichen. Der Publisher enthält keine native HTTP-Kodierung. Ein logisch abgebrochener nativer Request hält den tatsächlichen Port bis zum Callback belegt. Ohne Konfiguration bleibt die Auslieferung ausgeschaltet. Reale Laufzeit-, Kodierungs-, Domain- und Secret-Provisionierungsprüfung stehen weiterhin aus. [Vertrag und Grenzen](../api/API-NACHWEIS.md#android-wunschbox--lokale-vorbereitung-225).
+
 ## Native Ansichten
+
+`ui/administration` registriert den über `App.chatCommands.mw` verdrahteten Chat-Einstieg. `users/identity.canAdminister` prüft tatsächliches Inhaberrecht, Anwesenheit und den authentifizierten Nick Otterchen. Der Befehl verwendet `ui/overlays`; `ui/sessions` prüft vor der verzögerten Öffnung erneut. Die Appleiste bietet den runden Moderationsbutton ausschließlich bei dem serverseitigen booleschen showModerationButton aus der gespeicherten Radio-Team-Mitgliedschaft. Das umfassendere Besitzer-Fachrecht canModerate verleiht allein keine Buttonsichtbarkeit.
 
 `ui/sessions` ist alleiniger Ort für HTMLFile, AppContent, Versand und Schließen. Radio ist eine Headerbar; Wunschbox, Moderation, Verwaltung und Sendeplan sind getrennte native Overlays. `sendAppContent` übernimmt die native Ersetzung. Wiederholte Aufträge mit gleicher Anfrage-ID werden dedupliziert. Die bestehende Headerbar bleibt bei Menüwechseln erhalten.
 
 | Ansicht | Anfangsmaß | Inhaltsanpassung |
 | --- | --- | --- |
-| Radio | 200 px hoch | Eigene Höhenlogik in `radio/viewport`; kompakter Fallback bei Clientgrenzen |
+| Radio | 176 px hoch | Eigene Höhenlogik in `radio/viewport`; kompakter Fallback bei Clientgrenzen |
 | Wunschbox | 560 × 340 px | `wishes/window` passt die benötigte Inhaltshöhe an |
 | Moderation | 780 × 730 px | `studio/window`, Gruppen-/Textseiten; stabile Geometrie während Themenbearbeitung |
 | Verwaltung | 560 × 630 px | Fester Rahmen, Radio-Team-Pagination und ein Inhalts-Scrollbereich für Bot-Texte |

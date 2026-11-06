@@ -9,7 +9,7 @@ MischWerkModules.attachOverlays = function (runtime) {
         })[0];
     }
     function allowed(user, kind) {
-        return kind === 'studio' ? runtime.isModerator(user) : kind === 'team' ? runtime.isChannelOwner(user) : true;
+        return kind === 'studio' ? runtime.isModerator(user) : kind === 'team' ? runtime.canAdminister(user) : true;
     }
     function parent(view) {
         return runtime.getViews().filter(function (radio) { return radio.kind === 'radio' && radio.userId === view.userId && radio.content === view.radioContent; })[0];

@@ -3,7 +3,7 @@ MischWerkModules.attachRadioTeam = function (runtime, config) {
     'use strict';
 
     runtime.manageRadioModerator = function (user, type, data) {
-        if (!runtime.isChannelOwner(user)) {
+        if (!runtime.canAdminister(user)) {
             throw runtime.failure('Nur der Channelinhaber darf Radiomoderatoren verwalten.');
         }
         if (data.expectedRadioModeratorRevision !== undefined &&
@@ -13,15 +13,13 @@ MischWerkModules.attachRadioTeam = function (runtime, config) {
         var next = runtime.copy(runtime.state);
         var userId;
         var nick;
+        var ownOwnerEntry = false;
         if (type === 'mw:addRadioModerator') {
             nick = runtime.text(data.nick, 50, true);
             var access = KnuddelsServer.getUserAccess();
             if (!access.exists(nick)) { throw runtime.failure('Dieser Knuddels-Nick existiert nicht.'); }
             try { userId = runtime.numericUserId(access.getUserId(nick)); }
             catch (error) { throw runtime.failure('Dieser Knuddels-Nick konnte nicht aufgelöst werden.'); }
-            if (userId === runtime.userId(user)) {
-                throw runtime.failure('Der Channelinhaber ist bereits dauerhaft für das Studio berechtigt.');
-            }
             if (next.radioModeratorUserIds.indexOf(userId) !== -1) {
                 throw runtime.failure('Dieser Nutzer ist bereits Radiomoderator.');
             }
@@ -39,18 +37,19 @@ MischWerkModules.attachRadioTeam = function (runtime, config) {
                 throw runtime.failure('Dieser Nutzer ist kein Radiomoderator mehr.');
             }
             next.radioModeratorUserIds = next.radioModeratorUserIds.filter(function (id) { return id !== userId; });
-            if (next.moderator && next.moderator.userId === userId) {
+            ownOwnerEntry = userId === runtime.userId(user);
+            if (next.moderator && next.moderator.userId === userId && !ownOwnerEntry) {
                 next.moderator = null;
             }
         } else { throw runtime.failure('Unbekannte Radio-Team-Aktion.'); }
         next.radioModeratorRevision = runtime.state.radioModeratorRevision + 1;
         runtime.persist(next);
-        if (type === 'mw:removeRadioModerator') { runtime.dropWebsiteUser(userId); }
+        if (type === 'mw:removeRadioModerator' && !ownOwnerEntry) { runtime.dropWebsiteUser(userId); }
         return nick;
     };
 
     runtime.radioModeratorViews = function (user, page) {
-        if (!runtime.isChannelOwner(user)) { return { items: [], total: 0, page: 0, pages: 1 }; }
+        if (!runtime.canAdminister(user)) { return { items: [], total: 0, page: 0, pages: 1 }; }
         var access = KnuddelsServer.getUserAccess();
         var total = runtime.state.radioModeratorUserIds.length;
         var pages = Math.max(1, Math.ceil(total / runtime.radioModeratorPageSize));

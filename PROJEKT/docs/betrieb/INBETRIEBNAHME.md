@@ -1,6 +1,6 @@
 # MischWerk – Installation, Betrieb und STREAMPANEL
 
-**App 0.1.223 · Build 223**, Stand 05.11.2026. Das lokale Paket umfasst 122 Laufzeitdateien und fünf Manifeste. GitHub enthält Quellen und Nachweise; der erzeugte UPLOAD ist ausgeschlossen. Die laufende native Sitzung verwendete beim letzten Test noch den alten Audiocode. GitHub-Veröffentlichung und Knuddels-Installation sind getrennt.
+**App 0.1.239 · Build 239**, Stand 06.11.2026. Das lokale Paket umfasst 132 Laufzeitdateien und fünf Manifeste. GitHub enthält Quellen und Nachweise; der erzeugte UPLOAD ist ausgeschlossen. Der letzte bestätigte native Diagnosebericht gehört zu Build 229; Build 239 ist lokal vorbereitet. GitHub-Veröffentlichung und Knuddels-Installation sind getrennt.
 
 Radio bleibt eine Headerbar. Wunschbox, Moderation, Verwaltung und Sendeplan öffnen als getrennte Channel-Overlays; Menüwechsel ersetzen die Radioleiste nicht. [Aufbau](../architektur/ARCHITEKTUR.md) · [Verbindliche Projektregeln](../../AGENTS.md).
 
@@ -22,7 +22,7 @@ Ausschließlich **C:/Users/Yves/Desktop/MischWerk/UPLOAD** verwenden. Darunter l
 
 Passwörter ausschließlich im FTP-Programm eingeben. Die Entwickler-ID ersetzt kein Passwort. app.config verwendet den Entwicklernamen Otterchen; das bestätigte knuddelsDEV-Präfix der App-ID darf nicht aus dem LIVE-FTP-Host anders abgeleitet werden. [App-ID-Dokumentation](https://developer.knuddels.de/docs/classes/AppInfo.html).
 
-Aus PROJEKT/ mit **node tools/build/prepare-upload.cjs** die Bereitstellung prüfen und den verbindlichen Desktop-Upload aktualisieren. **node tools/checks/upload.cjs** gleicht alle 122 Laufzeitdateien einschließlich 40 Servermodulen, Größen, SHA-256 und Textgrenzen mit den fünf Manifesten ab. Der Build erzeugt keine zweite Uploadkopie und veröffentlicht nichts. main.js allein enthält keine App-Fachlogik. Tests, Referenzstubs, Dokumentation und Zugangsdaten gehören nicht ins FTP-Ziel.
+Aus PROJEKT/ mit **node tools/build/prepare-upload.cjs** die Bereitstellung prüfen und den verbindlichen Desktop-Upload aktualisieren. **node tools/checks/upload.cjs** gleicht alle 132 Laufzeitdateien einschließlich 48 Servermodulen, Größen, SHA-256 und Textgrenzen mit den fünf Manifesten ab. Der Build erzeugt keine zweite Uploadkopie und veröffentlicht nichts. main.js allein enthält keine App-Fachlogik. Tests, Referenzstubs, Dokumentation und Zugangsdaten gehören nicht ins FTP-Ziel.
 
 Nach einem gesonderten Uploadauftrag:
 
@@ -81,13 +81,17 @@ Die Moderation startet mit 780 × 730 px und passt ihre Höhe an vollständige B
 
 ## Sendung an den nächsten Moderator übergeben
 
-Die aktive Moderation wählt **Sendung übergeben**, einen anwesenden Radiomoderator beziehungsweise Channelinhaber und optional eine private Notiz bis 500 Zeichen. Bis zur Annahme bleibt sie aktiv. Der Nachfolger öffnet **Übergabe ansehen**, kann ein neues Thema eintragen und bestätigt mit **Jetzt übernehmen**. Erst dann wechseln Appstatus und öffentliche Botmeldung. Leeres Thema entfernt das bisherige Thema.
+Die aktive Moderation wählt **Sendung übergeben**, einen anwesenden, im Radio-Team eingetragenen Empfänger oder Otterchen als automatisch berechtigten Channelinhaber und optional eine private Notiz bis 500 Zeichen. Bis zur Annahme bleibt sie aktiv. Der Nachfolger öffnet **Übergabe ansehen**, kann ein neues Thema eintragen und bestätigt mit **Jetzt übernehmen**. Erst dann wechseln Appstatus und öffentliche Botmeldung. Leeres Thema entfernt das bisherige Thema.
+
+In sehr niedrigen Fenstern sind übergroße Bediengruppen mit Rad, Touch und Tastatur intern erreichbar. Die ausgewählte Gruppe bleibt bei Größenwechseln erhalten. Bei einer verlorenen Annahmequittung bestätigt erst der frische Serverzustand den Wechsel; fehlt nach einer echten Erfolgsquittung der Zustandspush, liest die Oberfläche einmal neu. Ohne Bestätigung wird kein Erfolg behauptet.
 
 Ablehnen/Abbrechen ändern die Anmeldung nicht. Verlassen, Rechteverlust, Ablauf oder geänderte Moderationssitzung machen die Anfrage ungültig. Fehler erhalten den Entwurf; Wunschqueue und Wunschboxfreigabe bleiben erhalten. Encoderwechsel erledigen die Moderatoren selbst in ihrer Sendesoftware.
 
 ## Verwaltung und Bot-Texte
 
-Nur der tatsächliche Channelinhaber darf Radiomoderatoren ernennen oder entfernen. Channelmoderatoren/Appmanager erhalten dadurch kein Studiorecht. Die Verwaltung öffnet mit 560 × 630 px.
+Otterchen öffnet die Verwaltung im MischWerk-Channel mit **/MW Verwaltung**. Der Verwaltungsknopf in der Appleiste entfällt. Geprüft werden der authentifizierte Nick, tatsächliches Channelinhaberrecht und Anwesenheit; Appmanager, Entwickler, Channel- und Radiomoderatoren erhalten keinen Zugang. Die Verwaltung behält 560 × 630 px und ihre Bereiche Radio-Team und Bot-Texte. Eine vorhandene Radioleiste mit laufendem Ton bleibt erhalten; eine fehlende Leiste wird regulär geöffnet. Beim Schließen kehrt der Fokus zu Sendeplan zurück.
+
+Otterchen erhält als authentifizierter, anwesender Channelinhaber automatisch alle bestehenden Apprechte. Moderationsbutton und Übergabeempfang sind ohne Radio-Team-Eintrag verfügbar. Ein optionaler eigener Listeneintrag kann entfernt werden, ohne seine Rechte oder laufende Moderation zu beenden. Für andere Nutzer bleiben Ernennung und Entzug wie bisher. Nick, Appmanager-, Entwickler- oder CM-Rolle allein verleihen keinen Inhaberzugriff.
 
 Unter **Bot-Texte** stehen bis zu sechs Texte mit je 300 Zeichen zur Verfügung. Automatisch senden ist zunächst aus; Abstände: 20, 30, 40 oder 50 Minuten. Gefüllte Texte laufen der Reihe nach, leere Felder werden übersprungen. Speichern beginnt einen vollen Abstand; verpasste Termine werden nicht nachgeholt. Eine Inhaltsfläche scrollt, Kopf/Reiter/Aktionen bleiben erreichbar.
 
@@ -122,3 +126,14 @@ Encoder-Host, Passwort, Benutzer und Mountpoint gehören nur in die Sendesoftwar
 Die [Homepage](../../website/README.md) liegt außerhalb des Knuddels-UPLOAD. Appanschluss standardmäßig aus, bewusste Besitzerfreigabe nötig. Der Arbeitsbereich verwendet bestehende Rollen/Fachaktionen. Mailversand bleibt aus. Hosting, HTTPS und echte Kopplung separat abnehmen: [Anbindung](../../website/docs/ANBINDUNG.md).
 
 [Sendeplan](SENDEPLAN.md) · [Lautstärke](LAUTSTAERKE.md) · [Native Abnahme](LIVE-ABNAHME.md).
+# Private Android-Einrichtung ab Build 230
+
+Der native Diagnosebefund aus Build 229 bleibt gültig. Build 230 ergänzt den eigenen Betreiber-Eingabeweg; seine tatsächliche Ausführung auf Knuddels steht noch aus.
+
+1. Das vollständige lokale `UPLOAD/MischWerk` durch den Betreiber übertragen und aktualisieren. Als tatsächlicher, im Channel anwesender Inhaber `/mischwerk-relay einrichten` aufrufen. Eine andere offene Channelansicht zuvor schließen; laufendes Radio bleibt bestehen.
+2. Zuerst den Sync-Schlüssel aus dem eigenen geschützten Schlüsselspeicher eingeben. Er muss mit `KNUDDELS_SYNC_SECRET` im Firebase Secret Manager übereinstimmen. Für den späteren Wunschversand kann ein anderer Relay-Schlüssel eingegeben werden. Keine Schlüsselwerte über Chat, gemeinsame JSON oder Quelltext austauschen.
+3. Speichern und die Einrichtung erneut öffnen. Die Vorhandenseinsanzeigen müssen passen; bestehende Werte erscheinen nicht im Formular. Leere Felder erhalten bereits gespeicherte Schlüssel. Die Zieladresse ist fest vorgegeben.
+4. Speichern legt die Werte ausschließlich im serverseitigen Schlüssel `mischwerk.android.private.v1` ab und setzt `enabled=false` sowie `runtimeVerified=false`. Ein vorhandener Relaylauf wird beendet. Der Dialog registriert keinen Hook, sendet keinen HTTP-POST und aktiviert nichts.
+5. Nur das Ergebnis der Einrichtung zurückmelden, keine Schlüsselwerte. Nach sicherer Bereitstellung desselben Sync-Schlüssels auf Firebase-Seite kann der dortige Codex `publishKnuddelsState` gezielt bereitstellen. Echte native Header-/Payload-/Antwortprüfung, Freigabe und späterer Wunschversand folgen getrennt.
+
+Die Anwendung verwendet dokumentierte Knuddels-Identitäten, Sitzungen, `Client.sendEvent`, `App.onEventReceived` und AppPersistence. Nur die eröffnete private Sitzung des aktuellen Channelinhabers ist berechtigt. Rolle/Anwesenheit, aktive Sitzung, Frist, Revision und Eingabeschema werden serverseitig erneut geprüft. Schließen, Rechteverlust, Channelverlassen und Shutdown entfernen die private Berechtigung. Die Anwendung schreibt Schlüssel weder in Logs noch in Statusantworten oder Browser-Storage. Eingabefelder werden vor dem Versand und bei Seitenende geleert. Der serverseitige Plattform-Speicher ist damit kein zusätzlich nachgewiesener verschlüsselter Secret-Vault; lokale Plattform-Fakes sind kein nativer Transportnachweis.

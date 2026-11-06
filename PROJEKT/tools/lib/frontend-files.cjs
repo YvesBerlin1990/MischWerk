@@ -20,4 +20,5 @@ function frontendFilesForView(view) {
   vm.runInNewContext(read('js/start.js'), { Client, document, window: {} });
   return ['index.html', 'js/start.js', ...selectedScripts, ...selectedStyles, ...vinylFonts, 'img/mischwerk-logo.png', ...(view === 'radio' ? ['img/mischwerk-radio.png', 'img/curtain-velvet.png', 'audio/werbung.mp3', 'fonts/inter-latin.woff2', 'fonts/OFL.txt'] : [])];
 }
-module.exports = { frontendFiles, frontendFilesForView };
+const operatorFiles = ['relay-settings.html', 'js/operator/relay-settings.js'];
+module.exports = { frontendFiles, frontendFilesForView, operatorFiles };

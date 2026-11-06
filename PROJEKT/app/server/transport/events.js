@@ -27,6 +27,9 @@ MischWerkModules.attachEvents = function (runtime, config) {
 
 
     runtime.handleEvent = function (user, type, data, session) {
+        if (typeof type === 'string' && type.indexOf('mw:androidSettings.') === 0) {
+            runtime.handleAndroidSettingsEvent(user, type, data, session); return;
+        }
         if (!runtime.activeSession(user, session)) { return; }
         if (typeof type !== 'string' || type.indexOf('mw:') !== 0) { return; }
         if (type.indexOf('mw:channelTexts.') === 0) { runtime.handleChannelTextEvent(user, type, data, session); return; }

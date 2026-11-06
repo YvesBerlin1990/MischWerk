@@ -4,7 +4,17 @@
 
 Radio-App für den Knuddels-MyChannel **MischWerk** – mit Musikwünschen, Moderation, Sendeplan und eigener Homepage.
 
-**App 0.1.223 · Build 223 · Website 0.2.0** — Stand: 5. November 2026.
+**App 0.1.239 · Build 239 · Website 0.2.0** — Stand: 6. November 2026.
+
+Die Übergabe wurde vollständig geprüft und bei Größenwechseln, kleinen Rahmen sowie verlorenen Bestätigungen korrigiert. Otterchen ist als tatsächlicher Channelinhaber automatisch berechtigt; andere Empfänger müssen im Radio-Team eingetragen sein.
+
+Sendeplan, Wunschbox und Moderation sind in Symbolgröße, Schrift, Tastenhöhe und Abstand einheitlich ausgerichtet. Aktivieren oder Deaktivieren der Wunschbox verschiebt keine Hauptbeschriftung.
+
+Otterchen erhält als tatsächlicher Channelinhaber automatisch sämtliche Apprechte, Moderationsbutton und Übergabeempfang. Für ihn ist keine Radio-Team-Eintragung erforderlich. Andere Radiomoderatoren werden weiterhin unter Verwaltung eingetragen.
+
+**/MW Verwaltung** öffnet die Verwaltung ausschließlich für den anwesenden Channelinhaber **Otterchen**. Der frühere Knopf in der Appleiste ist entfernt.
+
+Build 230 bereitet `/mischwerk-relay einrichten` als private Eingabe für den anwesenden Channelinhaber vor. Schlüssel werden ausschließlich serverseitig gespeichert und nie zurück an das Formular gesendet; die Verbindung bleibt bei jeder Speicherung ausgeschaltet. Der native Build-229-Nachweis für Serverinformationen, Domainrechte und WebHook-API bleibt gültig. Build 230 ist lokal vorbereitet; tatsächliche Einrichtung und vollständiger Relaybetrieb stehen aus. [Einrichtung](PROJEKT/docs/betrieb/INBETRIEBNAHME.md#private-android-einrichtung-ab-build-230) · [Nachweis](PROJEKT/docs/api/API-NACHWEIS.md#private-betreibereinrichtung-230).
 
 ![MischWerk-Appleiste mit goldenen Tasten und aktivem Wiedergabelicht](PROJEKT/docs/pruefung/oberflaeche/vinyl-glow-desktop.png)
 
@@ -25,6 +35,8 @@ Radio-App für den Knuddels-MyChannel **MischWerk** – mit Musikwünschen, Mode
 Studiozugriff haben der tatsächliche Channelinhaber und ausdrücklich ernannte Radiomoderatoren. Channelmoderation und Appmanagerrechte allein reichen nicht. Offene Musikwünsche sind bewusst flüchtig und werden bei einem tatsächlichen App-Neustart geleert.
 
 ## Neu seit dem letzten GitHub-Stand
+
+- **Android-Wunschbox lokal vorbereitet:** Gemeinsame Queue, private technische Statusmarker, Bearbeitungsstufen und Heartbeat sind isoliert geprüft. Der native postURL-Adapter überträgt den vereinbarten payload-String an Firebase Hosting. Der produktive Anschluss bleibt bis zu geschützter Einrichtung und echter AppServer-/Firebase-Abnahme ausgeschaltet. [Vertrag und Voraussetzungen](PROJEKT/docs/api/API-NACHWEIS.md#android-wunschbox--lokale-vorbereitung-225).
 
 - **Erneuerter Audioverbindungsweg:** Ein einziges natives Audioelement und ein zuständiger Verbindungscontroller. Kurze Engpässe erhalten Quelle und Puffer; echte Abbrüche werden bei bestehendem Hörwunsch automatisch neu verbunden. Titel- und Statusabfragen stoppen das Audio nicht. Stop beendet auch weitere Versuche.
 - **Ursache der Knuddels-Trennung eingegrenzt:** Im kontrollierten Windows-Test führte das Aussetzen von `/confirm` nach rund zehn Minuten zum Schließen der Headerbar, während Audio noch lief. Der alte Code konnte diese Bestätigung durch wiederholtes Zurücksetzen bei kurzen Nachladephasen verhindern. Build 223 erhält den Bestätigungstermin; tatsächlicher Audiofortschritt und eine passende frische Channelantwort bleiben Voraussetzung. [Messungen und Grenzen](PROJEKT/docs/pruefung/PRUEFBERICHT.md).
@@ -76,9 +88,9 @@ pnpm --dir PROJEKT/website test
 
 Für die erste Rhino-Prüfung: `node PROJEKT/tools/checks/rhino.cjs --download`.
 
-Der dokumentierte App-Prüfstand umfasst **283 Nodefälle**, **272 Browserfälle** und **je 906 Prüfungen** in Rhino 1.7.7.2 und 1.9.1. Die Website hat **22 eigene Prüfungen**. Ergebnis, Wiederholungsläufe und Grenzen stehen im [App-Prüfbericht](PROJEKT/docs/pruefung/PRUEFBERICHT.md) und [Website-Prüfbericht](PROJEKT/website/docs/PRUEFUNG.md). Lokale K3-/STAPP-Modelle ersetzen keine native Abnahme.
+Der dokumentierte App-Prüfstand umfasst **351 Nodefälle**, **294 Browserfälle** und **je 1012 Prüfungen** in Rhino 1.7.7.2 und 1.9.1. Die Website hat **22 eigene Prüfungen**. Ergebnis, Wiederholungsläufe und Grenzen stehen im [App-Prüfbericht](PROJEKT/docs/pruefung/PRUEFBERICHT.md) und [Website-Prüfbericht](PROJEKT/website/docs/PRUEFUNG.md). Lokale K3-/STAPP-Modelle ersetzen keine native Abnahme.
 
-Das vollständige Paket enthält **122 Laufzeitdateien**, darunter **115 Textdateien**, und wird durch **fünf Manifeste** geprüft. Jede ausgelieferte Textdatei und jedes Manifest bleibt unter **9500 Zeichen**. Ganze Quellmodule werden ausschließlich für die Auslieferung reproduzierbar gebündelt, ohne Minifizierung.
+Das vollständige Paket enthält **132 Laufzeitdateien**, darunter **125 Textdateien**, und wird durch **fünf Manifeste** geprüft. Jede ausgelieferte Textdatei und jedes Manifest bleibt unter **9500 Zeichen**. Ganze Quellmodule werden ausschließlich für die Auslieferung reproduzierbar gebündelt, ohne Minifizierung.
 
 Der fest konfigurierte lokale Ausgabeordner ist **C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/**. Er ist per Gitignore ausgeschlossen. Der Paketbau führt keinen FTP-Upload und keinen Knuddels-Neustart aus. Zur Installation gehören alle Dateien und Unterordner gemeinsam. [Installation und Betrieb](PROJEKT/docs/betrieb/INBETRIEBNAHME.md#installation-und-upload) · [Native Abnahme](PROJEKT/docs/betrieb/LIVE-ABNAHME.md).
 

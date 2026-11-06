@@ -94,26 +94,50 @@ MischWerkModules.attachWishQueue = function (runtime) {
         queue.submissionIds[submissionKey] = item.id;
         queue.items[queue.items.length] = item;
         queue.revision += 1;
+        runtime.changed('wishes');
         return { duplicate: false, item: item };
+    };
+    runtime.enqueueAndroidWish = function (data, remember, confirm) {
+        var queue = queueState();
+        if (runtime.shuttingDown || !runtime.state || runtime.state.requestsEnabled !== true) {
+            throw new Error('ANDROID_CLOSED');
+        }
+        var value = runtime.text(data.text, 300, true);
+        if (!validSubmissionId(data.submissionId) || runtime.containsWishLink(value)) { throw new Error('ANDROID_INVALID'); }
+        var item = { id: queue.nextId, senderKey: '', nick: 'Android', text: value,
+            source: 'Android', externalSubmissionId: data.submissionId, submissionId: 'android:' + data.submissionId,
+            createdAt: runtime.now(), delivery: null };
+        // Der technische Marker muss gespeichert sein, bevor eine Annahme quittiert werden kann.
+        remember(item, queue.items.length + 1);
+        queue.items.push(item);
+        try { confirm(item); }
+        catch (error) { queue.items.pop(); throw error; }
+        queue.nextId += 1; queue.revision += 1;
+        runtime.changed('wishes');
     };
     runtime.deliverWish = function (id, moderator) {
         var item = itemById(queueState(), id);
         if (!item) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
         if (item.delivery) { return false; }
         item.delivery = { nick: safeNick(moderator), at: runtime.now() };
+        runtime.changed('wishes');
         return true;
     };
-    runtime.resolveWish = function (id) {
+    runtime.resolveWish = function (id, outcome) {
         var queue = queueState();
         var remaining = [];
         var found = false;
         for (var index = 0; index < queue.items.length; index += 1) {
-            if (queue.items[index].id === id) { found = true; }
+            if (queue.items[index].id === id) {
+                runtime.changed('wish-removed', { item: queue.items[index], outcome: outcome });
+                found = true;
+            }
             else { remaining[remaining.length] = queue.items[index]; }
         }
         if (!found) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
         queue.items = remaining;
         queue.revision += 1;
+        runtime.changed('wishes');
     };
     runtime.removeWishesForUser = function (userId) {
         var expected = safeUserKey(userId);
@@ -123,14 +147,14 @@ MischWerkModules.attachWishQueue = function (runtime) {
         for (var index = 0; index < queue.items.length; index += 1) {
             if (queue.items[index].senderKey !== expected) { remaining[remaining.length] = queue.items[index]; }
         }
-        if (remaining.length !== queue.items.length) { queue.items = remaining; queue.revision += 1; }
+        if (remaining.length !== queue.items.length) { queue.items = remaining; queue.revision += 1; runtime.changed('wishes'); }
     };
     runtime.resolveRequest = function (user, data) {
         if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf diese Aktion ausführen.'); }
         if (data.outcome !== undefined && data.outcome !== 'done' && data.outcome !== 'discarded') {
             throw runtime.failure('Ungültige Wunsch-Aktion.');
         }
-        runtime.resolveWish(data.id);
+        runtime.resolveWish(data.id, data.outcome);
     };
     runtime.changeWishStage = function (user, data) {
         if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf Wünsche bearbeiten.'); }
@@ -149,5 +173,6 @@ MischWerkModules.attachWishQueue = function (runtime) {
         }
         item.stage = data.stage;
         queue.revision += 1;
+        runtime.changed('wishes');
     };
 };

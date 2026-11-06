@@ -3,7 +3,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const { checkBackend, modules } = require('../build/backend.cjs');
-const { frontendFiles } = require('../lib/frontend-files.cjs');
+const { frontendFiles, operatorFiles } = require('../lib/frontend-files.cjs');
 const { runtimeFiles, isBinary, checkRuntime } = require('./lengths.cjs');
 const { checkArchitecture } = require('./architecture.cjs');
 const root = path.resolve(__dirname, '../..');
@@ -14,7 +14,7 @@ const backend = modules.map(file => read('app/server/' + file)).join('\n');
 assert.ok(read('app/main.js').split('\n').length < 6, 'main.js darf nur der Einstieg sein');
 assert.equal((read('app/main.js').match(/KnuddelsServer.execute\(/g) || []).length, 1, 'main.js lädt genau das Kompositionsmodul');
 assert.ok(!/onEventReceived\s*[:=]|runtime\.\w+\s*=|function\s*\(/.test(read('app/main.js')), 'Fachlogik im Einstieg');
-for (const file of ['app/main.js', ...frontendFiles.filter(file => file.endsWith('.js')).map(file => 'app/www/' + file), 'tools/preview/bridge.js']) {
+for (const file of ['app/main.js', ...frontendFiles.concat(operatorFiles).filter(file => file.endsWith('.js')).map(file => 'app/www/' + file), 'tools/preview/bridge.js']) {
   new vm.Script(read(file), { filename: file });
   console.log('Syntax OK:', file);
 }
@@ -32,7 +32,9 @@ for (const [type, names] of Object.entries({
   User: ['getNick', 'getUserId', 'isOnlineInChannel', 'isAppManager', 'equals', 'canSendAppContent', 'sendAppContent', 'sendPrivateMessage'],
   AppContentSession: ['getUser', 'remove'],
   AppContent: ['setResponsive', 'addCloseListener'],
-  WebHookAccess:['registerWebHook','unregisterWebHook'], WebHookRequest:['getMethod','getBody','getQueryString','getRemoteAddress'], WebHookResponse:['send'],
+  WebHookAccess:['registerWebHook','unregisterWebHook'], WebHookRequest:['getMethod','getPath','getHeaders','getBody','getQueryString','getRemoteAddress'], WebHookResponse:['send'],
+  ExternalServerAccess: ['postURL', 'canAccessURL', 'getAllAccessibleDomains'], ExternalServerResponse: ['getResponseCode', 'getURLString'],
+  ServerInfo: ['getVersion', 'getServerId'], Domain: ['getDomainName'],
   BotUser: ['sendPublicMessage'], String: ['escapeKCode'],
   AppAccess: ['getOwnInstance'], AppInstance: ['getRootInstance'], RootAppInstance: ['updateAppFiles', 'invalidateClientCache', 'updateApp']
 })) {
@@ -43,6 +45,8 @@ for (const [type, names] of Object.entries({
 assert.ok(backendApi.includes('KnuddelsServer.getAppAccess = function'), 'Fehlende AppAccess-Signatur');
 assert.ok(backendApi.includes('KnuddelsServer.getDefaultBotUser = function'), 'Fehlende BotUser-Signatur');
 assert.ok(backendApi.includes('KnuddelsServer.getWebHookAccess = function'), 'Fehlende WebHook-Signatur');
+assert.ok(backendApi.includes('KnuddelsServer.getExternalServerAccess = function'), 'Fehlende ExternalServerAccess-Signatur');
+assert.ok(backendApi.includes('KnuddelsServer.getAppServerInfo = function'), 'Fehlende AppServerInfo-Signatur');
 assert.ok(backendApi.includes('KnuddelsServer.execute = function'), 'Fehlende Loader-Signatur');
 assert.ok(backendApi.includes('AppContent.overlayContent'), 'Overlay fehlt in der Backend-Referenz');
 for (const name of ['setTitle', 'setSize']) {

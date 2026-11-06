@@ -36,6 +36,7 @@ MischWerkUI.define('model', function (dependencies) {
     next.radioModeratorPage = typeof next.radioModeratorPage === 'number' ? next.radioModeratorPage : 0;
     next.radioModeratorPages = typeof next.radioModeratorPages === 'number' ? next.radioModeratorPages : 1;
     next.radioModeratorRevision = typeof next.radioModeratorRevision === 'number' ? next.radioModeratorRevision : 0;
+    next.user.showModerationButton = next.user.showModerationButton === true && next.user.canModerate === true;
     next.user.canManageRadioModerators = next.user.canManageRadioModerators === true;
     state = next; lastStateAt = Date.now();
     signals.emit('snapshot', { previousStation: oldStation, refreshRequestId: next.refreshRequestId });

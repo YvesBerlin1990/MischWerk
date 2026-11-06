@@ -33,7 +33,9 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
             curtain: runtime.curtainState(user),
             revision: runtime.state.revision,
             user: { nick: runtime.nick(user), canModerate: mod,
-                canManageRadioModerators: runtime.isChannelOwner(user),
+                showModerationButton: runtime.canAdminister(user) ||
+                    (runtime.online(user) && runtime.state.radioModeratorUserIds.indexOf(currentUserId) !== -1),
+                canManageRadioModerators: runtime.canAdminister(user),
                 isOnAir: !!(mod && presenter && presenter.userId === currentUserId),
                 canEndModeration: !!(mod && presenter && (presenter.userId === currentUserId || user.isChannelOwner())) },
             limits: { maxTextLength: 300, maxTopicLength: 80 },

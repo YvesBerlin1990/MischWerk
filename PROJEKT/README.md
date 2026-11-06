@@ -1,8 +1,26 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.223 · Build 223 · Website 0.2.0**, Stand 05.11.2026. Funktionen und aktuelle Bilder stehen in der [GitHub-Übersicht](../README.md); verbindliche Entwicklungsregeln ausschließlich in [AGENTS.md](AGENTS.md).
+**App 0.1.239 · Build 239 · Website 0.2.0**, Stand 06.11.2026. Funktionen und aktuelle Bilder stehen in der [GitHub-Übersicht](../README.md); verbindliche Entwicklungsregeln ausschließlich in [AGENTS.md](AGENTS.md).
 
-Der Appstand besteht aus **122 Laufzeitdateien, 115 Textdateien, 40 Backendmodulen, 80 Browser-/Mediendateien, 49 Frontendkomponenten und 18 Stylesheets**. Fünf Manifeste belegen die vollständige Auslieferung. Die Website bleibt ein eigenes Projekt außerhalb des Knuddels-UPLOAD.
+Die Übergabe erhält ihre ausgewählte Bediengruppe bei Größenwechseln, bleibt in sehr kleinen Rahmen scrollbar und verarbeitet verlorene Bestätigungen anhand des frischen Serverzustands. Otterchen erhält als tatsächlicher Channelinhaber automatisch Moderationszugang und Übergabeempfang; andere Nutzer benötigen ihren Radio-Team-Eintrag.
+
+Sendeplan, Wunschbox und Moderation verwenden gemeinsame Tasten-/Symbolmaße, Beschriftungszeilen und gleichmäßige Abstände. Die Zusatzzeile Deaktiviert verschiebt keine Taste oder Hauptbeschriftung.
+
+Schmale Radioansichten trennen Schallplatte, Musikangaben und Aktionen. Bei höchstens 420 px hoher Moderation scrollt der Wunschbereich mit vollständig erhaltenen Textseiten und Aktionen; die breite Radioansicht bleibt pixelgleich.
+
+Der Glowabstand unter der Appleiste beträgt jetzt 16 statt 40 px; die native Anfangshöhe ist entsprechend 176 px. Der unveränderte RGB-Halo blendet bis auf die Hintergrundfarbe aus.
+
+Die deaktivierte Wunschbox besitzt dieselbe Symbolgröße und Beschriftungshöhe wie Sendeplan; die Zusatzzeile Deaktiviert bleibt sichtbar.
+
+Otterchen hat als tatsächlicher Channelinhaber automatisch alle bestehenden Apprechte, einschließlich sichtbarer Moderation und Übergabeempfang. Ein Radio-Team-Eintrag ist für ihn nicht erforderlich; andere Nutzer benötigen weiterhin die Ernennung unter Verwaltung. Ein optionaler eigener Eintrag kann ohne Verlust seiner Inhaberrechte entfernt werden.
+
+Verwaltung ist aus der Appleiste entfernt. **/MW Verwaltung** öffnet das bestehende Fenster ausschließlich für den anwesenden Channelinhaber **Otterchen**. Radio-Team und Bot-Texte bleiben darin erreichbar.
+
+Build 230 ergänzt eine getrennte private Betreiberansicht über `/mischwerk-relay einrichten`. Sie verwendet dokumentierte native User-/Session-Identitäten und speichert Sync-/optionale Relay-Schlüssel nur serverseitig. Vorhandene Werte werden nicht zurückgesendet; jede Speicherung setzt enabled/runtimeVerified auf false. Der tatsächliche native Einstellungsweg ist nach Installation noch abzunehmen. Build 229 bleibt der letzte durch den Nutzer bestätigte native Stand mit fehlerfreier Server-/Domainprüfung. [Einrichtung](docs/betrieb/INBETRIEBNAHME.md#private-android-einrichtung-ab-build-230) · [Nachweis](docs/api/API-NACHWEIS.md#private-betreibereinrichtung-230).
+
+Der Appstand besteht aus **132 Laufzeitdateien, 125 Textdateien, 48 Backendmodulen, 80 Browser-/Mediendateien, zwei separaten Betreiberdateien, 49 bisherigen Frontendkomponenten und 18 Stylesheets**. Fünf Manifeste belegen die vollständige Auslieferung. Die Website bleibt ein eigenes Projekt außerhalb des Knuddels-UPLOAD.
+
+`/mischwerk-relay pruefen` liest ausschließlich für den anwesenden Channelinhaber Serverinformationen und Domainrechte. Die Android-Vorbereitung verwendet dieselbe Queue, begrenzte technische Marker und den vereinbarten payload-String an Firebase Hosting. Geschützte Konfiguration, echte Hook-/HTTP-Abnahme und vollständiger Betrieb stehen aus. Oberfläche und Audio bleiben unverändert. Die zurückgekommene Dropbox-Revision 6 wurde nach dem Folgeauftrag gelesen; die bestätigten Knuddels-Ergebnisse und offenen Punkte sind in Revision 7 gespeichert und vollständig nachgelesen. [Vertrag](docs/api/API-NACHWEIS.md) · [Prüfstand](docs/pruefung/PRUEFBERICHT.md).
 
 `radio/connection` besitzt allein Audioquelle, Hörwunsch und Wiederherstellung. Kurze Engpässe erhalten Verbindung und Puffer; echte Abbrüche werden bei bestehendem Hörwunsch erneut verbunden. Metadaten und Status steuern kein Audio. Der bestehende Heartbeat erhält seine Fälligkeit über Nachladephasen und bestätigt Aktivität nur bei geprüftem Audiofortschritt und frischer passender Channelantwort.
 
@@ -14,9 +32,9 @@ Die native Inaktivitätstrennung wurde am 05.11.2026 kontrolliert reproduziert. 
 | --- | --- |
 | app/www/ | Gepflegte Browseroberfläche, Original-Logo und eigene Werbe-MP3 |
 | medien/logos/ und medien/mychannel/ | Zusätzliche Original-Logos und Hintergrundbild für den Knuddels-MyChannel |
-| src/backend/ | 40 gepflegte ES5/Rhino-Backendmodule |
+| src/backend/ | 48 gepflegte ES5/Rhino-Backendmodule |
 | app/server/ und app/main.js | Vom Backendbuild erzeugte Laufzeitkopien und kurzer Einstieg |
-| C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/ | Ausschließlich die 122 fertig geprüften Laufzeitdateien für Knuddels |
+| C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/ | Ausschließlich die 132 fertig geprüften Laufzeitdateien für Knuddels |
 | deployment/live.json | Bestätigtes Ziel und absoluter lokaler Uploadpfad; keine Passwörter |
 | deployment/manifests/ | Fünf Dateinachweise mit Inventar, Bytezahlen und SHA-256 |
 | tools/build/ | backend.cjs erzeugt Laufzeitmodule; prepare-upload.cjs prüft und aktualisiert den Desktop-Upload |
@@ -36,7 +54,7 @@ Die native Inaktivitätstrennung wurde am 05.11.2026 kontrolliert reproduziert. 
 | docs/pruefung/ | Ein aktueller Prüfbericht und die darin verwendeten aktuellen Appbilder unter oberflaeche/ |
 | references/api/ | Zwei unveränderte offizielle Dokumentationsstubs, niemals als Appcode laden |
 
-Die 40 gleichen Backenddateien sind beabsichtigt: src/backend ist die Quelle, app/server die geprüfte Laufzeit und der Desktop-UPLOAD die Auslieferung. Keine dieser notwendigen Kopien ist ein Archiv. app/www besitzt keinen zweiten Frontendquellordner. Git-Metadaten, package.json, pnpm-lock.yaml und node_modules gehören zur Entwicklungsumgebung und bleiben erhalten.
+Die 48 gleichen Backenddateien sind beabsichtigt: src/backend ist die Quelle, app/server die geprüfte Laufzeit und der Desktop-UPLOAD die Auslieferung. Keine dieser notwendigen Kopien ist ein Archiv. app/www besitzt keinen zweiten Frontendquellordner. Git-Metadaten, package.json, pnpm-lock.yaml und node_modules gehören zur Entwicklungsumgebung und bleiben erhalten.
 
 ## Logos und MyChannel-Hintergrund
 
@@ -105,7 +123,7 @@ Auch aus einem Codex-Worktree wird ausschließlich C:/Users/Yves/Desktop/MischWe
 
 Moderation seit 0.1.177: Deine Sendung, Musikwünsche und Heute gespielt, manuelle Wunschregie und private Übergabenotizen. [Bedienung](docs/betrieb/INBETRIEBNAHME.md#moderation-verwenden). manifest-studio.json trennt die Studioauslieferung von gemeinsamen Browserdateien.
 
-Die native Verwaltung öffnet im festen Rahmen von 560 × 630 px mit den Bereichen Radio-Team und Bot-Texte. Die frühere Statuszentrale bleibt entfernt.
+Die native Verwaltung wird mit `/MW Verwaltung` geöffnet und bleibt im festen Rahmen von 560 × 630 px mit den Bereichen Radio-Team und Bot-Texte. Die frühere Statuszentrale bleibt entfernt.
 
 Auslieferung ab Build 172: prepare-upload erzeugt kleine Bündel aus vollständigen, unveränderten Quellmodulen ausschließlich im festen Desktop-UPLOAD. Die Quelldateien unter app/www bleiben modular. bundled=true im Manifest und check:upload/check:delivery prüfen die reproduzierbaren tatsächlichen Auslieferungsbytes. Alle Dateien bleiben unter 9500 Zeichen. tools/checks/startup.cjs misst lokale Kaltstarts mit ausdrücklich gewähltem Appordner und optionaler Ressourcenverzögerung; dies ist keine echte Knuddels-Ladezeit.
 

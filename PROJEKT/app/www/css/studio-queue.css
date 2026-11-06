@@ -55,3 +55,9 @@ html.studio-height-limited .queue-toolbar { margin-top:8px; }
  .studio-queue-tight .studio-queue-heading h2 { margin:0; }
  .studio-queue-tight .studio-queue-heading .count-badge { height:20px; min-width:20px; }
 }
+/* Sehr niedrige Rahmen scrollen den Wunschbereich statt seine Inhalte ineinander zu drücken. */
+@media (max-height:420px) {
+ .studio-queue-tight { overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+ .studio-queue-tight #request-queue,.studio-queue-tight .queue-item.selected,.studio-queue-tight .queue-copy { flex:none; }
+ .studio-queue-tight .queue-copy h3 { flex-shrink:0; }
+}

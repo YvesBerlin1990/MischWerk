@@ -27,13 +27,16 @@ async function measureStartup(appDir, { delay = 0, runs = 3 } = {}) {
         await page.locator('#join').click();
         const radio = await (await page.waitForSelector('#headerbars iframe[src]')).contentFrame();
         await radio.waitForFunction(() => document.documentElement.classList.contains('mw-ready'));
+        await radio.evaluate(() => Client.sendEvent('mw:addRadioModerator', { nick:'Otterchen' }));
+        await radio.locator('#studio-tab:not([hidden])').waitFor();
         const network = await context.newCDPSession(page);
         await network.send('Network.enable');
         await network.send('Network.setCacheDisabled', { cacheDisabled:true });
         await network.send('Network.clearBrowserCache');
         page.on('request', request => { if (/\/app\/.*\.(js|css)\?/.test(request.url())) requests.push(request.url()); });
         const started = performance.now();
-        await radio.locator('#' + button + ':not([disabled])').click();
+        if (view === 'team') await radio.evaluate(() => Client.executeSlashCommand('/MW Verwaltung'));
+        else await radio.locator('#' + button + ':not([disabled])').click();
         const frame = await (await page.waitForSelector('#overlays iframe[src]')).contentFrame();
         await frame.waitForFunction(() => document.documentElement.classList.contains('mw-ready'));
         samples.push({ milliseconds:Math.round(performance.now() - started), js:requests.filter(url => /\.js\?/.test(url)).length,

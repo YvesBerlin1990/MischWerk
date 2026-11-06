@@ -5,10 +5,13 @@ MischWerkUI.define('studioPages', function(dependencies){
   function fitArea(id,pagerId){
     var area=dom.el(id), pager=dom.el(pagerId);
     if(!area.getClientRects().length)return;
-    var state=states[id]||(states[id]={selected:0,pages:[]});
+    var state=states[id]||(states[id]={selected:0,pages:[],anchor:null});
+    var scroll=area.scrollTop, navigating=!!state.requested;
     var focused=document.activeElement;
     var parts=Array.from(area.querySelectorAll('.studio-part')).filter(function(part){return !part.closest('form[hidden]')&&!part.hasAttribute('data-unavailable');});
-    var anchor=parts.find(function(part){return part.contains(focused);});
+    var anchor=state.requested||parts.find(function(part){return part.contains(focused);})||state.anchor;
+    if(parts.indexOf(anchor)===-1)anchor=parts[0];
+    state.requested=null;
     parts.forEach(function(part){part.hidden=false;});pager.hidden=true;
     var last=parts[parts.length-1];
     var bottom=last?last.getBoundingClientRect().bottom+area.scrollTop:area.getBoundingClientRect().top;
@@ -30,8 +33,9 @@ MischWerkUI.define('studioPages', function(dependencies){
     state.pages=pages;
     if(anchor){var target=pages.findIndex(function(page){return page.indexOf(anchor)!==-1;});if(target!==-1)state.selected=target;}
     state.selected=Math.max(0,Math.min(state.selected,pages.length-1));
+    state.anchor=anchor;
     pages.forEach(function(page,index){page.forEach(function(part){part.hidden=index!==state.selected;});});
-    area.scrollTop=0;
+    area.scrollTop=navigating?0:scroll;
     pager.hidden=pages.length<2;
     pager.querySelector('[data-part-previous]').disabled=state.selected===0;
     pager.querySelector('[data-part-next]').disabled=state.selected>=pages.length-1;
@@ -45,7 +49,10 @@ MischWerkUI.define('studioPages', function(dependencies){
   function request(){cancelAnimationFrame(timer);timer=requestAnimationFrame(fit);}
   function bind(id,pagerId){var pager=dom.el(pagerId);
     [[-1,'[data-part-previous]'],[1,'[data-part-next]']].forEach(function(entry){pager.querySelector(entry[1]).addEventListener('click',function(){
-      if(this.disabled)return;states[id].selected+=entry[0];fit();
+      if(this.disabled)return;
+      var state=states[id], target=state&&state.pages[state.selected+entry[0]];
+      if(!target)return;
+      state.requested=target[0];fit();
     });});
   }
   function start(){

@@ -92,7 +92,7 @@ MischWerkUI.define('studio', function (dependencies) {
     signals.on('topic-started', function (request) {
       topicRequest = request; topicFeedback('Thema wird gespeichert …', false);
     });
-    signals.on('studio-topic-reset', function () { topicDirty = false; topicRequest = null; });
+    signals.on('studio-topic-reset', function () { topicDirty = false; topicRequest = null; renderTopic(); topicFeedback('',false); });
     signals.on('topic-error', function (message) { topicFeedback(message, true); });
     signals.on('command-result', function (response) {
       if (response.action === 'mw:setTopic') {

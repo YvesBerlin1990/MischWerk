@@ -7,7 +7,8 @@ MischWerkModules.attachHandover = function (runtime) {
     function clear() { if (pending) { pending = null; revision += 1; return true; } return false; }
     function participants() {
         return KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).filter(function (user) {
-            return runtime.isModerator(user);
+            return runtime.isModerator(user) && (runtime.canAdminister(user) ||
+                runtime.state.radioModeratorUserIds.indexOf(runtime.userId(user)) !== -1);
         });
     }
     runtime.pruneHandover = function () {
@@ -32,9 +33,9 @@ MischWerkModules.attachHandover = function (runtime) {
         runtime.pruneHandover();
         var userId = runtime.userId(user);
         var active = runtime.moderatorIsActive() && runtime.state.moderator.userId === userId;
-        var view = { revision: revision, candidates: [], outgoing: null, incoming: null, receivedNotes: null };
+        var view = { revision: revision, candidates: [], outgoing: null, incoming: null, receivedNotes: null, acceptedId: null };
         if (!runtime.isModerator(user)) { return view; }
-        if (received && received.userId === userId) { view.receivedNotes = received.notes; }
+        if (received && received.userId === userId) { view.receivedNotes = received.notes || null; view.acceptedId = received.id; }
         if (active && !pending) {
             view.candidates = participants().filter(function (person) {
                 return runtime.userId(person) !== userId;
@@ -78,8 +79,8 @@ MischWerkModules.attachHandover = function (runtime) {
             throw runtime.failure('Diese Übergabe ist nicht für dich vorgesehen.');
         }
         runtime.transferModeration(user, pending.moderatorKey, data.topic === undefined ? '' : data.topic);
-        received = pending.notes ? { userId: userId, fromId: pending.fromId,
-            since: runtime.state.moderator.since, notes: pending.notes } : null;
+        received = { id: pending.id, userId: userId, fromId: pending.fromId,
+            since: runtime.state.moderator.since, notes: pending.notes };
         clear();
         return 'Sendung übernommen. Du bist jetzt ON AIR.';
     };

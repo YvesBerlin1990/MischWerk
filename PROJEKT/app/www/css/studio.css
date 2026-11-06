@@ -11,7 +11,7 @@ html[data-view=studio] .studio-programme-tabs button { min-width:0; min-height:6
 html[data-view=studio] .studio-programme-tabs button[aria-selected=true] { color:var(--gold); border-bottom-color:var(--gold); }
 #studio-programme,#studio-requests,#history-panel { flex:1; min-height:0; }
 #studio-programme { display:flex; flex-direction:column; }
-.studio-part-area { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr); gap:12px; align-content:start; align-items:start; overflow:hidden; }
+.studio-part-area { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr); gap:12px; align-content:start; align-items:start; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
 .studio-part { min-width:0; }
 .studio-dashboard { gap:16px; padding:0; }
 .studio-dashboard > .studio-part { padding:20px; border:1px solid var(--line); border-radius:18px; background:var(--studio-surface); }

@@ -8,13 +8,14 @@ const root = path.resolve(__dirname, '../..');
 const sourceRoot = path.join(root, 'src', 'backend');
 const appRoot = path.join(root, 'app');
 const modules = [
-  'config.js', 'core/runtime.js', 'core/diagnostics.js', 'users/identity.js',
+  'config.js', 'core/runtime.js', 'core/diagnostics.js', 'core/changes.js', 'users/identity.js',
   'core/validation.js', 'state/persistence.js', 'radio/station.js', 'radio/team.js',
   'radio/moderation.js', 'radio/announcements.js', 'channel-texts/storage.js', 'channel-texts/scheduler.js', 'channel-texts/transport.js',
   'radio/handover.js', 'state/initialization.js', 'radio/show.js', 'radio/curtain.js', 'wishes/queue.js', 'wishes/transport.js',
   'schedule/calendar.js', 'schedule/storage.js', 'schedule/programme.js', 'schedule/transport.js',
-  'ui/snapshot.js', 'ui/session-state.js', 'transport/views.js', 'ui/loading.js', 'ui/sessions.js', 'ui/wish-surface.js', 'ui/overlays.js', 'maintenance.js',
+  'ui/snapshot.js', 'ui/session-state.js', 'transport/views.js', 'ui/loading.js', 'ui/sessions.js', 'ui/wish-surface.js', 'ui/overlays.js', 'ui/administration.js', 'maintenance.js',
   'channel-texts/settings.js', 'wishes/website.js', 'website/access.js', 'website/public.js', 'website/commands.js', 'website/transport.js',
+  'android/connection.js', 'android/diagnostics.js', 'android/settings.js', 'android/receipts.js', 'android/publisher.js', 'android/webhook.js',
   'lifecycle.js', 'transport/events.js', 'app.js'
 ];
 function source(file) {

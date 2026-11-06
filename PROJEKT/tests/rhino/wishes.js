@@ -26,7 +26,11 @@ var KnuddelsServer = {
         return { info: function () {}, warn: function (message) { warnings.push(message); } };
     },
     getChannel: function () { return { getOnlineUsers: function () { return people; } }; },
-    getUserAccess: function () { return { getNick: function (id) { return 'Nutzer ' + id; } }; },
+    getUserAccess: function () { return {
+        exists: function (nick) { return nick === 'Otterchen'; },
+        getUserId: function (nick) { if (nick !== 'Otterchen') { throw new Error('Unbekannter Testnutzer'); } return 2; },
+        getNick: function (id) { return 'Nutzer ' + id; }
+    }; },
     getAppAccess: function () { return { getOwnInstance: function () { return {
         getRootInstance: function () { return { invalidateClientCache: function () {
             cacheInvalidations += 1;
@@ -96,6 +100,20 @@ var owner = person(2, 'Otterchen', true);
 App.onUserJoined(listener); App.onUserJoined(owner);
 var listenerSession = listener.sessions[0];
 var ownerSession = owner.sessions[0];
+check(ownerSession.getAppContent().html.data.user.showModerationButton === true, 'Otterchen als Inhaber automatisch mit Moderationsbutton');
+App.onEventReceived(owner, 'mw:addRadioModerator', { nick:'Otterchen' }, ownerSession);
+check(latest(ownerSession, 'mw:state').user.showModerationButton === true, 'Expliziter eigener Radio-Team-Eintrag zeigt Button');
+App.onEventReceived(owner, 'mw:removeRadioModerator', { userId:owner.getUserId() }, ownerSession);
+check(latest(ownerSession, 'mw:state').user.showModerationButton === true, 'Entfernter optionaler Eintrag entzieht keine Inhaberrechte');
+check(latest(ownerSession, 'mw:state').user.canManageRadioModerators === true, 'Inhaber behält Verwaltung');
+var ownerAccessMethod = owner.isChannelOwner;
+owner.isChannelOwner = function () { return false; };
+App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
+check(latest(ownerSession, 'mw:state').user.showModerationButton === false, 'Nick Otterchen ohne Inhaberrecht erhaelt keinen automatischen Zugriff');
+owner.isChannelOwner = ownerAccessMethod;
+App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
+check(latest(ownerSession, 'mw:state').user.showModerationButton === true, 'Echtes Inhaberrecht stellt den automatischen Zugriff wieder her');
+var writesBeforeWishTransport = persistenceWrites;
 App.onEventReceived(owner, 'mw:openStudio', {}, ownerSession);
 var studio = owner.sessions[owner.sessions.length - 1];
 check(studio.getAppContent().mode === 'Overlay' && studio.getAppContent().html.data.view === 'studio', 'Moderationsfenster geoeffnet');
@@ -145,7 +163,7 @@ for (index = titles.length; index < 125; index += 1) {
 }
 check(submit(titles[0], 'rhino-0').accepted, 'Wiederholung quittieren');
 check(latest(studio, 'mw:state').queueTotal === 125, 'Wiederholung nicht doppelt einreihen');
-check(persistenceWrites === 0, 'Keine Wunschpersistenz');
+check(persistenceWrites === writesBeforeWishTransport, 'Keine Wunschpersistenz');
 check(warnings.length === 0, 'Keine Warnung: ' + warnings.join('|'));
 App.chatCommands.update(listener, '');
 check(updates.length === 0, 'Hoerer darf kein Update anfordern');
@@ -249,6 +267,8 @@ App.onEventReceived(listener, 'mw:handover.accept', { id: incoming.id, topic: 'N
 check(latest(listenerSession, 'mw:result').ok, 'Uebergabe angenommen');
 check(latest(listenerSession, 'mw:state').moderator.nick === 'Musikfreund', 'Neuer Moderator in Rhino');
 check(latest(listenerSession, 'mw:state').topic === 'Neue Sendung', 'Neues Thema gemeinsam gespeichert');
+check(latest(listenerSession, 'mw:state').handover.acceptedId === incoming.id, 'Privater Annahmebeleg nennt exakt die angenommene Anfrage');
+check(latest(ownerSession, 'mw:state').handover.acceptedId === null, 'Annahmebeleg wird nicht dem vorherigen Moderator offengelegt');
 check(latest(listenerSession, 'mw:state').handover.receivedNotes === incoming.notes, 'Hinweis nach Uebernahme erhalten');
 check(latest(ownerSession, 'mw:state').handover.receivedNotes === null, 'Uebernommener Hinweis nur beim Empfaenger');
 check(typeof latest(listenerSession, 'mw:state').moderator.since === 'number', 'Bestaetigte Studiozeit bleibt erhalten');
@@ -256,6 +276,13 @@ check(!('assistant' in latest(listenerSession, 'mw:state')), 'Entfernter Sendung
 check(publicMessages.length === 4 && publicMessages[3].indexOf('Otterchen macht Platz im Studio') !== -1, 'Eine gemeinsame Uebergabemeldung');
 App.onEventReceived(owner, 'mw:onAir', {}, ownerSession);
 check(!latest(ownerSession, 'mw:result').ok && publicMessages.length === 4, 'Keine direkte Uebernahme ohne Bestaetigung');
+check(latest(listenerSession, 'mw:state').handover.candidates.indexOf('Otterchen') !== -1, 'Otterchen ist ohne Radioteameintrag automatisch Uebergabeziel');
+App.onEventReceived(listener, 'mw:handover.request', { nick:'Otterchen', expectedModerator:latest(listenerSession, 'mw:state').moderator.sessionKey }, listenerSession);
+check(latest(listenerSession, 'mw:result').ok, 'Uebergabe an nicht eingetragenen Inhaber ist erlaubt');
+App.onEventReceived(listener, 'mw:handover.cancel', { id:latest(listenerSession, 'mw:state').handover.outgoing.id }, listenerSession);
+App.onEventReceived(owner, 'mw:addRadioModerator', { nick:'Otterchen' }, ownerSession);
+check(latest(listenerSession, 'mw:state').handover.candidates.indexOf('Otterchen') !== -1, 'Eingetragener Inhaber kann wieder eine Uebergabe annehmen');
+App.onEventReceived(owner, 'mw:removeRadioModerator', { userId:2 }, ownerSession);
 App.onEventReceived(owner, 'mw:openWishes', { requestId: 'rhino-wishes' }, ownerSession);
 App.onEventReceived(owner, 'mw:overlay.ready', { token: latest(scheduleSession, 'mw:overlay.prepare').token, state: {}, revision: 1, view: 'schedule', viewRevision: 2 }, scheduleSession);
 check(latest(ownerSession, 'mw:result').ok, 'Natives Wunschoverlay in Rhino geoeffnet');
@@ -299,6 +326,22 @@ check(latest(listenerSession, 'mw:state').curtain.closed === true, 'Vorhang schl
 App.chatCommands.vorhang(owner, 'toggle');
 App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
 check(latest(ownerSession, 'mw:state').curtain.closed === true, 'Ungueltige Chatangabe erhaelt Vorhang');
+(function () {
+    var app = MischWerkModules.createApp(MischWerkConfig), user = person(9991, 'Otterchen', true), replies = [];
+    user.sendPrivateMessage = function (message) { replies.push(message); };
+    app.chatCommands.mw(user, 'Verwaltung');
+    check(user.sessions.length === 2, 'Verwaltungsbefehl öffnet Radio und Overlay in Rhino');
+    check(user.sessions[1].getAppContent().html.data.view === 'team', 'Verwaltung als bestehendes natives Overlay');
+    var other = person(9992, 'Anderer Inhaber', true);
+    other.sendPrivateMessage = function (message) { replies.push(message); };
+    app.chatCommands.mw(other, 'Verwaltung');
+    check(other.sessions.length === 0 && replies.length === 1, 'Anderer Inhaber ohne Verwaltungszugriff');
+    user.isChannelOwner = function () { return false; };
+    app.chatCommands.mw(user, 'Verwaltung');
+    check(replies.length === 2 && replies[1].indexOf('Nur Otterchen') !== -1, 'Nick allein verleiht kein Inhaberrecht');
+}());
 load('tests/rhino/channel-texts.js');
 load('tests/rhino/website.js');
+load('tests/rhino/android.js');
+load('tests/rhino/android-settings.js');
 print('Rhino-Wunschweg OK: ' + assertions + ' Pruefungen, 125 Wuensche, ' + links.length + ' abgewiesene Links; Sendeplan, Studio-Meldungen und Bot-Texte ebenfalls geprueft.');
