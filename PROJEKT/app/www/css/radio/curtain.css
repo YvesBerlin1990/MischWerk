@@ -6,7 +6,7 @@ html[data-curtain=closed] #radio-panel { visibility:hidden; pointer-events:none;
   background-color:#690b1d;
   background-image:
     linear-gradient(180deg,#21020c99,transparent 30%,#32031020 75%,#18020877),
-    url(../img/curtain-velvet.png);
+    url(../../img/curtain-velvet.png);
   background-size:100% 100%,cover;
   background-position:center;
   background-repeat:no-repeat;

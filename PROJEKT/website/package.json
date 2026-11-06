@@ -5,9 +5,9 @@
   "description": "MischWerk Homepage und geschützter Arbeitsbereich mit dokumentierter App-Anbindung",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "preview": "node tools/server/server.cjs",
+    "preview": "node server/server.cjs",
     "test": "node --test tests/node/website.test.cjs tests/node/workspace.test.cjs tests/browser/website.browser.test.cjs tests/browser/workspace.browser.test.cjs",
-    "start": "node tools/server/server.cjs"
+    "start": "node server/server.cjs"
   },
   "dependencies": {
     "nodemailer": "10.3.1"

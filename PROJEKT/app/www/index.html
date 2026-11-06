@@ -44,24 +44,24 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 setTimeout(startupFailure, 15000);
 // Jede Datei über die Knuddels-API laden, damit auch Teilstyles nach Updates aktuell sind.
 var styles = [
-  'css/foundation.css',
-  'css/radio.css',
-  'css/radio-actions.css',
-  'css/dialogs.css',
-  'css/studio.css',
-        'css/studio-queue.css',
-  'css/handover.css',
-  'css/team.css',
-  'css/feedback.css',
-  'css/dialogs-responsive.css',
-  'css/wishbox.css',
-  'css/radio-surface.css',
-  'css/metadata-layout.css',
-  'css/radio-responsive.css',
-  'css/schedule.css',
-  'css/schedule-options.css',
-  'css/history.css',
-  'css/curtain.css'
+  'css/shared/foundation.css',
+  'css/radio/radio.css',
+  'css/radio/radio-actions.css',
+  'css/shared/dialogs.css',
+  'css/studio/studio.css',
+        'css/studio/studio-queue.css',
+  'css/studio/handover.css',
+  'css/team/team.css',
+  'css/shared/feedback.css',
+  'css/shared/dialogs-responsive.css',
+  'css/wishes/wishbox.css',
+  'css/radio/radio-surface.css',
+  'css/radio/metadata-layout.css',
+  'css/radio/radio-responsive.css',
+  'css/schedule/schedule.css',
+  'css/schedule/schedule-options.css',
+  'css/history/history.css',
+  'css/radio/curtain.css'
 ];
 var initialView = typeof Client !== 'undefined' && Client.pageData && Client.pageData.view;
 var view = ['wishes', 'studio', 'team', 'schedule'].indexOf(initialView) !== -1 ? initialView : 'radio';
@@ -69,15 +69,17 @@ document.documentElement.setAttribute('data-view', view);
 if (view === 'wishes' && typeof Client !== 'undefined' && Client.pageData && Client.pageData.wishSurface) { document.documentElement.setAttribute('data-wish-surface', 'true'); }
 var initialCurtain = typeof Client !== 'undefined' && Client.pageData && Client.pageData.curtain;
 document.documentElement.setAttribute('data-curtain', view === 'radio' && initialCurtain && initialCurtain.closed === true && initialCurtain.exempt !== true ? 'closed' : 'open');
-var styleViews = {
-  'css/radio.css':'radio', 'css/radio-actions.css':'radio', 'css/radio-responsive.css':'radio',
-  'css/radio-surface.css':'radio', 'css/metadata-layout.css':'radio',
-  'css/dialogs.css':'radio wishes studio team schedule', 'css/dialogs-responsive.css':'wishes studio team schedule',
-  'css/studio.css':'studio','css/studio-queue.css':'studio', 'css/handover.css':'studio',  'css/wishbox.css':'radio wishes',
-  'css/team.css':'team', 'css/schedule.css':'schedule', 'css/schedule-options.css':'schedule', 'css/curtain.css':'radio',
-  'css/history.css':'studio'
+// Fachordner bestimmen die Ansichten; gemeinsame Dialoge besitzen eigene Zuordnungen.
+var styleViews = { radio:'radio', studio:'studio', team:'team', wishes:'radio wishes', schedule:'schedule', history:'studio' };
+var sharedStyleViews = {
+  'css/shared/dialogs.css':'radio wishes studio team schedule',
+  'css/shared/dialogs-responsive.css':'wishes studio team schedule'
 };
-styles.filter(function (file) { return !styleViews[file] || styleViews[file].split(' ').indexOf(view) !== -1; }).forEach(function (file) {
+function styleApplies(file) {
+  var assignedViews = sharedStyleViews[file] || styleViews[file.split('/')[1]];
+  return !assignedViews || assignedViews.split(' ').indexOf(view) !== -1;
+}
+styles.filter(styleApplies).forEach(function (file) {
   if (typeof Client !== 'undefined') { Client.includeCSS(file); }
   else {
     var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = file; document.head.appendChild(css);

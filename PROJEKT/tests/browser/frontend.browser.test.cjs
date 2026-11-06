@@ -326,8 +326,8 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
         ...(match?{'Content-Range':'bytes '+start+'-'+end+'/'+body.length}:{})},body:body.subarray(start,end+1)});
     }
     const delayedFile=loadingDelay==='module'?({studio:'js/studio/queue.js',team:'js/team/management.js'}[view]||'js/radio/player.js'):
-      loadingDelay==='stylesheet'?({studio:'css/studio.css',team:'css/team.css',wishes:'css/wishbox.css'}[view]||'css/radio-surface.css'):
-      ({css:'css/foundation.css',parallel:'css/foundation.css',script:'js/start.js',logo:'img/mischwerk-logo.png',actions:'css/radio-actions.css'}[loadingDelay]);
+      loadingDelay==='stylesheet'?({studio:'css/studio/studio.css',team:'css/team/team.css',wishes:'css/wishes/wishbox.css'}[view]||'css/radio/radio-surface.css'):
+      ({css:'css/shared/foundation.css',parallel:'css/shared/foundation.css',script:'js/start.js',logo:'img/mischwerk-logo.png',actions:'css/radio/radio-actions.css'}[loadingDelay]);
     if (delayedFile&&file===(delayedFile.startsWith('img/')?delayedFile:deliveredFile(view,delayedFile))) { await layoutGate; }
     await route.fulfill({ contentType: types[path.extname(file)], body: fs.readFileSync(absolute) });
   });
@@ -772,7 +772,7 @@ test('Fehlendes Startmodul meldet den Dateipfad sofort und erholt sich nach voll
 
 test('Fehlendes Pflichtstylesheet zeigt ohne CSS und ohne Nachladen sofort einen Starthinweis',async t=>{
  const {page}=await setup(t,{station:true,clock:true});
- await page.route('http://mischwerk.test/css/foundation.css',r=>r.abort());await page.reload();
+ await page.route('http://mischwerk.test/css/shared/foundation.css',r=>r.abort());await page.reload();
  assert.equal(await page.locator('#startup-error').isVisible(),true,JSON.stringify(await page.evaluate(()=>({classes:document.documentElement.className,broken:startupBroken,ready:document.readyState,error:getComputedStyle(document.getElementById('startup-error')).cssText,links:[...document.querySelectorAll('link')].map(l=>({href:l.href,sheet:!!l.sheet}))}))));
  assert.equal(await page.locator('html').evaluate(n=>n.classList.contains('mw-ready')),false);
  assert.equal(await page.locator('#radio-panel').isVisible(),false);
@@ -1038,7 +1038,7 @@ test('Neue Wunschbox wartet auf ihr Stylesheet und erhält den Versandvertrag im
     assert.equal(loadingSnapshot.initialized,false);
     assert.deepEqual(loadingSnapshot.sizes,[]);
     await page.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));
-    assert.equal(requests.filter(url=>url.endsWith('/css/wishbox.css')).length,1);
+    assert.equal(requests.filter(url=>url.endsWith('/css/wishes/wishbox.css')).length,1);
     assert.doesNotMatch(await page.locator('.dialog-shell').innerText(),/submissionId|mw:|API|Backend|Persistenz|Protokoll|HostFrame/);
     await page.locator('#wish-text').fill('a-ha – Take On Me');
     assert.equal(await page.locator('#wish-text-count').textContent(),'17 / 300');

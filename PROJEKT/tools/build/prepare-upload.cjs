@@ -53,7 +53,7 @@ function createDelivery(project = root) {
     'loadPlan.filter(function (module) { return ' + JSON.stringify(skipped.scripts) +
     ".indexOf('js/' + module[1]) === -1; }).forEach(function (module) {")));
   const html = read('index.html');
-  const filter = "styles.filter(function (file) { return !styleViews[file] || styleViews[file].split(' ').indexOf(view) !== -1; })";
+  const filter = 'styles.filter(styleApplies)';
   assert.ok(html.includes(filter), 'CSS-Ladeplan für Bündel nicht gefunden');
   delivery.set('www/index.html', Buffer.from(html.replace(filter,
     filter + '.filter(function (file) { return ' + JSON.stringify(skipped.styles) + '.indexOf(file) === -1; })')));

@@ -419,7 +419,7 @@ test('/update erneuert auch bei bereits uebernommenen Dateien den Cache und nenn
 test('/update invalidiert nach reinen Team-Dateien den Cache vor dem Neustartauftrag', () => {
   const h = createHarness(); const owner = h.user(2, 'Otterchen', 'owner');
   const order = [], invalidate = h.rootInstance.invalidateClientCache, update = h.rootInstance.updateApp;
-  h.rootInstance.availableFiles = ['www/js/team/markup.js', 'www/css/team.css'];
+  h.rootInstance.availableFiles = ['www/js/team/markup.js', 'www/css/team/team.css'];
   h.rootInstance.invalidateClientCache = function () { order.push('cache'); return invalidate.call(this); };
   h.rootInstance.updateApp = function (message, logMessage) { order.push('update'); return update.call(this, message, logMessage); };
   const saved = JSON.stringify(h.store.data);

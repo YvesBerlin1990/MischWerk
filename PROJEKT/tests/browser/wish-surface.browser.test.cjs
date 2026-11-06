@@ -100,7 +100,7 @@ test('Wunsch-Overlay bleibt bei 320 und 2290 Pixeln auf seine Fläche begrenzt u
     assert.equal(await surface.locator('#wish-compose-open').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),true);
     if(process.env.MISCHWERK_CAPTURE_OVERLAY){
       await surface.waitForTimeout(250);
-      await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/wunschbox-'+width+'.png')});
+      await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/wunschbox/wunschbox-'+width+'.png')});
     }
     await surface.locator('#close-wishes').click();await page.locator('#overlay-frame').waitFor({state:'hidden'});
     assert.equal((await page.locator('#radio-frame').boundingBox()).height,160);
@@ -237,7 +237,7 @@ test('Verzögertes Overlay-CSS erhält den langen Entwurf und misst das Textfeld
   await surface.locator('#wish-text').fill(draft);await surface.locator('#close-wishes').click();
   await page.locator('#overlay-frame').waitFor({state:'hidden'});
   let release;const gate=new Promise(resolve=>{release=resolve;});
-  await page.route('**/css/wishbox.css',async route=>{await gate;await route.continue();});
+  await page.route('**/css/wishes/wishbox.css',async route=>{await gate;await route.continue();});
   const opening=open();await page.locator('#overlay-frame:not([hidden])').waitFor();
   surface=await(await page.locator('#overlay-frame').elementHandle()).contentFrame();
   await surface.locator('#wish-text').waitFor({state:'attached'});

@@ -12,24 +12,24 @@ Play ist eine 60-px-Vinylscheibe mit Goldsymbol und feiner Kontur. Bei tatsächl
 
 Sendeplan und Wunschbox sind runde Vinyl-Aktionen mit Goldsymbolen. Die Wunschbox zeigt bei Sperre Schloss und Deaktiviert. Hover, Druck und Tastaturfokus verschieben nichts. Die Lautstärketaste hat eine 32-px-Symbolfläche innerhalb ihres vollständig erreichbaren 44-px-Ziels; Stumm ergänzt ein korallfarbenes Kreuz. Regler und Prozentfeld bleiben zusammengehörig.
 
-![Appleiste bei Wiedergabe](../pruefung/oberflaeche/vinyl-glow-desktop.png)
+![Appleiste bei Wiedergabe](../pruefung/oberflaeche/radio/vinyl-glow-desktop.png)
 
-[Schmal bereit](../pruefung/oberflaeche/vinyl-pause-mobil.png) · [Schmal bei Wiedergabe](../pruefung/oberflaeche/vinyl-glow-mobil.png) · [Radiotasten](../pruefung/oberflaeche/radio-buttons.png) · [Lautstärke](../pruefung/oberflaeche/lautstaerke-gruppe.png) · [Stumm](../pruefung/oberflaeche/lautstaerke-stumm.png).
+[Schmal bereit](../pruefung/oberflaeche/radio/vinyl-pause-mobil.png) · [Schmal bei Wiedergabe](../pruefung/oberflaeche/radio/vinyl-glow-mobil.png) · [Radiotasten](../pruefung/oberflaeche/radio/radio-buttons.png) · [Lautstärke](../pruefung/oberflaeche/radio/lautstaerke-gruppe.png) · [Stumm](../pruefung/oberflaeche/radio/lautstaerke-stumm.png).
 
 ## Menüs
 
 Alle vier nativen Overlays haben mittige Titel, das Original-Logo links und eine frei erreichbare Schließen-Taste rechts. Normale Logos sind 80 px groß, schmale beziehungsweise kompakte Köpfe verwenden passende 68/64 px. Außenflächen und leere native Ladeabdeckung entsprechen #0f1114. Eingaben haben 16-px-Text; Aktionen bleiben mindestens 44 px groß.
 
-- **Wunschbox:** flaches Formular mit einem Textfeld und Zeichenzähler; nach Abgabe kurze Quittung und Weiteren Wunsch eingeben. Eigener Song, Platz und Status stehen in der Appleiste. [Ansicht](../pruefung/oberflaeche/wunschbox-flach-560.png).
-- **Moderation:** Deine Sendung, Musikwünsche und Heute gespielt. Flache gegliederte Arbeitsfläche; bestätigte Endzeit/Open End und private Übergabe. Vollständige Texte bleiben über Inhaltsseiten erreichbar. [Breit](../pruefung/oberflaeche/moderation-780.png) · [Schmal](../pruefung/oberflaeche/moderation-320.png).
-- **Verwaltung:** Radio-Team und Bot-Texte. Bei Bot-Texten bleiben Kopf, Reiter und Aktionen fest; eine Inhaltsfläche scrollt, Textfelder wachsen ohne eigene Scrollleiste. [Bot-Texte](../pruefung/oberflaeche/verwaltung-bottexte-560.png).
-- **Sendeplan:** Tag, Zeit, Moderation und Thema klar gewichtet. Freie Zeit erscheint als AutoDJ. Live/AutoDJ sowie Feste Zeit/Ganztags/Open End im bestehenden Formular. [Woche](../pruefung/oberflaeche/sendeplan-sendungen-820.png) · [Editor](../pruefung/oberflaeche/sendeplan-editor-820.png).
+- **Wunschbox:** flaches Formular mit einem Textfeld und Zeichenzähler; nach Abgabe kurze Quittung und Weiteren Wunsch eingeben. Eigener Song, Platz und Status stehen in der Appleiste. [Ansicht](../pruefung/oberflaeche/wunschbox/wunschbox-flach-560.png).
+- **Moderation:** Deine Sendung, Musikwünsche und Heute gespielt. Flache gegliederte Arbeitsfläche; bestätigte Endzeit/Open End und private Übergabe. Vollständige Texte bleiben über Inhaltsseiten erreichbar. [Breit](../pruefung/oberflaeche/moderation/moderation-780.png) · [Schmal](../pruefung/oberflaeche/moderation/moderation-320.png).
+- **Verwaltung:** Radio-Team und Bot-Texte. Bei Bot-Texten bleiben Kopf, Reiter und Aktionen fest; eine Inhaltsfläche scrollt, Textfelder wachsen ohne eigene Scrollleiste. [Bot-Texte](../pruefung/oberflaeche/verwaltung/verwaltung-bottexte-560.png).
+- **Sendeplan:** Tag, Zeit, Moderation und Thema klar gewichtet. Freie Zeit erscheint als AutoDJ. Live/AutoDJ sowie Feste Zeit/Ganztags/Open End im bestehenden Formular. [Woche](../pruefung/oberflaeche/sendeplan/sendeplan-sendungen-820.png) · [Editor](../pruefung/oberflaeche/sendeplan/sendeplan-editor-820.png).
 
 ## Theatervorhang
 
 Roter Samt mit natürlichen Falten und bordeauxgetönter Inhaltskarte. Zwei rein dekorative CSS-Hälften gleiten nach bestätigter Freigabe zu beiden Seiten; reduzierte Bewegung schaltet unmittelbar. Die logische Freigabe wartet nicht auf eine Animation. Werbung startet nur durch eigenen Klick.
 
-[Geschlossen](../pruefung/oberflaeche/vorhang-1920.png) · [Schmal](../pruefung/oberflaeche/vorhang-320.png) · [Öffnungsphase](../pruefung/oberflaeche/vorhang-oeffnung.png).
+[Geschlossen](../pruefung/oberflaeche/vorhang/vorhang-1920.png) · [Schmal](../pruefung/oberflaeche/vorhang/vorhang-320.png) · [Öffnungsphase](../pruefung/oberflaeche/vorhang/vorhang-oeffnung.png).
 
 ## Eigene Samttextur für den Theatervorhang
 

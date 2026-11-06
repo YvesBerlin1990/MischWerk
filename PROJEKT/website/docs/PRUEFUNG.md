@@ -1,5 +1,11 @@
 # MischWerk – aktuelle Websiteprüfung 0.2.0
 
+## Ordnergruppierung · 06.11.2026
+
+Browserdateien liegen jetzt unter public/ mit css/, js/site/ und js/workspace/. Die acht regulären Servermodule liegen gemeinsam unter server/; tools/preview/ enthält nur den testgebundenen Diagnoseserver, dessen Bridge und die beiden Testchannel-Dateien. Imports, Startbefehle und ausdrücklich zugeordnete Ressourcenpfade sind angepasst; öffentliche URLs und die 16 Browserdateien selbst bleiben unverändert. App-Stylesheets werden über die neuen Fachordner geladen.
+
+Alle 22 Websitefälle bestehen am endgültigen geordneten Appstand in 7,4 Sekunden. Der bisher veraltete Vorschautest für den entfernten Verwaltungsbutton verwendet den vorhandenen authentifizierten Chatbefehl über den lokalen Diagnoseadapter. Player, öffentliche Bereiche, Arbeitsbereich, Appcallback, Sitzungen und der Ausschluss von Server-/Konfigurationsdateien bleiben geprüft. Keine Versionsänderung oder Veröffentlichung. Die nachfolgenden Gestaltungs- und Anschlussnachweise vom 05.11.2026 gelten weiter.
+
 Stand 05.11.2026, Appanschluss passend zu 0.1.223 / Build 223. Öffentliche Homepage im aktuellen Vinyl-Design überarbeitet; geschützter Arbeitsbereich und dokumentierter Appadapter lokal umgesetzt. Keine echte Mail, Channelaktion, Übertragung, Veröffentlichung oder Hostingänderung ausgeführt.
 
 Die öffentliche Homepage ist aufgeteilt: Start/Radio, Sendeplan, Team, Mitmachen und Wunschbox haben eigene Adressen und einzeln sichtbare Inhalte. Desktopreiter und ein Hamburger-Menü bis 850 px führen durch die Bereiche. Die Startseite zeigt nur Einstieg und Radio. Direktaufruf, Neuladen, Sprunglink, Escape und Browser-Zurück/Vor funktionieren; laufendes Radio und ungesendete Eingaben bleiben beim öffentlichen Bereichswechsel erhalten. Der geschützte Arbeitsbereich hat eigene Reiter für Moderation, Sendeplan und Verwaltung.
@@ -8,7 +14,7 @@ Die öffentliche Homepage ist aufgeteilt: Start/Radio, Sendeplan, Team, Mitmache
 
 Dunkler Grund #0f1114, goldene Radiotasten und silberne Menüaktionen, lokale Outfit-/Fraunces-Schriften und Original-Logo. Der öffentliche Player verwendet unveränderte Appcontroller für Audio, Provider, Mute, Lautstärke und Glow. Websiteanordnung korrigiert: Play im Mittelpunkt der Vinylrillen, Titel getrennt daneben, mobile Lautstärke und Thema darunter. Der sichtbare Fehlstand wurde korrigiert und als Positionsprüfung für 1440/1024/768/390/320 px abgesichert. Der Kopf des Arbeitsbereichs bricht bei 320 px am Wortbestandteil um; die schmale Wochensteuerung reserviert eigene Spalten für Pfeile und Bereich sowie eine eigene Zeile für Diese Woche.
 
-Der Produktiveinstieg tools/server/server.cjs verwendet keine simulierten Nutzer oder Test-App. Der alte Diagnoseserver bleibt testgebunden. Öffentlicher Kalender verwendet die gemeinsame reine App-Kalenderdarstellung einschließlich AutoDJ-Lücken, Ganztags/Open End und Nachtfortsetzungen. Die veraltete Statuszentralen-Prüfung ist auf die vorhandenen Bot-Texte umgestellt; öffentliche Testnamen sind wieder neutral.
+Der Produktiveinstieg server/server.cjs verwendet keine simulierten Nutzer oder Test-App. Der alte Diagnoseserver bleibt testgebunden. Öffentlicher Kalender verwendet die gemeinsame reine App-Kalenderdarstellung einschließlich AutoDJ-Lücken, Ganztags/Open End und Nachtfortsetzungen. Die veraltete Statuszentralen-Prüfung ist auf die vorhandenen Bot-Texte umgestellt; öffentliche Testnamen sind wieder neutral.
 
 Arbeitsbereich: Datum/Uhrzeit und Open End mit bestätigter Endzeit, Thema, Wunschbox, einzelner sichtbarer Wunsch samt Empfang und Status, private Übergabe, Heute gespielt, Teamverwaltung, sechs Bot-Texte mit 20/30/40/50 Minuten und Wochenplan mit tatsächlichen Revisionen. Eingaben bleiben bei Fehler, Antwortverlust und Bereichswechsel erhalten. Keine zweite Datenbank oder Clientrolle.
 

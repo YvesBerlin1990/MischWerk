@@ -1,6 +1,6 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.239 · Build 239 · Website 0.2.0**, Stand 06.11.2026. Funktionen und aktuelle Bilder stehen in der [GitHub-Übersicht](../README.md); verbindliche Entwicklungsregeln ausschließlich in [AGENTS.md](AGENTS.md).
+**App 0.1.239 · Build 239 · Website 0.2.0**, Stand 06.11.2026. Funktionen und aktuelle Bilder stehen in der [GitHub-Übersicht](../.github/README.md); verbindliche Entwicklungsregeln ausschließlich in [AGENTS.md](AGENTS.md).
 
 Die Übergabe erhält ihre ausgewählte Bediengruppe bei Größenwechseln, bleibt in sehr kleinen Rahmen scrollbar und verarbeitet verlorene Bestätigungen anhand des frischen Serverzustands. Otterchen erhält als tatsächlicher Channelinhaber automatisch Moderationszugang und Übergabeempfang; andere Nutzer benötigen ihren Radio-Team-Eintrag.
 
@@ -31,6 +31,7 @@ Die native Inaktivitätstrennung wurde am 05.11.2026 kontrolliert reproduziert. 
 | Ablage | Aufgabe |
 | --- | --- |
 | app/www/ | Gepflegte Browseroberfläche, Original-Logo und eigene Werbe-MP3 |
+| app/www/css/ | Styles nach shared, radio, studio, schedule, team, wishes und history gruppiert; Ladefolge im bestehenden HTML-Ladeplan |
 | medien/logos/ und medien/mychannel/ | Zusätzliche Original-Logos und Hintergrundbild für den Knuddels-MyChannel |
 | src/backend/ | 48 gepflegte ES5/Rhino-Backendmodule |
 | app/server/ und app/main.js | Vom Backendbuild erzeugte Laufzeitkopien und kurzer Einstieg |
@@ -41,6 +42,9 @@ Die native Inaktivitätstrennung wurde am 05.11.2026 kontrolliert reproduziert. 
 | tools/checks/ | project, architecture, lengths, upload, delivery, rhino und streampanel prüfen ihre jeweiligen Bereiche |
 | tools/lib/ | Gemeinsames Browserinventar mit ansichtsabhängigen Ladeplänen |
 | website/ | Eigenständige Homepage und geschützter Arbeitsbereich mit eigenen Abhängigkeiten und Prüfungen |
+| website/public/ | Website-HTML, CSS und Browsermodule; JavaScript getrennt nach site und workspace |
+| website/server/ | Regulärer Website-Server, Sitzungen und App-/Formularadapter |
+| website/tools/preview/ | Ausschließlich testgebundener Diagnoseserver, Bridge und Testchannel |
 | tools/preview/ | Ausschließlich lokale Testvorschau der Knuddels-App und deren Bridge |
 | tools/emulator/ | Strenges lokales Testlabor mit echtem Appcode, getrennten Plattformmodellen und Fehlerkonsole |
 | tests/node/ | Backend, Providerfeldzuordnung, HTTP-Vorschau, Kalender, Übergabe und Uploadintegrität |
@@ -51,7 +55,7 @@ Die native Inaktivitätstrennung wurde am 05.11.2026 kontrolliert reproduziert. 
 | docs/architektur/ | Architektur, Frontend und Gestaltung |
 | docs/api/ | Schnittstellennachweise; nachweise/radioking enthält ausschließlich datierte ehemalige Anbieterbefunde |
 | docs/betrieb/ | Gemeinsame Installation und STREAMPANEL-Einrichtung, echte LIVE-Abnahme, Sendeplan und Lautstärke |
-| docs/pruefung/ | Ein aktueller Prüfbericht und die darin verwendeten aktuellen Appbilder unter oberflaeche/ |
+| docs/pruefung/ | Ein aktueller Prüfbericht; aktuelle Bilder unter oberflaeche/ nach radio, wunschbox, moderation, sendeplan, verwaltung und vorhang gruppiert |
 | references/api/ | Zwei unveränderte offizielle Dokumentationsstubs, niemals als Appcode laden |
 
 Die 48 gleichen Backenddateien sind beabsichtigt: src/backend ist die Quelle, app/server die geprüfte Laufzeit und der Desktop-UPLOAD die Auslieferung. Keine dieser notwendigen Kopien ist ein Archiv. app/www besitzt keinen zweiten Frontendquellordner. Git-Metadaten, package.json, pnpm-lock.yaml und node_modules gehören zur Entwicklungsumgebung und bleiben erhalten.

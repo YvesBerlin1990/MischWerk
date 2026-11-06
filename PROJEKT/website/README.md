@@ -16,7 +16,21 @@ pnpm --dir PROJEKT/website install --frozen-lockfile
 pnpm --dir PROJEKT/website run preview
 ```
 
-Standardadresse: **http://127.0.0.1:8766**. Beenden mit Strg+C. Der Website-Server unter tools/server verwendet keine Testrollen oder Appsimulation. Er liest gemeinsame Appmedien, Player-, Kalender- und Historienkomponenten aus dem Projekt; die Laufzeitstruktur deshalb zusammengehörig erhalten. Die Website gehört nicht in den Knuddels-UPLOAD.
+Standardadresse: **http://127.0.0.1:8766**. Beenden mit Strg+C. Der Website-Server unter server/ verwendet keine Testrollen oder Appsimulation. Er liest gemeinsame Appmedien, Player-, Kalender- und Historienkomponenten aus dem Projekt; die Laufzeitstruktur deshalb zusammengehörig erhalten. Die Website gehört nicht in den Knuddels-UPLOAD.
+
+## Dateiablage
+
+| Ordner | Inhalt |
+| --- | --- |
+| public/ | HTML für Homepage und Arbeitsbereich |
+| public/css/ | Website-Stylesheets |
+| public/js/site/ | Öffentliche Navigation, Inhalte, Kalenderdarstellung und Playeradapter |
+| public/js/workspace/ | Geschützter Arbeitsbereich mit Studio, Team, Sendeplan und Historie |
+| server/ | Regulärer HTTP-Server, Sitzungen, API, Appanschluss und vorbereiteter Mailadapter |
+| tools/preview/ | Vier ausschließlich lokale Diagnose-/Testdateien |
+| tests/ und docs/ | Eigene Prüfungen und Website-Nachweise |
+
+Der Server liefert weiterhin ausschließlich ausdrücklich zugeordnete Ressourcen aus. Öffentliche Adressen bleiben beim Umordnen gleich; Servermodule und private Konfiguration sind keine Browserressourcen.
 
 Ohne eingerichteten Appanschluss bleibt der öffentliche Radioplayer unabhängig nutzbar. Sendeplan, Wünsche und Anmeldung melden die fehlende Verbindung. Es werden keine Beispielsendungen oder Verwaltungsrechte vorgetäuscht. Radio startet nur nach Play. Bewerbungsversand bleibt ausgeschaltet.
 

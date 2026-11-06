@@ -333,7 +333,7 @@ for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' bleiben bei 5
     await team.locator('#channel-texts-save').scrollIntoViewIfNeeded();assert.equal(await team.locator('#channel-texts-save').isVisible(),true);
     if(process.env.MISCHWERK_DESIGN_CAPTURE&&client==='k3') {
       await team.evaluate(()=>window.scrollTo(0,0));
-      await page.locator('#overlays iframe').screenshot({path:path.resolve('docs/pruefung/oberflaeche/verwaltung-bottexte-'+width+'.png')});
+      await page.locator('#overlays iframe').screenshot({path:path.resolve('docs/pruefung/oberflaeche/verwaltung/verwaltung-bottexte-'+width+'.png')});
     }
   }
   await team.locator('#channel-texts-save').click();await team.locator('#channel-texts-feedback').filter({hasText:'gespeichert'}).waitFor();
@@ -1508,7 +1508,7 @@ for(const client of ['k3','stapp'])for(const width of [320,390,2290])test('Wunsc
   assert.equal(await radio.locator('#own-wish-title').textContent(),'Aha - Take On Me');
   if(process.env.MISCHWERK_CAPTURE_WISH196&&client==='stapp'&&[320,2290].includes(width)){
     await frame.locator('#wish-feedback').waitFor({state:'hidden'});await fits();
-    await frame.locator('#wishes-panel').screenshot({path:path.resolve(__dirname,'../../docs/pruefung/oberflaeche/wunschbox-nach-versand-'+(width===320?320:560)+'.png')});
+    await frame.locator('#wishes-panel').screenshot({path:path.resolve(__dirname,'../../docs/pruefung/oberflaeche/wunschbox/wunschbox-nach-versand-'+(width===320?320:560)+'.png')});
   }
   await page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
   await frame.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -1631,7 +1631,7 @@ for (const client of ['k3','stapp']) test('Verwaltung wird in '+client+' über d
     await page.setViewportSize({width:2700,height:1400});
     await radio.evaluate(()=>document.fonts.ready);
     if(process.env.MISCHWERK_GLOW_CAPTURE)await radio.locator('.radio-program-face').evaluate(n=>{for(const a of n.getAnimations()){a.pause();a.currentTime=32000;}});
-    const directory=path.resolve(__dirname,'../../docs/pruefung/oberflaeche');
+    const directory=path.resolve(__dirname,'../../docs/pruefung/oberflaeche/radio');
     await page.locator('#headerbars iframe').screenshot({path:path.join(directory,'vinyl-glow-desktop.png')});
     const preview=path.join(os.tmpdir(),'MischWerk-Pruefbilder');fs.mkdirSync(preview,{recursive:true});
     await radio.locator('#studio-tab').screenshot({path:path.join(preview,'moderation-button.png')});

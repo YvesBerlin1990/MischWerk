@@ -23,14 +23,14 @@
     {
       "path": "manifest-www.json",
       "fileCount": 54,
-      "bytes": 9139,
-      "sha256": "9126C4286ABC4498098724864A475F0D2581CF583A3AA8445B0AE8765765DC65"
+      "bytes": 9236,
+      "sha256": "56AACE358423A297DA5C5C45D129564BAE50E40296A3402850E2B71CCBD8EF09"
     },
     {
       "path": "manifest-studio.json",
       "fileCount": 21,
-      "bytes": 3620,
-      "sha256": "B59B5723C0DF518A4C8B51F4078EDACD214213102255CA281B4E62D2A91449BD"
+      "bytes": 3646,
+      "sha256": "0BC7A0752569D42EA35843C4554F7B3E46147E2E5C638D21F1802A1AAF899105"
     },
     {
       "path": "manifest-media.json",

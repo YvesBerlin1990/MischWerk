@@ -1,7 +1,7 @@
 // Produktions-Website und echter Appcallback, ausschließlich durch lokales HTTP-Testmodell verbunden.
 const {createHarness}=require('./harness.cjs');
-const {createSiteBridge}=require('../../tools/preview/site-bridge.cjs');
-const {createSiteServer}=require('../../tools/server/server.cjs');
+const {createSiteBridge}=require('../../server/site-bridge.cjs');
+const {createSiteServer}=require('../../server/server.cjs');
 async function startSite(t,{origin,enabled=true}={}){
  const h=createHarness(),owner=h.user(1,'Otterchen','owner'),dj=h.user(2,'DJ-Test'),listener=h.user(3,'Testhörer'),radio=h.open(owner),calls=[],faults={};
  h.event(owner,radio,'mw:addRadioModerator',{nick:dj.nick});

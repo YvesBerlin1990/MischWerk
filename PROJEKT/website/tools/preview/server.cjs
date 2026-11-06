@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '../../..');
 const websiteRoot = path.resolve(__dirname, '../..');
 if (fs.existsSync(path.join(websiteRoot, '.env'))) { process.loadEnvFile(path.join(websiteRoot, '.env')); }
 process.env.MISCHWERK_APPLICATIONS_ENABLED = 'false'; process.env.MISCHWERK_APP_WEBHOOK = '';
-const siteApi = require('./site-api.cjs').createSiteApi();
+const siteApi = require('../../server/site-api.cjs').createSiteApi();
 const pendingEvents = new WeakMap();
 function onEvent(session, event) {
   if (!pendingEvents.has(session)) { pendingEvents.set(session, []); }
@@ -48,8 +48,8 @@ const server = http.createServer(async (req, res) => {
       connection.touchedAt = Date.now();
       if (connection.runtime.publicRadio && (url.pathname === '/api/command' || !['mw:ready', 'mw:refresh'].includes(data.type))) { respond(res, 403, 'text/plain', 'Im Hörmodus ist nur der Player verfügbar.'); return; }
       if (url.pathname === '/api/command') {
-        if (data.command !== 'vorhang' || typeof data.params !== 'string') { respond(res, 400, 'text/plain', 'Invalid command'); return; }
-        connection.runtime.harness.app.chatCommands.vorhang(connection.user, data.params);
+        if (typeof data.params !== 'string' || !(data.command === 'vorhang' || data.command === 'mw' && data.params === 'Verwaltung')) { respond(res, 400, 'text/plain', 'Invalid command'); return; }
+        connection.runtime.harness.app.chatCommands[data.command](connection.user, data.params);
       } else { connection.runtime.harness.event(connection.user, connection.session, data.type, data.data); }
       respond(res, 200, 'application/json', JSON.stringify(drain(connection.session))); return;
     }
@@ -93,7 +93,7 @@ const server = http.createServer(async (req, res) => {
       respond(res, 200, types['.html'], html); return;
     }
     const route = url.pathname === '/' ? '/preview.html' : url.pathname;
-    const previewFiles = { '/preview.html': 'index.html', '/preview-bridge.js': 'bridge.js', '/channel.html': 'channel.html', '/preview.css': 'preview.css', '/radio-site.css': 'radio-site.css', '/channel.js': 'channel.js', '/sections.css': 'sections.css', '/sections.js': 'sections.js', '/site-components.js':'site-components.js','/site-navigation.js':'site-navigation.js','/sendeplan':'index.html','/team':'index.html','/mitmachen':'index.html','/wunschbox':'index.html' };
+    const previewFiles = { '/preview.html': '../../public/index.html', '/preview-bridge.js': 'bridge.js', '/channel.html': 'channel.html', '/preview.css': '../../public/css/preview.css', '/radio-site.css': '../../public/css/radio-site.css', '/channel.js': 'channel.js', '/sections.css': '../../public/css/sections.css', '/sections.js': '../../public/js/site/sections.js', '/site-components.js':'../../public/js/site/site-components.js','/site-navigation.js':'../../public/js/site/site-navigation.js','/sendeplan':'../../public/index.html','/team':'../../public/index.html','/mitmachen':'../../public/index.html','/wunschbox':'../../public/index.html' };
     if (!Object.prototype.hasOwnProperty.call(previewFiles, route) && !route.startsWith('/app/www/')) { respond(res, 404, 'text/plain', 'Nicht gefunden'); return; }
     let file;
     if (route.startsWith('/app/www/')) {

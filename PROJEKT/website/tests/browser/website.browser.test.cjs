@@ -102,7 +102,10 @@ test('Testansichten: neutrale Rollen und Beschriftungen auch in Wunschbox, Sende
     if (role === 'moderator') {
       await previewCurtain(radio);
       for (const [id,view] of [['open-wishes','wishes'],['open-schedule','schedule'],['studio-tab','studio'],['team-tab','team']]) {
-        await radio.locator('#' + id).click();
+        if (view === 'team') {
+          assert.equal(await radio.locator('#team-tab').count(),0);
+          await radio.locator('html').evaluate(() => window.MischWerkPreviewCommand('/MW Verwaltung'));
+        } else { await radio.locator('#' + id).click(); }
         await page.frameLocator('#overlay-frame').locator('html.mw-ready[data-view="' + view + '"]').waitFor();
         await cleanText(page);
         assert.equal(await page.frameLocator('#overlay-frame').locator('html').getAttribute('data-view'),view);
@@ -140,7 +143,7 @@ test('Websitebereiche ohne Einrichtung: öffentliche Profile, gesperrter Versand
 test('Websiteformulare und Appplan: paginierte Woche, Mitternacht, Entwurfserhalt und Quittung ohne Audioverlust', async t => {
   const {page, errors, external} = await setup(t);
   const wishes = [], applications = [];
-  await page.route('**/api/site/content', route => route.fulfill({json:{...require('../../tools/preview/site-content.cjs'), applicationsAvailable:true, appConnected:true}}));
+  await page.route('**/api/site/content', route => route.fulfill({json:{...require('../../server/site-content.cjs'), applicationsAvailable:true, appConnected:true}}));
   await page.route('**/api/site/schedule?**', route => {
     const url = new URL(route.request().url()), week = url.searchParams.get('week'), pageNumber = Number(url.searchParams.get('page'));
     const days = Array.from({length:7}, (_,i) => new Date(Date.parse(week+'T12:00:00Z')+i*86400000).toISOString().slice(0,10));

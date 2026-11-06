@@ -272,7 +272,7 @@ test('HTTP-Diagnose schützt Steuerbericht und Dateifreigaben, Ressourcenfehler 
   assert.equal(hostileHostStatus, 403);
   instance.hub.faults.resourceFailure = 'js/start.js';
   assert.equal((await fetch(instance.origin + '/app/js/start.js')).status, 503);
-  assert.equal((await fetch(instance.origin + '/app/css/foundation.css')).status, 200);
+  assert.equal((await fetch(instance.origin + '/app/css/shared/foundation.css')).status, 200);
   const report = await (await fetch(instance.origin + '/api/report', { headers: { 'x-emulator-token': instance.hub.controlToken } })).json();
   assert.equal(report.schemaVersion, 1); assert.ok(report.limits.length);
 });

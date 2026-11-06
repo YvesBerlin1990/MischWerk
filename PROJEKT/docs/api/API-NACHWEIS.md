@@ -563,7 +563,7 @@ Ohne Konfiguration: Play gesperrt, null Provider-Netzabrufe, unbekannte Anbieter
 
 Der lesende Prüfer tools/checks/streampanel.cjs verwendet dieselbe Feldlogik, lädt beim Audiozugriff nur eine begrenzte Anfangsantwort und meldet fehlende Quellen ausdrücklich ausstehend. Er ersetzt keine Browser-CORS-/Decoder- oder K3-Abnahme. Der eigene MP3-/Titelanschluss ist seit 0.1.134 zusätzlich tatsächlich im HTTP-/Edge-Test geprüft. Bei ausschließlich HLS/MSE wäre eine gesonderte offizielle Playerintegration/Clientprüfung erforderlich.
 
-[Einrichtung und noch benötigte öffentliche Angaben](../betrieb/INBETRIEBNAHME.md#streampanel-einrichten) · [aktueller Prüfbericht](../pruefung/PRUEFBERICHT.md) · [Rhino-/Wiki-Nachweis](API-WIKI-ABGLEICH.md). Datierte frühere Anbieterberichte bleiben historische Dokumente, ohne aktive Routen oder Konfiguration in der App.
+[Einrichtung und noch benötigte öffentliche Angaben](../betrieb/INBETRIEBNAHME.md#streampanel-einrichten) · [aktueller Prüfbericht einschließlich Rhino-Nachweisen](../pruefung/PRUEFBERICHT.md). Datierte frühere Anbieterberichte bleiben historische Dokumente, ohne aktive Routen oder Konfiguration in der App.
 
 Lokale Browserprüfungen modellieren getrennte Header-/Channel-/Overlayflächen und prüfen den unveränderten Channelbeginn beim Öffnen. Sie ersetzen keine echte Knuddels-Abnahme.
 

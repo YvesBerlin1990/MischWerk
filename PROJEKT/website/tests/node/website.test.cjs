@@ -2,9 +2,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const { createHarness } = require('../support/harness.cjs');
-const { createSiteApi } = require('../../tools/preview/site-api.cjs');
-const { createApplicationMail } = require('../../tools/preview/site-mail.cjs');
-const { createSiteBridge } = require('../../tools/preview/site-bridge.cjs');
+const { createSiteApi } = require('../../server/site-api.cjs');
+const { createApplicationMail } = require('../../server/site-mail.cjs');
+const { createSiteBridge } = require('../../server/site-bridge.cjs');
 test('Isolierter Diagnoseserver bleibt ohne ausdrücklichen Testmodus abgeschaltet', () => {
   const result = require('node:child_process').spawnSync(process.execPath, ['tools/preview/server.cjs'], {
     cwd:require('node:path').resolve(__dirname,'../..'), windowsHide:true, timeout:5000,

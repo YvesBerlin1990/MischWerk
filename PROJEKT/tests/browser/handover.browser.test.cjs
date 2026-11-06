@@ -171,7 +171,7 @@ test('Private Übergabenotizen erscheinen im echten Browserablauf vor und nach A
   assert.equal(await readText(target,'#studio-notes-text'),notes);
   await target.locator('#studio-notes-text').scrollIntoViewIfNeeded();
   assert.equal(await target.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-  if(process.env.MISCHWERK_CAPTURE_STUDIO_FEATURES)await target.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/moderation-320.png'),fullPage:true});
+  if(process.env.MISCHWERK_CAPTURE_STUDIO_FEATURES)await target.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/moderation/moderation-320.png'),fullPage:true});
   assert.equal(h.bot.messages.length,2);assert.deepEqual(errors,[]);
 });
 

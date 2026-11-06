@@ -1,6 +1,6 @@
 @charset "UTF-8";
-@font-face { font-family:Outfit; font-style:normal; font-weight:400 800; font-display:swap; src:url(../fonts/outfit-latin.woff2) format("woff2"); }
-@font-face { font-family:Fraunces; font-style:normal; font-weight:400 800; font-display:swap; src:url(../fonts/fraunces-latin.woff2) format("woff2"); }
+@font-face { font-family:Outfit; font-style:normal; font-weight:400 800; font-display:swap; src:url(../../fonts/outfit-latin.woff2) format("woff2"); }
+@font-face { font-family:Fraunces; font-style:normal; font-weight:400 800; font-display:swap; src:url(../../fonts/fraunces-latin.woff2) format("woff2"); }
 :root { --canvas:#0f1114; --bg:#141414; --surface:#141414; --raised:#1f1f1f; --input:#101010; --line:#3a3a3a; --text:#f5f5f2; --muted:#b4b4b0; --gold:#e9eaec; --gold-ink:#cfd2d6; --live:#ff9a8f; --error:#ff9a8f; --radio-height:160px; color:var(--text); background:var(--canvas); font-family:Outfit,"Segoe UI",system-ui,sans-serif; font-synthesis:none; color-scheme:dark; }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--canvas); font-size:14px; line-height:1.45; }

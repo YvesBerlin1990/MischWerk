@@ -28,6 +28,8 @@ Eigene Studio-/Verwaltungs-/Kalenderentwürfe liegen im flüchtigen Cache der Ra
 
 ## Gestaltung
 
+Die 18 Stylesheets liegen innerhalb von app/www/css/ in den Fachordnern shared, radio, studio, schedule, team, wishes und history. shared enthält Foundation, gemeinsame Dialoge und Rückmeldungen; radio enthält auch Metadatenlayout und Vorhang. Die bisherige Ladefolge und Ansichtszuordnung im HTML bleiben erhalten. Relative Schrift-/Bildpfade beziehen sich auf die neue Ordnertiefe; Auslieferungsbündel verwenden dieselbe Tiefe und weiterhin vollständige Module.
+
 Schwarze Vinylflächen, lokale Outfit-/Fraunces-Schriften, goldene Radiotasten und neutrale Menüaktionen. Goldlicht und RGB-Halo folgen ausschließlich tatsächlicher Wiedergabe. Texte, Buttons und Geometrie werden nicht gemeinsam skaliert. Original-Logos bleiben proportional. Schmale Rahmen behalten erreichbare Bedienflächen und vollständige Daten über die vorhandenen Lesebereiche. [Design und aktuelle Bilder](DESIGN.md).
 
 ## Zuständigkeiten

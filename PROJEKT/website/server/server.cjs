@@ -1,15 +1,15 @@
 // Eigenständiger Website-Server. Keine Testrollen, Appsimulation oder automatisch aktivierten Dienste.
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
-const {createSiteBridge}=require('../preview/site-bridge.cjs');
-const {createSiteApi}=require('../preview/site-api.cjs');
+const {createSiteBridge}=require('./site-bridge.cjs');
+const {createSiteApi}=require('./site-api.cjs');
 const {createWorkspaceApi}=require('./workspace-api.cjs');
 const {createPublicPlayer}=require('./public-player.cjs');
-const root=path.resolve(__dirname,'../../..'),assets=path.resolve(__dirname,'../preview');
+const root=path.resolve(__dirname,'../..'),assets=path.resolve(__dirname,'../public');
 function createSiteServer({env=process.env,bridge=createSiteBridge(env),clock=Date.now}={}){
  let workspace,siteApi,origin;const player=createPublicPlayer(root,bridge);
  const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.woff2':'font/woff2','.txt':'text/plain; charset=utf-8','.mp3':'audio/mpeg'};
- const files={'/':'index.html','/arbeitsbereich':'workspace.html','/preview.css':'preview.css','/sections.css':'sections.css','/sections.js':'sections.js','/site-components.js':'site-components.js','/site-navigation.js':'site-navigation.js','/channel.js':'public-home.js','/radio-site.css':'radio-site.css','/public-player.js':'public-player.js'};
- for(const name of ['workspace.css','workspace.js','workspace-studio.js','workspace-team.js','workspace-schedule.js','workspace-history.js'])files['/'+name]=name;
+ const files={'/':'index.html','/arbeitsbereich':'workspace.html','/preview.css':'css/preview.css','/sections.css':'css/sections.css','/sections.js':'js/site/sections.js','/site-components.js':'js/site/site-components.js','/site-navigation.js':'js/site/site-navigation.js','/channel.js':'js/site/public-home.js','/radio-site.css':'css/radio-site.css','/public-player.js':'js/site/public-player.js'};
+ for(const name of ['workspace.css','workspace.js','workspace-studio.js','workspace-team.js','workspace-schedule.js','workspace-history.js'])files['/'+name]=name.endsWith('.css')?'css/'+name:'js/workspace/'+name;
  const pages={'/':'radio','/sendeplan':'schedule','/team':'team','/mitmachen':'applications','/wunschbox':'wishes'};
  for(const route of Object.keys(pages))files[route]='index.html';
  const server=http.createServer(async(req,res)=>{
@@ -35,5 +35,5 @@ function createSiteServer({env=process.env,bridge=createSiteBridge(env),clock=Da
  });
  return server;
 }
-if(require.main===module){const local=path.resolve(__dirname,'../../.env');if(fs.existsSync(local))process.loadEnvFile(local);const server=createSiteServer();server.on('error',()=>{console.error('Website konnte nicht starten. Bitte Port und Konfiguration prüfen.');process.exitCode=1;});server.listen(Number(process.env.MISCHWERK_PREVIEW_PORT||process.env.PORT||8766),process.env.MISCHWERK_BIND_ADDRESS||'127.0.0.1',()=>console.log('MischWerk Homepage: http://127.0.0.1:'+server.address().port));}
+if(require.main===module){const local=path.resolve(__dirname,'../.env');if(fs.existsSync(local))process.loadEnvFile(local);const server=createSiteServer();server.on('error',()=>{console.error('Website konnte nicht starten. Bitte Port und Konfiguration prüfen.');process.exitCode=1;});server.listen(Number(process.env.MISCHWERK_PREVIEW_PORT||process.env.PORT||8766),process.env.MISCHWERK_BIND_ADDRESS||'127.0.0.1',()=>console.log('MischWerk Homepage: http://127.0.0.1:'+server.address().port));}
 module.exports={createSiteServer};
