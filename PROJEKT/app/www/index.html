@@ -42,8 +42,9 @@ if (typeof window !== 'undefined' && window.addEventListener) {
   }, true);
 }
 setTimeout(startupFailure, 15000);
-// Jede Datei über die Knuddels-API laden, damit auch Teilstyles nach Updates aktuell sind.
 var styles = [
+  'css/radio/ticker.css',
+  'css/studio/ticker.css',
   'css/shared/foundation.css',
   'css/radio/radio.css',
   'css/radio/radio-actions.css',
@@ -91,7 +92,6 @@ function startFrontend() {
   else { var script = document.createElement('script'); script.src = 'js/start.js'; document.body.appendChild(script); }
 }
 // Knuddels bindet mit document.write ein: ausschließlich während des HTML-Parsens aufrufen.
-// Die Zusammensetzung erfolgt am Ende des vollständigen Markups vor der SDK-Ladeübergabe.
 </script>
 </head>
 <body>
@@ -118,12 +118,10 @@ function startFrontend() {
 <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
 <audio id="radio-audio" preload="none"></audio>
 <script>
-// Der vollständige statische Kopf steht vor den parserblockierenden Appskripten.
 document.getElementById('dialog-title').textContent = { wishes:'Wunschbox', studio:'Moderation', team:'Verwaltung', schedule:'Sendeplan' }[view] || 'MischWerk';
 startFrontend();
 </script>
 <script>
-// Knuddels gibt seine Ladefläche bereits im eigenen DOMContentLoaded-Listener frei.
 // Hier ist das gesamte Markup vorhanden; erst vollständig registrierte Module werden gestartet.
 if (window.MischWerkUI) { window.MischWerkUI.mount(); }
 </script>

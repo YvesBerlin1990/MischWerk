@@ -61,6 +61,6 @@ MischWerkModules.attachMaintenance = function (runtime, config) {
         var estimate = typeof seconds === 'number' && isFinite(seconds) && seconds >= 0 ?
             (seconds === 0 ? ' Neustart voraussichtlich in Kürze.' :
                 ' Neustart voraussichtlich in ' + Math.ceil(seconds) + (seconds <= 1 ? ' Sekunde.' : ' Sekunden.')) : '';
-        user.sendPrivateMessage('Update vorgemerkt.' + estimate + ' Offene Musikwünsche werden beim Neustart gelöscht.');
+        user.sendPrivateMessage('Update vorgemerkt.' + estimate + ' Offene Musikwünsche bleiben beim Neustart erhalten.');
     };
 };

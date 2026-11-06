@@ -29,7 +29,7 @@ for (const name of ['Client.sendEvent', 'Client.addEventListener', 'Client.inclu
 // Vollstaendiges Inventar der zusaetzlichen verwendeten Hooks und Instanzmethoden.
 for (const [type, names] of Object.entries({
   App: ['onAppStart', 'onPrepareShutdown', 'onShutdown', 'onUserJoined', 'onUserLeft', 'onUserDeleted', 'onEventReceived'],
-  User: ['getNick', 'getUserId', 'isOnlineInChannel', 'isAppManager', 'equals', 'canSendAppContent', 'sendAppContent', 'sendPrivateMessage'],
+  User: ['getNick', 'getUserId', 'getUserType', 'hasProfilePhoto', 'getProfilePhoto', 'isOnlineInChannel', 'isAppManager', 'equals', 'canSendAppContent', 'sendAppContent', 'sendPrivateMessage'],
   AppContentSession: ['getUser', 'remove'],
   AppContent: ['setResponsive', 'addCloseListener'],
   WebHookAccess:['registerWebHook','unregisterWebHook'], WebHookRequest:['getMethod','getPath','getHeaders','getBody','getQueryString','getRemoteAddress'], WebHookResponse:['send'],

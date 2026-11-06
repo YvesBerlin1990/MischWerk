@@ -106,22 +106,26 @@ MischWerkUI.define('radioApi', function () {
     });
   }
   function fetchProviderStatus(station) { return fetchStationStatus(station).catch(function () { return 'unknown'; }); }
+  function fetchBroadcastMode(station) {
+    var urls = streamUrls(station);
+    if (!urls) { return Promise.reject(new Error('mode unavailable')); }
+    if (!urls.mode) { return Promise.resolve(null); }
+    return getResponse(urls.mode, true).then(function (text) {
+      return text.trim() === 'live' ? true : text.trim() === 'autodj' ? false : null;
+    });
+  }
   function fetchMetadata(station) {
     var urls = streamUrls(station);
     if (!urls || !urls.metadata) { return Promise.reject(new Error('metadata unavailable')); }
-    var mode = urls.mode ? getResponse(urls.mode, true).then(function (text) {
-      return text.trim() === 'live' ? true : text.trim() === 'autodj' ? false : null;
-    }).catch(function () { return null; }) : Promise.resolve(null);
-    return Promise.all([getResponse(urls.metadata, true), mode]).then(function (responses) {
-      var text = responses[0];
-      if (JSON.parse(text) === null) { return { title: '', artist: { name: '' }, isLive: responses[1] }; }
+    return getResponse(urls.metadata, true).then(function (text) {
+      if (JSON.parse(text) === null) { return { title: '', artist: { name: '' }, isLive: null }; }
       var data = object(text), title = readField(data, station.fields.title), artist = readField(data, station.fields.artist);
       if (title === undefined && artist === undefined) { throw new Error('metadata fields unavailable'); }
       var live = readField(data, station.fields.live);
       return { title: typeof title === 'string' ? title.trim() : '', artist: { name: typeof artist === 'string' ? artist.trim() : '' },
-        isLive: typeof live === 'boolean' ? live : responses[1] };
+        isLive: typeof live === 'boolean' ? live : null };
     });
   }
   return { audioUrl: audioUrl, streamUrls: streamUrls, fetchProviderStatus: fetchProviderStatus,
-    fetchStationStatus: fetchStationStatus, fetchMetadata: fetchMetadata };
+    fetchStationStatus: fetchStationStatus, fetchMetadata: fetchMetadata, fetchBroadcastMode: fetchBroadcastMode };
 });

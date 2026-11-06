@@ -1,7 +1,7 @@
 /* MischWerk Backend-Konfiguration. Keine Zugangsdaten oder Clientwerte. */
 var MischWerkConfig = {
-    version: '0.1.239',
-    buildNumber: 239,
+    version: '0.1.269',
+    buildNumber: 269,
     stationName: 'MischWerk',
     ownerNick: 'Otterchen',
     curtainExemptNicks: ['Otterchen', 'Polaroid'],
@@ -24,6 +24,5 @@ var MischWerkConfig = {
         }
     },
     // Optionale anfängliche Radio-Moderatoren; weitere IDs verwaltet der Channelinhaber persistent.
-    radioModeratorUserIds: [],
-    moderatorSessionHours: 6
+    radioModeratorUserIds: []
 };

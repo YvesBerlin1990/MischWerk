@@ -2,6 +2,7 @@
 MischWerkUI.define('radioMarkup', function (dependencies) {
   'use strict';
   dependencies.dom.mount('radio-placeholder', `
+    <div id="radio-deck" class="radio-deck">
     <main id="radio-panel" class="radio-bar" aria-label="MischWerk Radio">
       <div class="radio-brand"><img class="bar-logo" src="img/mischwerk-logo.png" width="140" height="140" loading="lazy" decoding="async" alt="MischWerk"><span>MischWerk</span></div>
       <section class="radio-program" aria-label="Radioplayer und Informationen">
@@ -30,7 +31,7 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
       </nav>
       </section>
         <div id="radio-private-actions" class="bar-utility-links" aria-label="Radio verwalten" hidden>
-          <button id="studio-tab" class="wish-button studio-link" type="button" aria-label="Moderation" title="Moderation" aria-haspopup="dialog" hidden><span class="public-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 19v3"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><rect x="9" y="2" width="6" height="13" rx="3"></rect></svg></span><span class="wish-button-copy action-label"><strong>Moderation</strong></span></button>
+          <button id="studio-tab" class="wish-button studio-link" type="button" aria-label="Radioregie" title="Radioregie" aria-haspopup="dialog" hidden><span class="public-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3v8m0 4v6M12 3v2m0 4v12M19 3v10m0 4v4"/><circle cx="5" cy="13" r="2"/><circle cx="12" cy="7" r="2"/><circle cx="19" cy="15" r="2"/></svg></span><span class="wish-button-copy action-label"><strong>Radioregie</strong></span></button>
         </div>
         <div id="radio-listener-brand" class="radio-listener-brand" aria-hidden="true" hidden>
           <span class="radio-listener-emblem"><img class="radio-listener-logo" src="img/mischwerk-radio.png" width="140" height="140" loading="lazy" decoding="async" alt=""></span>
@@ -38,5 +39,7 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
         </div>
       <div class="sr-only"><span id="stream-badge" role="status"><span id="stream-label">Verbinde …</span></span><span id="playback-status" role="status"></span><span id="metadata-status" role="status"></span><a id="station-link" tabindex="-1" target="_blank" rel="noopener noreferrer" hidden>Öffentlichen Radiostream öffnen</a></div>
     </main>
+    <div id="radio-ticker-placeholder"></div>
+    </div>
   `);
 });

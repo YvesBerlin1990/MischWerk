@@ -6,6 +6,8 @@
     var data = { 'mischwerk.android.private.v1': { enabled: true, relaySecret: secret, syncSecret: sync,
         syncUrl: 'https://europe-west3-radio-mischwerk.cloudfunctions.net/publishKnuddelsState' } };
     KnuddelsServer.getPersistence = function () { return {
+        getObjectKeys: function () { return Object.keys(data); },
+        deleteObject: function (key) { delete data[key]; },
         getObject: function (key, fallback) { return copy(Object.prototype.hasOwnProperty.call(data, key) ? data[key] : fallback); },
         setObject: function (key, value) { data[key] = copy(value); }
     }; };
@@ -23,6 +25,7 @@
         runtime.state = { requestsEnabled: true, topic: '', moderator: null };
         MischWerkModules.attachChanges(runtime);
         MischWerkModules.attachValidation(runtime);
+        MischWerkModules.attachWishStorage(runtime);
         MischWerkModules.attachWishQueue(runtime);
         MischWerkModules.attachAndroidConnection(runtime);
         MischWerkModules.attachAndroidReceipts(runtime);

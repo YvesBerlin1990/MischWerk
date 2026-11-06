@@ -37,10 +37,11 @@ MischWerkUI.define('studio', function (dependencies) {
     dom.setText('studio-topic-count', dom.el('studio-topic').value.length + ' / ' + dom.el('studio-topic').maxLength);
     ['on-air', 'off-air', 'toggle-wishes'].forEach(function (id) { dom.el(id).disabled = !!commands.pending() || !live || !model.current().user.canModerate; });
     dom.el('off-air').disabled = dom.el('off-air').disabled || !model.current().user.canEndModeration;
-    dom.el('on-air').disabled = dom.el('on-air').disabled || !!(model.current().moderator && !model.current().user.isOnAir);
-    dom.setText('on-air', model.current().user.isOnAir ? 'Endzeit ändern' : model.current().moderator ? 'Moderation läuft' : 'Moderation übernehmen');
+    dom.el('on-air').hidden = !!model.current().moderator;
+    dom.el('on-air').disabled = dom.el('on-air').disabled || !!model.current().moderator;
+    dom.setText('on-air', 'Anmelden');
     dom.setText('off-air', model.current().moderator && !model.current().user.isOnAir ? 'Moderation beenden' : 'Abmelden');
-    dom.el('on-air').title = model.current().user.isOnAir ? 'Endzeit deiner Moderation festlegen oder Open End auswählen' : model.current().moderator ? 'Bitte die aktive Moderation um eine Übergabe bitten' : 'Dich als Moderation in der Channel-Leiste anzeigen';
+    dom.el('on-air').title = 'Dich als Moderation in der Channel-Leiste anzeigen';
     dom.el('off-air').title = !model.current().moderator ? 'Niemand ist als Moderation angemeldet' : model.current().user.canEndModeration ? 'Studio-Anmeldung beenden' : 'Nur die aktive Moderation oder der Channel-Besitzer kann abmelden';
     dom.el('toggle-wishes').setAttribute('aria-checked', String(model.current().requestsEnabled));
     dom.setText('toggle-label', model.current().requestsEnabled ? 'Ein' : 'Aus');
@@ -69,8 +70,7 @@ MischWerkUI.define('studio', function (dependencies) {
       }
     });
     dom.el('on-air').addEventListener('click', function () {
-      if (model.current().user.isOnAir) { signals.emit('studio-end-edit'); }
-      else { commands.send('mw:onAir', {}, true); }
+      if (!dom.el('on-air').disabled) { commands.send('mw:onAir', {}, true); }
     });
     dom.el('off-air').addEventListener('click', function () { commands.send('mw:offAir', {}, true); });
     dom.el('studio-topic').addEventListener('input', function () {

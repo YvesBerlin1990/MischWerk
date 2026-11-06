@@ -7,15 +7,15 @@ MischWerkUI.define('studioMarkup',function(dependencies){
     <button id="studio-programme-tab" type="button" role="tab" aria-selected="true" aria-controls="studio-programme">Deine Sendung</button>
     <button id="studio-queue-tab" type="button" role="tab" aria-selected="false" aria-controls="studio-requests" tabindex="-1">Musikwünsche</button>
     <button id="studio-history-tab" type="button" role="tab" aria-selected="false" aria-controls="history-panel" tabindex="-1">Heute gespielt</button>
+    <button id="studio-ticker-tab" type="button" role="tab" aria-selected="false" aria-controls="studio-ticker-panel" tabindex="-1">Lauftext</button>
   </nav>
   <section id="studio-programme" role="tabpanel" aria-labelledby="studio-programme-tab">
     <div id="studio-setup" class="studio-part-area studio-dashboard">
       <section class="studio-part microphone-card" aria-labelledby="studio-host">
         <div class="studio-status-copy"><span class="eyebrow">AM MIKROFON</span>
         <h2 id="studio-host">Keine Moderation angemeldet</h2>
-        <p id="studio-session" class="studio-session" hidden></p>
-        <dl id="studio-timing" class="studio-timing" hidden><div><dt>Beginn</dt><dd id="studio-started"></dd></div><div><dt>Studiozeit</dt><dd id="studio-duration"></dd></div></dl></div>
-        <div id="studio-controls" class="button-row"><button class="primary-button" id="on-air" type="button">Moderation übernehmen</button><button class="secondary-button" id="off-air" type="button" disabled>Abmelden</button><button id="handover-open" class="secondary-button" type="button" aria-controls="handover-panel" hidden><span id="handover-open-label">Sendung übergeben</span></button></div>
+        </div>
+        <div id="studio-controls" class="button-row"><button class="primary-button" id="on-air" type="button">Anmelden</button><button class="secondary-button" id="off-air" type="button" disabled>Abmelden</button><button id="handover-open" class="secondary-button" type="button" aria-controls="handover-panel" hidden><span id="handover-open-label">Sendung übergeben</span></button></div>
       </section>
       <section class="studio-part studio-topic-section" aria-labelledby="studio-topic-label">
         <form id="topic-form" class="topic-form">
@@ -34,19 +34,9 @@ MischWerkUI.define('studioMarkup',function(dependencies){
       </section>
     </div>
     <nav id="studio-paging" class="studio-part-pagination" aria-label="Bereiche deiner Sendung" hidden><button class="secondary-button" data-part-previous type="button">Zurück</button><span data-part-label role="status"></span><button class="secondary-button" data-part-next type="button">Weiter</button></nav>
-    <form id="studio-end-form" class="studio-end-form" aria-labelledby="studio-end-title" hidden>
-      <h2 id="studio-end-title">Endzeit ändern</h2>
-      <p id="studio-end-current" class="studio-end-current"></p>
-      <fieldset id="studio-end-fields">
-        <label for="studio-end-mode">Ende deiner Moderation<select id="studio-end-mode"><option value="fixed">Datum und Uhrzeit</option><option value="openEnd">Open End</option></select></label>
-        <label id="studio-end-at-field" for="studio-end-at">Endzeit · deutsche Zeit<input id="studio-end-at" type="datetime-local" step="60" required></label>
-        <p id="studio-end-help" class="form-hint"></p>
-        <p id="studio-end-feedback" role="status" aria-live="polite" hidden></p>
-        <div class="button-row"><button id="studio-end-save" class="primary-button" type="submit">Endzeit speichern</button><button id="studio-end-cancel" class="secondary-button" type="button">Abbrechen</button><button id="studio-end-reload" class="secondary-button" type="button" hidden>Aktuellen Stand laden</button></div>
-      </fieldset>
-    </form>
     <div id="handover-placeholder"></div>
   </section>
+  <div id="ticker-editor-placeholder"></div>
   <section id="studio-requests" class="studio-queue" data-detail="copy" role="tabpanel" aria-labelledby="studio-queue-tab" hidden>
     <div class="list-heading studio-queue-heading"><div class="workspace-heading"><span class="eyebrow" id="queue-refresh-feedback" role="status" aria-live="polite" aria-atomic="true">AUS DEM CHANNEL</span><h2 id="queue-heading" tabindex="-1">Musikwünsche <span class="count-badge" id="queue-count">0</span></h2></div><div class="queue-header-actions"><button id="queue-detail-toggle" type="button" class="secondary-button" aria-controls="queue-actions" aria-expanded="false">Aktionen</button><button class="icon-button" id="refresh-queue" type="button" aria-label="Musikwünsche aktualisieren" title="Musikwünsche aktualisieren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-12-2L4 11m2 4a7 7 0 0 0 12 2l2-4"/></svg></button></div></div>
     <div id="queue-notice"></div><div id="request-queue" class="queue" role="list" aria-label="Musikwünsche in Eingangsreihenfolge"></div>

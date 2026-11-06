@@ -1,8 +1,18 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.239 · Build 239 · Website 0.2.0**, Stand 06.11.2026.
+**App 0.1.269 · Build 269 · Website 0.2.1**, Stand 06.11.2026.
 
 [Projekt und Bilder](../.github/README.md) · [Verbindliche Regeln](AGENTS.md) · [Installation und Betrieb](docs/betrieb/INBETRIEBNAHME.md)
+
+Die GitHub-Übersicht liegt in [.github/README.md](../.github/README.md). Fachliche Regeln stehen zentral in [AGENTS.md](AGENTS.md); die folgenden Abschnitte erklären Ablage und Werkzeuge.
+
+Neue Channelbeitritte erhalten einheitlich „Willkommen bei Radio MischWerk, {Nick}. Viel Spaß beim Zuhören.“ mit vorhandenem kleinen Profilfoto am Ende. Die größere fette erste Zeile verwendet Appleisten-Gold #e6c77b, die zweite Zeile die normale Channelschrift. Nick und Foto sind native Profillinks. Die bisherigen 30 Vorlagen und die Zufallsauswahl sind entfernt. Der Appstart begrüßt bereits Anwesende nicht nachträglich. [API-Nachweis](docs/api/API-NACHWEIS.md#öffentliche-userbegrüßung) · [Prüfbericht](docs/pruefung/PRUEFBERICHT.md).
+
+Offene Musikwünsche werden vor der Annahme dauerhaft gespeichert und nach Updates oder Neustarts samt Reihenfolge und Bearbeitungsstatus wieder geladen. Erledigte und verworfene Texte werden entfernt. Beim ersten Wechsel von Build 267 oder älter sind dessen bisher nur flüchtige Wünsche noch nicht gesichert.
+
+Die Radioregie bietet Anmelden, Abmelden und bestätigte Übergabe. Eine Anmeldung hat kein Zeitlimit und benötigt keine Verlängerung; Endzeit-, Restzeit- und Studiozeitanzeigen sind entfernt.
+
+Der senderweite Lauftext lässt sich in **Radioregie → Lauftext** einstellen. Nur Radiomoderation einschließlich des automatisch berechtigten Inhabers kann Text, Tempo, Richtung und Ein/Aus speichern. Die feste Kennzeichnung lautet „Information:“. [Bedienung](docs/betrieb/INBETRIEBNAHME.md#lauftext-unter-der-appleiste).
 
 ## Zuständigkeiten der Ordner
 
@@ -70,6 +80,6 @@ Aus `website/` startet `pnpm start` den regulären Webserver, `pnpm test` die ei
 
 ## Bereitstellung und Nachweise
 
-`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Die Browserrunde läuft separat. Das aktuelle Paket umfasst 132 Laufzeitdateien, darunter 125 Texte; fünf Manifeste dokumentieren die tatsächlichen Bytes. Alle Laufzeittexte und Manifeste bleiben unter 9500 Zeichen. Der Paketbau veröffentlicht nichts und startet keine echte App neu.
+`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Die Browserrunde läuft separat. Das aktuelle Paket umfasst 140 Laufzeitdateien, darunter 133 Texte; fünf Manifeste dokumentieren die tatsächlichen Bytes. Alle Laufzeittexte und Manifeste bleiben unter 9500 Zeichen. Der Paketbau veröffentlicht nichts und startet keine echte App neu.
 
 [App-Prüfbericht](docs/pruefung/PRUEFBERICHT.md) · [Website-Prüfbericht](website/docs/PRUEFUNG.md) · [API-Nachweis](docs/api/API-NACHWEIS.md) · [Architektur](docs/architektur/ARCHITEKTUR.md) · [Frontend](docs/architektur/ARCHITEKTUR-FRONTEND.md) · [Design](docs/architektur/DESIGN.md) · [LIVE-Abnahme](docs/betrieb/LIVE-ABNAHME.md)

@@ -258,12 +258,26 @@ test('Speicherfehler vor Annahme erzeugt weder Queueeintrag noch erfolgreiche Qu
   f.store.setObject = save;
   assert.doesNotMatch(JSON.stringify(f.h.logs), /Secret darf nicht ins Log|rrrrrrrr|ssssssss|hooks.example/);
 });
-test('Neustart leert die Queue, markiert offene Android-IDs verworfen und reiht Wiederholungen nicht neu ein', () => {
+test('Neustart erhält Androidwünsche samt Position und reiht Wiederholungen nicht neu ein', () => {
   const f = setup(); f.call(); f.h.app.onPrepareShutdown();
   const reboot = setup({ store: f.store });
-  assert.equal(reboot.h.state(reboot.owner, reboot.radio).queueTotal, 0);
-  assert.equal(reboot.sends[0].body.wishUpdates[0].state, 'discarded');
-  assert.deepEqual(reboot.call().body, { accepted: true, position: null });
+  assert.equal(reboot.h.state(reboot.owner, reboot.radio).queueTotal, 1);
+  assert.equal(reboot.sends[0].body.wishUpdates[0].state, 'queued');
+  assert.deepEqual(reboot.call().body, { accepted: true, position: 1 });
+});
+
+test('Androidreservierung vor fehlgeschlagenem Queuecommit darf mit derselben Kennung erneut gesendet werden', () => {
+  const f = setup(), write = f.store.setObject;
+  f.store.setObject = (key, value) => {
+    if (key === 'mischwerk.wishes.v3') throw Error('queue offline');
+    write(key, value);
+  };
+  assert.equal(f.call().body.accepted, false);
+  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 0);
+  f.store.setObject = write;
+  assert.deepEqual(f.call().body, { accepted: true, position: 1 });
+  assert.deepEqual(f.call().body, { accepted: true, position: 1 });
+  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 1);
 });
 test('Terminale Marker laufen nach sieben Tagen ab; unbekannte Daten werden nicht als offen publiziert', () => {
   const old = Date.now() - 8 * 86400000;
@@ -314,13 +328,15 @@ test('Große ausstehende Statusmenge wird verlustfrei in Paketen von höchstens 
   assert.deepEqual(f.sends.map(send => send.body.wishUpdates.length), [100, 100, 5]);
   assert.equal(new Set(f.sends.flatMap(send => send.body.wishUpdates.map(row => row.submissionId))).size, 205);
 });
-test('Schreibfehler beim Entfernen verliert den Endstatus nicht und blockiert keine native Bearbeitung', () => {
+test('Schreibfehler erhält den offenen Wunsch; erneuter Abschluss nach Erholung ist dauerhaft', () => {
   const f = setup(); f.call(); const save = f.store.setObject;
   f.store.setObject = () => { throw Error('storage offline'); };
   f.h.event(f.owner, f.radio, 'mw:resolveRequest', { id: 1, outcome: 'discarded' });
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 0);
+  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 1);
   assert.equal(f.call({ submissionId: 'while-storage-down' }).body.accepted, false);
-  f.store.setObject = save; f.h.advance(20000);
+  f.store.setObject = save;
+  f.h.event(f.owner, f.radio, 'mw:resolveRequest', { id: 1, outcome: 'discarded' });
+  f.h.advance(20000);
   assert.equal(f.sends.at(-1).body.wishUpdates[0].state, 'discarded');
 });
 test('Metadaten bleiben begrenzt; Kapazitätsgrenze nimmt keine weiteren Androidwünsche an', () => {
@@ -340,19 +356,20 @@ test('Ohne Datenänderung entstehen keine zusätzlichen Pushes; Neustart/Shutdow
   f.h.app.onShutdown(); f.h.app.onPrepareShutdown();
   assert.equal(f.h.timers.size, 0); assert.equal(f.removed.length, 1);
 });
-test('Fehlende Commitbestätigung rollt die Queue zurück; ein reservierter Marker ist keine erfolgreiche Annahme', () => {
+test('Dauerhafter Queuecommit übersteht ausgefallene Android-Quittung und wird nach Neustart abgeglichen', () => {
   const f = setup(), save = f.store.setObject; let writes = 0;
   f.store.setObject = (key, value) => {
-    if (key === journalKey && ++writes === 2) throw Error('commit failed');
+    if (key === journalKey && ++writes === 2) throw Error('receipt failed');
     save(key, value);
   };
-  assert.equal(f.call().body.accepted, false);
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 0);
-  assert.equal(f.call().body.accepted, false);
+  assert.equal(f.call().body.accepted, true);
+  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 1);
+  assert.equal(f.call().body.accepted, true);
   f.store.setObject = save; f.h.app.onPrepareShutdown();
   const reboot = setup({ store: f.store });
-  assert.equal(reboot.call().body.accepted, false);
-  assert.equal(reboot.sends[0].body.wishUpdates.length, 0, 'Unbestätigte ID darf nicht publiziert werden');
+  assert.equal(reboot.call().body.accepted, true);
+  assert.equal(reboot.h.state(reboot.owner, reboot.radio).queueTotal, 1);
+  assert.equal(reboot.sends[0].body.wishUpdates[0].state, 'queued');
 });
 test('Bestätigung einer älteren Revision löscht keine inzwischen geänderte Bearbeitungsstufe', () => {
   const f = setup(); f.options.hang = true; f.call();

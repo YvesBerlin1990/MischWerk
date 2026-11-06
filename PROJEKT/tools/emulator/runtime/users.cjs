@@ -16,6 +16,13 @@ class TestUsers {
     const runtime = this.runtime;
     const user = {
       getNick: () => state.nick, getUserId: () => state.id,
+      getUserType: () => runtime.enums.UserType.Human,
+      hasProfilePhoto: () => !!state.profilePhoto,
+      getProfilePhoto: (width, height) => { state.photoSize = [width, height]; return state.profilePhoto; },
+      getProfileLink: displayText => {
+        const nick = state.nick.replace(/[_°<>\\|]/g, c => '\\' + c);
+        return '°>' + (displayText === undefined ? nick : String(displayText)) + '|/w ' + nick + '<°';
+      },
       equals: other => !!other && typeof other.getUserId === 'function' && other.getUserId() === state.id,
       isOnlineInChannel: () => state.online, isOnline: () => state.online,
       isChannelOwner: () => state.role === 'owner',

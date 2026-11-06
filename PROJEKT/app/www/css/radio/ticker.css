@@ -1,0 +1,39 @@
+/* Schmale Senderzeile direkt unter der bestehenden Appleiste; keine Audiobindung. */
+.radio-deck { position:relative; isolation:isolate; display:flow-root; flex-shrink:0; --deck-top:18px; --deck-x:20px; --deck-radius:24px; --deck-tail:calc(16px + var(--deck-top)); }
+.radio-has-ticker .radio-deck::before { content:""; position:absolute; inset:var(--deck-top) var(--deck-x) var(--deck-tail); z-index:-1; border:1px solid #3a3a3a; border-radius:var(--deck-radius); background:var(--bg); pointer-events:none; }
+.radio-has-ticker .radio-deck::after { content:""; position:absolute; inset:auto 0 0; height:16px; z-index:2; pointer-events:none; background:linear-gradient(to bottom,transparent,var(--canvas) calc(100% - 1px)); }
+.radio-has-ticker .radio-bar { background:transparent; }
+/* Deckfläche und Muster der Appleiste erhalten; die äußeren Ecken trägt das Deck.
+   Ihre eigene Fläche ist zugleich der Mischhintergrund des unveränderten Logos.
+   Nur der äußere Schatten liegt gemeinsam unter Appleiste und Lauftext. */
+.radio-has-ticker body .radio-program-face { border-bottom-left-radius:0; border-bottom-right-radius:0; box-shadow:none !important; }
+/* Den früheren Glowraum nach unten versetzen; der obere Anschluss bleibt unverändert. */
+.radio-has-ticker .radio-ticker { width:calc(100% - 2 * var(--deck-x)); margin-inline:var(--deck-x); margin-top:calc(-1 * var(--deck-top)); margin-bottom:var(--deck-tail); border-radius:0 0 var(--deck-radius) var(--deck-radius); background:var(--bg); }
+.radio-ticker { position:relative; display:flex; flex-shrink:0; align-items:center; gap:12px; width:100%; min-height:44px; margin:0 0 16px; padding:0 12px; box-shadow:inset 0 1px var(--line); background:var(--bg); color:var(--text); font-size:20px; line-height:1.3; }
+.radio-ticker-label { flex:none; color:#e6c77b; font-size:16px; font-weight:700; letter-spacing:1.4px; }
+.radio-ticker-window { flex:1; min-width:0; overflow:hidden; }
+.radio-ticker-track { display:flex; width:max-content; animation:radio-ticker-scroll var(--ticker-duration,20s) linear infinite; }
+.radio-ticker-track > span { flex:none; padding-right:64px; white-space:pre; }
+.radio-ticker-pause { flex:none; display:grid; place-items:center; width:44px; height:44px; padding:0; border:0; border-radius:6px; background:transparent; color:#e6c77b; font-size:16px; }
+.radio-ticker-pause:hover { background:#ffffff0a; }
+.radio-ticker-pause svg { width:24px; height:24px; fill:currentColor; stroke:none; }
+.radio-ticker-pause .radio-ticker-symbol-play,
+.radio-ticker-pause[aria-pressed="true"] .radio-ticker-symbol-pause { display:none; }
+.radio-ticker-pause[aria-pressed="true"] .radio-ticker-symbol-play { display:block; }
+.ticker-paused .radio-ticker-track { animation-play-state:paused; }
+@keyframes radio-ticker-scroll { to { transform:translateX(-50%); } }
+@media (max-width:1199px) {
+  .radio-constrained .radio-deck { --deck-top:8px; --deck-x:12px; --deck-radius:20px; }
+}
+@media (max-width:700px) {
+  .radio-ticker { font-size:18px; }
+  .radio-ticker-label { font-size:14px; }
+  .radio-deck { --deck-x:12px; }
+  .radio-constrained .radio-deck { --deck-x:10px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .radio-ticker { padding-block:8px; }
+  .radio-ticker-track { animation:none; width:100%; }
+  .radio-ticker-track > span { flex:1 1 100%; width:100%; min-width:0!important; padding:0; white-space:normal; overflow-wrap:anywhere; }
+  .radio-ticker-track > span + span,.radio-ticker-pause { display:none; }
+}

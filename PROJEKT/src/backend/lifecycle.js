@@ -6,6 +6,7 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
     runtime.start = function () {
         runtime.load();
         runtime.loadWishes();
+        runtime.initializeUserGreetings();
         runtime.startChannelTexts();
         runtime.startWebsite();
         runtime.startAndroidRelay();
@@ -20,10 +21,12 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
 
     runtime.userJoined = function (user) {
         try { runtime.open(user, true); } catch (error) { runtime.warn(); }
+        runtime.greetUser(user);
     };
 
     runtime.prepareShutdown = function () {
         runtime.shuttingDown = true;
+        runtime.clearUserGreetings();
         runtime.clearAndroidSettings();
         runtime.stopAndroidRelay();
         runtime.clearWebsiteLogins();
@@ -33,6 +36,7 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
 
     runtime.shutdown = function () {
         runtime.shuttingDown = true;
+        runtime.clearUserGreetings();
         runtime.clearAndroidSettings();
         runtime.stopAndroidRelay();
         runtime.stopChannelTexts();
@@ -42,6 +46,7 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         var changed = false;
         try {
             var userId = runtime.userId(user);
+            runtime.forgetUserGreeting(userId);
             runtime.clearAndroidSettings(userId);
             runtime.load();
             runtime.dropWebsiteUser(userId);
@@ -59,10 +64,12 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
     };
 
     runtime.userDeleted = function (userId) {
+        runtime.forgetUserGreeting(userId);
         runtime.clearAndroidSettings(runtime.numericUserId(userId));
         runtime.load();
         runtime.loadWishes();
-        runtime.removeWishesForUser(userId);
+        try { runtime.removeWishesForUser(userId); }
+        catch (error) { runtime.warn('WISH_PURGE', error); }
         userId = runtime.numericUserId(userId);
         runtime.dropWebsiteUser(userId);
         runtime.dropHandoverForUser(userId, true);

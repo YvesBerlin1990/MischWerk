@@ -14,8 +14,8 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
         return { relaySecret: value.relaySecret, syncSecret: value.syncSecret, syncUrl: value.syncUrl,
             runtimeVerified: value.runtimeVerified === true };
     };
-    runtime.createAndroidWire = function (settings) {
-        if (!settings || settings.runtimeVerified !== true || typeof KnuddelsServer.getExternalServerAccess !== 'function') { return null; }
+    function createWire(settings, verification, authProbe) {
+        if (!settings || (!verification && settings.runtimeVerified !== true) || typeof KnuddelsServer.getExternalServerAccess !== 'function') { return null; }
         var external = KnuddelsServer.getExternalServerAccess();
         if (!external || typeof external.postURL !== 'function' || typeof external.canAccessURL !== 'function' ||
                 external.canAccessURL(settings.syncUrl) !== true) { return null; }
@@ -27,22 +27,32 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
                 if (finished) { return; }
                 finished = true; busy = false;
                 if (cancelled) { return; }
-                var result = { status: 0, body: null };
+                var result = { status: 0, body: null }, code = null, matches = authProbe ? null : false, parsed = false;
                 try {
-                    var text = String(raw === null || raw === undefined ? '' : raw);
-                    var code = Number(response.getResponseCode());
-                    if (failed || text.length > 4096 || runtime.jsonBytes(text) > 4096 ||
-                            !isFinite(code) || code < 100 || code > 599 || Math.floor(code) !== code ||
-                            String(response.getURLString()) !== settings.syncUrl) { throw new Error('ANDROID_HTTP_RESPONSE'); }
-                    result = { status: code, body: JSON.parse(text) };
+                    code = Number(response.getResponseCode());
+                    if (!isFinite(code) || code < 100 || code > 599 || Math.floor(code) !== code) { code = null; }
+                    if (authProbe) { result.status = code === null ? 0 : code; }
+                    else {
+                        matches = String(response.getURLString()) === settings.syncUrl;
+                        var text = String(raw === null || raw === undefined ? '' : raw);
+                        if (failed || text.length > 4096 || runtime.jsonBytes(text) > 4096 ||
+                                code === null || !matches) { throw new Error('ANDROID_HTTP_RESPONSE'); }
+                        result = { status: code, body: JSON.parse(text) };
+                        parsed = true;
+                    }
                 } catch (error) { runtime.warn('ANDROID_HTTP_RESPONSE'); }
+                if (verification) { result.observation = { status: code, callback: failed ? 'failure' : 'success',
+                    responseUrlMatches: matches, jsonParsed: parsed }; }
+                if (authProbe) { result.observation.bodyRead = false; }
                 finish(result);
             }
             busy = true;
             try {
+                var header = { Authorization: request.authorization };
+                if (authProbe) { header['X-MischWerk-Probe'] = '1'; }
                 external.postURL(settings.syncUrl, {
                     data: { payload: JSON.stringify(request.body) },
-                    header: { Authorization: request.authorization },
+                    header: header,
                     onSuccess: function (raw, response) { complete(raw, response, false); },
                     onFailure: function (raw, response) { complete(raw, response, true); }
                 });
@@ -50,5 +60,28 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
             // Die API belegt keinen Netzwerkabbruch. Bis zum echten Callback bleibt der Port belegt.
             return function () { cancelled = true; };
         } };
+    }
+    runtime.createAndroidWire = function (settings) { return createWire(settings, false); };
+    runtime.sendAndroidVerification = function (body, finish, authProbe) {
+        if (authProbe !== undefined && authProbe !== true) { throw new Error('ANDROID_VERIFICATION_MODE'); }
+        if (authProbe === true && (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length)) {
+            throw new Error('ANDROID_AUTH_PROBE_BODY');
+        }
+        function read() {
+            var value = KnuddelsServer.getPersistence().getObject('mischwerk.android.private.v1', null);
+            if (!value || value.enabled !== false || value.runtimeVerified !== false ||
+                    typeof value.syncSecret !== 'string' || !/^[a-zA-Z0-9_-]{43,128}$/.test(value.syncSecret) ||
+                    value.syncUrl !== 'https://radio-mischwerk.web.app/api/publishKnuddelsState') {
+                throw new Error('ANDROID_VERIFICATION_CONFIGURATION');
+            }
+            return { syncUrl: value.syncUrl, syncSecret: value.syncSecret, revision: value.revision };
+        }
+        var settings = read(), wire = createWire(settings, true, authProbe === true);
+        if (!wire) { throw new Error('ANDROID_VERIFICATION_UNAVAILABLE'); }
+        return wire.sendJson({ url: settings.syncUrl, authorization: 'Bearer ' + settings.syncSecret, body: body }, function (result) {
+            try { result.configurationUnchanged = JSON.stringify(read()) === JSON.stringify(settings); }
+            catch (ignoredRead) { result.configurationUnchanged = false; }
+            finish(result);
+        });
     };
 };

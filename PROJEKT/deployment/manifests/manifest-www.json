@@ -1,21 +1,21 @@
 {
-  "version": "0.1.239",
-  "buildNumber": 239,
+  "version": "0.1.269",
+  "buildNumber": 269,
   "files": [
     {
       "path": "MischWerk/www/index.html",
-      "bytes": 9504,
-      "sha256": "86D69E9092C4EFEF92F991B3BDEDBDB1BD63456E45086672A73FFC9971B03856"
+      "bytes": 9202,
+      "sha256": "1868739E252164CC7EF843C7AB5660911974F94A6A130B86281BC01AA7911EC2"
     },
     {
       "path": "MischWerk/www/js/start.js",
-      "bytes": 5280,
-      "sha256": "35E5F5E90E3008D54E6C1AEB4FC5687EE9F90E763C6332BBD4AFE5ED43B302C4"
+      "bytes": 5331,
+      "sha256": "5B1A4884CFF4E2E9CE760682F8F6A61944DE052C01AE03CA36B77202B7065153"
     },
     {
       "path": "MischWerk/www/js/ui/composition.js",
-      "bytes": 9141,
-      "sha256": "6031B233297006AB5375368BB1EE4524FF26EF814DD40F1E1CAA762A65B816C1"
+      "bytes": 9292,
+      "sha256": "38B5D9E169F9005AF3375287DE549FDDA855183E18F5A9BA0147B6F51567D454"
     },
     {
       "path": "MischWerk/www/js/core/dom.js",
@@ -34,8 +34,8 @@
     },
     {
       "path": "MischWerk/www/js/radio/markup.js",
-      "bytes": 7842,
-      "sha256": "5B41304591476470E5F2D07C6B3A99A421F080F252D729FD0FE6915E5E5C41C7"
+      "bytes": 7963,
+      "sha256": "BD2ACE1A429D9A47DB55D29D768832349004B07B1ACECC4E9B99F9B7315706F9"
     },
     {
       "path": "MischWerk/www/js/radio/curtain-markup.js",
@@ -44,13 +44,13 @@
     },
     {
       "path": "MischWerk/www/js/radio/curtain.js",
-      "bytes": 6192,
-      "sha256": "D25BC1F07E0C7668A2F9FA6381EEB91FCFD75A9E8E8EC9E5636A336BDF162A44"
+      "bytes": 6668,
+      "sha256": "D3790B8E83BC54CC5E451CFC8E3637ADB55499DB10A731A1AF90AD86A5EA9944"
     },
     {
       "path": "MischWerk/www/js/radio/viewport.js",
-      "bytes": 2319,
-      "sha256": "691ED4D062A1F33C171400164A8BCD867BFE1A316524A7603258C053CAEE4A17"
+      "bytes": 2795,
+      "sha256": "0C6608CFA91E110ADBBE658E6E30B8967F4397DE6DC3AD55A342E6CF0D9D290A"
     },
     {
       "path": "MischWerk/www/js/wishes/markup.js",
@@ -64,13 +64,13 @@
     },
     {
       "path": "MischWerk/www/js/transport/commands.js",
-      "bytes": 7274,
-      "sha256": "0387A7D8F4FB2EBC9A7A82D6F43972534953609A959DC3D2B780DBBEE8CA91B0"
+      "bytes": 7694,
+      "sha256": "C29AF835EDB12C9B8AC244C083ACAA52E8CD1804EF46063C4B7C2FFE80D81A8C"
     },
     {
       "path": "MischWerk/www/js/radio/api.js",
-      "bytes": 7978,
-      "sha256": "0B72EB12D286677F8964D9B88A152E257DBEEA969B7F812247B2596457CA96ED"
+      "bytes": 8077,
+      "sha256": "703752F0090A45D22D6F821FE0EDFD330E13AE2CE2149B9842A3265A759AE418"
     },
     {
       "path": "MischWerk/www/js/radio/presentation.js",
@@ -79,23 +79,28 @@
     },
     {
       "path": "MischWerk/www/js/radio/provider.js",
-      "bytes": 8623,
-      "sha256": "6FE9A990D16E76286C09FC090E24FE9A3E8FE362F111BF4441B87BD6B5BE857C"
+      "bytes": 7664,
+      "sha256": "3287EBC07D2D295A4D7F7EE3DE042937844A732497B92B3D228F345557113811"
     },
     {
       "path": "MischWerk/www/js/radio/volume.js",
-      "bytes": 2910,
-      "sha256": "FDA07503E91142B34B975FD6B2470CDCEBEF898530AC3701DFD8968611F8988A"
+      "bytes": 8461,
+      "sha256": "C93ED5377F913B7B0EE75F8BAA30209ADDBBA037889760F2D1D25AA2028643A2"
     },
     {
       "path": "MischWerk/www/js/radio/connection.js",
-      "bytes": 9184,
-      "sha256": "B858A0E38826979C769C66433AA0A6588E8555C65EB234FDAA27400BDC2B12F3"
+      "bytes": 5548,
+      "sha256": "267E8AEDC80FC21A52A2A362ECFDB90D5D20ACF09ADAD7B7F65BE69BFC63FF04"
     },
     {
       "path": "MischWerk/www/js/radio/player.js",
-      "bytes": 3633,
-      "sha256": "69D1A813530F0BBDE705459D76866FCE366C8C947D9D91E95CED85C3C64CE6D2"
+      "bytes": 7520,
+      "sha256": "32B89C1628F45C8D3FDFB8F0BE705D9194A8D71CE06577DF396B3130AC3F7C92"
+    },
+    {
+      "path": "MischWerk/www/js/radio/ticker.js",
+      "bytes": 3884,
+      "sha256": "F03E560DA020180D287D240DF07304DBA7C03C0B3E0432CF7018DDDA92600A58"
     },
     {
       "path": "MischWerk/www/js/wishes/wishbox.js",
@@ -174,8 +179,8 @@
     },
     {
       "path": "MischWerk/www/js/ui/overlays.js",
-      "bytes": 8821,
-      "sha256": "4D1A9EE1DC7446F4CC6358780D45A822DD66396C0003C4BC8164D1871128F670"
+      "bytes": 8931,
+      "sha256": "CDB901257800455BC96588F8A8242BD6C1D2B21F284EB3C5F97453994F0A1627"
     },
     {
       "path": "MischWerk/www/js/ui/updates.js",
@@ -184,8 +189,13 @@
     },
     {
       "path": "MischWerk/www/js/transport/lifecycle.js",
-      "bytes": 6778,
-      "sha256": "A33BCD492F80DA966C954441DF0304F423BC6C255B015AF9D9B1644F2945768F"
+      "bytes": 6846,
+      "sha256": "235F30E88AEF39F6CDB1D5EA782F03061E93EFFA017C507957E6EF3B0BF2BFEC"
+    },
+    {
+      "path": "MischWerk/www/css/radio/ticker.css",
+      "bytes": 3496,
+      "sha256": "3E238B9BEED6F181F1D00E2029CC8FD31EFC050D3DFFDE5C5AD6593935F2AF17"
     },
     {
       "path": "MischWerk/www/css/shared/foundation.css",
@@ -194,18 +204,18 @@
     },
     {
       "path": "MischWerk/www/css/radio/radio.css",
-      "bytes": 8581,
-      "sha256": "5C43ABF22FAAB73087F16D8A048F1692FBB8C9D562C6B4BC53CEECE796F9984C"
+      "bytes": 8577,
+      "sha256": "A21456DF3C074F9744FF6134BAE62D71020353EC72DA10545A3596062105FD7F"
     },
     {
       "path": "MischWerk/www/css/radio/radio-actions.css",
-      "bytes": 4424,
-      "sha256": "44BD0725CA5B42A817AD966302C48FDF6B871604C09B235976F377A783870077"
+      "bytes": 4420,
+      "sha256": "31DCF801BFF417C8315FF17EE06F8D5A07AD212F85BDDBCF90C1C2C2099AED41"
     },
     {
       "path": "MischWerk/www/css/shared/dialogs.css",
-      "bytes": 7292,
-      "sha256": "881DA028175018EB46B29B53930349157F0B545D473050ADBDDC251457DA4B64"
+      "bytes": 7276,
+      "sha256": "5FE5BB46F15418E0F4956E95B6BB0DB95859A6670EF5D47CFC71F3E6D81C91F9"
     },
     {
       "path": "MischWerk/www/css/shared/feedback.css",
@@ -224,8 +234,8 @@
     },
     {
       "path": "MischWerk/www/css/radio/radio-surface.css",
-      "bytes": 8363,
-      "sha256": "610871470FBA58C1BC948418331D37D60F338AD3BF62606911341D6743BCB4D3"
+      "bytes": 8517,
+      "sha256": "5902E54E825ABA1E9F8669788616D6D9C013DFDEC2A2FBCA5A3E434CE571D796"
     },
     {
       "path": "MischWerk/www/css/radio/metadata-layout.css",
@@ -234,8 +244,8 @@
     },
     {
       "path": "MischWerk/www/css/radio/radio-responsive.css",
-      "bytes": 6550,
-      "sha256": "006A3DBA495647D9C3BD5C29600C9C7BF623C0AAF05B2C0018CA8CB4AC3EFC2A"
+      "bytes": 6579,
+      "sha256": "8A196B0D0E837D0AC6B7FD57D4C5B60665AA174F02A24DFCEE7CE7912FCBAD21"
     },
     {
       "path": "MischWerk/www/css/schedule/schedule.css",
@@ -256,21 +266,6 @@
       "path": "MischWerk/www/css/radio/curtain.css",
       "bytes": 3150,
       "sha256": "612145962402C87B2DFE97F40F21DD5CBE25F543473C81BC457CA5007AF9B289"
-    },
-    {
-      "path": "MischWerk/www/fonts/OFL.txt",
-      "bytes": 4377,
-      "sha256": "5B9321A4298CFEB6B34354164A1C3AFC3DB114569984C502B9B35D988FD58C57"
-    },
-    {
-      "path": "MischWerk/www/fonts/outfit-OFL.txt",
-      "bytes": 4389,
-      "sha256": "C676351BF8576B9ABA743CD5EAA8C0E7EE0D51F805D720447B4DF4DDB6A2E416"
-    },
-    {
-      "path": "MischWerk/www/fonts/fraunces-OFL.txt",
-      "bytes": 4391,
-      "sha256": "BDF4C22802EAF804F998195871C6B8938AAC2AC14B2D78A8BD66A6F1ECED833B"
     }
   ]
 }

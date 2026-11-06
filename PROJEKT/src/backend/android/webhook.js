@@ -55,9 +55,8 @@ MischWerkModules.attachAndroidWebHook = function (runtime, wire) {
                 if (runtime.containsWishLink(data.text)) { throw new Error('ANDROID_TEXT'); }
             } catch (error) { reply(response, 400, false, 'INVALID'); return; }
             var old = runtime.androidReceipt(data.submissionId), items = runtime.wishItems();
-            if (old) {
-                if (!old.committed) { reply(response, 409, false, 'CLOSED'); return; }
-                var item = items.filter(function (row) { return row.source === 'Android' && row.externalSubmissionId === data.submissionId; })[0];
+            var item = items.filter(function (row) { return row.source === 'Android' && row.externalSubmissionId === data.submissionId; })[0];
+            if (item || (old && old.committed)) {
                 if (item && item.text !== data.text) { reply(response, 400, false, 'INVALID'); return; }
                 reply(response, 200, true, item ? items.indexOf(item) + 1 : null); return;
             }
@@ -84,6 +83,7 @@ MischWerkModules.attachAndroidWebHook = function (runtime, wire) {
         } catch (error) { runtime.warn('ANDROID_START'); runtime.stopAndroidRelay(); }
     };
     runtime.stopAndroidRelay = function () {
+        if (typeof runtime.cancelAndroidVerification === 'function') { runtime.cancelAndroidVerification(); }
         runtime.stopAndroidPublisher(); settings = null;
         if (registered) {
             registered = false;

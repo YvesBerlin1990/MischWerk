@@ -38,9 +38,18 @@ MischWerkModules.attachAndroidReceipts = function (runtime) {
                 throw new Error('ANDROID_RECEIPTS');
             }
             seen['$' + row.submissionId] = true;
-            entries.push({ submissionId: row.submissionId, state: terminal(row.state) ? row.state : 'discarded',
-                position: null, createdAt: row.createdAt, at: terminal(row.state) ? row.at : runtime.now(),
-                committed: row.committed, revision: 1, dirty: row.committed, repeatAt: 0 });
+            var items = runtime.wishItems(), item = items.filter(function (entry) {
+                return entry.source === 'Android' && entry.externalSubmissionId === row.submissionId;
+            })[0];
+            var outcome = runtime.wishOutcome('android:' + row.submissionId);
+            var state = item ? item.stage || 'queued' :
+                outcome || (terminal(row.state) ? row.state : 'discarded');
+            if (item && state === 'queued' && item.delivery) { state = 'received'; }
+            entries.push({ submissionId: row.submissionId, state: state,
+                position: item ? items.indexOf(item) + 1 : null, createdAt: row.createdAt,
+                at: item || !terminal(row.state) ? runtime.now() : row.at,
+                committed: !!item || row.committed, revision: (Number(row.revision) || 0) + 1,
+                dirty: !!item || row.committed, repeatAt: 0 });
         });
         clean(); save(); started = true;
     };
@@ -50,18 +59,16 @@ MischWerkModules.attachAndroidReceipts = function (runtime) {
     runtime.rememberAndroidWish = function (item, position) {
         var row = { submissionId: item.externalSubmissionId, state: 'queued', position: position,
             createdAt: runtime.now(), at: runtime.now(), committed: false, revision: 1, dirty: false, repeatAt: 0 };
+        var previous = find(item.externalSubmissionId);
+        if (previous) { entries.splice(entries.indexOf(previous), 1); }
         entries.push(row);
         try { save(); }
-        catch (error) { entries.pop(); throw error; }
+        catch (error) { entries.pop(); if (previous) { entries.push(previous); } throw error; }
     };
     runtime.confirmAndroidWish = function (item) {
         var row = find(item.externalSubmissionId);
         row.committed = true; row.dirty = true;
-        try { save(); }
-        catch (error) {
-            row.committed = false; row.state = 'discarded'; row.position = null; row.dirty = false;
-            throw error;
-        }
+        save();
     };
     runtime.pendingAndroidUpdates = function () {
         clean();

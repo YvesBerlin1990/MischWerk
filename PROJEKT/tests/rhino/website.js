@@ -3,6 +3,8 @@
     var previousPersistence = KnuddelsServer.getPersistence, previousHooks = KnuddelsServer.getWebHookAccess;
     var data = { 'mischwerk.website.enabled.v1':true }, observer = null, messages = [];
     KnuddelsServer.getPersistence = function () { return {
+        getObjectKeys: function () { return Object.keys(data); },
+        deleteObject: function (key) { delete data[key]; },
         getObject:function (key, fallback) { return Object.prototype.hasOwnProperty.call(data, key) ? copy(data[key]) : fallback; },
         setObject:function (key, value) { data[key] = copy(value); }
     }; };
@@ -31,9 +33,9 @@
         check(state.user.isOnAir && state.moderator.nick === 'WebsiteOwner', 'Website und App teilen tatsächlichen Zustand');
         var before = publicMessages.length;
         check(call(action).status === 200 && publicMessages.length === before, 'Wiederholung ohne doppelte öffentliche Meldung');
-        check(call({operation:'action', token:token, type:'mw:onAir', data:{expectedModerator:state.moderator.sessionKey, endMode:'openEnd'}, requestId:'rhino-web-openend-123'}).status === 200, 'Open End über WebHook');
+        check(call({operation:'action', token:token, type:'mw:onAir', data:{expectedModerator:state.moderator.sessionKey, endMode:'openEnd'}, requestId:'rhino-web-openend-123'}).status === 200, 'Alte Zeitdaten verändern Anmeldung nicht');
         state = call({operation:'state', token:token}).data.state;
-        check(state.moderator.openEnd && state.moderator.expiresAt === null, 'Open End bleibt explizit');
+        check(!('openEnd' in state.moderator) && !('expiresAt' in state.moderator), 'Anmeldung ohne Zeitfelder');
         app.onUserLeft(user);
         check(call({operation:'state', token:token}).status === 401, 'Verlassen sperrt Websitezugang auch in Rhino');
     } finally { KnuddelsServer.getPersistence = previousPersistence; KnuddelsServer.getWebHookAccess = previousHooks; }

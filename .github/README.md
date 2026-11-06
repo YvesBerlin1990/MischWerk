@@ -4,13 +4,15 @@
 
 Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderation, Sendeplan und eigener Homepage.
 
-**App 0.1.239 · Build 239 · Website 0.2.0** — Stand: 6. November 2026.
+**App 0.1.269 · Build 269 · Website 0.2.1** — Stand: 6. November 2026.
 
 ![MischWerk-Appleiste mit goldenen Tasten und aktivem Wiedergabelicht](../PROJEKT/docs/pruefung/oberflaeche/radio/vinyl-glow-desktop.png)
 
-- **Radio:** HTTPS-Livestream, Play/Stop, Lautstärke und aktuelle Titel.
-- **Wunschbox:** Musikwünsche senden und den eigenen Platz privat verfolgen.
-- **Moderation:** Sendungsthema, Endzeit oder Open End, Wunschregie und bestätigte Übergabe.
+- **Begrüßung:** Einheitlich „Willkommen bei Radio MischWerk, {Nick}. Viel Spaß beim Zuhören.“ für alle User; größere fette Begrüßungszeile in Gold, Nick und Foto als Profillinks, Foto weiterhin am Ende.
+- **Lauftext:** Frei einstellbarer Hinweis unter der Appleiste; Text, Tempo, Richtung und Ein/Aus in der Radioregie. Die feste Beschriftung lautet „Information:“.
+- **Radio:** HTTPS-Livestream, Play/Stop, Lautstärke und aktuelle Titel. Neue Titel erscheinen unabhängig von der AutoDJ-/Live-Abfrage.
+- **Wunschbox:** Musikwünsche senden und den eigenen Platz privat verfolgen. Bestätigte offene Wünsche bleiben bei Updates und Neustarts mit Reihenfolge und Bearbeitungsstatus gespeichert.
+- **Moderation:** Anmelden und Abmelden ohne Zeitlimit, Sendungsthema, Wunschregie und bestätigte Übergabe. Keine Verlängerung oder automatische Sechs-Stunden-Abmeldung.
 - **Sendeplan:** Wochenübersicht mit Live, AutoDJ und flexiblen Laufzeiten.
 - **Verwaltung:** Radio-Team und öffentliche Bot-Texte für den Channelinhaber.
 
@@ -18,9 +20,24 @@ Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderati
 
 | Moderation | Sendeplan |
 | --- | --- |
-| ![Moderation mit Endzeit und Sendungsthema](../PROJEKT/docs/pruefung/oberflaeche/moderation/moderation-780.png) | ![Sendeplan mit Live und AutoDJ](../PROJEKT/docs/pruefung/oberflaeche/sendeplan/sendeplan-sendungen-820.png) |
+| ![Radioregie mit An-/Abmeldung, Übergabe und Sendungsthema](../PROJEKT/docs/pruefung/oberflaeche/moderation/moderation-780.png) | ![Sendeplan mit Live und AutoDJ](../PROJEKT/docs/pruefung/oberflaeche/sendeplan/sendeplan-sendungen-820.png) |
 
 *Lokale Vorschau mit Beispieldaten; kein Nachweis eines auf Knuddels veröffentlichten Stands.* Weitere Ansichten und Ergebnisse stehen im [App-Prüfbericht](../PROJEKT/docs/pruefung/PRUEFBERICHT.md).
+
+## Projektablage
+
+Die GitHub-Übersicht liegt unter `.github/README.md`. Der technische Einstieg steht in [PROJEKT/README.md](../PROJEKT/README.md); die verbindlichen Regeln in [PROJEKT/AGENTS.md](../PROJEKT/AGENTS.md).
+
+| Ablage unter PROJEKT | Inhalt |
+| --- | --- |
+| `src/backend/` · `app/server/` | Backendquellen und daraus erzeugte Laufzeit |
+| `app/www/` | Appoberfläche; Styles in Fachordnern unter `css/` |
+| `website/public/` · `website/server/` | Homepage und regulärer Webserver |
+| `tools/` · `tests/` | Build, Testlabor und Prüfungen |
+| `docs/` · `docs/pruefung/oberflaeche/` | Dokumentation und Prüfbilder nach Themen |
+| `deployment/` | Zielkonfiguration und fünf Auslieferungsmanifeste |
+
+Das Knuddels-Paket wird lokal im festen Desktop-UPLOAD vorbereitet. Es gehört nicht ins Repository; ebenso bleiben private Konfigurationen und installierte Abhängigkeiten außerhalb des Gitbestands.
 
 ## Lokal starten
 

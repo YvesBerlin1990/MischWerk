@@ -58,7 +58,7 @@ test('Bestätigte Übergabe meldet beide Moderatoren gemeinsam; Besitzerabmeldun
   assert.deepEqual(h.bot.messages, [onAir('Otterchen'), transfer, offAir('Radio-DJ')]);
 });
 
-for (const cause of ['Channel verlassen', 'Ablauf', 'Ernennung entzogen', 'Nutzer gelöscht', 'Besitzerrechte verloren']) {
+for (const cause of ['Channel verlassen', 'Ernennung entzogen', 'Nutzer gelöscht', 'Besitzerrechte verloren']) {
   test('Automatisches Moderationsende meldet sich genau einmal: ' + cause, () => {
     const { h, owner, listener, os, ls } = fixture();
     const dj = h.user(3, 'Radio-DJ'), ds = h.open(dj);
@@ -67,7 +67,6 @@ for (const cause of ['Channel verlassen', 'Ablauf', 'Ernennung entzogen', 'Nutze
     h.event(presenter, presenter === owner ? os : ds, 'mw:onAir');
     h.event(owner, os, 'mw:setTopic', { topic: 'Thema bleibt bei automatischem Ende' });
     if (cause === 'Channel verlassen') { presenter.online = false; h.app.onUserLeft(presenter); }
-    if (cause === 'Ablauf') { h.advance(6 * 3600000 + 1); }
     if (cause === 'Ernennung entzogen') { h.event(owner, os, 'mw:removeRadioModerator', { userId: dj.id }); }
     if (cause === 'Nutzer gelöscht') { h.app.onUserDeleted(dj.id); }
     if (cause === 'Besitzerrechte verloren') { owner.role = 'listener'; }
@@ -87,7 +86,10 @@ test('Verlassen mit Speicherfehler beendet die öffentliche Moderation ohne Wied
   h.state(listener, ls); h.state(listener, ls);
   owner.online = true; h.app.onUserJoined(owner);
   assert.equal(h.state(listener, ls).moderator, null);
-  assert.deepEqual(h.bot.messages, [onAir('Otterchen'), offAir('Otterchen')]);
+  assert.deepEqual(h.bot.messages.slice(0, 2), [onAir('Otterchen'), offAir('Otterchen')]);
+  assert.equal(h.bot.messages.length, 3);
+  assert.ok(h.bot.messages[2].includes('Otterchen'));
+  assert.doesNotMatch(h.bot.messages[2], /betritt das Studio|verlässt das Studio|ON AIR/);
 });
 
 test('Botfehler nehmen die Studioaktion nicht zurück und werden nicht bei jedem Refresh erneut versucht', () => {
@@ -105,7 +107,7 @@ test('Botfehler nehmen die Studioaktion nicht zurück und werden nicht bei jedem
   assert.ok(h.logs.every(entry => !entry.message.includes('private-bot-detail')));
 });
 
-test('App-Neustart übernimmt gültige Moderation still und verwirft abgelaufene ohne Start-/Endmeldung', () => {
+test('App-Neustart übernimmt gültige Moderation still und entfernt alte Endzeitfelder ohne Start-/Endmeldung', () => {
   const { h, owner, os } = fixture();
   h.event(owner, os, 'mw:onAir');
   const restarted = createHarness(h.store, { users: [{ id: 2, nick: 'Otterchen', role: 'owner' }] });
@@ -114,11 +116,11 @@ test('App-Neustart übernimmt gültige Moderation still und verwirft abgelaufene
   assert.deepEqual(restarted.bot.messages, []);
   assert.equal(result(restarted.event(current, session, 'mw:offAir')).ok, true);
   assert.deepEqual(restarted.bot.messages, [offAir('Otterchen')]);
-  h.event(owner, os, 'mw:onAir');
+  restarted.event(current, session, 'mw:onAir');
   h.store.data['mischwerk.state.v1'].moderator.expiresAt = 0;
   const expired = createHarness(h.store, { users: [{ id: 2, nick: 'Otterchen', role: 'owner' }] });
   assert.deepEqual(expired.bot.messages, []);
-  assert.equal(expired.state(expired.user(2), expired.user(2).sessions[0]).moderator, null);
+  assert.equal(expired.state(expired.user(2), expired.user(2).sessions[0]).user.isOnAir, true);
 });
 
 test('Moderatornick wird über die dokumentierte KCode-Escapemethode als Text eingesetzt', () => {

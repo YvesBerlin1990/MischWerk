@@ -103,7 +103,10 @@ MischWerkUI.define('lifecycle', function (dependencies) {
       commands.send('mw:ready');
       setInterval(function () { if (!disposed && (!document.hidden || playbackPosition() !== null)) { commands.send('mw:refresh', {}); } }, 20000);
       setInterval(function () { samplePlaybackActivity(); signals.emit('controls'); }, 1000);
-      document.addEventListener('visibilitychange', function () { if (!document.hidden) { refreshVisible(); } });
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) { if (provider) { provider.dispose(); } }
+        else { refreshVisible(); }
+      });
     } else {
       if (wishes) {
         dom.setText('wish-hint', 'Öffne diese App in Knuddels mit /mischwerk oder starte die lokale Vorschau aus dem Projektordner.');

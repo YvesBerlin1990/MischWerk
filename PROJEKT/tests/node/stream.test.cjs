@@ -180,10 +180,23 @@ test('Bestätigte SPCast-Titelfelder behalten getrennte Inhalte und fehlenden LI
  assert.equal(await api.fetchProviderStatus(s),'started');
 });
 function productStation(){const h=createHarness(),u=h.user(1,'Otterchen','owner');return h.state(u,h.open(u)).station;}
+test('Getrennte Titel- und Modusabrufe warten nicht aufeinander und deduplizieren den Modus',async()=>{
+ const s=productStation();let releaseMode;
+ const gate=new Promise(resolve=>{releaseMode=resolve;});
+ const {api,requests}=client(async url=>url===s.modeUrl?(await gate,'autodj'):{currentSong:'Neuer Titel',currentArtist:'Band'});
+ assert.equal(typeof api.fetchBroadcastMode,'function');
+ const first=api.fetchBroadcastMode(s),second=api.fetchBroadcastMode(s);
+ try{
+  const song=await api.fetchMetadata(s);assert.equal(song.title,'Neuer Titel');assert.equal(song.isLive,null);
+  assert.equal(requests.filter(r=>r.url===s.modeUrl).length,1);
+ }finally{releaseMode();}
+ assert.deepEqual(await Promise.all([first,second]),[false,false]);
+});
 test('SPCast-Produktquelle liefert zugeordneten Übertragungsstatus und AutoDJ ohne Audioprobe',async()=>{
  const s=productStation(),{api,requests}=client(url=>url===s.statusUrl?spcastStatistics():url===s.modeUrl?'autodj':{currentSong:'Titel',currentArtist:'Band'});
  assert.equal(await api.fetchProviderStatus(s),'started');
- assert.equal((await api.fetchMetadata(s)).isLive,false);assert.ok(requests.every(r=>r.url!==s.streamUrl));
+ assert.equal((await api.fetchMetadata(s)).isLive,null);assert.equal(await api.fetchBroadcastMode(s),false);
+ assert.ok(requests.every(r=>r.url!==s.streamUrl));
 });
 test('Bestätigter SPCast-Stopp gilt mit inaktivem Stream und explizit leerer Liste, fehlende Felder bleiben unbekannt',async()=>{
  const s=productStation();let body=spcastStatistics({online:false});const {api}=client(()=>body);
@@ -206,11 +219,13 @@ test('Fremde, doppelte und widersprüchliche SPCast-Statistiken erzeugen keinen 
   body=spcastStatistics();alter(body);assert.equal(await api.fetchProviderStatus(s),'unknown');
  }
 });
-test('Öffentlicher Modusdienst akzeptiert nur bestätigte AutoDJ-/LIVE-Werte und blockiert keine Titel bei Fehlern',async()=>{
+test('Öffentlicher Modusdienst akzeptiert nur bestätigte Werte; Fehler bleiben von Titeln getrennt',async()=>{
  const s=productStation();let mode;const {api}=client(url=>{if(url===s.modeUrl){if(mode instanceof Error)throw mode;return mode;}return {currentSong:'Song',currentArtist:'Band'};});
- for(const [value,expected] of [['autodj',false],['live',true],['autodj_live',null],['relay',null],['',null],['<html>offline</html>',null],[new Error('network'),null]]){
-  mode=value;const song=await api.fetchMetadata(s);assert.equal(song.isLive,expected);assert.equal(song.title,'Song');
+ for(const [value,expected] of [['autodj',false],['live',true],['autodj_live',null],['relay',null],['',null],['<html>offline</html>',null]]){
+  mode=value;assert.equal(await api.fetchBroadcastMode(s),expected);
+  const song=await api.fetchMetadata(s);assert.equal(song.isLive,null);assert.equal(song.title,'Song');
  }
+ mode=new Error('network');await assert.rejects(api.fetchBroadcastMode(s));assert.equal((await api.fetchMetadata(s)).title,'Song');
 });
 test('Lesender Anschlussprüfer folgt nur freigegebenen HTTPS-Weiterleitungen und beendet die Audioprobe',async()=>{
  const {probeStream}=require('../../tools/checks/streampanel.cjs'),s=station(),{api}=client(()=>({}));

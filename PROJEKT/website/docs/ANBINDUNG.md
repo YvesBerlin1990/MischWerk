@@ -1,4 +1,4 @@
-# MischWerk – Website-Anbindung 0.2.0 / App 0.1.223
+# MischWerk – Website-Anbindung 0.2.1 / App 0.1.269
 
 Stand 05.11.2026. Website und Appadapter sind lokal umgesetzt und geprüft. Noch keine echte Registrierung, Übertragung, Veröffentlichung oder native Knuddels-Abnahme ausgeführt. Die bisherigen App-Menüs bleiben erhalten.
 
@@ -30,7 +30,7 @@ Appzugriffstoken bleiben im Website-Server. Browser erhalten eine unabhängige z
 
 ## Befehle, Konsistenz und Aktualität
 
-HTTP-POST enthält operation=login.begin/login.status/logout/state/action. Appzugriffstoken nur im serverseitigen POST-Body, niemals Browserantwort oder Query. state liefert den berechtigten Bereich studio/team/schedule. Team und Bot-Texte nur für Besitzer. action erlaubt die expliziten Fachaktionen für eigene Studioanmeldung/Endzeit, Thema/Wunschbox, Wunschregie, Übergabe, Radio-Team, Bot-Texte und Sendeplan. Updates, Vorhang und native Fenster sind kein Webkommando.
+HTTP-POST enthält operation=login.begin/login.status/logout/state/action. Appzugriffstoken nur im serverseitigen POST-Body, niemals Browserantwort oder Query. state liefert den berechtigten Bereich studio/team/schedule. Team und Bot-Texte nur für Besitzer. action erlaubt die expliziten Fachaktionen für eigene Studioanmeldung/Abmeldung ohne Zeitlimit, Thema/Wunschbox, Wunschregie, Übergabe, Radio-Team, Bot-Texte und Sendeplan. Updates, Vorhang und native Fenster sind kein Webkommando.
 
 Mutationen verwenden dieselben Fachrevisionen und Vorwerte. Pro Anmeldung höchstens 32 erfolgreiche Anfragekennungen merken; gleicher Auftrag wird nach Antwortverlust bestätigt, ohne nochmals zu mutieren. Dieselbe Kennung mit anderem Inhalt wird abgewiesen. Fehler erhalten Entwürfe; keine optimistische Erfolgsmeldung oder automatische Konfliktauflösung. Wunschempfang nur für den geöffneten Eintrag im sichtbaren Wunschreiter. Private Notizen bleiben beim beteiligten Nutzer. App-Pakete unter 9500 Zeichen; private große Wochenpläne auf dem Websiteserver aus revisionsgleichen kleinen Seiten zusammensetzen.
 

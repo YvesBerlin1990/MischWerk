@@ -302,8 +302,8 @@ test('main.js laedt fachlich getrennte Serverdateien statt eines Sammelbundles',
 });
 test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
   const result = require('../../tools/checks/architecture.cjs').checkArchitecture();
-  assert.equal(result.backendModules, 48);
-  assert.equal(result.frontendComponents, 49);
+  assert.equal(result.backendModules, 53);
+  assert.equal(result.frontendComponents, 50);
 });
 
 test('Laufzeitprüfung verweigert fremde und fehlende Dateien vor der Paketfreigabe', t => {
@@ -497,12 +497,13 @@ test('Das neue Wunschprotokoll legt den Wunsch nur in die laufende Moderationsqu
 test('Unerwartete Wunschfehler nennen Phase, Fehlertyp und Zeile ohne Text oder Nutzerdaten', () => {
   const logs = [], receipts = [];
   const context = vm.createContext({ MischWerkModules: {}, KnuddelsServer: { getDefaultLogger: () => ({ warn: message => logs.push(message) }) } });
-  for (const name of ['config.js', 'core/runtime.js', 'core/diagnostics.js', 'core/validation.js', 'wishes/queue.js', 'wishes/transport.js']) {
+  for (const name of ['config.js', 'core/runtime.js', 'core/diagnostics.js', 'core/validation.js', 'wishes/storage.js', 'wishes/queue.js', 'wishes/transport.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/backend', name), 'utf8'), context);
   }
   const runtime = context.MischWerkModules.createRuntime(context.MischWerkConfig);
   context.MischWerkModules.attachDiagnostics(runtime, context.MischWerkConfig);
   context.MischWerkModules.attachValidation(runtime, context.MischWerkConfig);
+  runtime.readWishes = () => ({nextId:1,items:[],replays:[],submissionIds:{},revision:0});
   context.MischWerkModules.attachWishQueue(runtime, context.MischWerkConfig);
   context.MischWerkModules.attachWishTransport(runtime);
   runtime.state = { requestsEnabled: true };
@@ -685,14 +686,14 @@ test('Fehlgeschlagener Rechteentzug erhält Moderation, Thema und offene Überga
   assert.equal(after.user.canModerate, true);
   assert.deepEqual(after.handover, handover);
 });
-test('Neustart leert die flüchtige Wunschqueue und bewahrt den Wunschbox-Status', () => {
+test('Neustart erhält die dauerhafte Wunschqueue und bewahrt den Wunschbox-Status', () => {
   const { h, listener, owner, ls, os } = fixture();
   h.event(listener, ls, 'mw:wish.submit', wish); h.event(owner, os, 'mw:setRequests', { enabled: false });
   const restarted = createHarness(h.store); const ro = restarted.user(2, 'Otterchen', 'owner'); const rs = restarted.open(ro);
-  assert.equal(restarted.state(ro, rs).queue.length, 0); assert.equal(restarted.state(ro, rs).requestsEnabled, false);
-  restarted.advance(48 * 3600000 + 1); assert.equal(restarted.state(ro, rs).queue.length, 0);
+  assert.equal(restarted.state(ro, rs).queue.length, 1); assert.equal(restarted.state(ro, rs).requestsEnabled, false);
+  restarted.advance(48 * 3600000 + 1); assert.equal(restarted.state(ro, rs).queue.length, 1);
 });
-test('On-Air nutzt echten Nick; erfolgreiche Abmeldung löscht das Thema; Anmeldung läuft ab', () => {
+test('On-Air nutzt echten Nick; erfolgreiche Abmeldung löscht das Thema; Anmeldung bleibt ohne Zeitlimit aktiv', () => {
   const { h, listener, owner, ls, os } = fixture(); listener.role = 'moderator'; appoint(h,owner,os,listener);
   h.event(owner,os,'mw:setTopic',{topic:'Rock'});
   h.event(listener, ls, 'mw:onAir', { nick: 'Fälschung' });
@@ -705,9 +706,9 @@ test('On-Air nutzt echten Nick; erfolgreiche Abmeldung löscht das Thema; Anmeld
   h.event(owner,os,'mw:setTopic',{topic:'Jazz'});
   assert.equal(lastResult(h.event(owner,os,'mw:offAir')).ok,false,'Ohne aktive Moderation gibt es keine erfolgreiche Abmeldung');
   assert.equal(h.state(owner,os).topic,'Jazz','Abmeldung ohne aktive Moderation entfernt kein Thema');
-  h.event(listener, ls, 'mw:onAir'); h.advance(6 * 3600000 + 1);
-  assert.equal(h.state(owner, os).moderator, null);
-  assert.equal(h.state(owner,os).topic,'Jazz','Automatischer Ablauf behält das Thema');
+  h.event(listener, ls, 'mw:onAir'); h.advance(48 * 3600000 + 1);
+  assert.equal(h.state(owner, os).moderator.nick,listener.nick);
+  assert.equal(h.state(owner,os).topic,'Jazz','Zeitablauf verändert das Thema nicht');
 });
 
 test('ON AIR endet beim Channel-Verlassen oder Rechteverlust und behält Wünsche und Thema',()=>{
@@ -726,20 +727,20 @@ test('ON AIR endet beim Channel-Verlassen oder Rechteverlust und behält Wünsch
   assert.equal(h.state(owner,os).moderator,null,'Auch verpassten Leave-Hook beim nächsten Lesen erkennen');
 });
 
-test('Studio-Rechte, bewusste Verlängerung und veraltete Abmeldungen folgen der echten Moderationssitzung',()=>{
+test('Studio-Rechte, wiederholtes Anmelden und veraltete Abmeldungen folgen der echten Moderationssitzung',()=>{
   const {h,listener,owner,os}=fixture();
   const mod=h.user(9,'Sendemod','moderator'),ms=h.open(mod),other=h.user(10,'ZweiterMod','moderator'),ss=h.open(other);
   appoint(h,owner,os,mod);appoint(h,owner,os,other);
   assert.equal(h.state(owner,os).user.canEndModeration,false);
   h.event(mod,ms,'mw:onAir',{expectedModerator:null});
-  let state=h.state(mod,ms),key=state.moderator.sessionKey,expires=state.moderator.expiresAt;
+  let state=h.state(mod,ms),key=state.moderator.sessionKey,since=state.moderator.since;
   assert.equal(state.user.isOnAir,true);assert.equal(state.user.canEndModeration,true);
   assert.equal(h.state(other,ss).user.canEndModeration,false);assert.equal(h.state(owner,os).user.canEndModeration,true);
   assert.equal(h.state(listener,h.open(listener)).user.canEndModeration,false);
   assert.equal(lastResult(h.event(other,ss,'mw:offAir',{canEndModeration:true})).ok,false);
   h.advance(60000);h.event(mod,ms,'mw:onAir',{expectedModerator:key});
-  state=h.state(mod,ms);assert.ok(state.moderator.expiresAt>expires);assert.notEqual(state.moderator.sessionKey,key);
-  assert.equal(lastResult(h.event(owner,os,'mw:offAir',{expectedModerator:key})).ok,false);
+  state=h.state(mod,ms);assert.equal(state.moderator.since,since);assert.equal(state.moderator.sessionKey,key);
+  assert.equal(lastResult(h.event(owner,os,'mw:offAir',{expectedModerator:'veraltet'})).ok,false);
   key=state.moderator.sessionKey;
   h.event(mod,ms,'mw:handover.request',{expectedModerator:key,nick:other.nick});
   h.event(other,ss,'mw:handover.accept',{id:h.state(other,ss).handover.incoming.id,topic:''});
@@ -963,9 +964,10 @@ test('Historische Wünsche werden nicht in die neue Laufzeitqueue übernommen', 
   assert.equal(h.state(listener, session).myTotal, 0);
   assert.equal(h.state(owner, ownerSession).queueTotal,1);
 });
-test('Wünsche sind vollständig von jeder Persistenz getrennt', () => {
+test('Wünsche bleiben vom allgemeinen Zustandsobjekt getrennt', () => {
   const { h, listener, owner, ls, os } = fixture();
-  h.store.setObject = () => { throw new Error('allgemeiner Zustand gesperrt'); };
+  const write=h.store.setObject;
+  h.store.setObject = (key,value) => { if(key==='mischwerk.state.v1')throw new Error('allgemeiner Zustand gesperrt');write(key,value); };
   assert.equal(lastResult(h.event(listener, ls, 'mw:wish.submit', { text: 'Eigener Speicherweg', submissionId: 'separate-store' })).ok, true);
   assert.equal(h.state(listener, ls).myRequests.length,0);
   assert.equal(h.state(owner, os).queue[0].text,'Eigener Speicherweg');
@@ -1083,7 +1085,7 @@ test('Einzelfeld wird serverseitig validiert und nur in die laufende Queue über
   assert.equal(lastResult(h.event(listener,ls,'mw:wish.submit',{text:'  Wunsch\nmit   Gruß  '})).ok,true);
   assert.equal(h.state(owner,os).queue[0].text,'Wunsch mit Gruß');
   const restarted=createHarness(h.store),person=restarted.user(2,'Otterchen','owner');
-  assert.equal(restarted.state(person,restarted.open(person)).queueTotal,0);
+  assert.equal(restarted.state(person,restarted.open(person)).queueTotal,1);
 });
 
 test('Musikwünsche lehnen Links im Backend ab und erlauben normale Interpret-/Titel-Namen',()=>{
@@ -1120,7 +1122,7 @@ test('Zustellung erfordert eine berechtigte Studiositzung und genau den angezeig
   owner.role='listener';
   assert.equal(lastResult(h.event(owner,studio,'mw:ackRequest',{id:second.id})).ok,false);
   const restarted=createHarness(h.store),person=restarted.user(2,owner.nick,'owner');
-  assert.equal(restarted.state(person,restarted.open(person)).queueTotal,0);
+  assert.equal(restarted.state(person,restarted.open(person)).queueTotal,2);
 });
 test('Viele Wünsche bleiben nur in der Moderation paginiert und unter dem Eventlimit', () => {
   const {h,listener,owner,ls,os}=fixture();

@@ -65,9 +65,11 @@ MischWerkUI.define('commands', function (dependencies) {
       if (type === 'mw:setTopic') {
         signals.emit('topic-started', { requestId: requestId, value: data.topic });
       }
+      if (type === 'mw:setTicker') { signals.emit('ticker-started', requestId); }
       pendingTimer = setTimeout(function () {
         pending = null; refreshControls();
-        if (type === 'mw:setTopic') { signals.emit('topic-error', 'Noch keine Bestätigung. Bitte erneut prüfen und speichern.'); }
+        if (type === 'mw:setTicker') { signals.emit('ticker-error', 'Noch keine Bestätigung. Bitte aktuellen Stand prüfen. Dein Entwurf bleibt erhalten.'); }
+        else if (type === 'mw:setTopic') { signals.emit('topic-error', 'Noch keine Bestätigung. Bitte erneut prüfen und speichern.'); }
         else { layout.notify('Noch keine Bestätigung erhalten. Bitte aktualisiere vor einem erneuten Versuch.', true, type); }
         send('mw:refresh', {}, false);
       }, 15000);
@@ -76,7 +78,8 @@ MischWerkUI.define('commands', function (dependencies) {
     catch (error) {
       if (mutation && pending && pending.requestId === requestId) { pending = null; clearTimeout(pendingTimer); }
       refreshControls();
-      if (type === 'mw:setTopic') { signals.emit('topic-error', 'Speichern nicht bestätigt. Bitte erneut versuchen.'); }
+      if (type === 'mw:setTicker') { signals.emit('ticker-error', 'Speichern nicht bestätigt. Dein Entwurf bleibt erhalten.'); }
+      else if (type === 'mw:setTopic') { signals.emit('topic-error', 'Speichern nicht bestätigt. Bitte erneut versuchen.'); }
       else { layout.notify('Verbindung unterbrochen. Bitte erneut öffnen.', true, type); }
     }
   }
@@ -90,7 +93,7 @@ MischWerkUI.define('commands', function (dependencies) {
     pending = null; clearTimeout(pendingTimer);
     signals.emit('command-result', response);
     refreshControls();
-    if (response.action !== 'mw:setTopic' && response.action !== 'mw:channelTexts.save' && (!response.ok ||
+    if (response.action !== 'mw:setTopic' && response.action !== 'mw:setTicker' && response.action !== 'mw:channelTexts.save' && (!response.ok ||
         (response.action !== 'mw:openWishes' && response.action !== 'mw:openStudio' && response.action !== 'mw:openRadioTeam' && response.action !== 'mw:openSchedule'))) {
       if (response.action !== 'mw:removeRadioModerator' || response.ok || !document.getElementById('team-removal-confirm')) {
         layout.notify(response.message, !response.ok, response.action);

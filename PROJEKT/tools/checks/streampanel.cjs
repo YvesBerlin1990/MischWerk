@@ -60,7 +60,8 @@ async function main() {
   report.stream = await probeStream(station, api);
   for (const [name, available, read] of [
     ['status', urls.status, () => api.fetchStationStatus(station)],
-    ['metadata', urls.metadata, () => api.fetchMetadata(station)]
+    ['metadata', urls.metadata, () => api.fetchMetadata(station)],
+    ['mode', urls.mode, () => api.fetchBroadcastMode(station)]
   ]) {
     if (!available) { report.data[name] = { status: 'pending', reason: 'Öffentlicher Anschluss/Feldzuordnung fehlt.' }; continue; }
     try { report.data[name] = { status: 'received', value: await read() }; }

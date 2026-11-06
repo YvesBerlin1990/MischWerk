@@ -36,7 +36,7 @@ test('Übergabe wechselt erst bei Annahme Moderator und Thema gemeinsam; Queue u
   assert.equal(after.user.isOnAir, true); assert.equal(after.topic, 'Neue Sendung');
   assert.equal(after.requestsEnabled, false); assert.equal(after.queueTotal, 1);
   assert.notEqual(after.moderator.sessionKey, before.moderator.sessionKey);
-  assert.equal(after.moderator.expiresAt - after.serverTime, 6 * 3600000);
+  assert.equal('expiresAt' in after.moderator,false);
   assert.equal(after.handover.incoming, null);
   assert.equal(h.bot.messages[1], '🎙️ Otterchen macht Platz im Studio – Nächster DJ ist jetzt live ON AIR bei Radio MischWerk!');
   assert.equal(result(h.event(dj, ds, 'mw:handover.accept', { id })).ok, false);
@@ -127,15 +127,13 @@ test('Speicher- und Validierungsfehler bei Annahme erhalten Anfrage, bisherige M
   assert.equal(h.state(dj, ds).topic, '');
 });
 
-for (const cause of ['Absender verlässt Channel', 'Ziel verlässt Channel', 'Ziel verliert Ernennung', 'Ziel gelöscht', 'Ablauf', 'Abmeldung', 'Verlängerung', 'Shutdown']) {
+for (const cause of ['Absender verlässt Channel', 'Ziel verlässt Channel', 'Ziel verliert Ernennung', 'Ziel gelöscht', 'Abmeldung', 'Shutdown']) {
   test('Offene Übergabe verfällt endgültig bei: ' + cause, () => {
     const { h, owner, os, dj, ds, request } = fixture(); const id = request();
     if (cause.includes('verlässt')) { const user = cause.startsWith('Absender') ? owner : dj; user.online = false; h.app.onUserLeft(user); user.online = true; h.app.onUserJoined(user); }
     if (cause === 'Ziel verliert Ernennung') { h.event(owner, os, 'mw:removeRadioModerator', { userId: dj.id }); }
     if (cause === 'Ziel gelöscht') { h.app.onUserDeleted(dj.id); }
-    if (cause === 'Ablauf') { h.advance(6 * 3600000 + 1); }
     if (cause === 'Abmeldung') { h.event(owner, os, 'mw:offAir'); }
-    if (cause === 'Verlängerung') { h.event(owner, os, 'mw:onAir'); }
     if (cause === 'Shutdown') { h.app.onPrepareShutdown(); }
     const currentSession = dj.sessions[0] || ds;
     assert.equal(h.state(dj, currentSession).handover.incoming, null);

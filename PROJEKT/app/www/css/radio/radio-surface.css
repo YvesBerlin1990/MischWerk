@@ -21,9 +21,15 @@ html[data-view=radio] body::after {
   html[data-view=radio] body::after { position:fixed; inset:auto 0 0; height:16px; }
   html[data-view=radio].radio-constrained body::after { height:8px; }
 }
-.radio-bar {
-  flex-shrink:0;
+.radio-bar { flex-shrink:0; }
+.radio-deck {
   --mw-vinyl-groove:rgba(222,230,240,.045);
+  --mw-deck-grooves:
+    radial-gradient(ellipse at 55% -18%,rgba(112,129,148,.085),transparent 62%),
+    repeating-radial-gradient(circle at 92% -150px,transparent 0 19px,var(--mw-vinyl-groove) 20px 21px,transparent 22px 35px);
+  --mw-deck-schematic:
+    repeating-radial-gradient(circle at 86% -220px,transparent 0 16px,rgba(220,227,237,.035) 17px 18px,transparent 19px 32px),
+    linear-gradient(116deg,transparent 30%,rgba(207,216,229,.028) 61%,transparent 91%);
   --mw-halo-core:rgba(236,244,255,.76);
   --mw-halo-near:rgba(205,226,248,.53);
   --mw-halo-medium:rgba(164,195,229,.36);
@@ -37,9 +43,7 @@ html[data-view=radio] body::after {
   inset:0;
   z-index:-2;
   pointer-events:none;
-  background:
-    radial-gradient(ellipse at 55% -18%,rgba(112,129,148,.085),transparent 62%),
-    repeating-radial-gradient(circle at 92% -150px,transparent 0 19px,var(--mw-vinyl-groove) 20px 21px,transparent 22px 35px);
+  background:var(--mw-deck-grooves);
   -webkit-mask-image:linear-gradient(90deg,transparent 8%,rgba(0,0,0,.18) 42%,#000 100%);
   mask-image:linear-gradient(90deg,transparent 8%,rgba(0,0,0,.18) 42%,#000 100%);
   opacity:.7;
@@ -52,14 +56,13 @@ html[data-view=radio] body::after {
   inset:1px;
   border-radius:inherit;
   pointer-events:none;
-  background:
-    repeating-radial-gradient(circle at 86% -220px,transparent 0 16px,rgba(220,227,237,.035) 17px 18px,transparent 19px 32px),
-    linear-gradient(116deg,transparent 30%,rgba(207,216,229,.028) 61%,transparent 91%);
+  background:var(--mw-deck-schematic);
   opacity:.9;
 }
 /* body.playing gehört bereits dem Player: kein eigener Klickzustand oder Timer.
    Ohne Übergang erlischt der Halo auch beim Nachladen oder Fehler unmittelbar. */
-.playing .radio-program-face {
+.playing .radio-program-face,
+.radio-has-ticker .playing .radio-deck::before {
   animation:mw-halo-rgb 48s linear infinite;
   border-color:#f0f4fa;
   box-shadow:

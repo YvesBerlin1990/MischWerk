@@ -35,6 +35,23 @@ function setup(t) {
   return { runtime, events, faults, join, state };
 }
 
+test('Einmalprüfung im integrierten Emulator meldet nicht modellierte HTTP-API statt nativen Erfolg', t => {
+  for (const command of ['http-pruefen', 'auth-pruefen']) {
+  const f = setup(t); f.join('Otterchen');
+  const api = f.runtime.persistence.api(), key = 'mischwerk.android.private.v1';
+  api.setObject(key, { enabled:false, runtimeVerified:false, syncSecret:'s'.repeat(64),
+    syncUrl:'https://radio-mischwerk.web.app/api/publishKnuddelsState', revision:1 });
+  const before = JSON.stringify(api.getObject(key));
+  f.runtime.command('Otterchen', 'mischwerk-relay', command);
+  const response = f.events.findLast(e => e.kind === 'private' && e.nick === 'Otterchen');
+  assert.ok(response); const result = JSON.parse(response.message);
+  assert.equal(result.nativeResponseAccepted, false); assert.ok(result.errors.includes('send-unavailable'));
+  assert.equal(JSON.stringify(api.getObject(key)), before); assert.equal(result.firestoreWriteConfirmed, null);
+  assert.ok(f.runtime.errors.some(e => JSON.stringify(e).includes('getExternalServerAccess')));
+  if (command === 'auth-pruefen') { assert.equal(result.authenticationAccepted, false); }
+  }
+});
+
 test('Plattformbefehl /confirm wird nur protokolliert, ohne erfundenen nativen Idle-Erfolg',t=>{
  const {runtime,events,join,state}=setup(t);assert.throws(()=>runtime.command('Otterchen','/confirm'),/Channelbeitritt/);
  const id=join('Otterchen'),before=state('Otterchen',id),count=events.length;
@@ -82,25 +99,27 @@ test('100 Wünsche, wiederholte IDs und mehrere Hörer: Queue vollständig und p
   assert.equal(own.queue.length, 0);
   assert.equal(events.filter(event => event.eventType === 'mw:wish.receipt' && event.eventData.accepted).length, 101);
 });
-test('Speicherfehler bestätigen keine Änderung; die flüchtige Wunschqueue bleibt benutzbar', t => {
+test('Speicherfehler bestätigen weder Thema noch Wunsch; erneutes Senden gelingt nach Erholung', t => {
   const { runtime, join, state, faults } = setup(t), owner = join('Otterchen');
   faults.failPersistence = true;
   runtime.event('Otterchen', owner, 'mw:setTopic', { topic: 'Nicht speichern' });
   assert.equal(state('Otterchen', owner).topic, '');
   assert.equal(runtime.persistence.api().getObject('mischwerk.state.v1', null), null);
   runtime.event('Otterchen', owner, 'mw:wish.submit', { submissionId: 'memory-test', text: 'Interpret – Titel' });
-  assert.equal(state('Otterchen', owner).queueTotal, 1);
+  assert.equal(state('Otterchen', owner).queueTotal, 0);
   faults.failPersistence = false;
+  runtime.event('Otterchen', owner, 'mw:wish.submit', { submissionId: 'memory-test', text: 'Interpret – Titel' });
+  assert.equal(state('Otterchen', owner).queueTotal, 1);
   runtime.event('Otterchen', owner, 'mw:setTopic', { topic: 'Jetzt gespeichert' });
   assert.equal(state('Otterchen', owner).topic, 'Jetzt gespeichert');
 });
-test('Sieben Stunden Zeitsprung beenden eine echte Studio-Anmeldung', t => {
+test('Auch sieben Stunden Zeitsprung beenden eine Studio-Anmeldung nicht', t => {
   const { runtime, join, state } = setup(t), owner = join('Otterchen');
   runtime.event('Otterchen', owner, 'mw:onAir', {});
   assert.equal(state('Otterchen', owner).user.isOnAir, true);
   runtime.clock.advance(7 * 3600000);
-  assert.equal(state('Otterchen', owner).moderator, null);
-  assert.equal(state('Otterchen', owner).user.isOnAir, false);
+  assert.equal(state('Otterchen', owner).user.isOnAir, true);
+  assert.equal('expiresAt' in state('Otterchen', owner).moderator, false);
 });
 test('Radioende schließt alle zugehörigen Channel-Overlays', t => {
   const { runtime, join } = setup(t), owner = join('Otterchen');
@@ -245,16 +264,18 @@ test('Doppeltes Senden und verlorene Quittung behalten dieselbe Wunsch-ID', asyn
   assert.equal(instance.hub.trace.filter(item => item.kind === 'droppedServer').length, 1);
   assert.equal(instance.hub.trace.filter(item => item.kind === 'sessionEvent' && item.eventType === 'mw:state').at(-1).eventData.queueTotal, 1);
 });
-test('Neustart erhält Thema und Testrollen, leert Queue und verwirft verspätete alte Pakete', async t => {
+test('Neustart erhält bestätigte Wünsche, Thema und Rollen und verwirft verspätete alte Pakete', async t => {
   const instance = await server(t), client = await peer(t, instance);
   client.send({ type: 'join', nick: 'Otterchen' }); const first = await client.wait(message => message.type === 'contentShow');
   client.send({ type: 'event', sessionId: first.sessionId, eventType: 'mw:setTopic', eventData: { topic: 'Bleibt gespeichert' } });
   await client.wait(message => message.type === 'sessionEvent' && message.eventType === 'mw:state' && message.eventData.topic === 'Bleibt gespeichert');
+  client.send({ type: 'event', sessionId: first.sessionId, eventType: 'mw:wish.submit', eventData: { text: 'Bestätigt', submissionId: 'saved' } });
+  await client.wait(message => message.type==='sessionEvent' && message.eventType==='mw:wish.receipt' && message.eventData.accepted);
   client.send({ type: 'faults', value: { clientDelayMs: 100 } });
   client.send({ type: 'event', sessionId: first.sessionId, eventType: 'mw:wish.submit', eventData: { text: 'Alt', submissionId: 'old' } });
   client.send({ type: 'restart' });
   const next = await client.wait(message => message.type === 'contentShow' && message.sessionId !== first.sessionId);
-  assert.equal(next.pageData.topic, 'Bleibt gespeichert'); assert.equal(next.pageData.queueTotal, 0);
+  assert.equal(next.pageData.topic, 'Bleibt gespeichert'); assert.equal(next.pageData.queueTotal, 1);assert.equal(next.pageData.queue[0].text,'Bestätigt');
   await new Promise(resolve => setTimeout(resolve, 150));
   assert.equal(instance.hub.runtime.contents.sessions.has(first.sessionId), false);
   assert.equal(instance.hub.deliveryTimers.size, 0);

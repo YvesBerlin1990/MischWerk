@@ -1,25 +1,20 @@
-/* Eine flüchtige Wunschqueue; private Positionen werden ausschließlich daraus abgeleitet. */
+/* Eine dauerhafte Wunschqueue; private Positionen werden ausschließlich daraus abgeleitet. */
 MischWerkModules.attachWishQueue = function (runtime) {
     'use strict';
 
     runtime.wishPhase = 'WISH_VALIDATE';
-    function emptyQueue() {
-        return { nextId: 1, items: [], submissionIds: {}, revision: 0,
-            generation: String(runtime.now()) + '-' + String(Math.random()).slice(2) };
-    }
-    var wishQueue = emptyQueue();
+    var wishQueue = null;
 
     function validSubmissionId(value) {
         return typeof value === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(value);
     }
     function queueState() {
-        var queue = wishQueue;
-        if (!queue || typeof queue !== 'object' || typeof queue.nextId !== 'number' ||
-                !Array.isArray(queue.items) || !queue.submissionIds || typeof queue.submissionIds !== 'object') {
-            queue = emptyQueue();
-            wishQueue = queue;
+        if (!wishQueue) {
+            var saved = runtime.readWishes();
+            saved.generation = String(runtime.now()) + '-' + String(Math.random()).slice(2);
+            wishQueue = saved;
         }
-        return queue;
+        return wishQueue;
     }
     function safeNick(user) {
         var nick = '';
@@ -35,19 +30,31 @@ MischWerkModules.attachWishQueue = function (runtime) {
         } catch (error) { return ''; }
     }
 
-    // Die Wunschliste ist absichtlich nur Laufzeitzustand. Sie wird weder in den allgemeinen
-    // App-Zustand noch in einen eigenen AppPersistence-Schlüssel geschrieben.
+    function commit(next, quiet) {
+        runtime.saveWishes(next);
+        wishQueue = next;
+        if (!quiet) { runtime.changed('wishes'); }
+    }
+    function remember(queue, item, outcome) {
+        queue.replays.push({ submissionId: item.submissionId, id: item.id, senderKey: item.senderKey,
+            outcome: outcome === 'done' ? 'done' : 'discarded' });
+        queue.replays = queue.replays.slice(-256);
+    }
+    runtime.wishOutcome = function (id) {
+        var rows = queueState().replays;
+        for (var index = 0; index < rows.length; index += 1) {
+            if (rows[index].submissionId === id) { return rows[index].outcome; }
+        }
+        return null;
+    };
     function itemById(queue, id) {
         for (var index = 0; index < queue.items.length; index += 1) {
             if (queue.items[index].id === id) { return queue.items[index]; }
         }
         return null;
     }
-    function itemBySubmissionId(queue, submissionId) {
-        var id = queue.submissionIds['$' + submissionId];
-        return id === undefined ? null : itemById(queue, id);
-    }
 
+    runtime.commitWebsiteWishes = commit;
     runtime.loadWishes = function () { return queueState(); };
     runtime.wishItems = function () { return queueState().items; };
     runtime.wishPositions = function (user, page) {
@@ -77,7 +84,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
         var queue = queueState();
         var submissionKey = '$' + data.submissionId;
         if (queue.submissionIds[submissionKey] !== undefined) {
-            return { duplicate: true, item: itemBySubmissionId(queue, data.submissionId) };
+            return { duplicate: true, item: itemById(queue, queue.submissionIds[submissionKey]) };
         }
         if (runtime.shuttingDown || !runtime.state || runtime.state.requestsEnabled !== true) {
             throw runtime.failure('Die Wunschbox ist deaktiviert.');
@@ -90,11 +97,12 @@ MischWerkModules.attachWishQueue = function (runtime) {
         var item = { id: queue.nextId, senderKey: safeUserKey(user), nick: safeNick(user), text: wishText,
             submissionId: data.submissionId, createdAt: runtime.now(), delivery: null };
         runtime.wishPhase = 'WISH_COMMIT';
+        queue = runtime.copy(queue);
         queue.nextId += 1;
         queue.submissionIds[submissionKey] = item.id;
         queue.items[queue.items.length] = item;
         queue.revision += 1;
-        runtime.changed('wishes');
+        commit(queue);
         return { duplicate: false, item: item };
     };
     runtime.enqueueAndroidWish = function (data, remember, confirm) {
@@ -107,47 +115,56 @@ MischWerkModules.attachWishQueue = function (runtime) {
         var item = { id: queue.nextId, senderKey: '', nick: 'Android', text: value,
             source: 'Android', externalSubmissionId: data.submissionId, submissionId: 'android:' + data.submissionId,
             createdAt: runtime.now(), delivery: null };
-        // Der technische Marker muss gespeichert sein, bevor eine Annahme quittiert werden kann.
         remember(item, queue.items.length + 1);
-        queue.items.push(item);
-        try { confirm(item); }
-        catch (error) { queue.items.pop(); throw error; }
+        queue = runtime.copy(queue);
+        queue.items.push(item); queue.submissionIds['$' + item.submissionId] = item.id;
         queue.nextId += 1; queue.revision += 1;
+        commit(queue, true);
+        try { confirm(item); } catch (error) { runtime.warn('ANDROID_RECEIPTS_WRITE'); }
         runtime.changed('wishes');
     };
     runtime.deliverWish = function (id, moderator) {
-        var item = itemById(queueState(), id);
+        var queue = runtime.copy(queueState()), item = itemById(queue, id);
         if (!item) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
         if (item.delivery) { return false; }
-        item.delivery = { nick: safeNick(moderator), at: runtime.now() };
-        runtime.changed('wishes');
+        item.delivery = { nick: safeNick(moderator), at: runtime.now(), senderKey: safeUserKey(moderator) };
+        commit(queue);
         return true;
     };
     runtime.resolveWish = function (id, outcome) {
-        var queue = queueState();
+        var queue = runtime.copy(queueState());
         var remaining = [];
-        var found = false;
+        var removed = null;
         for (var index = 0; index < queue.items.length; index += 1) {
             if (queue.items[index].id === id) {
-                runtime.changed('wish-removed', { item: queue.items[index], outcome: outcome });
-                found = true;
+                removed = queue.items[index];
             }
             else { remaining[remaining.length] = queue.items[index]; }
         }
-        if (!found) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
+        if (!removed) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
         queue.items = remaining;
+        remember(queue, removed, outcome);
         queue.revision += 1;
-        runtime.changed('wishes');
+        commit(queue);
+        runtime.changed('wish-removed', { item: removed, outcome: outcome });
     };
     runtime.removeWishesForUser = function (userId) {
         var expected = safeUserKey(userId);
         if (!expected) { return; }
-        var queue = queueState();
-        var remaining = [];
+        var queue = runtime.copy(queueState());
+        var remaining = [], redacted = false;
+        queue.items.forEach(function (item) {
+            if (item.delivery && item.delivery.senderKey === expected) {
+                item.delivery = { nick: 'Radio-Team', at: item.delivery.at }; redacted = true;
+            }
+        });
         for (var index = 0; index < queue.items.length; index += 1) {
             if (queue.items[index].senderKey !== expected) { remaining[remaining.length] = queue.items[index]; }
         }
-        if (remaining.length !== queue.items.length) { queue.items = remaining; queue.revision += 1; runtime.changed('wishes'); }
+        var replays = queue.replays.filter(function (row) { return row.senderKey !== expected; });
+        if (redacted || remaining.length !== queue.items.length || replays.length !== queue.replays.length) {
+            queue.items = remaining; queue.replays = replays; queue.revision += 1; commit(queue);
+        }
     };
     runtime.resolveRequest = function (user, data) {
         if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf diese Aktion ausführen.'); }
@@ -158,7 +175,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
     };
     runtime.changeWishStage = function (user, data) {
         if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf Wünsche bearbeiten.'); }
-        var queue = queueState(), item = itemById(queue, data.id);
+        var queue = runtime.copy(queueState()), item = itemById(queue, data.id);
         if (!item) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
         if (['queued', 'preparing', 'playing'].indexOf(data.stage) === -1) {
             throw runtime.failure('Bitte einen gültigen Wunschstatus wählen.');
@@ -173,6 +190,6 @@ MischWerkModules.attachWishQueue = function (runtime) {
         }
         item.stage = data.stage;
         queue.revision += 1;
-        runtime.changed('wishes');
+        commit(queue);
     };
 };

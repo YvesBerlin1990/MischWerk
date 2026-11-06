@@ -101,6 +101,7 @@ MischWerkUI.define('overlays', function (dependencies) {
     document.addEventListener('change', save);
     document.addEventListener('click', queueSave);
     signals.on('command-result', queueSave);
+    signals.on('overlay-dirty', function () { clearTimeout(saveTimer); saveTimer = setTimeout(save, 400); });
     window.addEventListener('pagehide', function () {
       save(); clearTimeout(timer); clearTimeout(saveTimer); clearTimeout(closeTimer);
     });

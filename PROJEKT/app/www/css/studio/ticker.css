@@ -1,0 +1,15 @@
+/* Eigenständiger Lauftextreiter im vorhandenen Moderationsfenster. */
+#studio-ticker-panel { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; }
+.ticker-editor { padding:20px; border:1px solid var(--line); border-radius:18px; background:var(--studio-surface); }
+.ticker-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.ticker-heading h3 { margin:0; }
+#ticker-count { color:var(--muted); font-size:12px; white-space:nowrap; }
+#ticker-text { width:100%; min-height:86px; resize:vertical; }
+.ticker-options { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+.ticker-options select { display:block; width:100%; margin-top:5px; min-height:44px; }
+.ticker-enabled { display:flex; align-items:center; gap:10px; min-height:44px; margin-top:10px; }
+.ticker-editor #ticker-enabled { flex:none; display:inline-block; width:20px; min-width:20px; max-width:20px; height:20px; min-height:20px; margin:0; padding:0; accent-color:#e6c77b; }
+#ticker-feedback { min-height:40px; margin:4px 0 8px; color:var(--muted); overflow-wrap:anywhere; }
+#ticker-feedback.error { color:var(--error); }
+.ticker-editor .button-row { flex-wrap:wrap; }
+@media (max-width:390px) { .ticker-options { grid-template-columns:minmax(0,1fr); } }

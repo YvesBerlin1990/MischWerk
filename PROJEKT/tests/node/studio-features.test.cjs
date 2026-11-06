@@ -12,58 +12,49 @@ function fixture() {
 }
 function at(f, utc) { f.h.advance(Date.parse(utc) - f.h.state(f.owner,f.os).serverTime); }
 
-function endSetting(f, values, person = f.owner, session = f.os) {
-  return result(f.h.event(person,session,'mw:onAir',{
-    expectedModerator:f.h.state(person,session).moderator?.sessionKey,endMode:'fixed',endLocal:'2026-11-05T23:00',...values
-  }));
-}
-
-test('Moderation: feste Endzeit ist eine tatsächliche Änderung in Berliner Zeit, Beginn und Sendung bleiben erhalten',()=>{
-  const f=fixture();at(f,'2026-11-05T18:00:00Z');
-  f.h.event(f.owner,f.os,'mw:onAir');f.h.event(f.owner,f.os,'mw:setTopic',{topic:'Abendshow'});
-  f.h.event(f.a,f.as,'mw:wish.submit',{text:'Erster Song'});
-  const previous=f.h.state(f.owner,f.os).moderator,messages=f.h.bot.messages.length;
-  const saved=endSetting(f,{});assert.equal(saved.ok,true,saved.message);assert.match(saved.message,/23:00/);
-  const state=f.h.state(f.owner,f.os);assert.equal(state.moderator.expiresAt,Date.parse('2026-11-05T22:00:00Z'));
-  assert.equal(state.moderator.since,previous.since);assert.notEqual(state.moderator.sessionKey,previous.sessionKey);
-  assert.equal(state.topic,'Abendshow');assert.equal(state.queueTotal,1);assert.equal(f.h.bot.messages.length,messages);
+test('Studio-Anmeldung bleibt ohne Zeitlimit aktiv und veröffentlicht keine End- oder Restzeit',()=>{
+ const f=fixture();f.h.event(f.owner,f.os,'mw:onAir');f.h.event(f.owner,f.os,'mw:setTopic',{topic:'Sendung ohne Zeitlimit'});
+ f.h.event(f.a,f.as,'mw:wish.submit',{text:'Bleibt erhalten'});
+ const before=f.h.state(f.owner,f.os),messages=f.h.bot.messages.length;
+ assert.deepEqual(Object.keys(before.moderator).sort(),['nick','sessionKey','since']);
+ f.h.advance(2*86400000);const after=f.h.state(f.owner,f.os);
+ assert.equal(after.user.isOnAir,true);assert.deepEqual(after.moderator,before.moderator);
+ assert.equal(after.topic,before.topic);assert.equal(after.queueTotal,1);assert.equal(f.h.bot.messages.length,messages);
 });
 
-test('Moderation: Open End bleibt über sechs Stunden aktiv und kann wieder ein festes Ende erhalten',()=>{
-  const f=fixture();at(f,'2026-11-05T18:00:00Z');f.h.event(f.owner,f.os,'mw:onAir');
-  assert.equal(endSetting(f,{endMode:'openEnd'}).ok,true);
-  let state=f.h.state(f.owner,f.os);assert.equal(state.moderator.expiresAt,null);assert.equal(state.moderator.openEnd,true);
-  f.h.advance(2*86400000);state=f.h.state(f.owner,f.os);assert.equal(state.user.isOnAir,true);
-  assert.equal(result(f.h.event(f.owner,f.os,'mw:onAir')).ok,true,'Alter Client bestätigt, ohne Open End zu löschen');
-  assert.equal(f.h.state(f.owner,f.os).moderator.openEnd,true);
-  assert.equal(endSetting(f,{endLocal:'2026-11-08T01:00'}).ok,true);
-  assert.equal(f.h.state(f.owner,f.os).moderator.expiresAt,Date.parse('2026-11-08T00:00:00Z'));
-  f.h.advance(Date.parse('2026-11-08T00:00:00Z')-f.h.now());assert.equal(f.h.state(f.owner,f.os).moderator,null);
+test('Erneutes Anmelden und alte Verlängerungsdaten verändern eine aktive eigene Anmeldung nicht',()=>{
+ const f=fixture();f.h.event(f.owner,f.os,'mw:onAir');const before=f.h.state(f.owner,f.os);
+ f.h.event(f.owner,f.os,'mw:handover.request',{nick:f.dj.nick,expectedModerator:before.moderator.sessionKey});
+ const handover=f.h.state(f.owner,f.os).handover,messages=f.h.bot.messages.length;
+ for(const data of [{},{endMode:'fixed',endLocal:'2026-11-07T23:00'},{endMode:'openEnd'},{expiresAt:1,openEnd:false}]){
+  assert.equal(result(f.h.event(f.owner,f.os,'mw:onAir',{expectedModerator:before.moderator.sessionKey,...data})).ok,true);
+  const after=f.h.state(f.owner,f.os);assert.deepEqual(after.moderator,before.moderator);assert.equal(after.revision,before.revision);
+  assert.deepEqual(after.handover,handover);
+ }
+ assert.equal(f.h.bot.messages.length,messages);
+ assert.equal(result(f.h.event(f.dj,f.ds,'mw:onAir')).ok,false,'Fremde Anmeldung verlangt weiterhin bestätigte Übergabe');
+ assert.equal(result(f.h.event(f.a,f.as,'mw:onAir')).ok,false);
 });
 
-test('Moderation: Endzeit prüft eigenes Recht, aktuellen Schlüssel und gültige zukünftige deutsche Uhrzeit',()=>{
-  const f=fixture();at(f,'2026-11-05T18:00:00Z');f.h.event(f.dj,f.ds,'mw:onAir');
-  const before=JSON.stringify(f.h.state(f.dj,f.ds).moderator);
-  for(const input of [{endMode:'forever'},{endMode:null},{endLocal:'2026-11-05T18:00'},
-    {endLocal:'2026-02-30T20:00'},{endLocal:'2027-03-28T02:30'},{expectedModerator:null},{expectedModerator:undefined}]){
-    assert.equal(endSetting(f,input,f.dj,f.ds).ok,false,JSON.stringify(input));
-    assert.equal(JSON.stringify(f.h.state(f.dj,f.ds).moderator),before);
-  }
-  for(const [person,session] of [[f.owner,f.os],[f.a,f.as]])assert.equal(endSetting(f,{endMode:'openEnd'},person,session).ok,false);
-  assert.equal(endSetting(f,{endLocal:'2027-10-31T02:30'},f.dj,f.ds).ok,true);
-  assert.equal(f.h.state(f.dj,f.ds).moderator.expiresAt,Date.parse('2027-10-31T01:30:00Z'),'Spätere doppelte End-Uhrzeit');
+test('Alte gespeicherte Endzeiten werden entfernt; anwesende berechtigte Moderation bleibt ohne neue Beginnmeldung angemeldet',()=>{
+ const f=fixture();f.h.event(f.owner,f.os,'mw:onAir');const key='mischwerk.state.v1',before=f.h.store.getObject(key);
+ before.moderator.expiresAt=f.h.now()-3600000;before.moderator.openEnd=false;f.h.store.setObject(key,before);
+ const reboot=createHarness(f.h.store,{users:[{id:f.owner.id,nick:f.owner.nick,role:'owner'}]});
+ const owner=reboot.user(f.owner.id,f.owner.nick,'owner'),session=reboot.open(owner),state=reboot.state(owner,session);
+ assert.equal(state.user.isOnAir,true);assert.equal(state.moderator.since,before.moderator.since);
+ assert.equal('expiresAt' in reboot.store.getObject(key).moderator,false);assert.equal('openEnd' in reboot.store.getObject(key).moderator,false);
+ assert.equal(reboot.bot.messages.length,0);
 });
 
-test('Moderation: veraltete Endzeitänderung und Speicherfehler erhalten den bestätigten Stand',()=>{
-  const f=fixture();at(f,'2026-11-05T18:00:00Z');f.h.event(f.owner,f.os,'mw:onAir');
-  const key=f.h.state(f.owner,f.os).moderator.sessionKey;
-  assert.equal(endSetting(f,{endMode:'openEnd'}).ok,true);
-  assert.equal(f.h.state(f.owner,f.os).moderator.expiresAt,null);
-  assert.equal(endSetting(f,{expectedModerator:key}).ok,false);
-  const before=JSON.stringify(f.h.state(f.owner,f.os).moderator),set=f.h.store.setObject;
-  f.h.store.setObject=()=>{throw Error('Speicherfehler');};assert.equal(endSetting(f,{}).ok,false);f.h.store.setObject=set;
-  assert.equal(JSON.stringify(f.h.state(f.owner,f.os).moderator),before);
-  f.h.app.onUserLeft(f.owner);assert.equal(f.h.state(f.dj,f.ds).moderator,null,'Open End endet beim Channel-Verlassen');
+test('Anmelden und Abmelden bleiben atomar; veraltete Anmeldung und Speicherfehler verändern keinen bestätigten Zustand',()=>{
+ const f=fixture(),write=f.h.store.setObject;f.h.store.setObject=()=>{throw Error('private');};
+ assert.equal(result(f.h.event(f.owner,f.os,'mw:onAir')).ok,false);assert.equal(f.h.state(f.owner,f.os).moderator,null);
+ f.h.store.setObject=write;f.h.event(f.owner,f.os,'mw:onAir');f.h.event(f.owner,f.os,'mw:setTopic',{topic:'Noch aktiv'});
+ const before=f.h.state(f.owner,f.os);
+ assert.equal(result(f.h.event(f.owner,f.os,'mw:offAir',{expectedModerator:'alt'})).ok,false);
+ f.h.store.setObject=()=>{throw Error('private');};assert.equal(result(f.h.event(f.owner,f.os,'mw:offAir')).ok,false);
+ assert.deepEqual(f.h.state(f.owner,f.os).moderator,before.moderator);assert.equal(f.h.state(f.owner,f.os).topic,'Noch aktiv');
+ f.h.store.setObject=write;assert.equal(result(f.h.event(f.owner,f.os,'mw:offAir')).ok,true);assert.equal(f.h.state(f.owner,f.os).topic,'');
 });
 function schedule(f, date, start, end, nick, topic = 'Geplantes Thema') {
   const day = new Date(date+'T12:00:00Z'); day.setUTCDate(day.getUTCDate()-(day.getUTCDay()+6)%7);
@@ -75,22 +66,22 @@ function schedule(f, date, start, end, nick, topic = 'Geplantes Thema') {
   assert.equal(saved.ok,true,saved.message);
 }
 
-test('Wunschregie zeigt Status privat, erhält Plätze bis Abschluss und speichert keine Wünsche',()=>{
+test('Wunschregie zeigt Status privat, erhält Plätze bis Abschluss und speichert Wünsche getrennt vom Senderzustand',()=>{
   const f=fixture(),{h,owner,a,b,os,as,bs}=f;
   h.event(a,as,'mw:wish.submit',{text:'Erster Song'});h.event(b,bs,'mw:wish.submit',{text:'Zweiter Song'});
-  const state=h.state(owner,os), id=state.queue[0].id, before=JSON.stringify(h.store.data);
+  const state=h.state(owner,os), id=state.queue[0].id, before=JSON.stringify(h.store.data['mischwerk.state.v1']);
   for(const [previousStage,stage] of [['queued','preparing'],['preparing','playing']]){
     assert.equal(result(h.event(owner,os,'mw:setWishStage',{id,previousStage,stage})).ok,true);
     assert.equal(h.state(a,as).wishPositions.items[0].stage,stage);
     assert.equal(h.state(a,as).wishPositions.items[0].position,1);
     assert.equal(h.state(b,bs).wishPositions.items[0].position,2);
     assert.equal(h.state(b,bs).queue.length,0);
-    assert.equal(JSON.stringify(h.store.data),before);
+    assert.equal(JSON.stringify(h.store.data['mischwerk.state.v1']),before);
   }
   h.event(owner,os,'mw:resolveRequest',{id,outcome:'done'});
   assert.equal(h.state(a,as).wishPositions.total,0);assert.equal(h.state(b,bs).wishPositions.nextPosition,1);
   assert.equal(h.state(b,bs).wishPositions.items[0].stage,'queued');
-  assert.equal(JSON.stringify(h.store.data),before);
+  assert.equal(JSON.stringify(h.store.data['mischwerk.state.v1']),before);
   const read=h.store.getObject;let reads=0;h.store.getObject=()=>{reads++;throw Error('Plan nicht erreichbar');};
   h.advance(70000);
   const accepted=h.event(a,as,'mw:wish.submit',{text:'Auch bei abgelaufenem Plancache'}).find(e=>e.type==='mw:wish.receipt').data;

@@ -75,7 +75,8 @@ async function setup(t, width = 780, longNames = false) {
 }
 async function fits(page) {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-  for (const button of await page.locator('#handover-panel button:visible').all()) {
+  for (const button of await page.locator('#handover-panel button:visible').elementHandles()) {
+    if (!await button.isVisible()) { continue; }
     await button.scrollIntoViewIfNeeded();
     assert.equal(await button.evaluate(node => { const b = node.getBoundingClientRect(); return b.top >= 0 && b.bottom <= innerHeight; }), true);
   }
@@ -103,7 +104,7 @@ test('Bestätigte Übergabe im Browser: Auswahl, Warten, Annahme mit Thema und g
     await target.screenshot({ path: path.join(folder, 'Uebergabe-Annehmen.png') });
   }
   await reveal(target,'#handover-accept','handover');await target.locator('#handover-accept').click();
-  await reveal(target,'#on-air');await target.locator('#on-air').filter({ hasText: 'Endzeit ändern' }).waitFor();
+  await reveal(target,'#off-air');await target.locator('#off-air:not([disabled])').waitFor();
   await source.locator('#studio-host').filter({ hasText: 'Nächster DJ ist am Mikrofon' }).waitFor();
   assert.equal(await target.locator('#studio-topic').inputValue(), 'Die nächste Sendung');
   assert.equal(await target.locator('#handover-panel').isVisible(), false);
@@ -142,7 +143,7 @@ test('Ablehnen beendet nur die Anfrage; 320px-Studio bleibt mit Übergabeaktion 
   assert.equal(h.bot.messages.length, 1);
   assert.equal(await source.locator('#on-air').isVisible(), false, 'Übergabebereich bleibt getrennt vom Studio');
   await reveal(source,'#handover-back','handover');await source.locator('#handover-back').click();
-  await reveal(source,'#on-air');await source.locator('#on-air').waitFor(); await fits(source);
+  await reveal(source,'#off-air');await source.locator('#off-air:not([disabled])').waitFor(); await fits(source);
   assert.deepEqual(errors, []);
 });
 
@@ -215,7 +216,7 @@ test('Bestätigter Zustandswechsel schließt die Übergabe auch bei verlorener A
  assert.equal(await target.locator('#handover-panel').isVisible(),false,'Der authentifizierte Zustand bestätigt die abgeschlossene Übernahme');
  await reveal(target,'#studio-topic');assert.equal(await target.locator('#studio-topic').inputValue(),'Bestätigte neue Sendung');
  assert.equal(await target.locator('#topic-feedback').isVisible(),false,'Kein veralteter Entwurfshinweis nach bestätigter Übernahme');
- await reveal(target,'#on-air');assert.equal(await target.locator('#on-air').isDisabled(),false,'Bestätigte Übernahme lässt keine unnötige Quittungssperre zurück');
+ await reveal(target,'#off-air');assert.equal(await target.locator('#off-air').isDisabled(),false,'Bestätigte Übernahme lässt keine unnötige Quittungssperre zurück');
  await target.clock.runFor(16000);assert.equal(await target.locator('#notice.error').isVisible(),false,'Keine falsche Zeitüberschreitung nach bestätigtem Wechsel');
  await reveal(target,'#studio-topic');await target.locator('#studio-topic').fill('Meine nachträgliche Korrektur');
  await target.evaluate(()=>{const sent=window.__sent.find(e=>e.type==='mw:handover.accept');window.__emit('mw:result',{ok:true,action:sent.type,requestId:sent.data.requestId,message:'Sendung übernommen.'});});
@@ -232,14 +233,14 @@ test('Ohne frischen bestätigten Übergabezustand wird kein Erfolg erfunden; ver
  assert.equal(await target.locator('#handover-panel').isVisible(),true,'Alter Zustand bestätigt keine Übernahme');
  assert.equal(await target.locator('#handover-accept').isDisabled(),true);
  record.holdStates=false;await target.evaluate(events=>events.forEach(e=>window.__emit(e.type,e.data)),record.held);
- await target.locator('#handover-panel').waitFor({state:'hidden'});await reveal(target,'#on-air');assert.equal(await target.locator('#on-air').isDisabled(),false);
+ await target.locator('#handover-panel').waitFor({state:'hidden'});await reveal(target,'#off-air');assert.equal(await target.locator('#off-air').isDisabled(),false);
  assert.equal(h.bot.messages.length,2);assert.deepEqual(errors,[]);
 });
 
 test('Verlorener Zustands-Push nach Annahme wird anhand der echten Quittung sofort neu gelesen',async t=>{
  const {source,target,records,drain,errors}=await setup(t,320);await request(source,target);records[1].dropState=1;
  await target.locator('#handover-accept').click();await drain();
- await target.waitForFunction(()=>document.getElementById('studio-host').textContent.includes('Nächster DJ')&&!document.getElementById('on-air').disabled,null,{timeout:2000});
+ await target.waitForFunction(()=>document.getElementById('studio-host').textContent.includes('Nächster DJ')&&!document.getElementById('off-air').disabled,null,{timeout:2000});
  assert.equal(await target.locator('#handover-panel').isVisible(),false);assert.deepEqual(errors,[]);
 });
 
@@ -248,7 +249,7 @@ test('Abgelehnte Anfrage hinterlässt keine alte Übergabeidentität, die einen 
  await target.locator('#handover-decline').click();await target.locator('#handover-panel').waitFor({state:'hidden'});
  await source.locator('#handover-back').click();await reveal(source,'#off-air');await source.locator('#off-air').click();
  await reveal(target,'#studio-topic');await target.locator('#studio-topic').fill('Entwurf für meine unabhängige Sendung');
- await reveal(target,'#on-air');await target.locator('#on-air').click();await target.locator('#on-air').filter({hasText:'Endzeit ändern'}).waitFor();
+ await reveal(target,'#on-air');await target.locator('#on-air').click();await target.locator('#off-air:not([disabled])').waitFor();
  assert.equal(await target.locator('#studio-topic').inputValue(),'Entwurf für meine unabhängige Sendung','Eine neue eigene Anmeldung ist keine Annahme der alten, abgelehnten Anfrage');
  assert.deepEqual(errors,[]);
 });
@@ -259,7 +260,7 @@ test('Verlorene Annahmequittung wird auch bei gleichzeitig geändertem Thema ein
  await target.locator('#handover-accept').click();await drain();
  h.event(owner,records[0].session,'mw:setTopic',{topic:'Parallel bestätigte Änderung'});await flush();
  record.holdStates=false;await target.evaluate(e=>window.__emit(e.type,e.data),record.held.at(-1));
- await target.locator('#handover-panel').waitFor({state:'hidden'});await reveal(target,'#on-air');
- assert.equal(await target.locator('#on-air').isDisabled(),false,'Die bestätigte Übergabe bleibt trotz späterer Themenänderung eindeutig');
+ await target.locator('#handover-panel').waitFor({state:'hidden'});await reveal(target,'#off-air');
+ assert.equal(await target.locator('#off-air').isDisabled(),false,'Die bestätigte Übergabe bleibt trotz späterer Themenänderung eindeutig');
  assert.equal(await target.locator('#studio-topic').inputValue(),'Parallel bestätigte Änderung');assert.equal(h.bot.messages.length,2);assert.deepEqual(errors,[]);
 });

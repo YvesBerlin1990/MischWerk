@@ -23,11 +23,14 @@ MischWerkModules.attachAndroidSettings = function (runtime, config) {
             runtime.activeSession(user, session) && session.getAppContent() === entry.content && runtime.now() < entry.expires;
     }
     runtime.clearAndroidSettings = function (userId) {
+        if (typeof runtime.cancelAndroidVerification === 'function') { runtime.cancelAndroidVerification(userId); }
         entries.slice().forEach(function (entry) {
             if (userId === undefined || entry.userId === userId) { runtime.closeView(entry); entry.finishClose(); }
         });
     };
     runtime.androidRelayCommand = function (user, params) {
+        if (params === 'http-pruefen') { runtime.androidVerificationCommand(user); return; }
+        if (params === 'auth-pruefen') { runtime.androidVerificationCommand(user, true); return; }
         if (params !== 'einrichten') { runtime.androidDiagnosticsCommand(user, params); return; }
         if (!runtime.isChannelOwner(user) || runtime.shuttingDown) { return; }
         try {

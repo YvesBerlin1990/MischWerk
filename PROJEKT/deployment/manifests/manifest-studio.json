@@ -1,11 +1,11 @@
 {
-  "version": "0.1.239",
-  "buildNumber": 239,
+  "version": "0.1.269",
+  "buildNumber": 269,
   "files": [
     {
       "path": "MischWerk/www/js/studio/markup.js",
-      "bytes": 9365,
-      "sha256": "C8A1659C8FAF9133608DC10D626DE1B355A7E20EB0796A1AE0565A4E3DE4D533"
+      "bytes": 8205,
+      "sha256": "D34C1F35974A60372C83CA2A4E37FE625FC0B8435ED415C9C9E3D91D2520C06E"
     },
     {
       "path": "MischWerk/www/js/studio/handover-markup.js",
@@ -29,13 +29,13 @@
     },
     {
       "path": "MischWerk/www/js/studio/controls.js",
-      "bytes": 6802,
-      "sha256": "2C04F5C57257DCF70C8CD9CEC4F6C68BA810FDB4140DB4B4DA5D87EAD2CFF4C8"
+      "bytes": 6480,
+      "sha256": "9B3045D97B42AC22804A25589CAF5CC2A32A2699C746352F9BC45E784B79BFEC"
     },
     {
-      "path": "MischWerk/www/js/studio/session.js",
-      "bytes": 7329,
-      "sha256": "554322E6D8E15DCFC0BF0EB4D06D4C2745A197BD430F14FAE3B7A9F53A1C5B32"
+      "path": "MischWerk/www/js/studio/ticker.js",
+      "bytes": 7378,
+      "sha256": "A99D6D8FE1F5BF5ED512A79598996B642F9D73F06B75B5B66F1E5CE5D62D8080"
     },
     {
       "path": "MischWerk/www/js/studio/handover.js",
@@ -44,8 +44,8 @@
     },
     {
       "path": "MischWerk/www/js/studio/workspace.js",
-      "bytes": 9046,
-      "sha256": "0B52D5E044FB194C9E4F562803B6EC40DC1B325529B5FC77FC2E9948B768F0E7"
+      "bytes": 9126,
+      "sha256": "DA23C1FCA9DFDBF71B7A92CED226DFAC26D669C52D931532B47DB62F38063ADC"
     },
     {
       "path": "MischWerk/www/js/studio/pages.js",
@@ -78,9 +78,14 @@
       "sha256": "955B8F8BC423979BD560CBFA9F862E25C0D7944F88C9677B13C29C6933992A66"
     },
     {
+      "path": "MischWerk/www/css/studio/ticker.css",
+      "bytes": 1312,
+      "sha256": "4DBBB2E4D1BC9F72B9EC7E38616B0158FB92DCA8A1EB70B63FF6F621A2A84387"
+    },
+    {
       "path": "MischWerk/www/css/studio/studio.css",
-      "bytes": 8851,
-      "sha256": "DA90E01026AC948742C0D911467BF0E8FACE098ABD48767CFF5A43B12DCEB8A1"
+      "bytes": 7754,
+      "sha256": "6531DA6CAE4912D603862A132F16F2F249AF2877D8EBD903019BF812E4C04891"
     },
     {
       "path": "MischWerk/www/css/studio/studio-queue.css",

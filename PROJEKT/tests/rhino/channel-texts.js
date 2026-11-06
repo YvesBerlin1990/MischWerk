@@ -10,6 +10,8 @@ function clearTimeout(id) { delete channelTextTasks[id]; }
     var previousPersistence = KnuddelsServer.getPersistence, previousBot = KnuddelsServer.getDefaultBotUser;
     var data = {}, messages = [], failWrite = false, failSend = false, attempts = 0;
     KnuddelsServer.getPersistence = function () { return {
+        getObjectKeys: function () { return Object.keys(data); },
+        deleteObject: function (key) { delete data[key]; },
         getObject:function (key, fallback) { return data[key] ? copy(data[key]) : fallback; },
         setObject:function (key, value) { if (failWrite) { throw new Error('private'); } data[key] = copy(value); }
     }; };

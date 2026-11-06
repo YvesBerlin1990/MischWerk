@@ -12,7 +12,7 @@
   }finally{clearTimeout(timeout);}
  }
  function clearPrivate(){approved=false;W.state=null;W.view='studio';W.studioTab='programme';viewOptions={studio:{},team:{},schedule:{}};W.options=viewOptions.studio;pendingAction=null;generation++;W.el('workspace').hidden=true;W.el('login-panel').hidden=false;W.el('workspace-user').textContent='';
-  document.querySelectorAll('#workspace form').forEach(function(form){form.reset();});['team-list','plan-list','queue-text','queue-sender','queue-position','handover-private-note','handover-received','history-list','studio-presenter','studio-expiry','handover-status','handover-target','plan-range','team-page','history-page'].forEach(function(id){W.el(id).replaceChildren();});W.notify();
+  document.querySelectorAll('#workspace form').forEach(function(form){form.reset();});['team-list','plan-list','queue-text','queue-sender','queue-position','handover-private-note','handover-received','history-list','studio-presenter','handover-status','handover-target','plan-range','team-page','history-page'].forEach(function(id){W.el(id).replaceChildren();});W.notify();
  }
  function show(){W.el('workspace').hidden=!approved;W.el('login-panel').hidden=approved;
   ['studio','team','schedule'].forEach(function(view){W.el(view+'-view').hidden=W.view!==view;});

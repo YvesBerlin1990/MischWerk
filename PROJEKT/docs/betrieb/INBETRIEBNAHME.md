@@ -1,8 +1,24 @@
 # MischWerk – Installation, Betrieb und STREAMPANEL
 
-**App 0.1.239 · Build 239**, Stand 06.11.2026. Das lokale Paket umfasst 132 Laufzeitdateien und fünf Manifeste. GitHub enthält Quellen und Nachweise; der erzeugte UPLOAD ist ausgeschlossen. Der letzte bestätigte native Diagnosebericht gehört zu Build 229; Build 239 ist lokal vorbereitet. GitHub-Veröffentlichung und Knuddels-Installation sind getrennt.
+**App 0.1.269 · Build 269**, Stand 06.11.2026. Das lokale Paket umfasst 140 Laufzeitdateien und fünf Manifeste. GitHub enthält Quellen und Nachweise; der erzeugte UPLOAD ist ausgeschlossen. Der letzte vollständige Diagnosebericht gehört zu Build 229; private Sync-Speicherung unter Build 230 ist bestätigt. Build 269 ist lokal vorbereitet. GitHub-Veröffentlichung und Knuddels-Installation sind getrennt.
 
 Radio bleibt eine Headerbar. Wunschbox, Moderation, Verwaltung und Sendeplan öffnen als getrennte Channel-Overlays; Menüwechsel ersetzen die Radioleiste nicht. [Aufbau](../architektur/ARCHITEKTUR.md) · [Verbindliche Projektregeln](../../AGENTS.md).
+
+## Begrüßung im MyChannel
+
+Bei jedem echten menschlichen Channelbeitritt erscheint „Willkommen bei Radio MischWerk, {Nick}. Viel Spaß beim Zuhören.“ Die erste Begrüßungszeile erscheint größer, fett und im Goldton #e6c77b der Appleiste; „Viel Spaß beim Zuhören.“ folgt in normaler Channelschrift darunter. Nick und Foto öffnen über native Profillinks dasselbe Nutzerprofil. Das vorhandene Profilfoto steht ganz am Ende, nach dem letzten Punkt und einem Leerzeichen. Die kleine Anfrage beträgt weiterhin 24 × 24 Pixel. Für normale User, MCM, Radio-Team und Inhaber gilt derselbe Text. Die bisherigen 30 Sätze und die Zufallsauswahl sind entfernt. Ohne nutzbares Foto bleibt der Text erhalten; bereits Anwesende erhalten beim Appstart keine nachträgliche Meldung.
+
+Text und Fotoausgabe liegen in `src/backend/users/greetings.js`. Die Begrüßung verändert keine Apprechte und meldet niemanden im Studio an. Die tatsächliche native Fotoanzeige und Bildgröße bleiben nach Installation zu prüfen. Eine lokale Bereitstellung führt selbst keine echte Nachricht oder Installation aus.
+
+## Lauftext unter der Appleiste
+
+Unter **Radioregie → Lauftext** den Reiter öffnen. Nur bestehende Radiomoderation einschließlich des automatisch berechtigten Inhabers darf ändern; normale User, MCM und Appmanager erhalten keinen Zugriff.
+
+Text bis 300 Zeichen eingeben, Tempo Langsam/Normal/Zügig und Laufrichtung wählen, Ein/Aus setzen und **Speichern**. Erst die erfolgreiche Quittung veröffentlicht die Werte senderweit. Die Einstellungen bleiben nach App-Neustart erhalten. Der Anfangszustand ist leer und aus; Einschalten braucht Text. Ausschalten erhält Text, Tempo und Richtung.
+
+Bei gleichzeitiger Bearbeitung bleibt der eigene Entwurf erhalten; **Aktuellen Stand laden** übernimmt den bestätigten Stand. Fehler oder Schließen verwerfen den Entwurf nicht. Die goldene Pause-Taste mit zwei deutlichen Balken hält nur die eigene Anzeige an; das anschließend sichtbare Play-Dreieck setzt den Lauftext fort. Reduzierte Bewegung zeigt den Text statisch umgebrochen. Die ursprüngliche Appleiste einschließlich Logo-Einblendung bleibt erhalten. Der Übergang zur Laufleiste hat gerade seitliche Kanten und eine gemeinsame gerundete Außenkontur. Die eingeschaltete Laufleiste schließt ohne Zwischenstreifen an diesen Rahmen an und verwendet dieselbe Schriftpalette auf einfarbigem dunklem Grund ohne Muster. Der Lauftext ist 20 px groß, auf schmalen Ansichten bis 700 px 18 px, und sitzt vertikal mittig in der weiterhin 44 px hohen Zeile. Bei laufendem Radio liegt der Glow um die gemeinsame Fläche und erhält unter der Laufleiste denselben weichen Auslauf wie früher. Der Abstand zwischen den Leisten bleibt unverändert. Die Kennzeichnung am Anfang lautet „Information“ und ist 16 px groß, auf schmalen Ansichten bis 700 px 14 px. Die Anzeige beeinflusst keine Wiedergabe.
+
+Aktuelle lokale Ansichten: [Lauftext unter der Appleiste](../pruefung/oberflaeche/radio/lauftext-1280.png) · [Moderator-Einstellungen](../pruefung/oberflaeche/moderation/moderation-lauftext.png).
 
 ## Installation und Upload
 
@@ -22,7 +38,7 @@ Ausschließlich **C:/Users/Yves/Desktop/MischWerk/UPLOAD** verwenden. Darunter l
 
 Passwörter ausschließlich im FTP-Programm eingeben. Die Entwickler-ID ersetzt kein Passwort. app.config verwendet den Entwicklernamen Otterchen; das bestätigte knuddelsDEV-Präfix der App-ID darf nicht aus dem LIVE-FTP-Host anders abgeleitet werden. [App-ID-Dokumentation](https://developer.knuddels.de/docs/classes/AppInfo.html).
 
-Aus PROJEKT/ mit **node tools/build/prepare-upload.cjs** die Bereitstellung prüfen und den verbindlichen Desktop-Upload aktualisieren. **node tools/checks/upload.cjs** gleicht alle 132 Laufzeitdateien einschließlich 48 Servermodulen, Größen, SHA-256 und Textgrenzen mit den fünf Manifesten ab. Der Build erzeugt keine zweite Uploadkopie und veröffentlicht nichts. main.js allein enthält keine App-Fachlogik. Tests, Referenzstubs, Dokumentation und Zugangsdaten gehören nicht ins FTP-Ziel.
+Aus PROJEKT/ mit **node tools/build/prepare-upload.cjs** die Bereitstellung prüfen und den verbindlichen Desktop-Upload aktualisieren. **node tools/checks/upload.cjs** gleicht alle 140 Laufzeitdateien einschließlich 52 Servermodulen, Größen, SHA-256 und Textgrenzen mit den fünf Manifesten ab. Der Build erzeugt keine zweite Uploadkopie und veröffentlicht nichts. main.js allein enthält keine App-Fachlogik. Tests, Referenzstubs, Dokumentation und Zugangsdaten gehören nicht ins FTP-Ziel.
 
 Nach einem gesonderten Uploadauftrag:
 
@@ -63,7 +79,7 @@ Titel-, Status- und Modusabfragen dienen ausschließlich der Anzeige. Auch ein g
 
 ## Betrieb und Daten
 
-Musikwünsche liegen ausschließlich in einer flüchtigen Queue; ein App-Neustart leert sie. Keine persönliche oder feste Gesamtanzahl-Begrenzung und keine Wartezeit. Ein Text bis 300 Zeichen, keine Links; der authentifizierte Nick stammt vom Server.
+Offene Musikwünsche werden vor ihrer erfolgreichen Annahme dauerhaft gespeichert und nach App-Updates sowie Neustarts samt Eingangsreihenfolge, Empfang und manuellem Regiestatus wiederhergestellt. Erledigte oder verworfene Wunschtexte werden gelöscht. Speicherfehler bestätigen keine Annahme und erhalten den Entwurf für erneutes Senden. Das erste Update von Build 267 oder älter kann die dort bisher nur im Arbeitsspeicher liegenden Wünsche noch nicht übernehmen; diese vorher abarbeiten. Keine persönliche oder feste Gesamtanzahl-Begrenzung und keine Wartezeit. Ein Text bis 300 Zeichen, keine Links; der authentifizierte Nick stammt vom Server.
 
 Nach Annahme erscheint die direkte Quittung. Eigener Song, Platz und Bearbeitungsstatus stehen privat in der Appleiste. Die Wunschbox bietet anschließend Weiteren Wunsch eingeben. Nur berechtigte Moderatoren sehen die vollständige Queue und fremde Absender. Wiederholte Übertragungskennungen erzeugen während derselben App-Sitzung keinen zweiten Wunsch.
 
@@ -71,11 +87,11 @@ Thema, Wunschboxfreigabe, Radio-Team, datierte Wochenpläne und Bot-Einstellunge
 
 ## Moderation verwenden
 
-- **Deine Sendung:** Anmeldung, Endzeit, Thema, Wunschboxfreigabe und Übergabe.
+- **Deine Sendung:** Anmeldung, Abmeldung, Thema, Wunschboxfreigabe und Übergabe.
 - **Musikwünsche:** vollständiger Text, Absender, Empfang und manuelle Bearbeitungsstufen. Gespielt oder Verwerfen entfernt den ausgewählten Wunsch; das steuert keinen Encoder.
 - **Heute gespielt:** verfügbare Titelmeldungen des Tages mit vollständigen Textseiten.
 
-Neue Anmeldung: zunächst sechs Stunden. Die eigene aktive Moderation wählt über **Endzeit ändern** ein zukünftiges Datum mit Uhrzeit in deutscher Zeit oder **Open End**. Nur bestätigte Werte gelten; Entwürfe bleiben bei Fehlern und Menüwechseln erhalten. Verlassen oder Rechteverlust beendet auch Open End. Ausdrückliche Abmeldung leert das gespeicherte Thema, automatisches Ende erhält es. Ohne Thema zeigt die Appleiste MischWerk Radio Show als reinen Standardtext.
+Eine Studio-Anmeldung gilt ohne Zeitlimit. Es gibt keine automatische Sechs-Stunden-Abmeldung, Verlängerung oder Zeitangaben im Moderationsmenü. Solange angemeldet, stehen Abmelden und Sendung übergeben bereit. Wiederholtes Anmelden verändert die Sitzung nicht. Verlassen oder Rechteverlust beendet die Anmeldung weiterhin. Ausdrückliche Abmeldung leert das gespeicherte Thema, automatisches Ende durch Verlassen/Rechteverlust erhält es. Ohne Thema zeigt die Appleiste MischWerk Radio Show als reinen Standardtext.
 
 Die Moderation startet mit 780 × 730 px und passt ihre Höhe an vollständige Bediengruppen an. Bei Clientgrenzen bleiben Gruppen-/Textseiten erreichbar. Themenbearbeitung erhält eine stabile Geometrie. Studioanmeldung und tatsächliche Anbieterübertragung sind unabhängige Zustände.
 
@@ -97,7 +113,7 @@ Unter **Bot-Texte** stehen bis zu sechs Texte mit je 300 Zeichen zur Verfügung.
 
 ## Tageshistorie verwenden
 
-**Moderation → Heute gespielt** ist nur für Channelinhaber und ernannte Radiomoderatoren verfügbar. Titelmeldungen gelten für heute in Europe/Berlin. Beim Öffnen erscheinen die neuesten Titel auf der letzten Seite; Zurück führt zu älteren, Weiter zu neueren Titeln. Lange Texte sind vollständig auf Fortsetzungsseiten lesbar.
+**Radioregie → Heute gespielt** ist nur für Channelinhaber und ernannte Radiomoderatoren verfügbar. Titelmeldungen gelten für heute in Europe/Berlin. Beim Öffnen erscheinen die neuesten Titel auf der letzten Seite; Zurück führt zu älteren, Weiter zu neueren Titeln. Lange Texte sind vollständig auf Fortsetzungsseiten lesbar.
 
 Im sichtbaren Reiter wird nach Erfolg alle 15 Sekunden, nach Fehlern nach 60 Sekunden erneut gelesen. Geladene heutige Titel bleiben bei Fehlern erhalten; an Berliner Mitternacht beginnt die Liste neu. Rechteverlust beendet Abrufe und leert den Cache. Bekannte Senderjingles werden per vollständigem Titelvergleich ausgefiltert. Senderzeit und hörbarer Beginn können abweichen; kein vollständiges Tagesarchiv und keine privaten Musikwünsche.
 
@@ -128,7 +144,7 @@ Die [Homepage](../../website/README.md) liegt außerhalb des Knuddels-UPLOAD. Ap
 [Sendeplan](SENDEPLAN.md) · [Lautstärke](LAUTSTAERKE.md) · [Native Abnahme](LIVE-ABNAHME.md).
 # Private Android-Einrichtung ab Build 230
 
-Der native Diagnosebefund aus Build 229 bleibt gültig. Build 230 ergänzt den eigenen Betreiber-Eingabeweg; seine tatsächliche Ausführung auf Knuddels steht noch aus.
+Der native Diagnosebefund aus Build 229 bleibt gültig. Build 230 ergänzt den eigenen Betreiber-Eingabeweg; erfolgreiche Sync-Speicherung und Statusabruf auf Knuddels sowie Firebase-Secret-Version 1 sind bestätigt.
 
 1. Das vollständige lokale `UPLOAD/MischWerk` durch den Betreiber übertragen und aktualisieren. Als tatsächlicher, im Channel anwesender Inhaber `/mischwerk-relay einrichten` aufrufen. Eine andere offene Channelansicht zuvor schließen; laufendes Radio bleibt bestehen.
 2. Zuerst den Sync-Schlüssel aus dem eigenen geschützten Schlüsselspeicher eingeben. Er muss mit `KNUDDELS_SYNC_SECRET` im Firebase Secret Manager übereinstimmen. Für den späteren Wunschversand kann ein anderer Relay-Schlüssel eingegeben werden. Keine Schlüsselwerte über Chat, gemeinsame JSON oder Quelltext austauschen.
@@ -137,3 +153,26 @@ Der native Diagnosebefund aus Build 229 bleibt gültig. Build 230 ergänzt den e
 5. Nur das Ergebnis der Einrichtung zurückmelden, keine Schlüsselwerte. Nach sicherer Bereitstellung desselben Sync-Schlüssels auf Firebase-Seite kann der dortige Codex `publishKnuddelsState` gezielt bereitstellen. Echte native Header-/Payload-/Antwortprüfung, Freigabe und späterer Wunschversand folgen getrennt.
 
 Die Anwendung verwendet dokumentierte Knuddels-Identitäten, Sitzungen, `Client.sendEvent`, `App.onEventReceived` und AppPersistence. Nur die eröffnete private Sitzung des aktuellen Channelinhabers ist berechtigt. Rolle/Anwesenheit, aktive Sitzung, Frist, Revision und Eingabeschema werden serverseitig erneut geprüft. Schließen, Rechteverlust, Channelverlassen und Shutdown entfernen die private Berechtigung. Die Anwendung schreibt Schlüssel weder in Logs noch in Statusantworten oder Browser-Storage. Eingabefelder werden vor dem Versand und bei Seitenende geleert. Der serverseitige Plattform-Speicher ist damit kein zusätzlich nachgewiesener verschlüsselter Secret-Vault; lokale Plattform-Fakes sind kein nativer Transportnachweis.
+
+## Schreibfreier Headervergleich ab Build 265
+
+Revision 21 bestätigt die bereitgestellte sichere Probeheader-Diagnose auf Firebase-Seite. Build 265 erweitert `/mischwerk-relay auth-pruefen` um den gemeinsam vereinbarten harmlosen Zusatzheader und liest ausschließlich den HTTP-Status. Bestehende private Schlüssel bleiben erhalten. Den vollständigen lokalen UPLOAD wie gewohnt durch den Betreiber installieren. Dieser Arbeitsschritt enthält keine automatische FTP-Übertragung, Aktualisierung oder Neustartfreigabe.
+
+Aktueller realer Abnahmestand: Build 265 ist durch den Betreiber installiert. Der einmalige Vergleich aus Revision 21 am 06.11.2026 um 21:27:45.399 MEZ ergibt HTTP 401. Über identische Trace eindeutig zugeordnete Firebase-Logs zeigen Authorization=false, Bearer=false, Tokenlänge 0 und Probeheader=false. Der geprüfte konkrete Quellaufruf setzt beide Einträge im dokumentierten header-Objekt; eine sichere Korrektur ist nicht belegt. Vor weiteren Tests tatsächliche Headerunterstützung des AppServers klären. Keine weitere identische Probe, Formatvariante oder Statusübertragung ausführen. Die folgenden Schritte beschreiben den allgemeinen Abnahmepfad nach Klärung.
+
+1. Als anwesender tatsächlicher Channelinhaber einmal `/mischwerk-relay auth-pruefen` ausführen. Der Test sendet nur `{}` als payload-String mit dem vorhandenen Sync-Schlüssel und dem vereinbarten Zusatzheader im dokumentierten header-Objekt an die feste Hosting-Adresse. Keine Senderdaten oder Wünsche, kein Konfigurationsschreiben.
+2. Private JSON-Antwort mit tatsächlicher Appversion, Buildnummer und checkedAt weitergeben. Keine Schlüssel- oder Headerwerte. Build 265 meldet `native-header-probe-post`; bodyRead/jsonParsed bleiben false und Antwortadress-/Bodyvergleich null, weil nur der Statuscode gelesen wird. HTTP 400 und `authenticationAccepted=true` bestätigen den vereinbarten Auth-Statusvertrag für die leere Nutzlast. 401 oder unerwarteter 200 sind kein Erfolg. Die Gegenstelle liest dazu ausschließlich authorizationHeaderPresent, bearerPrefixPresent, deliveredTokenLength und probeHeaderPresent aus den zugehörigen Firebase-Logs.
+3. Erst nach dieser Auswertung, bestätigter Authentisierung und mindestens 30 Sekunden Abstand genau einmal den nachfolgenden Statusbefehl ausführen. Danach `station/current` unabhängig prüfen. Bei 401 den Probeheaderbefund zur Eingrenzung verwenden und keine weiteren Varianten oder Wiederholungen auf Verdacht senden. Ohne vollständige Nachweise bleibt der Dauerbetrieb ausgeschaltet.
+
+Der Auth-Test verwendet denselben physischen HTTP-Port und Prüf-Timeout wie der Statusbefehl. Ein nach zehn Sekunden logisch abgelaufener Auftrag hält den Port bis zum echten nativen Callback belegt. Speichern, Verlassen, Rechteverlust und Shutdown verhindern verspätete Bestätigungen. `firestoreWriteConfirmed` bleibt im privaten Bericht unbekannt; Auth-Erfolg ist keine Status-/Firestore-Abnahme.
+
+## Einmalige native Statusprüfung ab Build 240
+
+Firebase-Brückenstand Revision 16 meldet `publishKnuddelsState` einschließlich sicherer Auth-Fehlerdiagnose als bereitgestellt. Build 240 ist durch den Betreiber installiert und nativ geprüft. Der Test vom 06.11.2026 13:02:40.346 UTC ergibt HTTP 401; zeitlich zugehörige Function-Logs zeigen keinen Authorization-Wert, kein Bearer-Präfix und Tokenlänge 0. Der Headerpfad muss vor einer weiteren identischen Probe geklärt werden. Dafür ist derzeit kein neuer FTP-Upload erforderlich. Der allgemeine Abnahmepfad bleibt:
+
+1. Als tatsächlicher anwesender Channelinhaber `/mischwerk-relay http-pruefen` ausführen. Der Befehl sendet einmal die aktuellen Senderdaten an `https://radio-mischwerk.web.app/api/publishKnuddelsState` und kann damit `station/current` in Firebase aktualisieren. Keine Testsenderdaten und keine Wünsche.
+2. Die private JSON-Antwort abwarten, spätestens nach zehn Sekunden. `nativeResponseAccepted=true` bestätigt HTTP 200, angenommene JSON-Antwort und passende Serverzeit. Der Bericht enthält den gesendeten `stationUpdatedAt`-Zeitstempel, Callbackart und Ziel-/JSON-Prüfung; keine Schlüssel oder Antwortrohdaten.
+3. Auf Firebase-Seite `station/current` mit genau diesem Zeitstempel und echten Zustandsfeldern vergleichen. `firestoreWriteConfirmed` bleibt im Knuddels-Bericht unbekannt (`null`), bis diese unabhängige Folgeprüfung vorliegt.
+4. Erst danach eine ausdrückliche Betriebsfreigabe vorbereiten. Der Einmaltest schreibt weder Konfiguration noch `enabled/runtimeVerified`, registriert keinen Hook und startet keinen Heartbeat. Nach Fehlern frühestens nach 30 Sekunden erneut testen; ein physisch noch hängender nativer Auftrag bleibt gesperrt.
+
+Ein neuer Schlüssel ist dafür nicht erforderlich. Bestehende Sync-Konfiguration bleibt erhalten, der Wunsch-Schlüssel ist für diesen Einzeltest optional. Lokale Node-/Rhino-/Emulatorprüfungen ersetzen weder den echten POST noch die Firestore-Folgeprüfung.

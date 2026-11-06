@@ -3,6 +3,8 @@
     var original = KnuddelsServer.getPersistence, data = {}, writes = 0, allowedOwner = true;
     var sync = new Array(65).join('s'), runtime, operator;
     KnuddelsServer.getPersistence = function () { return {
+        getObjectKeys: function () { return Object.keys(data); },
+        deleteObject: function (key) { delete data[key]; },
         getObject: function (key, fallback) { return copy(Object.prototype.hasOwnProperty.call(data, key) ? data[key] : fallback); },
         setObject: function (key, value) { writes += 1; data[key] = copy(value); }
     }; };
@@ -14,6 +16,7 @@
         runtime.isChannelOwner = function (user) { return user === operator && allowedOwner; };
         runtime.stopAndroidRelay = function () {};
         MischWerkModules.attachSessionState(runtime);
+        MischWerkModules.attachContent(runtime);
         MischWerkModules.attachSessions(runtime, MischWerkConfig);
         MischWerkModules.attachAndroidSettings(runtime, MischWerkConfig);
         operator = person(90001, 'Synthetischer Betreiber', true);

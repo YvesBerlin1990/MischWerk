@@ -12,6 +12,8 @@ function persistence(data = {}) {
       if (Buffer.byteLength(JSON.stringify(value), 'utf8') > 100000) { throw new Error('Persistence object exceeds 100 kB'); }
       data[key] = clone(value);
     },
+    getObjectKeys: () => Object.keys(data).filter(key => data[key] && typeof data[key] === 'object'),
+    deleteObject: key => { if (data[key] && typeof data[key] === 'object') delete data[key]; },
     hasString: key => typeof data[key] === 'string',
     getString: (key, fallback = '') => typeof data[key] === 'string' ? data[key] : fallback,
     setString: (key, value) => {
@@ -80,6 +82,7 @@ function createHarness(existingPersistence, options = {}) {
       return value.replace(/[_°<>\\]/g, character => '\\' + character);
     },
     Date: FakeDate,
+    ...(options.random ? { Math: Object.assign(Object.create(Math), { random: options.random }) } : {}),
     setTimeout(callback, delay) { const id = ++timerSequence; timers.set(id, { callback, at:timestamp + delay }); return id; },
     clearTimeout(id) { timers.delete(id); },
     HTMLFile,
@@ -112,7 +115,7 @@ function createHarness(existingPersistence, options = {}) {
   vm.runInContext('String.prototype.escapeKCode = function () { return escapeKCodeMock(String(this)); };', context);
   const loadedFiles = [];
   function runFile(file) {
-    const appRoot = path.resolve(__dirname, '../../app');
+    const appRoot = path.resolve(options.appDir || path.resolve(__dirname, '../../app'));
     const target = path.resolve(appRoot, file);
     if (!target.startsWith(appRoot + path.sep)) { throw new Error('Loader ausserhalb der App'); }
     loadedFiles.push(file);
@@ -128,6 +131,13 @@ function createHarness(existingPersistence, options = {}) {
     const person = {
       id, nick, role, online: true, capable: true, messages: [], sessions: [], persistence: persistence(),
       getUserId() { return this.id; }, getNick() { return this.nick; },
+      getUserType() { return this.userType || 'human'; },
+      hasProfilePhoto() { return !!this.profilePhoto; },
+      getProfilePhoto(width, height) { this.photoSize = [width, height]; return this.profilePhoto; },
+      getProfileLink(displayText) {
+        const nick = String(this.getNick()).replace(/[_°<>\\|]/g, c => '\\' + c);
+        return '°>' + (displayText === undefined ? nick : String(displayText)) + '|/w ' + nick + '<°';
+      },
       isOnlineInChannel() { return this.online; },
       isChannelOwner() { return this.role === 'owner'; },
       isAppManager() { return this.role === 'owner' || this.role === 'manager'; },

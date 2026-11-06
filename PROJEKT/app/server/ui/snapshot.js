@@ -30,6 +30,7 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
         return {
             station: station,
             topic: runtime.state.topic,
+            ticker: runtime.tickerState(),
             curtain: runtime.curtainState(user),
             revision: runtime.state.revision,
             user: { nick: runtime.nick(user), canModerate: mod,
@@ -41,7 +42,7 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
             limits: { maxTextLength: 300, maxTopicLength: 80 },
             requestsEnabled: runtime.state.requestsEnabled && !runtime.shuttingDown,
             moderator: presenter ? { nick: presenter.nick, since: presenter.since,
-                expiresAt: presenter.expiresAt, openEnd: presenter.openEnd === true, sessionKey: runtime.moderatorKey() } : null,
+                sessionKey: runtime.moderatorKey() } : null,
             handover: runtime.handoverSnapshot(user),
             myRequests: [],
             myTotal: 0,

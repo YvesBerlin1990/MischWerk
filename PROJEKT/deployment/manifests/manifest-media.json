@@ -1,6 +1,6 @@
 {
-  "version": "0.1.239",
-  "buildNumber": 239,
+  "version": "0.1.269",
+  "buildNumber": 269,
   "files": [
     {
       "path": "MischWerk/www/img/mischwerk-logo.png",
@@ -28,6 +28,11 @@
       "sha256": "3100E775E8616CD2611BEECFA23A4263D7037586789B43F035236A2E6FBD4C62"
     },
     {
+      "path": "MischWerk/www/fonts/OFL.txt",
+      "bytes": 4377,
+      "sha256": "5B9321A4298CFEB6B34354164A1C3AFC3DB114569984C502B9B35D988FD58C57"
+    },
+    {
       "path": "MischWerk/www/fonts/outfit-latin.woff2",
       "bytes": 32292,
       "sha256": "6C18D579FD87C3776BE068B762CBC83FDE3ACB543D49EABD3ADE842EB987E887"
@@ -36,6 +41,16 @@
       "path": "MischWerk/www/fonts/fraunces-latin.woff2",
       "bytes": 67304,
       "sha256": "7234ED860A9CC83045413C4FAEE63C960A8F2D1917ADCF728119307D56E0D783"
+    },
+    {
+      "path": "MischWerk/www/fonts/outfit-OFL.txt",
+      "bytes": 4389,
+      "sha256": "C676351BF8576B9ABA743CD5EAA8C0E7EE0D51F805D720447B4DF4DDB6A2E416"
+    },
+    {
+      "path": "MischWerk/www/fonts/fraunces-OFL.txt",
+      "bytes": 4391,
+      "sha256": "BDF4C22802EAF804F998195871C6B8938AAC2AC14B2D78A8BD66A6F1ECED833B"
     }
   ]
 }

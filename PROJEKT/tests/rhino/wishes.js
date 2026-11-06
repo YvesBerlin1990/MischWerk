@@ -14,9 +14,11 @@ var cacheInvalidations = 0;
 var publicMessages = [];
 String.prototype.escapeKCode = function () { return String(this).replace(/[_°<>\\]/g, '\\$&'); };
 var availableUpdateFiles = ['server/app.js'];
-var store = {
-    getObject: function (key, fallback) { return fallback; },
-    setObject: function () { persistenceWrites += 1; }
+var store = { data: {},
+    getObject: function (key, fallback) { return Object.prototype.hasOwnProperty.call(this.data, key) ? copy(this.data[key]) : fallback; },
+    getObjectKeys: function () { return Object.keys(this.data); },
+    deleteObject: function (key) { delete this.data[key]; },
+    setObject: function (key, value) { persistenceWrites += 1; this.data[key] = copy(value); }
 };
 var KnuddelsServer = {
     execute: function (file) { load('app/' + file); },
@@ -65,6 +67,11 @@ var AppContent = {
 };
 function person(id, nick, owner) {
     var user = { sessions: [], getUserId: function () { return id; }, getNick: function () { return nick; },
+        getUserType: function () { return UserType.Human; },
+        hasProfilePhoto: function () { return false; },
+        getProfilePhoto: function () { return ''; },
+        getProfileLink: function (displayText) { return '°>' + displayText + '|/w ' + nick.escapeKCode() + '<°'; },
+        isChannelModerator: function () { return false; },
         isOnlineInChannel: function () { return true; }, isChannelOwner: function () { return !!owner; },
         isAppManager: function () { return !!owner || id === 3; },
         equals: function (other) { return !!other && other.getUserId() === id; },
@@ -98,6 +105,11 @@ check(cacheInvalidations === 1, 'Oberflaechen-Cache beim Start erneuert');
 var listener = person(1, 'Musikfreund', false);
 var owner = person(2, 'Otterchen', true);
 App.onUserJoined(listener); App.onUserJoined(owner);
+check(publicMessages.length === 2 &&
+    publicMessages[0] === "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Musikfreund|/w Musikfreund<°._°r°°#°Viel Spaß beim Zuhören." &&
+    publicMessages[1] === "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Otterchen|/w Otterchen<°._°r°°#°Viel Spaß beim Zuhören.",
+    'Einheitliche Channelbegrüßungen getrennt von Studio-Meldungen');
+publicMessages = [];
 var listenerSession = listener.sessions[0];
 var ownerSession = owner.sessions[0];
 check(ownerSession.getAppContent().html.data.user.showModerationButton === true, 'Otterchen als Inhaber automatisch mit Moderationsbutton');
@@ -129,9 +141,7 @@ check(studio !== previousStudio, 'Bewusster nativer Aufruf erzeugt frische Sitzu
 App.onEventReceived(owner, 'mw:openStudio', { requestId:'rhino-focus' }, ownerSession);
 check(owner.sessions[owner.sessions.length - 1] === studio, 'Doppelte Anfrage erzeugt kein zweites Fenster');
 check(latest(ownerSession, 'mw:result').ok, 'Doppelte Fokus-Anfrage bestaetigt ohne erneutes Oeffnen');
-// Nach der Initialisierung darf kein Wunsch die Persistenz aufrufen.
-store.getObject = function () { throw new Error('Keine Persistenz im Wunschweg'); };
-store.setObject = function () { throw new Error('Keine Persistenz im Wunschweg'); };
+// Wünsche vor der Quittung dauerhaft speichern.
 function submit(text, id) {
     listenerSession.events = [];
     App.onEventReceived(listener, 'mw:wish.submit', { text: text, submissionId: id }, listenerSession);
@@ -163,7 +173,7 @@ for (index = titles.length; index < 125; index += 1) {
 }
 check(submit(titles[0], 'rhino-0').accepted, 'Wiederholung quittieren');
 check(latest(studio, 'mw:state').queueTotal === 125, 'Wiederholung nicht doppelt einreihen');
-check(persistenceWrites === writesBeforeWishTransport, 'Keine Wunschpersistenz');
+check(persistenceWrites > writesBeforeWishTransport, 'Wünsche vor Annahme dauerhaft gespeichert');
 check(warnings.length === 0, 'Keine Warnung: ' + warnings.join('|'));
 App.chatCommands.update(listener, '');
 check(updates.length === 0, 'Hoerer darf kein Update anfordern');
@@ -180,8 +190,19 @@ App.onEventReceived(listener, 'mw:refresh', { myPage: 124 }, listenerSession);
 positions = latest(listenerSession, 'mw:state').wishPositions;
 check(positions.page === 124 && positions.items.length === 1, 'Letzte eigene Seite in Rhino');
 check(positions.items[0].position === 125, 'Letzte Queuepositionen vollstaendig');
+App.onPrepareShutdown(); App.onShutdown();
+var rebootedWishes = MischWerkModules.createApp(MischWerkConfig);
+var beforeRebootSession = owner.sessions[owner.sessions.length - 1];
+rebootedWishes.chatCommands.mischwerk(owner, '');
+var restoredWishes = owner.sessions[owner.sessions.length - 1].getAppContent().html.data;
+check(owner.sessions[owner.sessions.length - 1] !== beforeRebootSession, 'Neustart erzeugt frische Sitzung');
+check(restoredWishes.queueTotal === 125, 'Alle Wünsche überstehen Shutdown und neue App');
+check(restoredWishes.queue[0].text === titles[0], 'Erster Wunsch nach Neustart unverändert');
+App = rebootedWishes; ownerSession = owner.sessions[owner.sessions.length - 1];
+App.chatCommands.mischwerk(listener, ''); listenerSession = listener.sessions[listener.sessions.length - 1];
+App.onEventReceived(owner, 'mw:openStudio', {}, ownerSession); studio = owner.sessions[owner.sessions.length - 1];
 // Kalender und Wochenpersistenz ebenfalls unter der echten Rhino-Engine ausführen.
-store = { data: {}, getObject: function (key, fallback) { return this.data[key] ? copy(this.data[key]) : fallback; },
+store = { data: {}, getObjectKeys: function () { return Object.keys(this.data); }, deleteObject: function (key) { delete this.data[key]; }, getObject: function (key, fallback) { return this.data[key] ? copy(this.data[key]) : fallback; },
     setObject: function (key, value) { this.data[key] = copy(value); } };
 KnuddelsServer.getUserAccess = function () { return {
     exists: function (nick) { return nick === 'Otterchen' || nick === 'Musikfreund'; },
@@ -240,18 +261,15 @@ check(publicMessages.length === 0, 'Keine Studio-Meldung beim Start oder Wunschv
 App.onEventReceived(owner, 'mw:onAir', {}, ownerSession);
 check(publicMessages.length === 1 && publicMessages[0].indexOf('Otterchen betritt das Studio') !== -1, 'ON AIR im Nick-Bot');
 App.onEventReceived(owner, 'mw:onAir', {}, ownerSession);
-check(publicMessages.length === 1, 'Verlaengerung ohne doppelte Meldung');
-var ownEndKey = latest(ownerSession, 'mw:state').moderator.sessionKey;
-App.onEventReceived(owner, 'mw:onAir', { expectedModerator: ownEndKey, endMode: 'openEnd' }, ownerSession);
-check(latest(ownerSession, 'mw:result').ok, 'Open End im bestehenden Moderationsprotokoll speichern');
-var openModerator = latest(ownerSession, 'mw:state').moderator;
-check(openModerator.expiresAt === null && openModerator.openEnd === true, 'Explizites Open End bleibt aktive Moderation in Rhino');
-check(openModerator.sessionKey !== ownEndKey && publicMessages.length === 1, 'Endzeitaenderung erneuert Schluessel ohne erneute Botmeldung');
-App.onEventReceived(owner, 'mw:onAir', { expectedModerator: ownEndKey, endMode: 'fixed', endLocal: '2030-05-01T21:00' }, ownerSession);
-check(!latest(ownerSession, 'mw:result').ok, 'Veralteter Endzeitentwurf wird in Rhino abgewiesen');
-App.onEventReceived(owner, 'mw:onAir', { expectedModerator: openModerator.sessionKey, endMode: 'fixed', endLocal: '2030-05-01T21:00' }, ownerSession);
-check(latest(ownerSession, 'mw:result').ok, 'Manuelle feste Endzeit speichern');
-check(latest(ownerSession, 'mw:state').moderator.expiresAt === Date.UTC(2030, 4, 1, 19), 'Deutsche Sommerzeit fuer Endzeit in Rhino');
+check(publicMessages.length === 1, 'Erneutes Anmelden ohne doppelte Meldung');
+var ownKey = latest(ownerSession, 'mw:state').moderator.sessionKey;
+App.onEventReceived(owner, 'mw:onAir', { expectedModerator:ownKey, endMode:'openEnd' }, ownerSession);
+check(latest(ownerSession, 'mw:result').ok, 'Alter Auftrag bleibt idempotente eigene Anmeldung');
+var currentModerator = latest(ownerSession, 'mw:state').moderator;
+check(!('expiresAt' in currentModerator) && !('openEnd' in currentModerator), 'Keine Endzeitdaten in Rhino');
+check(currentModerator.sessionKey === ownKey && publicMessages.length === 1, 'Erneutes Anmelden erneuert Schluessel nicht');
+App.onEventReceived(owner, 'mw:offAir', { expectedModerator:'veraltet' }, ownerSession);
+check(!latest(ownerSession, 'mw:result').ok, 'Veraltete Abmeldung wird abgewiesen');
 App.onEventReceived(owner, 'mw:offAir', {}, ownerSession);
 check(publicMessages.length === 2 && publicMessages[1].indexOf('Otterchen verlässt das Studio') !== -1, 'OFF AIR im Nick-Bot');
 check(warnings.length === 0, 'Keine Warnung bei Studio-Meldungen');
@@ -341,7 +359,10 @@ check(latest(ownerSession, 'mw:state').curtain.closed === true, 'Ungueltige Chat
     check(replies.length === 2 && replies[1].indexOf('Nur Otterchen') !== -1, 'Nick allein verleiht kein Inhaberrecht');
 }());
 load('tests/rhino/channel-texts.js');
+load('tests/rhino/greetings.js');
+load('tests/rhino/ticker.js');
 load('tests/rhino/website.js');
 load('tests/rhino/android.js');
 load('tests/rhino/android-settings.js');
+load('tests/rhino/android-verification.js');
 print('Rhino-Wunschweg OK: ' + assertions + ' Pruefungen, 125 Wuensche, ' + links.length + ' abgewiesene Links; Sendeplan, Studio-Meldungen und Bot-Texte ebenfalls geprueft.');

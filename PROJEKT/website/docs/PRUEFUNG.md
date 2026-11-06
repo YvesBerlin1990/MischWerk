@@ -1,4 +1,8 @@
-# MischWerk – aktuelle Websiteprüfung 0.2.0
+# MischWerk – aktuelle Websiteprüfung 0.2.1
+
+## Studio ohne Verlängerung · App Build 269 · 06.11.2026
+
+Der authentifizierte Arbeitsbereich enthält nur Anmelden, Abmelden und die bestehende bestätigte Übergabe. Endzeit-/Open-End-Editor, Restzeitausgabe und deren Clientlogik sind entfernt; der private Bereinigungsweg referenziert keine entfernten DOM-Knoten mehr. Derselbe Appserver hält die Anmeldung ohne Zeitlimit. Wiederholung verändert weder Beginn noch Schlüssel; Rollen, Abmeldung, Übergabe, Sitzungssicherheit und Wunschpersistenz bleiben erhalten. Alle 22 regulären Node-/Browserfälle bestehen in 6,8 Sekunden einschließlich Anmeldung ohne Zeitfelder, Themenentwurf bei Antwortverlust und Ansichtswechsel, vollständiger Wunschregie, Rechteentzug und privater Bereinigung. Vorhandene gesperrte Mailkonfiguration und Appanschlüsse bleiben unverändert. Abhängigkeiten mit eingefrorenem Lockfile lokal ergänzt; keine echten Mails, Installation oder Veröffentlichung.
 
 ## Ordnergruppierung · 06.11.2026
 

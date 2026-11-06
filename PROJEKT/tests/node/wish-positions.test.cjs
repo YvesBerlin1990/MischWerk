@@ -1,4 +1,4 @@
-// Private Wunschpositionen aus der flüchtigen Moderationsqueue.
+// Private Wunschpositionen aus der dauerhaften Moderationsqueue.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createHarness } = require('../support/knuddels.cjs');
@@ -71,7 +71,7 @@ test('Viele eigene Wünsche bleiben paginiert, klein und auf der ausgewählten S
     assert.ok(state.wishPositions.items.every(x=>x.position===page+1));
   }
 });
-test('Wiederholungen und Empfang ändern keine Position; ein Neustart beginnt eine neue leere Generation',()=>{
+test('Wiederholungen und Empfang ändern keine Position; ein Neustart beginnt eine neue Ansichts-Generation',()=>{
   const {h,owner,a,os,as}=setup(), data={text:'Ein Wunsch',submissionId:'position-retry'};
   h.event(a,as,'mw:wish.submit',data);
   const before=h.state(a,as).wishPositions;
@@ -89,7 +89,7 @@ test('Wiederholungen und Empfang ändern keine Position; ein Neustart beginnt ei
   assert.equal(after.total,0);
   assert.notEqual(after.generation,before.generation);
 });
-test('Geschlossene Wunschbox und Nutzerlöschung erhalten korrekte Positionen ohne Wunschpersistenz',()=>{
+test('Geschlossene Wunschbox und Nutzerlöschung erhalten korrekte Positionen mit dauerhaften Wünschen',()=>{
   const {h,owner,a,b,os,as,bs}=setup();
   h.event(a,as,'mw:wish.submit',{text:'A vorher'});
   h.event(b,bs,'mw:wish.submit',{text:'B danach'});
@@ -98,9 +98,12 @@ test('Geschlossene Wunschbox und Nutzerlöschung erhalten korrekte Positionen oh
   h.app.onUserDeleted(a.id);
   assert.equal(h.state(b,bs).wishPositions.items[0].position,1);
   assert.equal(h.store.data['mischwerk.wishes.v2'],undefined);
-  h.store.setObject=()=>{throw new Error('Keine Wunschpersistenz');};
+  const write=h.store.setObject;h.store.setObject=()=>{throw new Error('Speicherfehler');};
   const result=h.event(owner,os,'mw:resolveRequest',{id:h.state(b,bs).wishPositions.items[0].id,outcome:'discarded'});
-  assert.equal(result.find(e=>e.type==='mw:result').data.ok,true);
+  assert.equal(result.find(e=>e.type==='mw:result').data.ok,false);
+  assert.equal(h.state(b,bs).wishPositions.total,1);
+  h.store.setObject=write;
+  h.event(owner,os,'mw:resolveRequest',{id:h.state(b,bs).wishPositions.items[0].id,outcome:'discarded'});
   assert.equal(h.state(b,bs).wishPositions.total,0);
 });
 

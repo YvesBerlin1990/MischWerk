@@ -14,12 +14,13 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
             try { old.cancel(); } catch (error) { runtime.warn('ANDROID_CANCEL'); }
         }
     }
-    function projection() {
+    runtime.androidStationProjection = function () {
         var onAir = runtime.moderatorIsActive();
         return { wishboxOpen: runtime.state.requestsEnabled === true && !runtime.shuttingDown,
             onAir: onAir, moderatorNick: onAir ? runtime.state.moderator.nick : null,
             topic: runtime.state.topic || null };
-    }
+    };
+    function projection() { return runtime.androidStationProjection(); }
     function publish(force) {
         if (!running || runtime.shuttingDown || active) { return; }
         var updates, body;

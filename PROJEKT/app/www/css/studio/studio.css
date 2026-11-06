@@ -1,4 +1,4 @@
-/* Moderation im Sendeplandesign: drei Arbeitsreiter und vollständig paginierte Inhalte. */
+/* Moderation im Sendeplandesign: Arbeitsreiter und vollständig paginierte Inhalte. */
 html[data-view=studio] { --studio-surface:#1f1f1f; --management-card:var(--studio-surface); }
 html[data-view=studio],html[data-view=studio] body { height:100%; min-height:0; overflow:hidden; }
 html[data-view=studio] body { display:flex; flex-direction:column; height:100vh; background:var(--canvas); }
@@ -21,23 +21,10 @@ html[data-view=studio] .card { padding:12px; border-color:var(--line); backgroun
 .workspace-heading h2 { margin:3px 0 0; font-size:18px; }
 .microphone-card { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:16px; }
 .microphone-card h2 { margin:6px 0; font-size:24px; line-height:1.25; font-weight:650; letter-spacing:-.02em; overflow-wrap:anywhere; }
-.studio-session { margin:0 0 8px; font-size:12px; color:var(--muted); }
-.studio-end-open :is(#studio-setup,#studio-paging,#handover-panel) { display:none; }
-.studio-end-form { min-height:0; max-height:100%; overflow:auto; overscroll-behavior:contain; padding:16px; border:1px solid var(--line); border-radius:16px; background:var(--studio-surface); }
-.studio-end-form h2 { font-size:22px; margin-bottom:12px; }
-.studio-end-current { margin:0 0 14px; color:var(--muted); font-size:14px; overflow-wrap:anywhere; }
-.studio-end-form .form-hint { margin-top:0; }
-#studio-end-feedback { margin:12px 0 0; color:var(--error); font-size:14px; overflow-wrap:anywhere; }
-.studio-end-form .button-row { margin-top:14px; }
-.studio-timing { display:flex; flex-wrap:wrap; gap:8px 24px; margin:8px 0 0; }
-.studio-timing div { min-width:0; }
-.studio-timing dt { display:inline; color:var(--muted); font-size:12px; }
-.studio-timing dd { display:inline; margin:0 0 0 6px; font-size:13px; font-variant-numeric:tabular-nums; }
 #studio-controls { display:flex; flex-wrap:wrap; gap:8px; margin:0; width:320px; max-width:100%; }
-#studio-controls #on-air { flex-basis:100%; }
+#studio-controls #on-air { flex:2; }
 #studio-controls #off-air { flex:1; }
 #studio-controls #handover-open { flex:2; }
-#studio-controls:not(:has(#handover-open:not([hidden]))) #on-air { flex:2; }
 #studio-controls > .notice { flex-basis:100%; margin:0; }
 .wishes-control-card { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .wishes-control-card h3 { font-size:15px; font-weight:600; color:var(--text); margin:0 0 4px; }

@@ -15,6 +15,8 @@ MischWerkUI.setComposer(function (factories) {
     var historyView = null;
     if (factories.historyView) { historyView = factories.historyView({ dom: dom, signals:signals }); }
     var model = factories.model({ bridge: bridge, signals: signals });
+    var radioTicker = null;
+    if (factories.radioTicker) { radioTicker = factories.radioTicker({ model:model, dom:dom, signals:signals }); }
     var viewport = null;
     if (factories.viewport) { viewport = factories.viewport({ bridge: bridge, model: model, dom: dom, signals: signals }); }
     var layout = factories.layout({ model: model, dom: dom, signals: signals, viewport: viewport });
@@ -54,8 +56,8 @@ MischWerkUI.setComposer(function (factories) {
     if(factories.studioPages){studioPages = factories.studioPages({dom:dom,signals:signals});}
     var studio = null;
     if (factories.studio) { studio = factories.studio({ model: model, dom: dom, layout: layout, commands: commands, signals: signals }); }
-    var studioSession = null;
-    if (factories.studioSession) { studioSession = factories.studioSession({ model:model, dom:dom, commands:commands, signals:signals }); }
+    var studioTicker = null;
+    if (factories.studioTicker) { studioTicker = factories.studioTicker({ model:model, dom:dom, commands:commands, signals:signals }); }
     var queue = null;
     if (factories.queue) { queue = factories.queue({ model: model, dom: dom, commands: commands, signals: signals, reader:reader }); }
     if(factories.studioWindow){studioWindow = factories.studioWindow({bridge:bridge,model:model,signals:signals,dom:dom,queue:queue});}
@@ -91,6 +93,6 @@ MischWerkUI.setComposer(function (factories) {
       presentation: presentation, signals: signals });
     var lifecycle = factories.lifecycle({ bridge: bridge, model: model, dom: dom, layout: layout,
       commands: commands, wishes: wishes, provider: provider, player: player, signals: signals });
-    lifecycle.start([viewport, layout, commands, volume, player, curtain, wishes, wishFeedback, wishRelay, wishDrawer, wishWindow,
-      studioWindow, workspace, studioPages, reader, studio, studioSession, handover, queue, team, channelTextsLayout, channelTexts, scheduleEditor, history, scheduleWindow, schedule, updates, overlays]);
+    lifecycle.start([viewport, layout, commands, volume, player, radioTicker, curtain, wishes, wishFeedback, wishRelay, wishDrawer, wishWindow,
+      studioWindow, workspace, studioPages, reader, studio, studioTicker, handover, queue, team, channelTextsLayout, channelTexts, scheduleEditor, history, scheduleWindow, schedule, updates, overlays]);
 });
