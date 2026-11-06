@@ -1,6 +1,6 @@
-# MischWerk – Design 0.1.223 · Build 223
+# MischWerk – Design 0.1.239 · Build 239
 
-Aktuelle Gestaltung am 05.11.2026. Die Bilder zeigen lokal gerenderten Appcode mit Beispieldaten. Verbindliche Projektvorgaben stehen in [AGENTS.md](../../AGENTS.md).
+Aktuelle Gestaltung am 06.11.2026. Die Bilder zeigen lokal gerenderten Appcode mit Beispieldaten. Verbindliche Projektvorgaben stehen in [AGENTS.md](../../AGENTS.md).
 
 ## Appleiste
 
@@ -8,9 +8,9 @@ Aktuelle Gestaltung am 05.11.2026. Die Bilder zeigen lokal gerenderten Appcode m
 
 Musik/Lautstärke, Sendungsthema und eigener Wunsch teilen den verfügbaren Raum. Ohne eigenen Wunsch entsteht keine leere dritte Spalte. Musikangaben sitzen über dem Regler, Thema und Wunsch breit vertikal mittig. Jetzt läuft, Thema und Dein Wunsch sind warmgolden hervorgehoben. Bestätigte Moderation ist rot, AutoDJ neutral. Schmale Ansichten behalten direkt erreichbare Aktionen und native Lesebereiche.
 
-Play ist eine 60-px-Vinylscheibe mit Goldsymbol und feiner Kontur. Bei tatsächlicher Wiedergabe leuchten Symbol und Kontur statisch; Verbinden, Nachladen, Stop und Fehler bleiben dunkel. Der separate RGB-Halo durchläuft einen ruhigen 48-Sekunden-Zyklus, mit bis zu 40 px weichem Auslauf unter der Leiste. Reduzierte Bewegung verwendet einen statischen Halo.
+Play ist eine 60-px-Vinylscheibe mit Goldsymbol und feiner Kontur. Bei tatsächlicher Wiedergabe leuchten Symbol und Kontur statisch; Verbinden, Nachladen, Stop und Fehler bleiben dunkel. Der separate RGB-Halo durchläuft einen ruhigen 48-Sekunden-Zyklus mit 16 px weichem Auslauf unter der Leiste. Die native Anfangshöhe beträgt 176 px. Reduzierte Bewegung verwendet einen statischen Halo.
 
-Sendeplan und Wunschbox sind runde Vinyl-Aktionen mit Goldsymbolen. Die Wunschbox zeigt bei Sperre Schloss und Deaktiviert. Hover, Druck und Tastaturfokus verschieben nichts. Die Lautstärketaste hat eine 32-px-Symbolfläche innerhalb ihres vollständig erreichbaren 44-px-Ziels; Stumm ergänzt ein korallfarbenes Kreuz. Regler und Prozentfeld bleiben zusammengehörig.
+Sendeplan, Wunschbox und berechtigte Moderation sind gleich große runde Vinyl-Aktionen mit Goldsymbolen und gleichen Abständen. Die Wunschbox zeigt bei Sperre Schloss und Deaktiviert, ohne Symbol oder Hauptbeschriftung zu verschieben. Hover, Druck und Tastaturfokus verschieben nichts. Die Lautstärketaste hat eine 32-px-Symbolfläche innerhalb ihres vollständig erreichbaren 44-px-Ziels; Stumm ergänzt ein korallfarbenes Kreuz. Regler und Prozentfeld bleiben zusammengehörig.
 
 ![Appleiste bei Wiedergabe](../pruefung/oberflaeche/radio/vinyl-glow-desktop.png)
 

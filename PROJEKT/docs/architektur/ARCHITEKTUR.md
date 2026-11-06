@@ -1,10 +1,10 @@
 # MischWerk – Architektur 0.1.239 · Build 239
 
-Stand 05.11.2026. Diese Übersicht beschreibt den aktuellen Aufbau; verbindliche Fach- und Entwicklungsregeln stehen ausschließlich in [AGENTS.md](../../AGENTS.md).
+Stand 06.11.2026. Diese Übersicht beschreibt den aktuellen Aufbau; verbindliche Fach- und Entwicklungsregeln stehen ausschließlich in [AGENTS.md](../../AGENTS.md).
 
 ## Zusammensetzung und Start
 
-`app/main.js` lädt `server/app.js` über `KnuddelsServer.execute` und übernimmt das globale `App`. 47 gepflegte ES5/Rhino-Module unter `src/backend/` werden bytegleich nach `app/server/` gebaut. Das Kompositionsmodul verdrahtet Komponenten und Hooks; Fachereignisse liegen in ihren zuständigen Modulen. `android/diagnostics` liefert dem anwesenden Channelinhaber eine rein lesende Server-/Domainprüfung. `android/settings` besitzt ausschließlich private Einrichtungssitzungen und den geschützten Speicheradapter. `ui/sessions` stellt für bisherige Ansichten und Betreiberansicht denselben nativen Erzeugungs-, Versand- und Schließweg bereit.
+`app/main.js` lädt `server/app.js` über `KnuddelsServer.execute` und übernimmt das globale `App`. 48 gepflegte ES5/Rhino-Module unter `src/backend/` werden bytegleich nach `app/server/` gebaut. Das Kompositionsmodul verdrahtet Komponenten und Hooks; Fachereignisse liegen in ihren zuständigen Modulen. `android/diagnostics` liefert dem anwesenden Channelinhaber eine rein lesende Server-/Domainprüfung. `android/settings` besitzt ausschließlich private Einrichtungssitzungen und den geschützten Speicheradapter. `ui/sessions` stellt für bisherige Ansichten und Betreiberansicht denselben nativen Erzeugungs-, Versand- und Schließweg bereit.
 
 `index.html` fordert CSS und `js/start.js` während des Parsens über `Client.includeCSS/includeJS` an. Das berücksichtigt die `document.write`-Implementierung des SDK. `ui/composition` verdrahtet die benötigten Komponenten einmalig. Vollständiges Markup, registrierte Module und geladenes CSS geben das Anfangslayout frei. Ein langsames Logo blockiert die Radioleiste nicht; fehlende Pflichtressourcen erzeugen einen sichtbaren Fehler. Der einmalige 15-Sekunden-Wächter erkennt einen still fehlgeschlagenen Start.
 
@@ -90,7 +90,7 @@ android/connection erzeugt den nativen HTTPS-Port nur nach privatem enabled=true
 
 ## Native Ansichten
 
-`ui/administration` registriert den über `App.chatCommands.mw` verdrahteten Chat-Einstieg. `users/identity.canAdminister` prüft tatsächliches Inhaberrecht, Anwesenheit und den authentifizierten Nick Otterchen. Der Befehl verwendet `ui/overlays`; `ui/sessions` prüft vor der verzögerten Öffnung erneut. Die Appleiste bietet den runden Moderationsbutton ausschließlich bei dem serverseitigen booleschen showModerationButton aus der gespeicherten Radio-Team-Mitgliedschaft. Das umfassendere Besitzer-Fachrecht canModerate verleiht allein keine Buttonsichtbarkeit.
+`ui/administration` registriert den über `App.chatCommands.mw` verdrahteten Chat-Einstieg. `users/identity.canAdminister` prüft tatsächliches Inhaberrecht, Anwesenheit und den authentifizierten Nick Otterchen. Der Befehl verwendet `ui/overlays`; `ui/sessions` prüft vor der verzögerten Öffnung erneut. Der runde Moderationsbutton benötigt die serverseitigen booleschen Freigaben `showModerationButton` und `canModerate` aus demselben bestätigten Zustand. Der echte Inhaber Otterchen erhält beide automatisch; andere Nutzer benötigen ihren gespeicherten Radio-Team-Eintrag.
 
 `ui/sessions` ist alleiniger Ort für HTMLFile, AppContent, Versand und Schließen. Radio ist eine Headerbar; Wunschbox, Moderation, Verwaltung und Sendeplan sind getrennte native Overlays. `sendAppContent` übernimmt die native Ersetzung. Wiederholte Aufträge mit gleicher Anfrage-ID werden dedupliziert. Die bestehende Headerbar bleibt bei Menüwechseln erhalten.
 

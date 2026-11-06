@@ -4,7 +4,7 @@ Stand 06.11.2026: **49 Komponenten, 18 Stylesheets, 80 Browser-/Mediendateien**.
 
 ## Öffnung und Inhalt
 
-Die Radioleiste bleibt ein eigenes Dokument mit einem Audioelement. Sendeplan, Wunschbox und die für eingetragene Radiomoderatoren sichtbare Moderation öffnen ein getrenntes natives Overlay; Verwaltung ist über /MW Verwaltung erreichbar. Der Server prüft Zielinhalt, Fähigkeit, Identität und Rolle; `sendAppContent` ersetzt die bisherige Overlayansicht. Fachliche Eingaben und laufende Aktionen werden vorher bestätigt übernommen. Gleiche Anfrage-IDs öffnen keine zweite Instanz.
+Die Radioleiste bleibt ein eigenes Dokument mit einem Audioelement. Sendeplan, Wunschbox und die für ernannte Radiomoderatoren sowie den echten Inhaber Otterchen sichtbare Moderation öffnen ein getrenntes natives Overlay; Verwaltung ist über /MW Verwaltung erreichbar. Der Server prüft Zielinhalt, Fähigkeit, Identität und Rolle; `sendAppContent` ersetzt die bisherige Overlayansicht. Fachliche Eingaben und laufende Aktionen werden vorher bestätigt übernommen. Gleiche Anfrage-IDs öffnen keine zweite Instanz.
 
 Der SDK-Ladeweg läuft während des HTML-Parsens. Markup und benötigte Komponenten werden einmalig zusammengesetzt; vollständiges CSS und Anfangslayout setzen `mw-ready`. Pflichtressourcenfehler werden sichtbar gemeldet. Langsame Logos blockieren den Start nicht. Keine private SDK-Readiness-Manipulation, alte gemeinsame Overlaynavigation oder versteckte Vorabfenster.
 

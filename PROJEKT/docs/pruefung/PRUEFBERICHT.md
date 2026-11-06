@@ -1,5 +1,13 @@
 # MischWerk – Prüfbericht 0.1.239 / Build 239
 
+## Dokumentation gestrafft · 06.11.2026
+
+Auf Nutzerauftrag die GitHub-Übersicht von 10234 auf 2567 Bytes und die technische README von 16599 auf 5755 Bytes gekürzt. Einstieg, aktuelle Bilder, Ordnerzuständigkeiten und gebräuchliche Befehle bleiben erreichbar; wiederholte Versionsbeschreibungen und Prüflisten entfallen aus der allgemeinen Übersicht.
+
+Die zentrale AGENTS.md ist von 322902 auf 39579 Bytes reduziert. Aktuelle Vorgaben stehen einmal nach Themen geordnet; überholte Versionsaufträge bleiben in Git nachvollziehbar. Insbesondere automatische Inhaberrechte aus 239, der aktuelle Audioverbindungsweg, wieder aufgenommene Websiteentwicklung, native Overlaywege und tatsächliche Ordnerablage ersetzen die widersprechenden Altstände. Künftige Pflege aktualisiert die jeweilige Regel statt weitere Versionsabsätze anzuhängen. Vorhandene Prüfberichte und technische Nachweise bleiben erhalten. Architektur-/Designübersichten beschreiben jetzt ebenfalls automatische Inhaberrechte, 48 Backendmodule und den 16-px-Glowauslauf.
+
+Verifikation gegen den vorab erfassten lokalen SHA-256-Bestand: ausschließlich sieben Markdown-Dateien geändert, keine Datei hinzugefügt oder entfernt; alle übrigen 480 Dateien unverändert. Darunter alle 132 tatsächlichen UPLOAD-Dateien, Quellen, Originalmedien und fünf Manifeste. Alle 156 relativen Markdown-/HTML-Verweise und elf darin verwendete Abschnittsanker sind erreichbar. Der bestehende Uploadabgleich besteht: App 0.1.239 / Build 239, 132 Laufzeitdateien, 125 Texte, maximal 9492 Zeichen. Keine erneuten App-/Browser-/Rhino-/Emulatorläufe für diese reine Textpflege und keine neue native Abnahme behauptet. Keine Funktions-, Versions- oder Bereitstellungsänderung.
+
 ## Ordnergruppierung ohne Versionswechsel · 06.11.2026
 
 Auf Nutzerauftrag in drei Schritten geordnet: 28 aktuelle Prüfbilder in sechs Themenordnern, Website mit 16 Browserdateien unter public/, acht Servermodulen unter server/ und vier Diagnosedateien unter tools/preview/, anschließend 18 App-Stylesheets in sieben Fachordnern. Dokumentation, Imports, Ladepfade, optionale Aufnahmeziele und Manifestzuordnung sind angepasst. Alle 351 Projektdateien bleiben erhalten; keine Datei entsorgt, kein Archiv oder zweiter Upload angelegt. App 0.1.239 / Build 239 und Website 0.2.0 bleiben bestehen.
