@@ -3,9 +3,23 @@ const assert = require('node:assert/strict');
 const { createHarness } = require('../support/knuddels.cjs');
 
 function greeting(nick) {
-  return '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>' + nick + '|/w ' + nick + '<°._°r°°#°Viel Spaß beim Zuhören.';
+  return '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>' + nick + '|/w ' + nick + '<°._°r° Viel Spaß beim Zuhören.';
 }
 function photoLink(url, nick) { return ' °>' + url + '<>--<>|/w ' + nick + '<°'; }
+
+test('Bildtag bleibt gültig, wenn die Profilfunktion Anzeigetext maskiert oder mit _h formatiert', () => {
+  for (const format of [display => display.replace(/[<>]/g, character => '\\' + character), display => '_h' + display]) {
+    const { h } = fixture(), person = h.user(2, 'Fotofreund'), displays = [];
+    person.profilePhoto = 'https://example.invalid/profile.png?cnt=91&.img';
+    person.getProfileLink = display => {
+      displays.push(display);
+      return '°>' + format(display) + '|/w "native-profile-target"<°';
+    };
+    h.app.onUserJoined(person);
+    assert.ok(h.bot.messages[0].endsWith(' °>https://example.invalid/profile.png?cnt=91&.img<>--<>|/w "native-profile-target"<°'));
+    assert.deepEqual(displays, ['Fotofreund', 'Profil öffnen']);
+  }
+});
 
 function fixture(options = {}) {
   const h = createHarness(undefined, { random: () => 0, ...options }), owner = h.user(1, 'Otterchen', 'owner');
@@ -17,13 +31,14 @@ function fixture(options = {}) {
   return { h, owner, session, appoint };
 }
 
-test('Nick und Foto verwenden den nativen Profillink; Begrüßung ist größer, fett und warmgolden gegliedert', () => {
+test('Nick und Foto verwenden den nativen Profillink; Begrüßung ist größer, fett, warmgolden und ohne festen Zeilenumbruch', () => {
   const { h } = fixture(), person = h.user(2, 'Fotofreund'), displays = [];
   person.profilePhoto = 'https://example.invalid/profile.png';
   person.getProfileLink = display => { displays.push(display); return '°>' + display + '|/w Fotofreund<°'; };
   h.app.onUserJoined(person);
-  assert.deepEqual(displays, ['Fotofreund', 'https://example.invalid/profile.png<>--<>']);
-  assert.equal(h.bot.messages[0], '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Fotofreund|/w Fotofreund<°._°r°°#°Viel Spaß beim Zuhören. °>https://example.invalid/profile.png<>--<>|/w Fotofreund<°');
+  assert.deepEqual(displays, ['Fotofreund', 'Profil öffnen']);
+  assert.doesNotMatch(h.bot.messages[0], /°#°|[\r\n]/, 'Kein erzwungener Umbruch zwischen den Begrüßungssätzen');
+  assert.equal(h.bot.messages[0], '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Fotofreund|/w Fotofreund<°._°r° Viel Spaß beim Zuhören. °>https://example.invalid/profile.png<>--<>|/w Fotofreund<°');
   assert.deepEqual(person.photoSize, [24, 24]);
 });
 
@@ -115,8 +130,18 @@ test('Ausgefallene oder leere Profillinks erhalten Text und Foto als unverlinkte
     person.profilePhoto = 'https://example.invalid/photo.png';
     person.getProfileLink = () => { if (result instanceof Error) throw result; return result; };
     h.app.onUserJoined(person);
-    assert.equal(h.bot.messages[0], '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, Linkfehler._°r°°#°Viel Spaß beim Zuhören. °>https://example.invalid/photo.png<°');
+    assert.equal(h.bot.messages[0], '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, Linkfehler._°r° Viel Spaß beim Zuhören. °>https://example.invalid/photo.png<°');
     assert.ok(!JSON.stringify(h.logs).includes('private-link-detail'));
+  }
+});
+
+test('Nicht auswertbare native Foto-Profillinks behalten einen eigenständigen Bildtag', () => {
+  for (const link of ['kein Link', '°>Profil öffnen|<°', '°>Profil öffnen|/w Ziel°#°<°', '°>Profil öffnen|/w Ziel\n/anderer-befehl<°']) {
+    const { h } = fixture(), person = h.user(2, 'Linkfehler');
+    person.profilePhoto = 'https://example.invalid/photo.png';
+    person.getProfileLink = display => display === 'Profil öffnen' ? link : '°>Linkfehler|/w Linkfehler<°';
+    h.app.onUserJoined(person);
+    assert.equal(h.bot.messages[0], greeting('Linkfehler') + ' °>https://example.invalid/photo.png<°');
   }
 });
 

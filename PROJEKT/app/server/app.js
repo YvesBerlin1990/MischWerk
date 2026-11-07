@@ -26,6 +26,7 @@ KnuddelsServer.execute('server/wishes/transport.js');
 KnuddelsServer.execute('server/schedule/calendar.js');
 KnuddelsServer.execute('server/schedule/storage.js');
 KnuddelsServer.execute('server/schedule/programme.js');
+KnuddelsServer.execute('server/schedule/broadcasts.js');
 KnuddelsServer.execute('server/schedule/transport.js');
 KnuddelsServer.execute('server/ui/snapshot.js');
 KnuddelsServer.execute('server/ui/session-state.js');
@@ -43,6 +44,7 @@ KnuddelsServer.execute('server/website/access.js');
 KnuddelsServer.execute('server/website/public.js');
 KnuddelsServer.execute('server/website/commands.js');
 KnuddelsServer.execute('server/website/transport.js');
+KnuddelsServer.execute('server/android/signing.js');
 KnuddelsServer.execute('server/android/connection.js');
 KnuddelsServer.execute('server/android/diagnostics.js');
 KnuddelsServer.execute('server/android/settings.js');
@@ -50,6 +52,7 @@ KnuddelsServer.execute('server/android/receipts.js');
 KnuddelsServer.execute('server/android/publisher.js');
 KnuddelsServer.execute('server/android/verification.js');
 KnuddelsServer.execute('server/android/webhook.js');
+KnuddelsServer.execute('server/android/operation.js');
 KnuddelsServer.execute('server/lifecycle.js');
 KnuddelsServer.execute('server/transport/events.js');
 
@@ -81,6 +84,7 @@ MischWerkModules.createApp = function (config, androidWire) {
     MischWerkModules.attachScheduleCalendar(runtime);
     MischWerkModules.attachScheduleStorage(runtime);
     MischWerkModules.attachScheduleProgramme(runtime);
+    MischWerkModules.attachScheduleBroadcasts(runtime);
     MischWerkModules.attachScheduleTransport(runtime);
     MischWerkModules.attachSnapshot(runtime, config);
     MischWerkModules.attachSessionState(runtime);
@@ -97,6 +101,7 @@ MischWerkModules.createApp = function (config, androidWire) {
     MischWerkModules.attachWebsitePublic(runtime, config);
     MischWerkModules.attachWebsiteCommands(runtime);
     MischWerkModules.attachWebsiteTransport(runtime);
+    MischWerkModules.attachAndroidSigning(runtime);
     MischWerkModules.attachAndroidConnection(runtime);
     MischWerkModules.attachAndroidDiagnostics(runtime, config);
     MischWerkModules.attachAndroidSettings(runtime, config);
@@ -104,6 +109,7 @@ MischWerkModules.createApp = function (config, androidWire) {
     MischWerkModules.attachAndroidPublisher(runtime);
     MischWerkModules.attachAndroidVerification(runtime, config);
     MischWerkModules.attachAndroidWebHook(runtime, androidWire);
+    MischWerkModules.attachAndroidOperation(runtime, config);
     MischWerkModules.attachLifecycle(runtime, config);
     MischWerkModules.attachEvents(runtime, config);
     return {
@@ -115,7 +121,7 @@ MischWerkModules.createApp = function (config, androidWire) {
         onUserDeleted: runtime.userDeleted,
         onEventReceived: runtime.handleEvent,
         chatCommands: { mw: runtime.administrationCommand, mischwerk: runtime.open, update: runtime.requestUpdate,
-            vorhang: runtime.curtainCommand, 'mischwerk-web': runtime.websiteCommand,
+            vorhang: runtime.curtainCommand, settopic: runtime.setTopicCommand, 'mischwerk-web': runtime.websiteCommand,
             'mischwerk-relay': runtime.androidRelayCommand }
     };
 };

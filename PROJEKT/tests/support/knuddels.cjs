@@ -82,6 +82,7 @@ function createHarness(existingPersistence, options = {}) {
       return value.replace(/[_°<>\\]/g, character => '\\' + character);
     },
     Date: FakeDate,
+    RandomOperations: { getRandomString: (length, alphabet) => (options.nonce || alphabet.slice(0,length)) },
     ...(options.random ? { Math: Object.assign(Object.create(Math), { random: options.random }) } : {}),
     setTimeout(callback, delay) { const id = ++timerSequence; timers.set(id, { callback, at:timestamp + delay }); return id; },
     clearTimeout(id) { timers.delete(id); },

@@ -222,7 +222,7 @@ test('Deaktivierte Annahme und Vorhang erhalten Entwurf und geben den Tastaturfo
   await action(owner,'mw:setRequests',{enabled:false,previousEnabled:true});
   await surface.locator('#wish-fields[disabled]').waitFor();
   await surface.locator('#close-wishes').click();await page.locator('#overlay-frame').waitFor({state:'hidden'});
-  assert.equal(await radio.locator('#open-schedule').evaluate(n=>document.activeElement===n),true);
+  assert.equal(await radio.locator('#mute-button').evaluate(n=>document.activeElement===n),true);
   await action(owner,'mw:setRequests',{enabled:true,previousEnabled:false});surface=await open();
   assert.equal(await surface.locator('#wish-text').inputValue(),'Mein gespeicherter Entwurf');
   await previewCurtain(owner,'schließen');

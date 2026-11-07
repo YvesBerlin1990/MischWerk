@@ -21,8 +21,14 @@ MischWerkUI.define('updates', function (dependencies) {
     dom.el('radio-private-actions').hidden = !state.user.showModerationButton;
     dom.el('radio-listener-brand').hidden = !dom.el('radio-private-actions').hidden;
     dom.el('radio-actions').classList.toggle('public-only', dom.el('radio-private-actions').hidden);
-    dom.el('open-schedule').disabled = !live || pending;
+    var scheduleAllowed = state.user.canManageRadioModerators === true;
+    dom.el('open-schedule').disabled = !live || pending || !scheduleAllowed;
     dom.el('open-schedule').setAttribute('aria-disabled', String(dom.el('open-schedule').disabled));
+    dom.el('schedule-button-caption').hidden = scheduleAllowed;
+    dom.el('open-schedule').title = scheduleAllowed ?
+      (!live ? 'Verbindung zum Channel fehlt' : 'Sendeplan öffnen') : 'Sendeplan – In Kürze';
+    if (scheduleAllowed) { dom.el('open-schedule').setAttribute('aria-haspopup', 'dialog'); }
+    else { dom.el('open-schedule').removeAttribute('aria-haspopup'); }
     dom.el('open-wishes').classList.toggle('wishes-closed', !state.requestsEnabled);
     dom.setText('wish-button-caption', !state.requestsEnabled ? 'Deaktiviert' : !live ? 'Verbindung fehlt' : 'Dein Musikwunsch');
     dom.el('open-wishes').title = !state.requestsEnabled ? 'Die Wunschbox ist deaktiviert.' :

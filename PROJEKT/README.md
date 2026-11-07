@@ -1,18 +1,24 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.269 · Build 269 · Website 0.2.1**, Stand 06.11.2026.
+**App 0.1.288 · Build 288 · Website 0.2.1**, Stand 07.11.2026.
 
 [Projekt und Bilder](../.github/README.md) · [Verbindliche Regeln](AGENTS.md) · [Installation und Betrieb](docs/betrieb/INBETRIEBNAHME.md)
 
 Die GitHub-Übersicht liegt in [.github/README.md](../.github/README.md). Fachliche Regeln stehen zentral in [AGENTS.md](AGENTS.md); die folgenden Abschnitte erklären Ablage und Werkzeuge.
 
-Neue Channelbeitritte erhalten einheitlich „Willkommen bei Radio MischWerk, {Nick}. Viel Spaß beim Zuhören.“ mit vorhandenem kleinen Profilfoto am Ende. Die größere fette erste Zeile verwendet Appleisten-Gold #e6c77b, die zweite Zeile die normale Channelschrift. Nick und Foto sind native Profillinks. Die bisherigen 30 Vorlagen und die Zufallsauswahl sind entfernt. Der Appstart begrüßt bereits Anwesende nicht nachträglich. [API-Nachweis](docs/api/API-NACHWEIS.md#öffentliche-userbegrüßung) · [Prüfbericht](docs/pruefung/PRUEFBERICHT.md).
+Neue Channelbeitritte erhalten einheitlich „Willkommen bei Radio MischWerk, {Nick}. Viel Spaß beim Zuhören.“ mit vorhandenem kleinen Profilfoto am Ende. Der größere fette erste Satz verwendet Appleisten-Gold #e6c77b, danach folgt der zweite Satz in normaler Channelschrift ohne festen Zeilenumbruch. Nick und Foto sind native Profillinks. Die bisherigen 30 Vorlagen und die Zufallsauswahl sind entfernt. Der Appstart begrüßt bereits Anwesende nicht nachträglich. [API-Nachweis](docs/api/API-NACHWEIS.md#öffentliche-userbegrüßung) · [Prüfbericht](docs/pruefung/PRUEFBERICHT.md).
 
 Offene Musikwünsche werden vor der Annahme dauerhaft gespeichert und nach Updates oder Neustarts samt Reihenfolge und Bearbeitungsstatus wieder geladen. Erledigte und verworfene Texte werden entfernt. Beim ersten Wechsel von Build 267 oder älter sind dessen bisher nur flüchtige Wünsche noch nicht gesichert.
 
-Die Radioregie bietet Anmelden, Abmelden und bestätigte Übergabe. Eine Anmeldung hat kein Zeitlimit und benötigt keine Verlängerung; Endzeit-, Restzeit- und Studiozeitanzeigen sind entfernt.
+Radioregie, Sendeplan und Verwaltung sind durchgängig mit flachen Arbeitsflächen, Goldakzenten und vollständigen Reitern gestaltet. Die Radioregie bietet Anmelden, Abmelden und bestätigte Übergabe; diese Wechsel werden automatisch im Sendeplan vermerkt. Passende vorhandene Planungen werden ergänzt. Eine Anmeldung hat kein Zeitlimit und benötigt keine Verlängerung; Endzeit-, Restzeit- und Studiozeitanzeigen sind entfernt.
+
+Alle Menüs bleiben kompakte Overlays: Radioregie bis 640 × 580 px, Sendeplan 720 × 600 px, Verwaltung 500 × 560 px und Wunschbox 480 × 340 px. Einheitliche niedrige Köpfe und ein auf fertiges CSS/Schriftlayout wartender Start verringern Chatabdeckung und Darstellungssprünge. Vorhandene Seiten- und Scrollwege erhalten alle Inhalte.
+
+Der Sendeplan-Button in der Appleiste ist vorerst für andere Nutzer deaktiviert und zeigt darunter „In Kürze“. Otterchen als anwesender Channelinhaber kann ihn zum Weiterarbeiten öffnen.
 
 Der senderweite Lauftext lässt sich in **Radioregie → Lauftext** einstellen. Nur Radiomoderation einschließlich des automatisch berechtigten Inhabers kann Text, Tempo, Richtung und Ein/Aus speichern. Die feste Kennzeichnung lautet „Information:“. [Bedienung](docs/betrieb/INBETRIEBNAHME.md#lauftext-unter-der-appleiste).
+
+Das native Channel-Thema lässt sich mit **`/settopic TEXT`** setzen. **`/settopic --buttons`** erzeugt die vereinbarte Vorlage mit Lieblings-MyChannel, Readme und Channelinfo direkt im Backend und liest das Ergebnis zurück. **`/settopic --pruefen`** liest nur die gespeicherte Zeichen- und Buttonzahl. [Bedienung](docs/betrieb/INBETRIEBNAHME.md#channel-thema-setzen).
 
 ## Zuständigkeiten der Ordner
 
@@ -80,6 +86,6 @@ Aus `website/` startet `pnpm start` den regulären Webserver, `pnpm test` die ei
 
 ## Bereitstellung und Nachweise
 
-`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Die Browserrunde läuft separat. Das aktuelle Paket umfasst 140 Laufzeitdateien, darunter 133 Texte; fünf Manifeste dokumentieren die tatsächlichen Bytes. Alle Laufzeittexte und Manifeste bleiben unter 9500 Zeichen. Der Paketbau veröffentlicht nichts und startet keine echte App neu.
+`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Die Browserrunde läuft separat. Das aktuelle Paket umfasst 143 Laufzeitdateien, darunter 136 Texte; fünf Manifeste dokumentieren die tatsächlichen Bytes. Alle Laufzeittexte und Manifeste bleiben unter 9500 Zeichen. Der Paketbau veröffentlicht nichts und startet keine echte App neu.
 
 [App-Prüfbericht](docs/pruefung/PRUEFBERICHT.md) · [Website-Prüfbericht](website/docs/PRUEFUNG.md) · [API-Nachweis](docs/api/API-NACHWEIS.md) · [Architektur](docs/architektur/ARCHITEKTUR.md) · [Frontend](docs/architektur/ARCHITEKTUR-FRONTEND.md) · [Design](docs/architektur/DESIGN.md) · [LIVE-Abnahme](docs/betrieb/LIVE-ABNAHME.md)

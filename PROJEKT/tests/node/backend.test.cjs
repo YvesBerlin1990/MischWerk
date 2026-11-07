@@ -139,7 +139,7 @@ test('Authentifizierte Sitzungsprüfung erhält den bewährten Uservergleich auc
 
 test('Alle vier Bereiche öffnen nativ mit eigenen Anfangsmaßen und privaten Entwürfen',()=>{
  const {h,owner,os,listener,ls}=fixture();let previous;const count=h.contents.length;
- for(const [action,kind,width,height] of [['mw:openStudio','studio',780,730],['mw:openRadioTeam','team',560,630],['mw:openSchedule','schedule',820,630],['mw:openWishes','wishes',560,340]]){
+ for(const [action,kind,width,height] of [['mw:openStudio','studio',640,580],['mw:openRadioTeam','team',500,560],['mw:openSchedule','schedule',720,600],['mw:openWishes','wishes',480,340]]){
   h.event(owner,os,action);if(previous)h.finishOverlay(owner,previous,{draft:previous.activeView});const current=owner.sessions.find(s=>s.content.viewMode==='Overlay');
   assert.equal(current.activeView,kind);assert.deepEqual([current.content.width,current.content.height],[width,height]);assert.equal(current.content.loading.enabled,true);assert.equal(current.content.responsive,true);assert.equal(current.content.allowJFXBrowser,false);assert.equal('sharedViews' in current.content.htmlFile.pageData,false);
   if(previous){assert.equal(previous.removed,true);assert.notEqual(current,previous);}assert.equal(owner.sessions.length,2);previous=current;
@@ -302,7 +302,7 @@ test('main.js laedt fachlich getrennte Serverdateien statt eines Sammelbundles',
 });
 test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
   const result = require('../../tools/checks/architecture.cjs').checkArchitecture();
-  assert.equal(result.backendModules, 53);
+  assert.equal(result.backendModules, 56);
   assert.equal(result.frontendComponents, 50);
 });
 
@@ -638,14 +638,14 @@ test('Channelinhaber verwaltet das Radio-Team über eine eigene persistente Roll
   const secondPage=h.state(owner,os,0,undefined,1);
   assert.equal(secondPage.radioModeratorPage,1);assert.equal(secondPage.radioModerators.length,3);
 });
-test('Radio-Team ist ein eigenes Besitzer-Popup; Entzug beendet eine laufende Studio-Anmeldung', () => {
+test('Radio-Team ist ein eigenes Besitzer-Overlay; Entzug beendet eine laufende Studio-Anmeldung', () => {
   const {h,listener,owner,ls,os}=fixture();
   const radioMod=h.user(8,'RadioMod','moderator'),rms=h.open(radioMod);
   assert.equal(lastResult(h.event(listener,ls,'mw:openRadioTeam')).ok,false);
   assert.equal(lastResult(h.event(radioMod,rms,'mw:openStudio')).ok,false,'Channelmoderator kann das Studio nicht öffnen');
   assert.equal(lastResult(h.event(owner,os,'mw:openRadioTeam')).ok,true);
   const team=owner.sessions.find(session=>session.content.viewMode==='Overlay');
-  assert.equal(team.content.width,560);assert.equal(team.content.height,630);
+  assert.equal(team.content.width,500);assert.equal(team.content.height,560);
   assert.equal(team.content.htmlFile.getPageData().view,'team');assert.equal(os.removed,false);
   appoint(h,owner,team,radioMod);
   assert.equal(lastResult(h.event(radioMod,rms,'mw:openStudio')).ok,true);
@@ -981,7 +981,7 @@ test('Knuddels-Ansicht ist responsiv und schließt den alten JFX-Browser aus', (
 });
 test('Channelbeitritt und Appstart öffnen die Leiste; Wiederöffnen hinterlässt keine doppelte Sitzung', () => {
   const h = createHarness(); const user = h.user(9, 'Hörer');
-  assert.deepEqual(Object.keys(h.app.chatCommands).sort(), ['mischwerk', 'mischwerk-relay', 'mischwerk-web', 'mw', 'update', 'vorhang']);
+  assert.deepEqual(Object.keys(h.app.chatCommands).sort(), ['mischwerk', 'mischwerk-relay', 'mischwerk-web', 'mw', 'settopic', 'update', 'vorhang']);
   h.app.onUserJoined(user); const first = user.sessions[0];
   assert.equal(first.content.viewMode, 'Headerbar');
   h.app.chatCommands.mischwerk(user);

@@ -30,3 +30,13 @@ summary:focus-visible { outline:2px solid #cfd2d6; outline-offset:2px; }
   .pagination .secondary-button { padding:8px; }
   .team-member { flex-wrap:wrap; }
 }
+
+/* Gleicher kompakter Kopf vor und nach Bereitschaft; kein Umbruch beim Reiterwechsel. */
+html:not([data-view=radio]) :is(.dialog-shell,.wish-drawer) > .dialog-header {
+ --dialog-logo:64px; --brand-padding:4px; --dialog-title:24px; --dialog-gap:6px;
+ min-height:76px; padding:5px 12px; border-radius:15px 15px 0 0; background:#141414;
+}
+html:not([data-view=radio]) :is(.dialog-shell,.wish-drawer) > .dialog-header .eyebrow { display:none; }
+html:not([data-view=radio]) :is(.dialog-shell,.wish-drawer) > .dialog-header h1,
+html:not([data-view=radio]) .wish-drawer .dialog-heading h2 { font-size:24px; white-space:nowrap; }
+html:not([data-view=radio]) .wish-drawer { border-radius:16px; }

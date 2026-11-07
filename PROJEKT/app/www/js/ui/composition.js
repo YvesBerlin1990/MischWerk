@@ -57,7 +57,7 @@ MischWerkUI.setComposer(function (factories) {
     var studio = null;
     if (factories.studio) { studio = factories.studio({ model: model, dom: dom, layout: layout, commands: commands, signals: signals }); }
     var studioTicker = null;
-    if (factories.studioTicker) { studioTicker = factories.studioTicker({ model:model, dom:dom, commands:commands, signals:signals }); }
+    if (factories.studioTicker) { studioTicker = factories.studioTicker({ model:model, dom:dom, commands:commands, signals:signals, pages:studioPages }); }
     var queue = null;
     if (factories.queue) { queue = factories.queue({ model: model, dom: dom, commands: commands, signals: signals, reader:reader }); }
     if(factories.studioWindow){studioWindow = factories.studioWindow({bridge:bridge,model:model,signals:signals,dom:dom,queue:queue});}

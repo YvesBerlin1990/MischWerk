@@ -2,12 +2,12 @@
 html[data-view=team] { scroll-padding-top:110px; scroll-padding-bottom:220px; }
 html[data-view=team] body { overflow:visible; }
 html[data-view=team] .dialog-header { position:sticky; top:1px; z-index:5; }
-.team-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:14px; padding:4px; border:1px solid var(--line); border-radius:12px; background:var(--input); }
-.team-tabs button { min-height:44px; border:1px solid transparent; border-radius:8px; color:var(--muted); background:transparent; font:inherit; font-weight:600; }
-.team-tabs button[aria-selected=true] { color:var(--text); border-color:#525252; background:#292929; }
+.team-tabs { display:grid; grid-template-columns:1fr 1fr; gap:0; margin:0 0 22px; padding:0; border:0; border-bottom:1px solid var(--line); border-radius:0; background:transparent; }
+.team-tabs button { min-height:48px; border:0; border-bottom:2px solid transparent; border-radius:0; color:var(--muted); background:transparent; font:inherit; font-weight:500; }
+.team-tabs button[aria-selected=true] { color:var(--gold); border-bottom-color:var(--gold); background:transparent; }
 html.channel-texts-open,html.channel-texts-open body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:none; }
 html.channel-texts-open .dialog-shell { display:flex; flex-direction:column; height:100%; min-height:0; padding-bottom:0; overflow:hidden; }
-html.channel-texts-open .dialog-header { position:relative; top:auto; flex:none; }
+html.channel-texts-open .dialog-header { position:relative; top:auto; flex:none; --dialog-logo:64px; --dialog-title:26px; --brand-padding:8px; min-height:80px; padding:8px 15px; }
 html.channel-texts-open #dialog-notice-slot { flex:none; }
 html.channel-texts-open .dialog-content { display:flex; flex:1; min-height:0; padding:12px 15px 0; overflow:hidden; }
 html.channel-texts-open #team-panel { display:flex; flex:1; flex-direction:column; min-width:0; min-height:0; }
@@ -19,13 +19,13 @@ html.channel-texts-open .channel-texts-form { display:flex; flex:1; flex-directi
 .channel-texts-scroll::-webkit-scrollbar-track { background:#1c1d20; border-radius:8px; }
 .channel-texts-scroll::-webkit-scrollbar-thumb { background:#777e88; border:2px solid #1c1d20; border-radius:8px; }
 .channel-texts-scroll::-webkit-scrollbar-thumb:hover { background:#a1a7b0; }
-.channel-texts-form h2 { margin:0 0 8px; text-align:center; font-size:22px; }
+.channel-texts-form h2 { margin:0 0 8px; text-align:left; font-size:22px; }
 .channel-texts-scroll > .form-hint { margin:0 0 12px; }
 .channel-texts-options { display:grid; grid-template-columns:minmax(0,1fr) 150px; gap:12px; align-items:end; }
 .channel-texts-options > label { min-width:0; font-size:13px; }
 .channel-texts-options select { display:block; width:100%; min-height:44px; margin:4px 0 0; font-size:16px; }
 .channel-texts-toggle { display:flex; align-items:center; gap:9px; min-height:44px; cursor:pointer; }
-.channel-texts-toggle input { flex:0 0 22px; width:22px; height:22px; margin:0; accent-color:#d7d7d7; }
+.channel-texts-toggle input { flex:0 0 22px; width:22px; height:22px; margin:0; accent-color:var(--gold); }
 .channel-texts-status { margin:10px 0; color:var(--muted); font-size:12px; }
 .channel-texts-fields { display:grid; gap:10px; margin-bottom:10px; }
 .channel-texts-entry-heading { display:flex; align-items:center; gap:8px; min-width:0; }
@@ -50,7 +50,7 @@ html[data-view=team] .channel-texts-actions > button { font-size:16px; }
  .channel-texts-options { grid-template-columns:minmax(0,1fr) 140px; gap:8px; }
  .channel-texts-toggle { font-size:12px; }
 }
-.team-intro-card,.team-list-card { padding:22px; border:1px solid var(--line); border-radius:20px; background:var(--management-card); }
+.team-intro-card,.team-list-card { padding:0 0 22px; border:0; border-bottom:1px solid var(--line); border-radius:0; background:transparent; }
 .team-section-heading .eyebrow { color:var(--gold-ink); font-size:12px; font-weight:600; letter-spacing:.1em; }
 .team-section-heading h2 { margin:4px 0 0; font-size:23px; font-weight:700; letter-spacing:-.02em; overflow-wrap:anywhere; }
 .team-add-form { margin-top:18px; }
@@ -59,7 +59,7 @@ html[data-view=team] .channel-texts-actions > button { font-size:16px; }
 .team-add-row input { flex:1; margin:0; background:var(--input); border-color:#4a4a4a; }
 .team-add-row button { flex-shrink:0; }
 .team-intro-card .form-hint { margin-top:10px; font-size:13px; }
-.team-list-card { margin-top:16px; background:var(--management-card); }
+.team-list-card { margin-top:22px; background:transparent; border-bottom:0; }
 .team-list-card .list-heading { flex-wrap:nowrap; align-items:center; margin-bottom:16px; }
 .team-list-card .list-heading > div { min-width:0; }
 .team-list-card .count-badge { display:inline-block; margin-left:4px; padding:2px 7px; border-radius:6px; background:#282b2e; color:var(--gold-ink); font-variant-numeric:tabular-nums; font-size:14px; }
@@ -75,9 +75,13 @@ html[data-view=team] .channel-texts-actions > button { font-size:16px; }
 .team-member-confirm { flex:1 0 100%; min-width:0; padding:12px; border:1px solid #71423e; border-radius:8px; background:#2a1613; }
 .team-member-confirm p { margin:0 0 10px; font-size:13px; overflow-wrap:anywhere; }
 .team-member-confirm .button-row { margin:0; }
-.team-list > .empty-copy { padding:24px 12px; border:1px dashed #414449; border-radius:10px; text-align:center; font-size:14px; }
+.team-list > .empty-copy { padding:22px 0; border:0; color:var(--muted); font-size:14px; }
 .team-owner-note { margin:14px 4px 0; color:var(--muted); font-size:12px; line-height:1.5; }
-@media (max-width:600px) { .team-intro-card,.team-list-card { padding:16px; } }
+@media (max-width:380px) {
+ html[data-view=team] .dialog-header { --dialog-logo:64px; --dialog-title:22px; --brand-padding:4px; --dialog-gap:6px; padding-inline:12px; }
+ html[data-view=team] .dialog-heading h1 { white-space:nowrap; }
+}
+@media (max-width:600px) { .team-intro-card,.team-list-card { padding:0 0 18px; } }
 @media (max-width:475px) { .team-add-row { flex-direction:column; } .team-add-row button { align-self:stretch; } }
 /* Lange Abschnittstitel behalten auf schmalen Geräten die volle Kartenbreite. */
 @media (max-width:475px) {

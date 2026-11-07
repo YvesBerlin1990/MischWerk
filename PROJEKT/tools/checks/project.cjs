@@ -32,10 +32,11 @@ for (const [type, names] of Object.entries({
   User: ['getNick', 'getUserId', 'getUserType', 'hasProfilePhoto', 'getProfilePhoto', 'isOnlineInChannel', 'isAppManager', 'equals', 'canSendAppContent', 'sendAppContent', 'sendPrivateMessage'],
   AppContentSession: ['getUser', 'remove'],
   AppContent: ['setResponsive', 'addCloseListener'],
-  WebHookAccess:['registerWebHook','unregisterWebHook'], WebHookRequest:['getMethod','getPath','getHeaders','getBody','getQueryString','getRemoteAddress'], WebHookResponse:['send'],
+  WebHookAccess:['registerWebHook','unregisterWebHook','getWebHookUrl'], WebHookRequest:['getMethod','getPath','getHeaders','getBody','getQueryString','getRemoteAddress'], WebHookResponse:['send'],
   ExternalServerAccess: ['postURL', 'canAccessURL', 'getAllAccessibleDomains'], ExternalServerResponse: ['getResponseCode', 'getURLString'],
   ServerInfo: ['getVersion', 'getServerId'], Domain: ['getDomainName'],
   BotUser: ['sendPublicMessage'], String: ['escapeKCode'],
+  Channel: ['getChannelConfiguration'], ChannelConfiguration: ['getChannelInformation'], ChannelInformation: ['getTopic', 'setTopic'],
   AppAccess: ['getOwnInstance'], AppInstance: ['getRootInstance'], RootAppInstance: ['updateAppFiles', 'invalidateClientCache', 'updateApp']
 })) {
   for (const name of names) {

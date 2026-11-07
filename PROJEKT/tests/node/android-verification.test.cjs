@@ -28,9 +28,10 @@ test('Einmaltest sendet nur nach ausdrÃ¼cklichem Inhaberaufruf echte Senderproje
   f.runtime.state.topic = 'Aktuelles Thema';
   assert.equal(f.calls.length, 0); f.run(); assert.equal(f.calls.length, 1);
   const p = f.calls[0].parameters, body = JSON.parse(p.data.payload);
-  assert.equal(f.calls[0].url, target); assert.deepEqual(Object.keys(p.data), ['payload']);
-  assert.equal(p.header.Authorization, 'Bearer ' + f.value.syncSecret); assert.equal(p.headers, undefined);
-  assert.equal(p.header['X-MischWerk-Probe'], undefined);
+  assert.equal(f.calls[0].url, target); assert.deepEqual(Object.keys(p.data).sort(), ['nonce','payload','sig','ts']);
+  assert.equal(p.header, undefined); assert.equal(p.headers, undefined);
+  assert.equal(p.data.sig, require('node:crypto').createHmac('sha256', f.value.syncSecret)
+    .update('v1.'+p.data.ts+'.'+p.data.nonce+'.'+p.data.payload).digest('hex'));
   assert.equal(body.station.topic, 'Aktuelles Thema'); assert.equal(body.station.updatedAt, f.h.now());
   assert.equal(body.station.wishboxOpen, f.runtime.state.requestsEnabled === true); assert.deepEqual(body.wishUpdates, []);
   f.reply(); const result = f.result(); assert.equal(result.nativeResponseAccepted, true);
@@ -114,23 +115,24 @@ test('Speichern neuer privater Einstellungen verwirft den alten Einmaltest endgÃ
   assert.equal(f.h.store.data[key].syncSecret,'n'.repeat(64)); assert.equal(f.h.store.data[key].enabled,false);
 });
 
-test('Headerprobe sendet nur {} mit dem vereinbarten Zusatzheader und liest nur den Statuscode', () => {
+test('Signierte Auth-Probe sendet nur {} ohne Header und liest nur den Statuscode', () => {
   const f = fixture(), before = JSON.stringify(f.h.store.data);
   f.runtime.androidStationProjection = () => { throw Error('Senderprojektion darf nicht gelesen werden'); };
   f.run(f.owner, 'auth-pruefen'); assert.equal(f.calls.length, 1);
   const p = f.calls[0].parameters;
-  assert.equal(p.data.payload, '{}'); assert.deepEqual(Object.keys(p.data), ['payload']);
-  assert.equal(p.header.Authorization, 'Bearer ' + f.value.syncSecret); assert.equal(p.headers, undefined);
-  assert.equal(p.header['X-MischWerk-Probe'], '1');
+  assert.equal(p.data.payload, '{}'); assert.deepEqual(Object.keys(p.data).sort(), ['nonce','payload','sig','ts']);
+  assert.equal(p.header, undefined); assert.equal(p.headers, undefined);
+  assert.equal(p.data.sig, require('node:crypto').createHmac('sha256', f.value.syncSecret)
+    .update('v1.'+p.data.ts+'.'+p.data.nonce+'.'+p.data.payload).digest('hex'));
   f.reply({status:400, failed:true, raw:'{"error":"invalid_payload"}'});
   const report = f.result();
-  assert.equal(report.check, 'native-header-probe-post'); assert.equal(report.authenticationAccepted, true);
+  assert.equal(report.check, 'native-signed-auth-post'); assert.equal(report.authenticationAccepted, true);
   assert.equal(report.nativeResponseAccepted, false); assert.equal(report.firestoreWriteConfirmed, null);
   assert.equal(report.request.stationUpdatedAt, null); assert.equal(report.request.payloadShape, 'empty-object');
   assert.equal(report.http.status, 400); assert.equal(report.http.jsonParsed, false);
   assert.equal(report.http.bodyRead, false); assert.equal(report.http.responseUrlMatches, null);
   assert.equal(report.http.invalidPayloadConfirmed, null); assert.deepEqual(report.errors, []);
-  assert.equal(report.request.probeHeaderIncluded, true);
+  assert.equal(report.request.probeHeaderIncluded, undefined);
   assert.equal(JSON.stringify(f.h.store.data), before); assert.equal(f.hooks.length, 0);
   assert.doesNotMatch(JSON.stringify(f.owner.messages), /ssssssss|Senderprojektion/);
 });

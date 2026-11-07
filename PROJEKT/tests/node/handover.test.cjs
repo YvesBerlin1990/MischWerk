@@ -28,10 +28,16 @@ test('Übergabe wechselt erst bei Annahme Moderator und Thema gemeinsam; Queue u
   assert.equal(dj.messages.length, 1);
   assert.equal(h.bot.messages.length, 1, 'Anfrage noch nicht öffentlich');
   const writes = h.store.setObject, changes = [];
-  h.store.setObject = (key, value) => { changes.push(JSON.parse(JSON.stringify(value))); writes(key, value); };
+  h.store.setObject = (key, value) => { changes.push({ key, value:JSON.parse(JSON.stringify(value)) }); writes(key, value); };
   assert.equal(result(h.event(dj, ds, 'mw:handover.accept', { id, topic: 'Neue Sendung' })).ok, true);
-  assert.equal(changes.length, 1);
-  assert.equal(changes[0].moderator.nick, dj.nick); assert.equal(changes[0].topic, 'Neue Sendung');
+  const stationChanges=changes.filter(item=>item.key==='mischwerk.state.v1');
+  assert.equal(stationChanges.length, 2, 'Atomare Übernahme und anschließende Quittierung des Sendeplanauftrags');
+  for(const change of stationChanges){assert.equal(change.value.moderator.nick,dj.nick);assert.equal(change.value.topic,'Neue Sendung');}
+  assert.ok(stationChanges[0].value.scheduleSync); assert.equal(stationChanges[1].value.scheduleSync,undefined);
+  const planChanges=changes.filter(item=>item.key.startsWith('mischwerk.schedule.v1.'));
+  assert.equal(planChanges.length,2,'Abmeldung der bisherigen und Anmeldung der neuen Moderation');
+  const lastPlan=planChanges.at(-1).value;
+  assert.equal(lastPlan.entries.length,2);assert.ok(lastPlan.entries[0].actualEnd);assert.equal(lastPlan.entries[1].actualEnd,undefined);
   const after = h.state(dj, ds);
   assert.equal(after.user.isOnAir, true); assert.equal(after.topic, 'Neue Sendung');
   assert.equal(after.requestsEnabled, false); assert.equal(after.queueTotal, 1);

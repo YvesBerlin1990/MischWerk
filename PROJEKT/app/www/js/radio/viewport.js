@@ -34,7 +34,11 @@ MischWerkUI.define('viewport', function (dependencies) {
       catch (ignored) { /* Der kompakte Fallback bleibt im tatsächlichen Rahmen erreichbar. */ }
     }
     root.classList.toggle('radio-constrained', constrained);
-    if (focused && focused !== document.body && !focused.getClientRects().length) { dom.el('open-schedule').focus({ preventScroll:true }); }
+    if (focused && focused !== document.body && !focused.getClientRects().length) {
+      var target = dom.el('open-wishes').disabled ? dom.el('mute-button') : dom.el('open-wishes');
+      target.focus({ preventScroll:true });
+      if (target.id === 'mute-button') { target.scrollIntoView({ block:'nearest', inline:'nearest' }); }
+    }
   }
   function request() {
     if (scheduled || model.view !== 'radio') { return; }

@@ -7,6 +7,7 @@ MischWerkUI.define('studioWindow', function (dependencies) {
     if(!isFinite(height))return;
     if(!bridge||document.hidden||!model.current()||!model.current().user.canModerate)return;
     if(!Array.from(document.querySelectorAll('link[rel=stylesheet]')).every(function(link){return !!link.sheet;}))return;
+    if(document.fonts&&document.fonts.status==='loading')return;
     var width=Math.ceil(innerWidth);height=Math.max(20,Math.min(maximum,Math.ceil(height)));
     var geometry=width+':'+height, first=requested===null;
     if(width<1||requested===geometry)return;

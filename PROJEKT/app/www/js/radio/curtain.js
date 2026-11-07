@@ -54,7 +54,7 @@ MischWerkUI.define('curtain', function (dependencies) {
       if (closed && panel.contains(focused)) { dom.el('curtain-ad').focus({ preventScroll:true }); }
       else if (!closed && overlay.contains(focused)) {
         var target = previousFocus && previousFocus.isConnected && !previousFocus.disabled ? previousFocus :
-          !dom.el('play-button').disabled ? dom.el('play-button') : dom.el('open-schedule');
+          !dom.el('play-button').disabled ? dom.el('play-button') : dom.el('mute-button');
         target.focus({ preventScroll:true });
       }
     }

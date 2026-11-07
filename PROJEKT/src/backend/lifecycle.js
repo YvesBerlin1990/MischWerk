@@ -79,9 +79,16 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
             next.radioModeratorUserIds = next.radioModeratorUserIds.filter(function (id) { return id !== userId; });
             next.radioModeratorRevision += 1;
         }
-        runtime.persist(next);
+        runtime.persist(next, null, userId);
         try { runtime.removeScheduleUser(userId); }
         catch (error) { runtime.warn('SCHEDULE_PURGE', error); }
+        if (runtime.state.scheduleSync) {
+            var scrubbed = runtime.copy(runtime.state), pending = scrubbed.scheduleSync;
+            if (pending.previous && pending.previous.userId === userId) { pending.previous = null; pending.previousTopic = ''; }
+            if (pending.current && pending.current.userId === userId) { pending.current = null; pending.topic = ''; }
+            if (!pending.previous && !pending.current) { delete scrubbed.scheduleSync; }
+            runtime.persist(scrubbed);
+        }
         runtime.broadcast();
     };
 };

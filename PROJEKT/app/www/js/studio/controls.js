@@ -25,6 +25,10 @@ MischWerkUI.define('studio', function (dependencies) {
   function availability() {
     if (!model.current()) { return; }
     var live = model.connected();
+    dom.setText('studio-schedule-note', model.current().scheduleSyncPending ?
+      'Moderation bestätigt. Der Sendeplaneintrag steht noch aus. Bitte die Radioregie erneut öffnen.' :
+      'An- und Abmeldung werden automatisch im Sendeplan vermerkt.');
+    dom.el('studio-schedule-note').classList.toggle('error', !!model.current().scheduleSyncPending);
     document.body.classList.toggle('moderator-on-air', live && !!model.current().moderator);
     dom.setText('studio-host', !live ? 'Moderation unbestätigt' : model.current().moderator ? model.current().moderator.nick + ' ist am Mikrofon' : 'Keine Moderation angemeldet');
     var limits = model.current().limits || { maxTopicLength: 80 };

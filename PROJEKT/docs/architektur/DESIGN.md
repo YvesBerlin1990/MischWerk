@@ -1,10 +1,10 @@
-# MischWerk – Design 0.1.269 · Build 269
+# MischWerk – Design 0.1.288 · Build 288
 
-Aktuelle Gestaltung am 06.11.2026. Die Bilder zeigen lokal gerenderten Appcode mit Beispieldaten. Verbindliche Projektvorgaben stehen in [AGENTS.md](../../AGENTS.md).
+Aktuelle Gestaltung am 07.11.2026. Die Bilder zeigen lokal gerenderten Appcode mit Beispieldaten. Verbindliche Projektvorgaben stehen in [AGENTS.md](../../AGENTS.md).
 
 ## Appleiste
 
-Äußerer Untergrund #0f1114 passend zum vorhandenen Channelbild, Deckfläche #141414, zurückhaltende statische Vinylrillen. Outfit für die Oberfläche und Fraunces für hervorgehobene Titel werden lokal mit OFL-Lizenzen geladen. Original-Logos bleiben unverändert und proportional; ihr dunkler Bildgrund wird ausschließlich per CSS verrechnet.
+Die Radio-Außenfläche passt mit reinem Schwarz #000000 zum Werkshallen-Channelbild. Die Deckfläche bleibt #141414; ihre statischen Vinylrillen enden an der abgerundeten Leistenkontur. Der bestehende Glow läuft mit und ohne Lauftext weich auf Schwarz aus. Outfit für die Oberfläche und Fraunces für hervorgehobene Titel werden lokal mit OFL-Lizenzen geladen. Original-Logos bleiben unverändert und proportional; ihr dunkler Bildgrund wird ausschließlich per CSS verrechnet.
 
 Musik/Lautstärke, Sendungsthema und eigener Wunsch teilen den verfügbaren Raum. Ohne eigenen Wunsch entsteht keine leere dritte Spalte. Musikangaben sitzen über dem Regler, Thema und Wunsch breit vertikal mittig. Jetzt läuft, Thema und Dein Wunsch sind warmgolden hervorgehoben. Bestätigte Moderation ist rot, AutoDJ neutral. Schmale Ansichten behalten direkt erreichbare Aktionen und native Lesebereiche.
 
@@ -22,12 +22,12 @@ Aktuelle lokale Ansichten: [Lauftext unter der Appleiste](../pruefung/oberflaech
 
 ## Menüs
 
-Alle vier nativen Overlays haben mittige Titel, das Original-Logo links und eine frei erreichbare Schließen-Taste rechts. Normale Logos sind 80 px groß, schmale beziehungsweise kompakte Köpfe verwenden passende 68/64 px. Außenflächen und leere native Ladeabdeckung entsprechen #0f1114. Eingaben haben 16-px-Text; Aktionen bleiben mindestens 44 px groß.
+Alle vier nativen Overlays haben mittige Titel, das Original-Logo links und eine frei erreichbare Schließen-Taste rechts. Die Köpfe bleiben vom ersten HTML-Anstrich bis zur fertigen Ansicht 76 px hoch, mit 64-px-Logo und 24-px-Titel. Die dekorative Zusatzzeile entfällt; Reiterwechsel verändern den Kopf nicht. Außenflächen und leere native Ladeabdeckung entsprechen #0f1114. Eingaben haben 16-px-Text; Aktionen bleiben mindestens 44 px groß.
 
 - **Wunschbox:** flaches Formular mit einem Textfeld und Zeichenzähler; nach Abgabe kurze Quittung und Weiteren Wunsch eingeben. Eigener Song, Platz und Status stehen in der Appleiste. [Ansicht](../pruefung/oberflaeche/wunschbox/wunschbox-flach-560.png).
-- **Moderation:** Deine Sendung, Musikwünsche, Heute gespielt und Lauftext. Flache gegliederte Arbeitsfläche; An-/Abmeldung ohne Zeitlimit und private Übergabe; keine Restzeit- oder Studiozeitanzeige. Vollständige Texte bleiben über Inhaltsseiten erreichbar. [Breit](../pruefung/oberflaeche/moderation/moderation-780.png) · [Schmal](../pruefung/oberflaeche/moderation/moderation-320.png).
+- **Radioregie:** Deine Sendung, Musikwünsche, Heute gespielt und Lauftext. Goldene aktive Reiter und Hauptaktionen auf einer durchgehenden anthrazitfarbenen Fläche; An-/Abmeldung ohne Zeitlimit und private Übergabe; keine Restzeit- oder Studiozeitanzeige. Vollständige Texte bleiben über Inhaltsseiten erreichbar. Der Lauftexteditor passt mit kompakter Beschriftung, Textfeld, Optionen und Aktionen ohne äußere Scrollleiste; niedrige Rahmen verwenden Bereichsseiten. [Breit](../pruefung/oberflaeche/moderation/moderation-780.png) · [Schmal](../pruefung/oberflaeche/moderation/moderation-320.png).
 - **Verwaltung:** Radio-Team und Bot-Texte. Bei Bot-Texten bleiben Kopf, Reiter und Aktionen fest; eine Inhaltsfläche scrollt, Textfelder wachsen ohne eigene Scrollleiste. [Bot-Texte](../pruefung/oberflaeche/verwaltung/verwaltung-bottexte-560.png).
-- **Sendeplan:** Tag, Zeit, Moderation und Thema klar gewichtet. Freie Zeit erscheint als AutoDJ. Live/AutoDJ sowie Feste Zeit/Ganztags/Open End im bestehenden Formular. [Woche](../pruefung/oberflaeche/sendeplan/sendeplan-sendungen-820.png) · [Editor](../pruefung/oberflaeche/sendeplan/sendeplan-editor-820.png).
+- **Sendeplan:** Flache Wochenagenda mit Tag, Zeit, Moderation und Thema. Tatsächliche An-/Abmeldung ist von geplanten Zeiten getrennt. Freie Zeit erscheint als AutoDJ. Live/AutoDJ sowie Feste Zeit/Ganztags/Open End im bestehenden Formular. [Woche](../pruefung/oberflaeche/sendeplan/sendeplan-820.png) · [Editor](../pruefung/oberflaeche/sendeplan/sendeplan-editor-820.png).
 
 ## Theatervorhang
 

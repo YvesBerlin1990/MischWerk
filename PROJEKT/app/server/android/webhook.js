@@ -1,7 +1,8 @@
 /* Separater eingehender Wunschvertrag; keine Statuslesung und keine Benutzerattrappen. */
 MischWerkModules.attachAndroidWebHook = function (runtime, wire) {
     'use strict';
-    var key = 'android-wishes', settings = null, registered = false, windowAt = 0, count = 0;
+    var key = 'android-wishes', settings = null, registered = false, endpoint = null, windowAt = 0, count = 0;
+    var routingQuery = '', registration = null;
     function reply(response, status, accepted, value) {
         var result = accepted ? { accepted: true, position: value } : { accepted: false, relayCode: value };
         if (status === 429) { result.retryAfterSeconds = Math.max(1, Math.ceil((windowAt + 60000 - runtime.now()) / 1000)); }
@@ -38,7 +39,8 @@ MischWerkModules.attachAndroidWebHook = function (runtime, wire) {
             if (!authorized(header(request, 'authorization'))) { reply(response, 401, false, 'INVALID'); return; }
             if (String(request.getMethod()) !== 'POST') { reply(response, 405, false, 'INVALID'); return; }
             if (String(request.getPath()) !== '/v1/wishes') { reply(response, 404, false, 'INVALID'); return; }
-            if (String(request.getQueryString() || '') || !/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(header(request, 'content-type'))) {
+            var query = String(request.getQueryString() || '');
+            if ((query && query !== routingQuery) || !/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(header(request, 'content-type'))) {
                 reply(response, 400, false, 'INVALID'); return;
             }
             var raw = String(request.getBody() || '');
@@ -68,23 +70,65 @@ MischWerkModules.attachAndroidWebHook = function (runtime, wire) {
             try { runtime.broadcast(); } catch (error) { runtime.warn('ANDROID_NOTIFY'); }
         } catch (error) { runtime.warn('ANDROID_WISH'); reply(response, 503, false, 'CLOSED'); }
     }
+    runtime.androidWebHookRegistered = function () { return registered; };
+    runtime.androidWebHookDiagnostics = function () { return registration ? JSON.parse(JSON.stringify(registration)) : null; };
+    runtime.prepareAndroidWebHook = function (configuration) {
+        if (runtime.shuttingDown) { throw new Error('ANDROID_SHUTDOWN'); }
+        settings = configuration;
+        if (registered) { return endpoint; }
+        var phase = 'access-call';
+        registration = { registerApiPresent: false, lookupApiPresent: false, registrationReturned: false,
+            returnedType: null, lookupUsed: false, scheme: 'none', failedStage: null };
+        function usable(base) { return base.length <= 2000 && /^https:\/\/[^\/\s@?#]+\/[^\s#]+$/.test(base); }
+        try {
+            if (typeof KnuddelsServer.getWebHookAccess !== 'function') { throw new Error('ANDROID_WEBHOOK_UNAVAILABLE'); }
+            var access = KnuddelsServer.getWebHookAccess();
+            registration.registerApiPresent = !!access && typeof access.registerWebHook === 'function';
+            registration.lookupApiPresent = !!access && typeof access.getWebHookUrl === 'function';
+            if (!registration.registerApiPresent) { throw new Error('ANDROID_WEBHOOK_UNAVAILABLE'); }
+            phase = 'register-call';
+            registered = true;
+            var raw = access.registerWebHook(key, handle);
+            registration.registrationReturned = raw !== null && raw !== undefined;
+            registration.returnedType = typeof raw;
+            var base = raw === null || raw === undefined ? '' : String(raw);
+            if (!usable(base) && registration.lookupApiPresent) {
+                phase = 'url-lookup'; registration.lookupUsed = true;
+                raw = access.getWebHookUrl(key); base = raw === null || raw === undefined ? '' : String(raw);
+            }
+            phase = 'url-result';
+            registration.scheme = /^https:\/\//.test(base) ? 'https' : /^http:\/\//.test(base) ? 'http' : base ? 'other' : 'none';
+            if (!usable(base)) { throw new Error('ANDROID_WEBHOOK_URL'); }
+            var separator = base.indexOf('?'), path = separator === -1 ? base : base.substring(0, separator);
+            routingQuery = separator === -1 ? '' : base.substring(separator + 1);
+            endpoint = path.replace(/\/$/, '') + '/v1/wishes' + (routingQuery ? '?' + routingQuery : ''); return endpoint;
+        } catch (error) {
+            registration.failedStage = phase;
+            registration.error = runtime.androidRegistrationError(error, configuration);
+            runtime.stopAndroidRelay();
+            throw runtime.failure('Der AppServer hat den WebHook nicht bestätigt (' + phase + '). ' +
+                registration.error.message + ' Die Verbindung bleibt ausgeschaltet.');
+        }
+    };
     runtime.startAndroidRelay = function () {
-        if (registered || runtime.shuttingDown) { return; }
+        if (runtime.shuttingDown) { return false; }
+        if (runtime.androidPublisherStatus().publisherActive) { return true; }
         try {
             settings = runtime.readAndroidSettings();
-            if (!settings) { return; }
+            if (!settings) { return false; }
             var connection = wire || runtime.createAndroidWire(settings);
             if (!connection || typeof connection.sendJson !== 'function' || typeof KnuddelsServer.getWebHookAccess !== 'function') {
-                runtime.warn('ANDROID_NOT_AVAILABLE'); return;
+                runtime.warn('ANDROID_NOT_AVAILABLE'); return false;
             }
             runtime.startAndroidReceipts();
-            KnuddelsServer.getWebHookAccess().registerWebHook(key, handle); registered = true;
+            runtime.prepareAndroidWebHook(settings);
             runtime.startAndroidPublisher(settings, connection);
-        } catch (error) { runtime.warn('ANDROID_START'); runtime.stopAndroidRelay(); }
+            return true;
+        } catch (error) { runtime.warn('ANDROID_START'); runtime.stopAndroidRelay(); return false; }
     };
     runtime.stopAndroidRelay = function () {
         if (typeof runtime.cancelAndroidVerification === 'function') { runtime.cancelAndroidVerification(); }
-        runtime.stopAndroidPublisher(); settings = null;
+        runtime.stopAndroidPublisher(); settings = null; endpoint = null; routingQuery = '';
         if (registered) {
             registered = false;
             try { KnuddelsServer.getWebHookAccess().unregisterWebHook(key); }

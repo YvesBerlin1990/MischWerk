@@ -1,12 +1,12 @@
 # MischWerk – Sendeplan
 
-Stand **0.1.223 / Build 223**. Eigenes natives Channel-Overlay; Radioleiste und Ton bleiben bestehen. Öffentlich ist nur der Kalender. Die Titelhistorie gehört ausschließlich zur berechtigten [Moderation](INBETRIEBNAHME.md#tageshistorie-verwenden).
+Stand **0.1.274 / Build 274**. Eigenes natives Channel-Overlay; Radioleiste und Ton bleiben bestehen. Öffentlich ist nur der Kalender. Die Titelhistorie gehört ausschließlich zur berechtigten [Moderation](INBETRIEBNAHME.md#tageshistorie-verwenden).
 
 ## Wochenübersicht
 
 Start mit der aktuellen Woche Montag bis Sonntag. Tage zeigen Datum, Zeiten, Moderation und Thema. Freie Zeiten erscheinen als **AutoDJ (MischWerk)**; daraus entstehen keine zusätzlichen gespeicherten Einträge. Der heutige Tag ist markiert. Zeiten gelten in Europe/Berlin einschließlich Sommer-/Winterzeit.
 
-Pfeile wechseln die Woche, **Diese Woche** kehrt zurück. Bewusst ausgewählte andere Wochen bleiben beim Aktualisieren erhalten. Anfangsgröße **820 × 630 px**, ohne nachträgliche Größenaufträge. Alle Einträge bleiben bei knappen Rahmen über Seiten und natürlichen Überlauf erreichbar.
+Pfeile wechseln die Woche, **Diese Woche** kehrt zurück. Bewusst ausgewählte andere Wochen bleiben beim Aktualisieren erhalten. Anfangsgröße **720 × 600 px**, ohne nachträgliche Größenaufträge. Alle Einträge bleiben bei knappen Rahmen über Seiten und natürlichen Überlauf erreichbar.
 
 ## Nur der Channelinhaber bearbeitet
 

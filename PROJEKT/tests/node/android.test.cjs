@@ -67,14 +67,17 @@ function setupNative(options = {}) {
   } });
   return { ...fixture, nativeCalls: calls, accessChecks, nativeOptions: options };
 }
-test('Nativer postURL-Adapter verwendet Hosting, String-payload und header im Singular', () => {
+test('Nativer postURL-Adapter verwendet vier signierte Strings ohne Header oder Schlüsselübertragung', () => {
   const f = setupNative();
   assert.equal(f.nativeCalls.length, 1);
   const first = f.nativeCalls[0];
   assert.equal(first.url, hostingUrl);
-  assert.deepEqual(Object.keys(first.parameters.data), ['payload']);
+  assert.deepEqual(Object.keys(first.parameters.data).sort(), ['nonce','payload','sig','ts']);
   assert.equal(typeof first.parameters.data.payload, 'string');
-  assert.equal(first.parameters.header.Authorization, 'Bearer ' + settings().syncSecret);
+  assert.equal(first.parameters.header, undefined);
+  assert.equal(first.parameters.data.sig, require('node:crypto').createHmac('sha256', settings().syncSecret)
+    .update('v1.'+first.parameters.data.ts+'.'+first.parameters.data.nonce+'.'+first.parameters.data.payload).digest('hex'));
+  assert.ok(!JSON.stringify(first.parameters.data).includes(settings().syncSecret));
   assert.equal('headers' in first.parameters, false); assert.equal('body' in first.parameters, false);
   assert.deepEqual(JSON.parse(first.parameters.data.payload).wishUpdates, []);
   assert.equal(f.call().body.accepted, true);
@@ -216,7 +219,7 @@ test('Station projiziert echten Schalter/Studiozustand und Heartbeat spätestens
   const f = setup(), first = f.sends.length;
   f.h.advance(19999); assert.equal(f.sends.length, first);
   f.h.advance(1); assert.equal(f.sends.length, first + 1);
-  assert.equal(f.sends.at(-1).authorization, 'Bearer ' + settings().syncSecret);
+  assert.equal(f.sends.at(-1).authorization, undefined);
   assert.equal(f.sends.at(-1).url, settings().syncUrl);
   assert.deepEqual(f.sends.at(-1).body.station, { wishboxOpen: true, onAir: false, moderatorNick: null, topic: null, updatedAt: f.h.now() });
   f.h.event(f.owner, f.radio, 'mw:onAir'); f.h.event(f.owner, f.radio, 'mw:setTopic', { topic: 'Sendung' });
@@ -232,6 +235,26 @@ test('Fehlende/kaputte Konfiguration und fehlerhafte Statusantwort sperren Andro
     const f = setup({ store: persistence({ [privateKey]: value }) }); assert.equal(f.hooks.size, 0); assert.equal(f.sends.length, 0);
   }
   const f = setup({ status: 401 }); assert.equal(f.call().body.relayCode, 'CLOSED');
+});
+
+test('Jede neue Projektion und jeder Heartbeat erhöhen updatedAt auch bei gleicher Millisekunde',()=>{
+ const f=setupNative();
+ for(const topic of ['Eins','Zwei','Drei'])f.h.event(f.owner,f.radio,'mw:setTopic',{topic});
+ f.h.advance(20000);
+ const stamps=f.nativeCalls.map(c=>JSON.parse(c.parameters.data.payload).station.updatedAt);
+ assert.ok(stamps.length>=4);for(let i=1;i<stamps.length;i++)assert.ok(stamps[i]>stamps[i-1]);
+ for(const call of f.nativeCalls)assert.match(call.parameters.data.sig,/^[a-f0-9]{64}$/);
+});
+
+test('Nach über 45 Sekunden wird frischer Zustand statt alter signierter Nutzlast gesendet',()=>{
+ const f=setupNative();f.nativeOptions.hang=true;f.call();const old=f.nativeCalls.at(-1);
+ const oldAt=JSON.parse(old.parameters.data.payload).station.updatedAt;
+ f.h.advance(60000);const count=f.nativeCalls.length;
+ old.parameters.onFailure('',{getResponseCode:()=>401,getURLString:()=>hostingUrl});
+ f.nativeOptions.hang=false;f.h.advance(20000);
+ assert.equal(f.nativeCalls.length,count+1);const next=f.nativeCalls.at(-1).parameters.data;
+ assert.ok(JSON.parse(next.payload).station.updatedAt>oldAt+45000);assert.ok(Number(next.ts)>Number(old.parameters.data.ts)+45000);
+ assert.notEqual(next.sig,old.parameters.data.sig);
 });
 test('Hängender Relay-Aufruf läuft ab; alte Antworten nach Shutdown werden ignoriert', () => {
   const f = setup({ hang: true }); assert.equal(f.call().body.relayCode, 'CLOSED');

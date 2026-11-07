@@ -15,7 +15,8 @@ MischWerkModules.attachAndroidSettings = function (runtime, config) {
     function state(value) {
         return { revision: revision(value), hasSyncSecret: secret(value.syncSecret),
             hasRelaySecret: secret(value.relaySecret), syncUrl: target, enabled: value.enabled === true,
-            runtimeVerified: value.runtimeVerified === true };
+            runtimeVerified: value.runtimeVerified === true,
+            operation: typeof runtime.androidOperationState === 'function' ? runtime.androidOperationState() : null };
     }
     function respond(session, type, data) { runtime.send(session, 'mw:androidSettings.' + type, data); }
     function usable(user, entry, session) {
@@ -29,6 +30,7 @@ MischWerkModules.attachAndroidSettings = function (runtime, config) {
         });
     };
     runtime.androidRelayCommand = function (user, params) {
+        if (params === 'status') { runtime.androidOperationReport(user); return; }
         if (params === 'http-pruefen') { runtime.androidVerificationCommand(user); return; }
         if (params === 'auth-pruefen') { runtime.androidVerificationCommand(user, true); return; }
         if (params !== 'einrichten') { runtime.androidDiagnosticsCommand(user, params); return; }
@@ -63,6 +65,22 @@ MischWerkModules.attachAndroidSettings = function (runtime, config) {
         var requestId = null;
         try {
             if (type === 'mw:androidSettings.status') { respond(session, 'status', { ok: true, state: state(read()) }); return; }
+            if (['mw:androidSettings.prepare', 'mw:androidSettings.activate', 'mw:androidSettings.deactivate'].indexOf(type) !== -1) {
+                if (!data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).sort().join(',') !== 'requestId,revision' ||
+                        typeof data.requestId !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(data.requestId)) {
+                    throw runtime.failure('Die Anfrage ist ungültig.');
+                }
+                requestId = data.requestId;
+                if (entry.requests.indexOf(requestId) !== -1 || entry.requests.length >= 20) {
+                    throw runtime.failure('Bitte öffne die Einrichtung für eine neue Anfrage erneut.');
+                }
+                entry.requests.push(requestId);
+                var stored = read();
+                if (data.revision !== revision(stored)) { throw runtime.failure('Die Einstellungen wurden geändert. Bitte Status neu laden.'); }
+                var operation = runtime.runAndroidOperation(type.substring('mw:androidSettings.'.length), stored);
+                operation.ok = true; operation.requestId = requestId; operation.state = state(read());
+                respond(session, 'result', operation); return;
+            }
             if (type !== 'mw:androidSettings.save') { return; }
             if (!data || typeof data !== 'object' || Array.isArray(data) || JSON.stringify(data).length > 1200 ||
                     Object.keys(data).some(function (name) { return ['revision', 'requestId', 'syncSecret', 'relaySecret'].indexOf(name) === -1; }) ||
@@ -89,8 +107,12 @@ MischWerkModules.attachAndroidSettings = function (runtime, config) {
             respond(session, 'result', { ok: true, requestId: requestId, state: state(next),
                 message: 'Einstellungen gespeichert. Die Verbindung bleibt bis zur Funktionsprüfung ausgeschaltet.' });
         } catch (error) {
-            respond(session, type === 'mw:androidSettings.status' ? 'status' : 'result', { ok: false, requestId: requestId,
-                message: error.publicMessage || 'Die Einstellungen konnten nicht gespeichert werden. Bitte erneut öffnen.' });
+            var failed = { ok: false, requestId: requestId,
+                message: error.publicMessage || 'Die Einstellungen konnten nicht gespeichert werden. Bitte erneut öffnen.' };
+            if (['mw:androidSettings.prepare', 'mw:androidSettings.activate', 'mw:androidSettings.deactivate'].indexOf(type) !== -1) {
+                try { failed.state = state(read()); } catch (ignoredState) {}
+            }
+            respond(session, type === 'mw:androidSettings.status' ? 'status' : 'result', failed);
         }
     };
 };

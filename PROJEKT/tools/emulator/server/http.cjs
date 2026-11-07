@@ -68,7 +68,7 @@ function httpHandler(hub) {
         send(res, 200, types['.json'], JSON.stringify(report, null, 2), head); return;
       }
       if (route === '/media/background.png') {
-        const file = path.join(hub.options.projectRoot, 'medien/mychannel/Hintergrund_MischWerk_Knuddels.png');
+        const file = path.join(hub.options.projectRoot, 'medien/mychannel/ChatGPT-Bild 7. Nov. 2026, 02_09_46.png');
         if (fs.existsSync(file)) { asset(req, res, file); return; }
       }
       if (route.startsWith('/fixture/')) {

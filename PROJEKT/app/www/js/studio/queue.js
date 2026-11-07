@@ -102,7 +102,8 @@ MischWerkUI.define('queue', function (dependencies) {
     if (!model.current()) { return; }
     var live = model.connected();
     dom.el('queue-detail-toggle').hidden=!model.current().queue.length;
-    dom.setText('studio-queue-tab', 'Musikwünsche (' + model.current().queueTotal + ')');
+    dom.setText('studio-queue-tab', 'Wünsche (' + model.current().queueTotal + ')');
+    dom.el('studio-queue-tab').setAttribute('aria-label', 'Musikwünsche, ' + model.current().queueTotal + ' offen');
     dom.el('prev-page').disabled = !!commands.pending() || !live || !model.current().user.canModerate || model.current().page <= 0;
     dom.el('next-page').disabled = !!commands.pending() || !live || !model.current().user.canModerate || model.current().page >= model.current().pages - 1;
     document.querySelectorAll('[data-resolve]').forEach(function (button) { button.disabled = !!commands.pending() || !live || !model.current().user.canModerate; });

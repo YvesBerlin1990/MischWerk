@@ -9,6 +9,7 @@ MischWerkModules.attachScheduleTransport = function (runtime) {
             } catch (error) { runtime.warn('SCHEDULE_NOTIFY', error); }
         });
     };
+    runtime.observeChanges(function (kind) { if (kind === 'schedule') { runtime.notifySchedule(); } });
     runtime.handleScheduleEvent = function (user, type, data, session) {
         var requestId = null;
         try {

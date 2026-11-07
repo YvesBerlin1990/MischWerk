@@ -44,7 +44,7 @@ MischWerkUI.define('layout', function (dependencies) {
       var slot = dom.el('dialog-notice-slot');
       slot.parentNode.insertBefore(slot, document.querySelector('.dialog-content'));
       dom.el('dialog-notice-slot').appendChild(dom.el('notice'));
-      dom.setText('dialog-title', model.view === 'wishes' ? 'Wunschbox' : model.view === 'team' ? 'Verwaltung' : model.view === 'schedule' ? 'Sendeplan' : 'Moderation');
+      dom.setText('dialog-title', model.view === 'wishes' ? 'Wunschbox' : model.view === 'team' ? 'Verwaltung' : model.view === 'schedule' ? 'Sendeplan' : 'Radioregie');
       dom.el('studio-connection').hidden = true;
     }
     layoutReady = true;

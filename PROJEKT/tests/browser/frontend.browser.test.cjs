@@ -78,7 +78,7 @@ test('Vinyl Deck bleibt über alle Leistenbreiten, Rollen und Pixeldichten errei
      const music=document.querySelector('.now-playing').getBoundingClientRect(),topic=document.querySelector('.radio-context').getBoundingClientRect();
      const studio=document.querySelector('#studio-tab:not([hidden])');
      function discStyle(node) { if(!node)return null;const s=getComputedStyle(node),r=node.getBoundingClientRect();return [r.width,r.height,s.borderRadius,s.borderColor,s.backgroundImage,s.color]; }
-     const studioDisc=studio?discStyle(studio.querySelector('.public-action-icon')):null,publicDisc=discStyle(document.querySelector('#open-schedule .public-action-icon'));
+     const studioDisc=studio?discStyle(studio.querySelector('.public-action-icon')):null,publicDisc=discStyle(document.querySelector('#open-wishes .public-action-icon'));
      const stableGeometry=['radio-panel','radio-metadata','play-button','mute-button','volume','volume-value','open-schedule','open-wishes','studio-tab'].map(id=>document.getElementById(id)).filter(n=>n?.getClientRects().length).map(n=>({id:n.id,...n.getBoundingClientRect().toJSON()}));
      const actionLabel=document.querySelector('#open-schedule strong');
      return {stableGeometry,actionFont:getComputedStyle(actionLabel).fontSize,canvases:[document.documentElement,document.body,document.getElementById('radio-panel')].map(n=>getComputedStyle(n).backgroundColor),musicShare:music.width/m.clientWidth,topicShare:topic.width/m.clientWidth,faceWidth:f.width,faceHeight:f.height,horizontalOverflow:document.documentElement.scrollWidth>innerWidth||m.scrollWidth>m.clientWidth,controls,studioDisc,publicDisc,
@@ -88,10 +88,10 @@ test('Vinyl Deck bleibt über alle Leistenbreiten, Rollen und Pixeldichten errei
     const detail=JSON.stringify({width,height,role,deviceScaleFactor,...row});
     assert.ok(row.faceWidth>0&&row.faceHeight>0,detail);assert.equal(row.horizontalOverflow,false,detail);
     if(width>=1200){assert.ok(row.musicShare<=.6&&row.topicShare>=.35,'Musik und Thema teilen die Breite ausgewogen: '+detail);}
-    assert.deepEqual(row.canvases,Array(3).fill('rgb(15, 17, 20)'),'Äußerer Untergrund entspricht dem Channelbild: '+detail);
+    assert.deepEqual(row.canvases,Array(3).fill('rgb(0, 0, 0)'),'Äußerer Untergrund entspricht dem schwarzen Werkshallen-Channelbild: '+detail);
     assert.equal(row.background,'rgb(20, 20, 20)');assert.match(row.vinyl,/repeating-radial-gradient/);assert.match(row.titleFont,/Fraunces/);assert.match(row.uiFont,/Outfit/);
     assert.equal(row.controls.length,role==='owner'||role==='radioModerator'?4:3,detail);
-    if(role!=='listener') { assert.ok(row.studioDisc,'Moderation hat dieselbe runde Symbolfläche: '+detail);assert.deepEqual(row.studioDisc,row.publicDisc,'Gleiche Vinylfläche für Moderation und Sendeplan: '+detail); }
+    if(role!=='listener') { assert.ok(row.studioDisc,'Moderation hat dieselbe runde Symbolfläche: '+detail);assert.deepEqual(row.studioDisc,row.publicDisc,'Gleiche Vinylfläche für Moderation und aktive Wunschbox: '+detail); }
     for(const c of row.controls){assert.ok(c.width>=44&&c.height>=44,detail);assert.ok(c.x>=0&&c.x+c.width<=width+.5,detail);if(height===160)assert.ok(c.y>=0&&c.y+c.height<=160.5,detail);}
     await publicActionContentsFit(page);
     for(const id of ['mute-button','volume','volume-value']){await page.locator('#'+id).scrollIntoViewIfNeeded();const c=await page.locator('#'+id).boundingBox();assert.ok(c.x>=0&&c.x+c.width<=width+.5,detail);}
@@ -202,7 +202,7 @@ for(const k3 of [true,false]) {
     await page.locator('#radio-audio').evaluate(a=>a.pause());await waitRadioPlaying(page);assert.equal(await page.locator('#radio-audio').getAttribute('src'),source);assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'true');assert.deepEqual(errors,[]);
   });
 }
-async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight, role = 'owner', registeredOwner = true, curtainClosed = false, nick, parserIncludes = false, deviceScaleFactor = 1, station = false, delayedSong = false, delayedStatus = false, providerStatus = 'started', throwingPlay = false, clock = false, k3 = true, realAudio = false, activityAudio = false, cors = true, savedVolume, loadingDelay, loadingPause = 0, initialRequest = false, view = 'radio', overlayState, viewport = { width: 960, height: 760 } } = {}) {
+async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight, role = 'owner', registeredOwner = true, curtainClosed = false, nick, parserIncludes = false, deviceScaleFactor = 1, station = false, delayedSong = false, delayedStatus = false, providerStatus = 'started', throwingPlay = false, clock = false, k3 = true, realAudio = false, activityAudio = false, cors = true, savedVolume, fontMode, wishSurface = false, loadingDelay, loadingPause = 0, initialRequest = false, view = 'radio', overlayState, viewport = { width: 960, height: 760 } } = {}) {
   const h = createHarness(); configureStream(h.config, station ? 'test-radio' : '');
   const owner=h.user(1,'Otterchen','owner'),ownerSession=h.open(owner);
   const user=role==='owner'?owner:h.user(2,role==='radioModerator'?'RadioMod':'Musikfreund',role==='channelModerator'?'moderator':role==='manager'?'manager':'listener');
@@ -210,7 +210,7 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
   if(role==='radioModerator')h.event(owner,ownerSession,'mw:addRadioModerator',{nick:user.nick});
   const session=role==='owner'?ownerSession:h.open(user);
   if(nick){user.nick=nick;}
-  const state = h.state(user, session); state.view = view; state.curtain.closed=curtainClosed;
+  const state = h.state(user, session); state.view = view; state.curtain.closed=curtainClosed;if(wishSurface)state.wishSurface=true;
   if(overlayState){state.overlay=true;state.overlayState=overlayState;}
   if (initialRequest) { state.queue = [{id:201,nick:'Hörer',text:'a-ha – Take On Me',createdAt:Date.now()}]; state.queueTotal=1; state.pages=1; }
   const context = await browser.newContext({ viewport, deviceScaleFactor });
@@ -238,7 +238,8 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
   let loadingSnapshot = null;
   page.on('pageerror', error => errors.push(error.message));
   if (clock) { await page.clock.install(); }
-  await page.addInitScript(({ state, throwingPlay, k3, realAudio, activityAudio, savedVolume, parserIncludes, nativeSizing, screenHeight }) => {
+  await page.addInitScript(({ state, throwingPlay, k3, realAudio, activityAudio, savedVolume, parserIncludes, nativeSizing, screenHeight, fontMode }) => {
+    if(fontMode==='missing-api')Object.defineProperty(document,'fonts',{value:undefined});
     if(savedVolume!==undefined){localStorage.setItem('mischwerk.volume.v1',String(savedVolume));}
     window.__sizeStates=[];
     if(screenHeight!==undefined||nativeSizing)Object.defineProperty(screen,'availHeight',{configurable:true,get(){
@@ -292,7 +293,7 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
       if (throwingPlay) { throw new Error('Playback not supported'); }
       return new Promise((resolve, reject) => window.__rejects.push(reject));
     };
-  }, { state, throwingPlay, k3, realAudio, activityAudio, savedVolume, parserIncludes, nativeSizing, screenHeight });
+  }, { state, throwingPlay, k3, realAudio, activityAudio, savedVolume, parserIncludes, nativeSizing, screenHeight, fontMode });
   if(realAudio){
     const body=require('../fixtures/audio.cjs').audioFixture();
     await page.route('https://stream.example.com/test-radio',route=>{
@@ -317,6 +318,7 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
   await page.route('http://mischwerk.test/**', async route => {
     const url = new URL(route.request().url());
     const file = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
+    if(fontMode==='unavailable'&&file.endsWith('.woff2')){await route.fulfill({status:404});return;}
     const absolute = path.resolve(browserSource, file);
     if (!absolute.startsWith(browserSource + path.sep) || !fs.existsSync(absolute)) { await route.fulfill({ status: 404 }); return; }
     const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.mp3': 'audio/mpeg' };
@@ -328,8 +330,8 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
     }
     const delayedFile=loadingDelay==='module'?({studio:'js/studio/queue.js',team:'js/team/management.js'}[view]||'js/radio/player.js'):
       loadingDelay==='stylesheet'?({studio:'css/studio/studio.css',team:'css/team/team.css',wishes:'css/wishes/wishbox.css'}[view]||'css/radio/radio-surface.css'):
-      ({css:'css/shared/foundation.css',parallel:'css/shared/foundation.css',script:'js/start.js',logo:'img/mischwerk-logo.png',actions:'css/radio/radio-actions.css'}[loadingDelay]);
-    if (delayedFile&&file===(delayedFile.startsWith('img/')?delayedFile:deliveredFile(view,delayedFile))) { await layoutGate; }
+      ({css:'css/shared/foundation.css',parallel:'css/shared/foundation.css',script:'js/start.js',logo:'img/mischwerk-logo.png',font:'fonts/fraunces-latin.woff2',actions:'css/radio/radio-actions.css'}[loadingDelay]);
+    if (delayedFile&&file===(/^(img|fonts)\//.test(delayedFile)?delayedFile:deliveredFile(view,delayedFile))) { await layoutGate; }
     await route.fulfill({ contentType: types[path.extname(file)], body: fs.readFileSync(absolute) });
   });
   const metadataRequested=station&&view==='radio'&&!delayedStatus&&providerStatus!=='stopped'?page.waitForRequest('https://stats.example.com/widget/radio/test-radio/track/current'):null;
@@ -337,6 +339,7 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
   if (loadingDelay) {
     await page.locator('#radio-placeholder, #radio-panel').first().waitFor({ state: 'attached' });
     if (loadingDelay === 'parallel') { await page.waitForFunction(() => window.__sent.some(event => event.type === 'mw:ready')); }
+    if (loadingDelay === 'font') { await page.waitForFunction(() => document.fonts.status==='loading'&&window.__sent.some(event=>event.type==='mw:ready')); }
     if (loadingDelay === 'logo') { await page.waitForFunction(station => document.documentElement.classList.contains('mw-ready') &&
       (!station || !document.getElementById('play-button').disabled), station); }
     if (loadingPause) { await page.waitForTimeout(loadingPause); }
@@ -354,6 +357,7 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
   await page.waitForFunction(() => window.__sent.some(event => event.type === 'mw:ready')).catch(error => {
     throw new Error('Frontendstart fehlgeschlagen: ' + (errors.join('; ') || error.message));
   });
+  await page.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));
   if(metadataRequested){await metadataRequested;}
   if(station&&view==='radio'&&!delayedStatus){await page.waitForFunction(()=>document.getElementById('stream-label').textContent!=='Prüfe …');}
   return { page, state, errors, requests, releaseSong, releaseStatus, loadingSnapshot };
@@ -617,13 +621,14 @@ async function validDialogSizes(page) {
   if(await page.locator('html').getAttribute('data-view')==='studio'){assert.ok(sizes.every(([w,h])=>w>0&&h>=20&&h<=1000));}else assert.deepEqual(sizes,[], 'Andere Verwaltungsfenster behalten ihre festen Maße');
 }
 
-test('Moderationshöhe wächst bei mehr Inhalt, schrumpft wieder und bleibt beim Lesen langer Textseiten stabil',async t=>{
+test('Moderationshöhe folgt vollständigen Bediengruppen und bleibt beim Lesen langer Textseiten stabil',async t=>{
   for(const k3 of [true,false]){
     const {page,state,errors}=await setup(t,{view:'studio',k3,nativeSizing:true,hostSteps:true,viewport:{width:780,height:730}});
     await page.waitForTimeout(250);const empty=page.viewportSize().height;assert.ok(empty<650);
     const active={...state,revision:2,moderator:{nick:'Otterchen',since:state.serverTime,expiresAt:state.serverTime+3600000,sessionKey:'compact'},user:{...state.user,isOnAir:true,canEndModeration:true}};
     await page.evaluate(s=>__emit('mw:state',s),active);await page.waitForTimeout(250);
-    assert.ok(page.viewportSize().height>empty&&page.viewportSize().height<=730);
+    assert.ok(page.viewportSize().height>0&&page.viewportSize().height<=730,'Die angemeldete Bediengruppe bleibt im kompakten Rahmen');
+    for(const id of ['off-air','handover-open'])assert.ok(await page.locator('#'+id).evaluate(n=>{const r=n.getBoundingClientRect();return r.height>=44&&r.top>=0&&r.bottom<=innerHeight+1;}),'Vollständige Kernaktion: '+id);
     const text=('Ein vollständiger Musikwunsch mit Originaltext 🎵. ').repeat(7).slice(0,300);
     const item={id:71,text,nick:'Hörer',createdAt:state.serverTime,stage:'queued'};
     await page.evaluate(({s,item})=>__emit('mw:state',{...s,revision:3,queue:[item],queueWindow:[item],queueStart:0,queueTotal:1,page:0,pages:1}),{s:active,item});
@@ -633,6 +638,12 @@ test('Moderationshöhe wächst bei mehr Inhalt, schrumpft wieder und bleibt beim
     await page.waitForFunction(()=>innerHeight===window.__sizes.at(-1)[1]);await studioSettle(page);
     await page.waitForFunction(()=>innerHeight===window.__sizes.at(-1)[1]);
     const height=page.viewportSize().height,requests=await page.evaluate(()=>__sizes.length);assert.equal(await readStudioText(page,'.request-text'),text);
+    const spacing=await page.locator('.queue-item.selected').evaluate(node=>{
+      const copy=node.querySelector('.queue-copy').getBoundingClientRect(),meta=node.querySelector('.queue-meta').getBoundingClientRect(),nav=node.querySelector('.text-pagination');
+      return {copyBottom:copy.bottom,metaTop:meta.top,pagerBottom:nav&&!nav.hidden?nav.getBoundingClientRect().bottom:copy.bottom};
+    });
+    assert.ok(spacing.copyBottom<=spacing.metaTop+1&&spacing.pagerBottom<=spacing.metaTop+1,'Auch lange Textseiten überdecken keinen Absender: '+JSON.stringify(spacing));
+
     assert.equal(await page.evaluate(()=>__sizes.length),requests,'Lesen erzeugt keinen neuen Größenauftrag');
     await page.waitForTimeout(250);assert.equal(page.viewportSize().height,height,'Kurze letzte Textseite verkürzt das Fenster nicht weiter');
     await studioFits(page);assert.deepEqual(errors,[]);
@@ -665,8 +676,49 @@ test('Themenbearbeitung behält beim Tippen, Speichern, Fehler und Verwerfen die
   }
 });
 
+test('Lauftext passt bei schmalen, breiten und niedrigen Rahmen ohne äußeres Scrollen, auch im Konflikt',async t=>{
+ for(const k3 of [true,false])for(const [width,height] of [[320,360],[320,420],[320,580],[390,580],[640,580],[1280,580],[3840,580]]){
+  const {page,state,errors}=await setup(t,{view:'studio',k3,viewport:{width,height}});
+  await page.locator('#studio-ticker-tab').click();await page.locator('#ticker-text').fill('Vollständiger Lauftext '.repeat(14).slice(0,300));
+  await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1,ticker:{text:'Inzwischen gespeichert',enabled:true,speed:48,direction:'left',revision:1}}),state);
+  for(const id of ['ticker-text','ticker-speed','ticker-direction','ticker-enabled','ticker-save','ticker-reset','ticker-reload']){
+   await revealStudio(page,'#'+id,'ticker');await studioSettle(page);
+   const fit=await page.evaluate(()=>{
+    const panel=document.getElementById('studio-ticker-panel'),body=document.getElementById('ticker-body');
+    const outside=[...panel.querySelectorAll('button,textarea,select,label')].filter(n=>n.getClientRects().length).filter(n=>{const r=n.getBoundingClientRect();return r.top<0||r.bottom>innerHeight+1||r.left<0||r.right>innerWidth+1;}).map(n=>n.id||n.textContent);
+    return {panel:panel.scrollHeight-panel.clientHeight,body:body.scrollHeight-body.clientHeight,outside};
+   });
+   assert.ok(fit.panel<=1&&fit.body<=1&&!fit.outside.length,JSON.stringify({width,height,k3,id,fit}));
+  }
+  await page.locator('#ticker-reload').click();assert.equal(await page.locator('#ticker-text').inputValue(),'Inzwischen gespeichert');
+  assert.equal(await page.locator('#ticker-text').evaluate(n=>n===document.activeElement),true);assert.deepEqual(errors,[]);await page.context().close();
+ }
+});
+
 test('Moderation misst ihre kompakte Höhe erst nach verzögertem CSS',async t=>{
- for(const k3 of [true,false]){const {page,state,errors,loadingSnapshot}=await setup(t,{view:'studio',k3,nativeSizing:true,hostSteps:true,loadingDelay:'stylesheet',loadingPause:120,viewport:{width:780,height:600}});assert.deepEqual(loadingSnapshot.sizes,[]);await page.waitForTimeout(400);await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1}),state);await validDialogSizes(page);assert.equal(page.viewportSize().width,780);assert.ok(page.viewportSize().height<=600);await page.locator('#studio-topic').fill('Nativer Rahmen');assert.equal(await page.locator('#studio-topic').inputValue(),'Nativer Rahmen');assert.deepEqual(errors,[]);}
+ for(const k3 of [true,false]){const {page,state,errors,loadingSnapshot}=await setup(t,{view:'studio',k3,nativeSizing:true,hostSteps:true,loadingDelay:'stylesheet',loadingPause:120,viewport:{width:780,height:600}});assert.deepEqual(loadingSnapshot.sizes,[]);await page.waitForTimeout(400);await page.evaluate(s=>__emit('mw:state',{...s,revision:s.revision+1}),state);await validDialogSizes(page);assert.equal(page.viewportSize().width,780);assert.ok(page.viewportSize().height<=600);await revealStudio(page,'#studio-topic');await page.locator('#studio-topic').fill('Nativer Rahmen');assert.equal(await page.locator('#studio-topic').inputValue(),'Nativer Rahmen');assert.deepEqual(errors,[]);}
+});
+
+test('Overlay bleibt beim Laden der lokalen Titelschrift ruhig und wird danach vollständig sichtbar',async t=>{
+ for(const view of ['studio','team','schedule','wishes']) {
+  const {page,loadingSnapshot,errors}=await setup(t,{view,wishSurface:view==='wishes',overlayState:{},nativeSizing:true,hostSteps:true,loadingDelay:'font',loadingPause:180,viewport:{width:640,height:580}});
+  assert.deepEqual(loadingSnapshot.sizes,[],'Keine vorzeitige Größenmessung: '+view);
+  assert.equal(loadingSnapshot.initialized,false,'Keine sichtbare Ersatzschrift vor dem finalen Overlaylayout: '+view);
+  await page.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));
+  assert.equal(await page.evaluate(()=>document.fonts.status),'loaded');
+  assert.equal(await page.locator('.dialog-header:visible').evaluate(node=>Math.round(node.getBoundingClientRect().height)),76);
+  assert.deepEqual(errors,[]);await page.context().close();
+ }
+});
+
+test('Fehlende Schriftdateien oder Schrift-API lassen Overlays mit lesbarer Rückfallschrift öffnen',async t=>{
+ for(const fontMode of ['unavailable','missing-api'])for(const view of ['studio','wishes']){
+  const {page,errors}=await setup(t,{view,fontMode,wishSurface:view==='wishes',overlayState:{},viewport:{width:320,height:580}});
+  await page.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));
+  await page.locator(view==='wishes'?'#close-wishes':'#close-overlay').click({trial:true});
+  assert.equal(await page.evaluate(()=>__sent.filter(e=>e.type==='mw:ready').length),1);
+  assert.deepEqual(errors,[]);await page.context().close();
+ }
 });
 
 test('Eine auslaufende Statusmeldung verschiebt die begonnene Themenbearbeitung auch nach dem Speichern nicht',async t=>{
@@ -686,7 +738,7 @@ test('Eine auslaufende Statusmeldung verschiebt die begonnene Themenbearbeitung 
 });
 
 test('Anmeldung und lange Inhalte erhalten native Moderationsmaße, Entwurf und Fokus',async t=>{
- const {page,state,errors}=await setup(t,{view:'studio',nativeSizing:true,hostSteps:true,viewport:{width:780,height:600}});await page.locator('#studio-topic').fill('Mein Entwurf');await page.evaluate(s=>__emit('mw:state',{...s,revision:2,moderator:{nick:'Lange Moderation '.repeat(5),since:Date.now(),expiresAt:Date.now()+3600000,sessionKey:'native'},user:{...s.user,isOnAir:true,canEndModeration:true}}),state);assert.equal(await page.locator('#studio-topic').inputValue(),'Mein Entwurf');assert.equal(await page.locator('#studio-topic').evaluate(n=>n===document.activeElement),true);await page.evaluate(s=>__emit('mw:state',{...s,revision:3}),state);await validDialogSizes(page);assert.equal(page.viewportSize().width,780);assert.ok(page.viewportSize().height<=600);assert.deepEqual(errors,[]);
+ const {page,state,errors}=await setup(t,{view:'studio',nativeSizing:true,hostSteps:true,viewport:{width:780,height:600}});await revealStudio(page,'#studio-topic');await page.locator('#studio-topic').fill('Mein Entwurf');await page.evaluate(s=>__emit('mw:state',{...s,revision:2,moderator:{nick:'Lange Moderation '.repeat(5),since:Date.now(),expiresAt:Date.now()+3600000,sessionKey:'native'},user:{...s.user,isOnAir:true,canEndModeration:true}}),state);assert.equal(await page.locator('#studio-topic').inputValue(),'Mein Entwurf');assert.equal(await page.locator('#studio-topic').evaluate(n=>n===document.activeElement),true);await page.evaluate(s=>__emit('mw:state',{...s,revision:3}),state);await validDialogSizes(page);assert.equal(page.viewportSize().width,780);assert.ok(page.viewportSize().height<=600);assert.deepEqual(errors,[]);
 });
 
 test('Schmale Moderationsreiter verwenden denselben nativen Rahmen',async t=>{
@@ -995,7 +1047,7 @@ test('Gemeinsame Dialogköpfe, sichtbarer Zeichenzähler und lange Eingaben blei
     assert.equal(await page.locator('.dialog-brand img:visible').evaluate(n=>getComputedStyle(n).mixBlendMode),'lighten');
     const header=page.locator('.dialog-header:visible');
     assert.equal(await header.evaluate(n=>{const h=n.getBoundingClientRect(),t=n.querySelector('.dialog-heading').getBoundingClientRect();return Math.abs(h.x+h.width/2-t.x-t.width/2)<1;}),true,'Titel genau über die Fensterbreite zentriert');
-    assert.equal(await page.locator('h1,h2,h3').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).every(n=>getComputedStyle(n).textAlign==='center')),true,'Alle Menüüberschriften mittig');
+    assert.equal(await page.locator('h1').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).every(n=>getComputedStyle(n).textAlign==='center')),true,'Fenstertitel bleiben mittig');
     assert.equal(await page.locator('.dialog-brand img:visible').evaluate(n=>getComputedStyle(n).backgroundColor),'rgba(0, 0, 0, 0)','Original-Logo ohne abgesetztes Hintergrundrechteck');
     assert.ok(await page.locator('#dialog-title').evaluate(n=>parseFloat(getComputedStyle(n).fontSize)>=22));
     if(view==='wishes') {
@@ -1022,7 +1074,7 @@ test('Start bleibt bei verzögerten Ressourcen unsichtbar; erst die gemessene fe
   for (const loadingDelay of ['css','script','module','stylesheet','actions']) {
     for (const [width,k3] of [[960,false],[320,false],[960,true],[320,true]]) {
       const {page,loadingSnapshot,errors}=await setup(t,{k3,loadingDelay,viewport:{width,height:760}});
-      assert.equal(loadingSnapshot.background,'rgb(15, 17, 20)');
+      assert.equal(loadingSnapshot.background,'rgb(0, 0, 0)');
       assert.equal(loadingSnapshot.visibility,'hidden');assert.equal(loadingSnapshot.initialized,false);
       assert.deepEqual(loadingSnapshot.sizes,[],'Keine geratenen Größen vor der geladenen Oberfläche');
       const sizes=await page.evaluate(()=>window.__sizes);
@@ -1202,8 +1254,11 @@ test('Neue Radioanordnung hält die Hauptaktionen in 160 Pixeln sichtbar und ord
 });
 
 test('Öffentliche Aktionen und private Zugänge folgen ausschließlich der echten Besitzer- oder Radiomoderatorenrolle',async t=>{
-  async function arrangement(page,stacked) {
+  async function arrangement(page,stacked,available=false) {
     const schedule=await page.locator('#open-schedule').boundingBox(),wishes=await page.locator('#open-wishes').boundingBox();
+    assert.equal(await page.locator('#open-schedule').isDisabled(),!available,'Sendeplan wird nur mit bestätigter Inhaberfreigabe bedienbar');
+    assert.equal(await page.locator('#schedule-button-caption').textContent(),'In Kürze');
+    assert.equal(await page.locator('#schedule-button-caption').isVisible(),!available,'Hinweis nur bei pausierter Freigabe sichtbar');
     assert.ok(Math.abs(schedule.width-wishes.width)<1&&Math.abs(schedule.height-wishes.height)<1,'Gleich große öffentliche Aktionen');
     assert.ok(Math.abs(schedule.y-wishes.y)<1&&wishes.x>=schedule.x+schedule.width,'Zwei öffentliche Aktionen nebeneinander');
   }
@@ -1216,7 +1271,15 @@ test('Öffentliche Aktionen und private Zugänge folgen ausschließlich der echt
     assert.equal(await page.locator('#studio-tab').isVisible(),hasStudio);
     assert.equal(await page.locator('#team-tab').count(),0);
     assert.equal(await page.locator('#radio-private-actions').isVisible(),hasStudio);
-    await arrangement(page,!hasStudio);
+    await arrangement(page,!hasStudio,role==='owner');
+    if(role==='owner') {
+      await page.locator('#open-schedule').click();
+      const request=await page.evaluate(()=>__sent.at(-1));assert.equal(request.type,'mw:openSchedule');
+      await page.evaluate(e=>__emit('mw:result',{ok:true,action:e.type,requestId:e.data.requestId}),request);
+    } else {
+      await page.locator('#open-schedule').evaluate(button=>{button.click();button.dispatchEvent(new MouseEvent('click',{bubbles:true}));});
+      assert.equal(await page.evaluate(()=>__sent.some(event=>event.type==='mw:openSchedule')),false,'Gesperrter Button öffnet auch bei ausgelöstem Klick kein Fenster');
+    }
     if(['listener','radioModerator','owner'].includes(role)) {
       const name='Aktionen-'+(role==='listener'?'Hoerer':role==='owner'?'Inhaber':'Radiomoderator');
       await captureDesign(page,name+'-1360');
@@ -1241,9 +1304,16 @@ test('Öffentliche Aktionen und private Zugänge folgen ausschließlich der echt
     assert.equal(await page.locator('#radio-private-actions').isVisible(),false);
     await resizeViewport(page,{width:1360,height:160});await arrangement(page,true);
     await page.evaluate(state=>window.__emit('mw:state',{...state,revision:3,requestsEnabled:false,user:{...state.user,canModerate:true,showModerationButton:true,canManageRadioModerators:true}}),state);
-    await arrangement(page,false);assert.equal(await page.locator('#open-wishes').isDisabled(),true);
+    await arrangement(page,false,true);assert.equal(await page.locator('#open-wishes').isDisabled(),true);
     await page.evaluate(state=>window.__emit('mw:state',{...state,revision:4,requestsEnabled:false,user:{...state.user,canModerate:false,canManageRadioModerators:false}}),state);
     await arrangement(page,true);assert.equal(await page.locator('#open-wishes').isDisabled(),true);
+    let revision=5;
+    for(const value of [undefined,'true',1]) {
+      await page.evaluate(({state,revision,value})=>__emit('mw:state',{
+        ...state,revision,user:{...state.user,nick:'Otterchen',canManageRadioModerators:value}
+      }),{state,revision:revision++,value});
+      await arrangement(page,true);
+    }
     if(role==='listener') {
       await captureDesign(page,'Aktionen-Hoerer-Deaktiviert-1360');
       await resizeViewport(page,{width:390,height:600});await arrangement(page,true);
@@ -1549,7 +1619,7 @@ test('Deaktivierte Wunschbox ist sichtbar gesperrt, sendet keine Popup-Anfrage u
   assert.deepEqual(errors,[]);
 });
 
-test('Popup zeigt nur seinen Bereich und verändert weder Headerbar-Höhe noch Audiowiedergabe', async t => {
+test('Overlay zeigt nur seinen Bereich und verändert weder Headerbar-Höhe noch Audiowiedergabe', async t => {
   for(const view of ['wishes','studio','team']){
     const {page,errors}=await setup(t,{view,k3:false,station:true,viewport:{width:820,height:680}});
     assert.equal(await page.locator('#radio-panel').isVisible(),false);
@@ -1561,7 +1631,7 @@ test('Popup zeigt nur seinen Bereich und verändert weder Headerbar-Höhe noch A
       await validDialogSizes(page);
     }
     assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);
-    assert.equal((await page.locator('.dialog-brand img:visible').boundingBox()).width,80);
+    assert.equal((await page.locator('.dialog-brand img:visible').boundingBox()).width,64);
     assert.deepEqual(errors,[]);
   }
 });
@@ -1694,7 +1764,7 @@ test('Glowauslauf erhält seinen Hintergrund in K3 und STAPP auch bei begrenzter
         const row=y=>xs.map(x=>Array.from(c.getImageData(x,y,1,1).data).slice(0,3));
         return {edge:row(canvas.height-1),before:row(canvas.height-2),near:row(canvas.height-Math.ceil(17*scale)),width:innerWidth,scale};
       },png.toString('base64'));
-      const base=[15,17,20],deviation=Math.max(...pixels.edge.flatMap(rgb=>rgb.map((v,i)=>Math.abs(v-base[i]))));
+      const base=[0,0,0],deviation=Math.max(...pixels.edge.flatMap(rgb=>rgb.map((v,i)=>Math.abs(v-base[i]))));
       const step=Math.max(...pixels.edge.flatMap((rgb,n)=>rgb.map((v,i)=>Math.abs(v-pixels.before[n][i]))));
       assert.ok(deviation<=1&&step<=2,'Glow endet weich auf der Canvasfarbe: '+JSON.stringify({k3,phase,deviation,step,...pixels}));
       assert.ok(pixels.near.some(rgb=>rgb.some((v,i)=>Math.abs(v-base[i])>5)),'Der Lichtsaum bleibt vor dem Auslauf sichtbar');
@@ -3098,7 +3168,7 @@ test('Breite Radioleiste nutzt die Mittelbreite und erhält Tastaturbedienung',a
     await page.mouse.move(0,0);await page.mouse.up();
     await node.focus();await page.keyboard.press('Enter');
     const sent=await page.evaluate(()=>window.__sent.at(-1));
-    assert.equal(sent.type,['mw:openSchedule','mw:openWishes','mw:openStudio','mw:openRadioTeam'][index]);
+    assert.equal(sent.type,{ 'open-schedule':'mw:openSchedule','open-wishes':'mw:openWishes','studio-tab':'mw:openStudio' }[id]);
     await page.evaluate(sent=>window.__emit('mw:result',{ok:true,action:sent.type,requestId:sent.data.requestId}),sent);
     if(index<ids.length-1){await node.focus();await page.keyboard.press('Tab');assert.equal(await page.locator('#'+ids[index+1]).evaluate(n=>document.activeElement===n),true);}
   }
@@ -3184,7 +3254,7 @@ test('Overlay-Schließen stellt den Fokus bei deaktivierter Annahme und Verbindu
   await page.evaluate(({state,lost})=>__emit('mw:state',{...state,revision:2,requestsEnabled:lost,shuttingDown:lost}),{state,lost});
   await page.evaluate(()=>__emit('mw:wishes.input',{surfaceId:1,sequence:2,text:'Letzte Eingabe trotz gesperrtem Versand',submit:true}));
   await page.evaluate(()=>__emit('mw:wishes.closed',{surfaceId:1}));
-  const target=lost?'#mute-button':'#open-schedule';
+  const target='#mute-button';
   assert.equal(await page.locator(target).evaluate(n=>{const b=n.getBoundingClientRect(),hit=document.elementFromPoint(b.x+b.width/2,b.y+b.height/2);return document.activeElement===n&&!!hit&&(hit===n||n.contains(hit));}),true);
   assert.equal(await page.locator('#wish-text').inputValue(),'Letzte Eingabe trotz gesperrtem Versand');
   assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:wish.submit')),false);assert.deepEqual(errors,[]);
@@ -3219,20 +3289,22 @@ test('Tastatur verlässt die Radioaktionen ohne unsichtbaren Zwischenstopp auf d
  assert.deepEqual(errors,[]);
 });
 
-test('Sendungszeit nutzt bestätigte Serverzeit ohne Assistent, Erinnerung oder automatische Aktion',async t=>{
+test('Radioregie zeigt keine Sendungszeit und führt auch bei langem Zeitsprung keine automatische Aktion aus',async t=>{
   for(const k3 of [true,false]){
     const {page,state,errors}=await setup(t,{view:'studio',clock:true,k3,viewport:{width:780,height:730}});
     const now=state.serverTime;
     const next={...state,revision:2,serverTime:now,moderator:{nick:'Otterchen',since:now-125000,expiresAt:now+3600000,sessionKey:'timer-1'},user:{...state.user,isOnAir:true,canEndModeration:true}};
     await page.evaluate(s=>__emit('mw:state',s),next);
-    assert.equal(await page.locator('#studio-duration').textContent(),'0 Std. 2 Min.');
+    assert.equal(await page.locator('#studio-duration,#studio-timing').count(),0);
     assert.equal(await page.locator('#studio-assistant,[id^=assistant-]').count(),0);
     await page.clock.fastForward(60000);
-    assert.equal(await page.locator('#studio-duration').textContent(),'0 Std. 3 Min.');
+    assert.equal(await page.locator('#studio-duration,#studio-timing').count(),0);
     assert.equal(await page.evaluate(()=>__sent.some(e=>['mw:offAir','mw:onAir','mw:handover.request','mw:setTopic'].includes(e.type))),false);
     await page.clock.fastForward(6000);
-    assert.equal(await page.locator('#studio-timing').isVisible(),false);
+    assert.equal(await page.locator('#studio-timing').count(),0);
     assert.equal(await page.locator('#studio-host').textContent(),'Moderation unbestätigt');
+    await page.clock.fastForward(7*3600000);
+    assert.equal(await page.evaluate(()=>__sent.some(e=>['mw:offAir','mw:onAir','mw:handover.request','mw:setTopic'].includes(e.type))),false);
     assert.deepEqual(errors,[]);
   }
 });

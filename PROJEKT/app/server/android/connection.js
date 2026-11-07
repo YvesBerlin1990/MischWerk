@@ -2,6 +2,31 @@
 MischWerkModules.attachAndroidConnection = function (runtime) {
     'use strict';
     var busy = false;
+    runtime.androidRegistrationError = function (error, settings) {
+        var name = 'Error', message = '';
+        try {
+            var givenName = String(error && error.name || 'Error');
+            if (/^(?:Error|TypeError|ReferenceError|RangeError|InternalError|JavaException|WrappedException)$/.test(givenName)) { name = givenName; }
+            message = String(error && error.message || '');
+        } catch (ignoredRead) { message = ''; }
+        if (message.length > 4096) { message = ''; }
+        [settings && settings.syncSecret, settings && settings.relaySecret].forEach(function (value) {
+            if (typeof value === 'string' && value) { message = message.split(value).join('[Schlüssel entfernt]'); }
+        });
+        message = message.split(/[\r\n]/)[0]
+            .replace(/https?:\/\/[^\s<>"']+/gi, '[URL entfernt]')
+            .replace(/\bBearer\s+\S+/gi, '[Authentisierung entfernt]')
+            .replace(/(['"])[^'"\r\n]*\1/g, '[Wert entfernt]')
+            .replace(/[A-Za-z0-9_-]{32,}/g, '[Wert entfernt]')
+            .replace(/\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?\b/g, '[Adresse entfernt]')
+            .replace(/[A-Za-z]:\\[^\s,;]+/g, '[Pfad entfernt]')
+            .replace(/\/(?:home|Users|var|tmp|opt)\/[^\s,;]+/g, '[Pfad entfernt]')
+            .replace(/\s+/g, ' ').trim();
+        if (!message || (name === 'Error' && !/webhook|permission|denied|disabled|not (?:enabled|configured|initialized|allowed|supported)|unsupported|cannot|can't find method|exception|invalid/i.test(message))) {
+            message = 'Keine freigegebene kurze AppServer-Meldung verfügbar.';
+        }
+        return { name: name, message: message.substring(0, 260) };
+    };
     runtime.readAndroidSettings = function () {
         var value = KnuddelsServer.getPersistence().getObject('mischwerk.android.private.v1', null);
         if (!value || value.enabled !== true) { return null; }
@@ -20,7 +45,7 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
         if (!external || typeof external.postURL !== 'function' || typeof external.canAccessURL !== 'function' ||
                 external.canAccessURL(settings.syncUrl) !== true) { return null; }
         return { sendJson: function (request, finish) {
-            if (request.url !== settings.syncUrl || request.authorization !== 'Bearer ' + settings.syncSecret ||
+            if (request.url !== settings.syncUrl ||
                     external.canAccessURL(settings.syncUrl) !== true || busy) { throw new Error('ANDROID_CONNECTION'); }
             var finished = false, cancelled = false;
             function complete(raw, response, failed) {
@@ -34,6 +59,7 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
                     if (authProbe) { result.status = code === null ? 0 : code; }
                     else {
                         matches = String(response.getURLString()) === settings.syncUrl;
+                        if (matches && code !== null) { result.status = code; }
                         var text = String(raw === null || raw === undefined ? '' : raw);
                         if (failed || text.length > 4096 || runtime.jsonBytes(text) > 4096 ||
                                 code === null || !matches) { throw new Error('ANDROID_HTTP_RESPONSE'); }
@@ -48,11 +74,9 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
             }
             busy = true;
             try {
-                var header = { Authorization: request.authorization };
-                if (authProbe) { header['X-MischWerk-Probe'] = '1'; }
+                var signed = runtime.createAndroidSignedData(request.body, settings.syncSecret);
                 external.postURL(settings.syncUrl, {
-                    data: { payload: JSON.stringify(request.body) },
-                    header: header,
+                    data: signed,
                     onSuccess: function (raw, response) { complete(raw, response, false); },
                     onFailure: function (raw, response) { complete(raw, response, true); }
                 });
@@ -78,7 +102,7 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
         }
         var settings = read(), wire = createWire(settings, true, authProbe === true);
         if (!wire) { throw new Error('ANDROID_VERIFICATION_UNAVAILABLE'); }
-        return wire.sendJson({ url: settings.syncUrl, authorization: 'Bearer ' + settings.syncSecret, body: body }, function (result) {
+        return wire.sendJson({ url: settings.syncUrl, body: body }, function (result) {
             try { result.configurationUnchanged = JSON.stringify(read()) === JSON.stringify(settings); }
             catch (ignoredRead) { result.configurationUnchanged = false; }
             finish(result);

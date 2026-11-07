@@ -14,7 +14,7 @@ function onEvent(session, event) {
 const runtimes = new Map();
 function runtime(publicRadio) {
   const key = publicRadio ? 'public' : 'demo';
-  if (!runtimes.has(key)) { runtimes.set(key, createPreviewRuntime(publicRadio, onEvent)); }
+  if (!runtimes.has(key)) { runtimes.set(key, createPreviewRuntime(publicRadio, onEvent, process.env.MISCHWERK_PREVIEW_START_MODERATION !== '0')); }
   return runtimes.get(key);
 }
 const sessions = new Map();

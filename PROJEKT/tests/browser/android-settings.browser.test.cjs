@@ -41,3 +41,27 @@ for(const width of [320,560])test('Einrichtung bleibt bei '+width+' Pixeln lesba
  await p.locator('#relay-close').click();assert.equal((await p.evaluate(()=>window.__sent.at(-1))).type,'mw:androidSettings.close');
 });
 test('Außerhalb Knuddels bleibt der Dialog ohne Client geschlossen',async t=>{const p=await pageFor(t,{noClient:true});assert.equal(await p.locator('#relay-save').isDisabled(),true);assert.match(await p.locator('#relay-result').innerText(),/im MischWerk-Channel/);});
+test('Betriebsaktionen bleiben bis zu zwei gespeicherten Schlüsseln gesperrt und senden nur Revision/Anfragekennung',async t=>{
+ const p=await pageFor(t);await open(p,{...state,hasSyncSecret:true});assert.equal(await p.locator('#relay-activate').isDisabled(),true);
+ await open(p,{...state,hasSyncSecret:true,hasRelaySecret:true});await p.locator('#relay-activate').click();
+ const sent=await p.evaluate(()=>window.__sent.at(-1));assert.equal(sent.type,'mw:androidSettings.activate');assert.deepEqual(Object.keys(sent.data).sort(),['requestId','revision']);
+ await p.evaluate(s=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'activate-1',state:{...s,hasSyncSecret:true,hasRelaySecret:true,enabled:true,runtimeVerified:true,revision:1,operation:{publisherActive:true,webhookRegistered:true,lastPost:{status:200,accepted:true}}},message:'Verbindung aktiviert.'}),state);
+ assert.equal(await p.locator('#relay-deactivate').isEnabled(),true);assert.match(await p.locator('#relay-status').innerText(),/Publisher läuft/);assert.match(await p.locator('#relay-status').innerText(),/HTTP 200, angenommen/);
+});
+test('Private WebHook-Adresse erscheint nur nach passender Anfrage und wird bei Reload/Seitenende entfernt',async t=>{
+ const p=await pageFor(t),ready={...state,hasSyncSecret:true,hasRelaySecret:true},hook='https://hooks.example.invalid/private/android-wishes/v1/wishes';await open(p,ready);
+ assert.equal(await p.locator('#relay-hook-panel').isHidden(),true);await p.locator('#relay-prepare').click();
+ await p.evaluate(({s,hook})=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'foreign',state:s,webhookUrl:hook}),{s:ready,hook});assert.equal(await p.locator('#relay-hook-panel').isHidden(),true);
+ await p.evaluate(({s,hook})=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'prepare-1',state:s,webhookUrl:hook}),{s:ready,hook});assert.equal(await p.locator('#relay-hook').inputValue(),hook);
+ assert.equal(await p.locator('#relay-hook').getAttribute('readonly'),'');assert.deepEqual(await p.evaluate(()=>[localStorage.length,sessionStorage.length]),[0,0]);
+ await p.locator('#relay-refresh').click();assert.equal(await p.locator('#relay-hook').inputValue(),'');await open(p,ready);await p.locator('#relay-prepare').click();
+ await p.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
+ await p.evaluate(({s,hook})=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'prepare-2',state:s,webhookUrl:hook}),{s:ready,hook});
+ assert.equal(await p.locator('#relay-hook').inputValue(),'');assert.equal(await p.locator('#relay-activate').isDisabled(),true);
+});
+test('Fehlerantwort aktualisiert tatsächliche Freigabeflags und Laufstatus ohne Geheimnisse',async t=>{
+ const p=await pageFor(t),active={...state,revision:1,hasSyncSecret:true,hasRelaySecret:true,enabled:true,runtimeVerified:true,operation:{publisherActive:true,webhookRegistered:true}};await open(p,active);await p.locator('#relay-deactivate').click();
+ await p.evaluate(s=>window.__emit('mw:androidSettings.result',{ok:false,requestId:'deactivate-1',state:{...s,operation:{publisherActive:false,webhookRegistered:false,webhookRegistration:{failedStage:'url-result'}}},message:'Bitte Status neu laden.'}),active);
+ assert.match(await p.locator('#relay-status').innerText(),/Verbindung freigegeben/);assert.match(await p.locator('#relay-status').innerText(),/Publisher aus/);assert.match(await p.locator('#relay-status').innerText(),/url-result/);
+ assert.equal(await p.locator('#relay-refresh').isEnabled(),true);assert.equal(await p.locator('#relay-hook').inputValue(),'');
+});

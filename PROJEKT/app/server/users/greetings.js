@@ -20,8 +20,11 @@ MischWerkModules.attachUserGreetings = function (runtime) {
             var url = String(user.getProfilePhoto(24, 24));
             // Nur die vom Server gelieferte Bildadresse in genau einen KCode-Bildtag einsetzen.
             if (url.length > 2000 || !/^https?:\/\/[^/?#\s]+(?:[/?#][^\s]*)?$/.test(url) || /[\s°<>|\\]/.test(url)) { return ''; }
-            // Dokumentierter Bild-Linktrenner; das Profilziel bestimmt weiterhin die User-API.
-            return ' ' + profileLink(user, url + '<>--<>', '°>' + url + '<°');
+            // displayText ist Text: Bild-Steuerzeichen dürfen nicht durch die Profilfunktion laufen.
+            // Nur das native Profilziel übernehmen, dann einen eigenständigen Bildtag bilden.
+            var nativeLink = profileLink(user, 'Profil öffnen', '');
+            var target = /^°>[^°<>|]*\|((?:\\[^\r\n]|[^\\°<>\r\n])+)<°$/.exec(nativeLink);
+            return ' °>' + url + (target ? '<>--<>|' + target[1] : '') + '<°';
         } catch (error) { return ''; }
     }
 
@@ -31,9 +34,9 @@ MischWerkModules.attachUserGreetings = function (runtime) {
         var label = nick.replace(/(\\*)\|/g, function (match, slashes) {
             return slashes + (slashes.length % 2 ? '' : '\\') + '|';
         });
-        // Goldton #e6c77b aus der Appleiste; Größe, Fettschrift und Farbe vor der zweiten Zeile beenden.
+        // Goldton #e6c77b aus der Appleiste; danach mit normaler Schrift in derselben Zeile fortsetzen.
         return '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, ' + profileLink(user, label, nick) +
-            '._°r°°#°Viel Spaß beim Zuhören.' + photo(user);
+            '._°r° Viel Spaß beim Zuhören.' + photo(user);
     }
 
     runtime.initializeUserGreetings = function () {

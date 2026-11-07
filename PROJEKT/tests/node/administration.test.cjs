@@ -2,11 +2,20 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createHarness } = require('../support/knuddels.cjs');
 function overlay(user) { return user.sessions.find(session => session.content.viewMode === 'Overlay'); }
+test('Kompakte Overlays verdecken weniger Chat und behalten getrennte native Radio-Sitzungen', () => {
+  for(const [action,width,height] of [['mw:openWishes',480,340],['mw:openStudio',640,580],['mw:openRadioTeam',500,560],['mw:openSchedule',720,600]]) {
+    const h=createHarness(),owner=h.user(1,'Otterchen','owner'),radio=h.open(owner);
+    h.event(owner,radio,action);
+    const current=overlay(owner);assert.ok(current,action);
+    assert.deepEqual([current.content.width,current.content.height],[width,height],action);
+    assert.equal(radio.removed,false);assert.equal(owner.sessions.length,2);
+  }
+});
 test('/MW Verwaltung öffnet die Verwaltung für Otterchen und erhält die bestehende Radio-Sitzung', () => {
   const h = createHarness(), owner = h.user(1, 'Otterchen', 'owner'), radio = h.open(owner);
   h.app.chatCommands.mw(owner, 'Verwaltung');
   assert.equal(overlay(owner).content.htmlFile.pageData.view, 'team');
-  assert.equal(overlay(owner).content.width, 560); assert.equal(overlay(owner).content.height, 630);
+  assert.equal(overlay(owner).content.width, 500); assert.equal(overlay(owner).content.height, 560);
   assert.equal(radio.removed, false); assert.equal(owner.sessions.length, 2); assert.equal(h.bot.messages.length, 0);
 });
 test('Verwaltungsbefehl braucht authentifizierten Otterchen, Inhaberrecht und Channelanwesenheit', () => {

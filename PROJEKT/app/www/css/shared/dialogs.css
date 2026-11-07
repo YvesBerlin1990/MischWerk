@@ -42,18 +42,16 @@ textarea { resize:none; min-height:96px; overflow:hidden; }
 .count-badge { display:inline-flex; align-items:center; justify-content:center; min-width:24px; height:24px; margin-left:8px; padding:0 7px; border:1px solid #484a4c; border-radius:8px; background:#282b2e; color:#e9eaec; font-family:Outfit,system-ui,sans-serif; font-size:12px; font-weight:700; }
 .button-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
 
-/* Alle Fenster- und Abschnittsüberschriften auf ausdrücklichen Nutzerwunsch mittig. */
-html:not([data-view=radio]) :is(h1,h2,h3) { text-align:center; }
-html:not([data-view=radio]) :is(.workspace-heading,.team-section-heading) { text-align:center; }
-html:not([data-view=radio]) .list-heading { display:grid; grid-template-columns:44px minmax(0,1fr) 44px; align-items:center; }
-html:not([data-view=radio]) .list-heading > :first-child { grid-column:2; grid-row:1; min-width:0; text-align:center; }
-html:not([data-view=radio]) .list-heading > :last-child:not(:first-child) { grid-column:3; grid-row:1; justify-self:end; }
-html:not([data-view=radio]) .list-heading > :only-child { grid-column:1 / -1; }
-#studio-requests.studio-queue-tight .studio-queue-heading { grid-template-columns:140px minmax(0,1fr) 140px; }
-#studio-requests.studio-queue-tight .studio-queue-heading > :first-child { grid-column:2; }
-#studio-requests.studio-queue-tight .studio-queue-heading > .queue-header-actions { grid-column:3; grid-row:1; }
-@media (max-width:480px) {
- #studio-requests .studio-queue-heading,#studio-requests.studio-queue-tight .studio-queue-heading { grid-template-columns:minmax(0,1fr); }
- #studio-requests .studio-queue-heading > :first-child,#studio-requests.studio-queue-tight .studio-queue-heading > :first-child { grid-column:1; }
- #studio-requests .studio-queue-heading > .queue-header-actions,#studio-requests.studio-queue-tight .studio-queue-heading > .queue-header-actions { grid-column:1; grid-row:2; justify-self:center; }
-}
+/* Gemeinsames Material der neu gestalteten Arbeitsfenster. */
+html:is([data-view=studio],[data-view=team],[data-view=schedule]) { --gold:#e6c77b; --gold-ink:#e6c77b; --line:#343434; --muted:#b4b4b0; --input:#101113; }
+html:is([data-view=studio],[data-view=team],[data-view=schedule]) .dialog-shell { border-radius:16px; }
+html:is([data-view=studio],[data-view=team],[data-view=schedule]) .dialog-header { border-radius:15px 15px 0 0; background:#141414; }
+html:is([data-view=studio],[data-view=team],[data-view=schedule]) .dialog-header::before { opacity:.1; border-color:var(--gold); }
+html:is([data-view=studio],[data-view=team],[data-view=schedule]) .dialog-heading .eyebrow { color:var(--gold); font-size:12px; letter-spacing:.12em; }
+html:is([data-view=studio],[data-view=team],[data-view=schedule]) .primary-button { background:var(--gold); border-color:var(--gold); color:#181611; border-radius:9px; font-size:14px; font-weight:600; }
+html:is([data-view=studio],[data-view=team],[data-view=schedule]) .primary-button:hover:enabled { background:#f2d997; border-color:#f2d997; }
+html:is([data-view=studio],[data-view=team],[data-view=schedule]) .primary-button:active:enabled { background:#cfad60; border-color:#cfad60; }
+html:is([data-view=studio],[data-view=team],[data-view=schedule]) .secondary-button { border-radius:9px; background:transparent; font-weight:500; font-size:14px; }
+html:is([data-view=studio],[data-view=team],[data-view=schedule]) :is(input:not([type=checkbox]),textarea,select) { border-radius:8px; }
+html:is([data-view=studio],[data-view=team],[data-view=schedule]) :is(button,input,textarea,select):focus-visible { outline:3px solid var(--gold); outline-offset:-3px; }
+html[data-view=wishes] :is(h1,h2,h3) { text-align:center; }

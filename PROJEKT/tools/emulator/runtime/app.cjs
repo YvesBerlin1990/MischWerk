@@ -19,6 +19,7 @@ class AppRuntime {
     this.persistence = new TestPersistence(options.dataDir, () => this.faults.failPersistence,
       write => this.emit('persistence', write));
     this.cacheVersion = 0; this.loadedFiles = []; this.errors = [];
+    this.channelTopic = '';
   }
   recordError(phase, error) {
     const detail = { phase, message: String(error.message), stack: String(error.stack || '') };
@@ -50,8 +51,18 @@ class AppRuntime {
       updateAppFiles() { runtime.emit('log', { level: 'info', message: 'Lokaler Update-Test: keine FTP-Verbindung, keine neuen Dateien.' }); return []; },
       updateApp() { throw new Error('Knuddels-Neustart wird lokal nicht angefordert. Testneustart in der Emulatorleiste verwenden.'); }
     };
+    const channelInformation = {
+      getTopic: () => runtime.channelTopic,
+      setTopic(topic, showMessage) {
+        if (typeof topic !== 'string' || topic.length > 2500) throw new Error('Channel-Thema benötigt einen String mit höchstens 2500 Zeichen.');
+        if (typeof showMessage !== 'boolean') throw new Error('showMessage muss boolesch sein.');
+        runtime.channelTopic = topic;
+        runtime.emit('channelTopic', { topic, showMessage });
+      }
+    };
     const channel = {
       getChannelName: () => 'MischWerk', getRootChannelName: () => 'MischWerk',
+      getChannelConfiguration: () => ({ getChannelInformation: () => channelInformation }),
       getOnlineUsers: type => !type || type === runtime.enums.UserType.Human ? runtime.users.online().map(record => record.user) : []
     };
     const server = {

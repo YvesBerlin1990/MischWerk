@@ -27,10 +27,12 @@ h1{font-size:21px}
 <form id="relay-form" autocomplete="off">
 <label for="relay-url">Ziel der Statusübertragung</label><input id="relay-url" readonly value="https://radio-mischwerk.web.app/api/publishKnuddelsState">
 <label for="relay-sync">Sync-Schlüssel (KNUDDELS_SYNC_SECRET)</label><input id="relay-sync" type="password" autocomplete="off" minlength="43" maxlength="128" pattern="[A-Za-z0-9_-]{43,128}" disabled spellcheck="false">
-<label for="relay-wishes">Wunsch-Schlüssel (KNUDDELS_RELAY_SECRET, optional)</label><input id="relay-wishes" type="password" autocomplete="off" minlength="43" maxlength="128" pattern="[A-Za-z0-9_-]{43,128}" disabled spellcheck="false">
-<p class="hint">43–128 Zeichen: Buchstaben, Ziffern, Bindestrich oder Unterstrich. Speichern hinterlegt die Schlüssel; die Verbindung bleibt bis zur Funktionsprüfung ausgeschaltet.</p>
+<label for="relay-wishes">Wunsch-Schlüssel (KNUDDELS_RELAY_SECRET)</label><input id="relay-wishes" type="password" autocomplete="off" minlength="43" maxlength="128" pattern="[A-Za-z0-9_-]{43,128}" disabled spellcheck="false">
+<p class="hint">43–128 Zeichen: Buchstaben, Ziffern, Bindestrich oder Unterstrich. Speichern hinterlegt die Schlüssel und schaltet die Verbindung aus. Für die Aktivierung müssen beide unterschiedlichen Schlüssel hinterlegt sein.</p>
 <div class="actions"><button id="relay-save" type="submit" disabled>Speichern</button><button id="relay-refresh" type="button" disabled>Status neu laden</button><button id="relay-close" type="button">Schließen</button></div>
 </form>
+<div class="actions"><button id="relay-prepare" type="button" disabled>WebHook vorbereiten</button><button id="relay-activate" type="button" disabled>Verbindung aktivieren</button><button id="relay-deactivate" type="button" disabled>Verbindung ausschalten</button></div>
+<div id="relay-hook-panel" hidden><label for="relay-hook">Private WebHook-Adresse</label><input id="relay-hook" readonly autocomplete="off" spellcheck="false"><p class="hint">Vollständige Adresse ausschließlich geschützt in Firebase als KNUDDELS_WEBHOOK_URL hinterlegen. Nicht im Chat oder in der gemeinsamen Übergabe weitergeben.</p></div>
 <p id="relay-status" role="status">Verbindung zur privaten Einrichtung wird geprüft …</p><p id="relay-result" role="status" aria-live="polite"></p>
 </main><script>
 if(typeof Client!=='undefined'&&typeof Client.includeJS==='function'){Client.includeJS('js/operator/relay-settings.js');}

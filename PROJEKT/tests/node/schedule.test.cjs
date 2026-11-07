@@ -2,6 +2,91 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createHarness } = require('../support/knuddels.cjs');
 let sequence = 0;
+function currentWeek(h) {
+  const date = new Intl.DateTimeFormat('sv-SE', { timeZone:'Europe/Berlin' }).format(new Date(h.now()));
+  const stamp = new Date(date + 'T12:00:00Z');
+  stamp.setUTCDate(stamp.getUTCDate() - (stamp.getUTCDay() + 6) % 7);
+  return stamp.toISOString().slice(0,10);
+}
+
+test('Studio-Anmeldung und Abmeldung werden ohne Dubletten dauerhaft im Sendeplan vermerkt', () => {
+  const f = fixture(), selected = currentWeek(f.h);
+  f.h.event(f.owner, f.radio, 'mw:onAir');
+  const first = read(f, selected);
+  assert.equal(first.total, 1);
+  assert.equal(first.entries[0].automatic, true);
+  assert.equal(first.entries[0].actualStart, f.h.now());
+  assert.equal(first.entries[0].actualEnd, null);
+  f.h.event(f.owner, f.radio, 'mw:onAir');
+  assert.equal(read(f, selected).revision, first.revision);
+  f.h.advance(90000);
+  f.h.event(f.owner, f.radio, 'mw:offAir');
+  const ended = read(f, selected);
+  assert.equal(ended.total, 1); assert.equal(ended.entries[0].actualEnd, f.h.now());
+  assert.ok(ended.entries[0].actualUntil > ended.entries[0].actualFrom);
+  assert.equal(JSON.stringify(ended).includes('broadcastKey'), false);
+  const restarted = createHarness(f.h.store), owner = restarted.user(1, 'Otterchen', 'owner');
+  assert.equal(read({h:restarted,owner,session:restarted.open(owner)}, selected).entries[0].actualEnd, ended.entries[0].actualEnd);
+});
+
+test('Passende geplante Sendung wird ergänzt und behält ihre geplanten Zeiten', () => {
+  const f=fixture(), selected=currentWeek(f.h);
+  const date=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Berlin'}).format(new Date(f.h.now()));
+  f.h.store.setObject('mischwerk.schedule.v1.weeks',[selected]);
+  f.h.store.setObject('mischwerk.schedule.v1.'+selected,{version:1,revision:1,nextId:2,entries:[
+    {id:1,date,start:'00:00',end:'00:00',timing:'allDay',kind:'live',userId:1,nick:'Otterchen',topic:'Geplante Sendung'}]});
+  f.h.event(f.owner,f.radio,'mw:onAir'); f.h.advance(2000); f.h.event(f.owner,f.radio,'mw:offAir');
+  const data=read(f,selected); assert.equal(data.total,1); assert.equal(data.entries[0].automatic,false);
+  assert.equal(data.entries[0].timing,'allDay'); assert.equal(data.entries[0].topic,'Geplante Sendung');
+  assert.ok(data.entries[0].actualStart); assert.equal(data.entries[0].actualEnd,f.h.now());
+});
+
+test('Spontane Moderation belegt keine zukünftigen Tage und erhält Ende über eine Wochengrenze', () => {
+  const f=fixture(), selected=currentWeek(f.h);
+  const sunday=Date.parse(selected+'T22:59:00Z')+6*86400000;
+  f.h.advance(sunday-f.h.now());
+  f.h.event(f.owner,f.radio,'mw:onAir');
+  const begun=read(f,selected);assert.equal(begun.total,1);
+  assert.ok(begun.entries[0].actualUntil-begun.entries[0].actualFrom<1);
+  f.h.advance(120000); f.h.event(f.owner,f.radio,'mw:offAir');
+  const next=currentWeek(f.h);assert.notEqual(next,selected);
+  const continued=read(f,next);assert.equal(continued.total,1);
+  assert.equal(continued.entries[0].week,selected);assert.equal(continued.entries[0].actualEnd,f.h.now());
+});
+
+test('Nutzerlöschung entfernt auch einen ausstehenden privaten Sendeplanauftrag', () => {
+  const f=fixture(),write=f.h.store.setObject;
+  f.h.store.setObject=(key,value)=>{if(key.startsWith('mischwerk.schedule.'))throw Error('disk');write(key,value);};
+  f.h.event(f.owner,f.radio,'mw:onAir');assert.ok(f.h.store.data['mischwerk.state.v1'].scheduleSync);
+  f.h.app.onUserDeleted(f.owner.id);
+  assert.equal(f.h.store.data['mischwerk.state.v1'].moderator,null);
+  assert.equal(f.h.store.data['mischwerk.state.v1'].scheduleSync,undefined);
+  f.h.store.setObject=write;
+  assert.equal(read(f,currentWeek(f.h),0,f.listener,f.listenerRadio).total,0);
+});
+
+test('Fehlender Wochencommit wird nach Neustart idempotent nachgeholt', () => {
+  const f=fixture(), selected=currentWeek(f.h), write=f.h.store.setObject;
+  f.h.store.setObject=(key,value)=>{if(key.startsWith('mischwerk.schedule.v1.'))throw Error('disk');write(key,value);};
+  f.h.event(f.owner,f.radio,'mw:onAir');
+  assert.ok(f.h.store.data['mischwerk.state.v1'].moderator);
+  assert.ok(f.h.store.data['mischwerk.state.v1'].scheduleSync);
+  assert.equal(f.h.state(f.owner,f.radio).scheduleSyncPending,true);
+  f.h.store.setObject=write;
+  const h=createHarness(f.h.store,{users:[{id:1,nick:'Otterchen',role:'owner'}]});
+  const owner=h.user(1,'Otterchen','owner'), session=h.open(owner);
+  assert.equal(read({h,owner,session},selected).total,1);
+  assert.equal(h.store.data['mischwerk.state.v1'].scheduleSync,undefined);
+});
+
+test('Verlassen beendet den automatischen Eintrag, fehlender Moderationscommit erzeugt keinen Eintrag', () => {
+  const f=fixture(), selected=currentWeek(f.h), write=f.h.store.setObject;
+  f.h.store.setObject=(key,value)=>{if(key==='mischwerk.state.v1')throw Error('disk');write(key,value);};
+  f.h.event(f.owner,f.radio,'mw:onAir'); assert.equal(read(f,selected).total,0);
+  f.h.store.setObject=write; f.h.event(f.owner,f.radio,'mw:onAir'); f.h.advance(5000);
+  f.owner.online=false; f.h.app.onUserLeft(f.owner);
+  assert.equal(read(f,selected,0,f.listener,f.listenerRadio).entries[0].actualEnd,f.h.now());
+});
 const week = '2026-10-26';
 function fixture() {
   const h = createHarness();
@@ -98,14 +183,14 @@ test('Alte Einträge bleiben Live mit fester Zeit; AutoDJ-Löschung betrifft kei
   f.h.app.onUserDeleted(f.owner.id);
   assert.equal(read(f).total, 1); assert.equal(read(f).entries[0].kind, 'autodj');
 });
-test('Sendeplan öffnet für Hörer trotz deaktivierter Wunschbox als eigenes Popup und erhält die Radioleiste', () => {
+test('Sendeplan öffnet für Hörer trotz deaktivierter Wunschbox als eigenes Overlay und erhält die Radioleiste', () => {
   const f = fixture();
   f.h.event(f.owner, f.session, 'mw:setRequests', { enabled: false });
   const result = f.h.event(f.listener, f.listenerRadio, 'mw:openSchedule');
   assert.equal(result.find(item => item.type === 'mw:result').data.ok, true);
   assert.equal(f.listenerRadio.removed, false);
   const popup = f.listener.sessions.find(item => item.content.htmlFile.pageData.view === 'schedule');
-  assert.equal(popup.content.width, 820); assert.equal(popup.content.height, 630);
+  assert.equal(popup.content.width, 720); assert.equal(popup.content.height, 600);
   assert.equal(popup.content.allowJFXBrowser, false);
   const data = read(f, week, 0, f.listener, popup);
   assert.equal(data.canManage, false);

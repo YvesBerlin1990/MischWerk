@@ -11,7 +11,7 @@ test.before(async () => { browser = await chromium.launch({ headless: true, chan
 test.after(async () => { await browser?.close(); });
 async function setup(t, { clock = false, nativeSizing = false } = {}) {
   const child = spawn(process.execPath, ['tools/preview/server.cjs'], { cwd: root, windowsHide: true,
-    env: { ...process.env, MISCHWERK_PREVIEW_PORT: '0' } });
+    env: { ...process.env, MISCHWERK_PREVIEW_PORT: '0', MISCHWERK_PREVIEW_START_MODERATION:'0' } });
   t.after(() => child.kill());
   const base = await new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Preview startup timeout')), 8000);
@@ -122,12 +122,15 @@ async function scheduleReachable(page) {
       .filter(node => node.getClientRects().length).map(node => node.getBoundingClientRect());
     return { horizontal: document.documentElement.scrollWidth > innerWidth,
       vertical: document.documentElement.scrollHeight > innerHeight,
+      reading: document.getElementById('schedule-form').hidden,
+      outerTail: innerHeight - shell.bottom,
       shellFits: shell.bottom <= innerHeight + 1,
       rowsFit: rows.every(box => box.top >= 0 && box.bottom <= innerHeight + 1),
       listOverflow: getComputedStyle(document.getElementById('schedule-days')).overflowY };
   });
   assert.equal(result.horizontal, false);
   assert.equal(result.listOverflow, 'visible');
+  if(result.reading&&!result.vertical)assert.ok(Math.abs(result.outerTail)<=1,'Die Kalenderfläche schließt ohne äußeren Überstand am unteren Rahmen ab: '+JSON.stringify(result));
   // Bei tatsächlich kleineren Hostgrenzen bleiben Eingaben nativ erreichbar.
   for (const control of await page.locator('#schedule-form input:visible,#schedule-form button:visible').all()) {
     await control.scrollIntoViewIfNeeded();
@@ -283,11 +286,14 @@ test('Sendeplan zeigt nach Ende um 00:00 keine Null-Minuten-Sendung am Folgetag'
   assert.equal(await owner.locator('#schedule-refresh').isEnabled(), true);
   assert.deepEqual(errors, []);
 });
-test('Sendeplan bleibt bei geschlossener Wunschbox aktiv und öffnet als separates Channel-Overlay', async t => {
+test('Inhaber öffnet den Sendeplan auch bei geschlossener Wunschbox als getrenntes Channel-Overlay', async t => {
   const { base, context, owner, errors } = await setup(t);
   const radio = await context.newPage();
   await radio.goto(base + '/preview?role=moderator');
-  await radio.waitForFunction(() => !document.getElementById('open-schedule').disabled);
+  await radio.waitForFunction(() => !document.getElementById('open-wishes').disabled);
+  assert.equal(await radio.locator('#open-schedule').isEnabled(),true);
+  assert.equal(await radio.locator('#schedule-button-caption').textContent(),'In Kürze');
+  assert.equal(await radio.locator('#schedule-button-caption').isHidden(),true);
   await radio.evaluate(() => { window.__sameAudio = document.getElementById('radio-audio'); });
   for (const width of [320, 390, 680, 681, 900, 901, 960, 1500, 2560]) {
     // Die lokale Demo hat zusätzlich zum nativen Header eine 26-px-Kennzeichnung.
@@ -317,7 +323,7 @@ test('Sendeplan bleibt bei geschlossener Wunschbox aktiv und öffnet als separat
   await radio.evaluate(() => { window.__sameAudio = document.getElementById('radio-audio'); });
   const channel=await context.newPage();await channel.goto(base+'/channel.html?role=moderator');
   const header=await(await channel.locator('#radio-frame').elementHandle()).contentFrame();
-  await header.waitForFunction(()=>document.getElementById('open-wishes').disabled&&!document.getElementById('open-schedule').disabled);
+  await header.waitForFunction(()=>!document.getElementById('studio-tab').disabled&&document.getElementById('open-wishes').disabled&&!document.getElementById('open-schedule').disabled);
   await header.evaluate(()=>{window.__sameAudio=document.getElementById('radio-audio');});
   const pages=context.pages().length;
   await header.locator('#open-schedule').click();

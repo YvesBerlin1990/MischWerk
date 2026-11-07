@@ -2,18 +2,19 @@
 MischWerkUI.define('studioMarkup',function(dependencies){
   'use strict';
   dependencies.dom.mount('studio-placeholder', `
-<section id="studio-panel" aria-label="Moderationsmenü" hidden>
+<section id="studio-panel" aria-label="Radioregie" hidden>
   <nav id="studio-programme-tabs" class="studio-programme-tabs" role="tablist" aria-label="Moderationsbereiche" hidden>
     <button id="studio-programme-tab" type="button" role="tab" aria-selected="true" aria-controls="studio-programme">Deine Sendung</button>
-    <button id="studio-queue-tab" type="button" role="tab" aria-selected="false" aria-controls="studio-requests" tabindex="-1">Musikwünsche</button>
+    <button id="studio-queue-tab" type="button" role="tab" aria-selected="false" aria-controls="studio-requests" tabindex="-1">Wünsche</button>
     <button id="studio-history-tab" type="button" role="tab" aria-selected="false" aria-controls="history-panel" tabindex="-1">Heute gespielt</button>
     <button id="studio-ticker-tab" type="button" role="tab" aria-selected="false" aria-controls="studio-ticker-panel" tabindex="-1">Lauftext</button>
   </nav>
   <section id="studio-programme" role="tabpanel" aria-labelledby="studio-programme-tab">
     <div id="studio-setup" class="studio-part-area studio-dashboard">
       <section class="studio-part microphone-card" aria-labelledby="studio-host">
-        <div class="studio-status-copy"><span class="eyebrow">AM MIKROFON</span>
+        <div class="studio-status-copy"><span class="eyebrow">DEIN PLATZ AM PULT</span>
         <h2 id="studio-host">Keine Moderation angemeldet</h2>
+        <p id="studio-schedule-note" class="form-hint" role="status">An- und Abmeldung werden automatisch im Sendeplan vermerkt.</p>
         </div>
         <div id="studio-controls" class="button-row"><button class="primary-button" id="on-air" type="button">Anmelden</button><button class="secondary-button" id="off-air" type="button" disabled>Abmelden</button><button id="handover-open" class="secondary-button" type="button" aria-controls="handover-panel" hidden><span id="handover-open-label">Sendung übergeben</span></button></div>
       </section>

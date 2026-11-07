@@ -16,16 +16,16 @@ MischWerkModules.attachScheduleCalendar = function (runtime) {
         var stamp = runtime.scheduleDate(value);
         return iso(stamp - (new Date(stamp).getUTCDay() + 6) % 7 * 86400000);
     };
-    runtime.scheduleToday = function () {
-        var now = runtime.now();
+    runtime.scheduleWallTime = function (now) {
         var year = new Date(now).getUTCFullYear();
         function change(month) {
             var last = new Date(Date.UTC(year, month + 1, 0));
             return Date.UTC(year, month, last.getUTCDate() - last.getUTCDay(), 1);
         }
         var summer = now >= change(2) && now < change(9);
-        return iso(now + (summer ? 2 : 1) * 3600000);
+        return now + (summer ? 2 : 1) * 3600000;
     };
+    runtime.scheduleToday = function () { return iso(runtime.scheduleWallTime(runtime.now())); };
     runtime.scheduleMinutes = function (value) {
         if (typeof value !== 'string' || !/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/.test(value)) {
             throw runtime.failure('Bitte gültige Uhrzeiten angeben.');
@@ -33,6 +33,11 @@ MischWerkModules.attachScheduleCalendar = function (runtime) {
         return Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
     };
     runtime.scheduleInterval = function (entry) {
+        if (entry.automatic && typeof entry.actualStart === 'number') {
+            return { start: runtime.scheduleWallTime(entry.actualStart) / 60000,
+                end: Math.max(runtime.scheduleWallTime(typeof entry.actualEnd === 'number' ? entry.actualEnd : runtime.now()),
+                    runtime.scheduleWallTime(entry.actualStart) + 1) / 60000 };
+        }
         var timing = entry.timing === undefined ? 'fixed' : entry.timing;
         if (['fixed', 'allDay', 'openEnd'].indexOf(timing) === -1) {
             throw runtime.failure('Bitte eine gültige Laufzeit auswählen.');

@@ -31,6 +31,7 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
             station: station,
             topic: runtime.state.topic,
             ticker: runtime.tickerState(),
+            scheduleSyncPending: mod && !!runtime.state.scheduleSync,
             curtain: runtime.curtainState(user),
             revision: runtime.state.revision,
             user: { nick: runtime.nick(user), canModerate: mod,

@@ -35,6 +35,24 @@ function setup(t) {
   return { runtime, events, faults, join, state };
 }
 
+test('/settopic nutzt im integrierten Emulator die dokumentierte ChannelInformation ohne Änderung des Sendungsthemas', t => {
+  const f = setup(t), owner = f.join('Otterchen'), listener = f.join('Polaroid');
+  const information = f.runtime.context.KnuddelsServer.getChannel().getChannelConfiguration().getChannelInformation();
+  const text = '°[230,199,123]°_Radio MischWerk_°r° °>{button}Info||call|/info<°';
+  assert.equal(information.getTopic(), '');
+  f.runtime.command('Polaroid', 'settopic', 'Nicht erlaubt');
+  assert.equal(information.getTopic(), '');
+  const radioTopic = f.state('Otterchen', owner).topic;
+  f.runtime.command('Otterchen', 'settopic', text);
+  assert.equal(information.getTopic(), text);
+  assert.deepEqual(f.events.filter(e => e.kind === 'channelTopic'), [{ kind: 'channelTopic', topic: text, showMessage: true }]);
+  assert.equal(f.state('Otterchen', owner).topic, radioTopic);
+  assert.equal(f.runtime.contents.sessions.has(listener), true);
+  f.runtime.command('Otterchen', 'settopic', text);
+  assert.equal(f.events.filter(e => e.kind === 'channelTopic').length, 1);
+  assert.deepEqual(f.runtime.errors, []);
+});
+
 test('Einmalprüfung im integrierten Emulator meldet nicht modellierte HTTP-API statt nativen Erfolg', t => {
   for (const command of ['http-pruefen', 'auth-pruefen']) {
   const f = setup(t); f.join('Otterchen');

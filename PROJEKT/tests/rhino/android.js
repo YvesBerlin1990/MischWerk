@@ -27,6 +27,7 @@
         MischWerkModules.attachValidation(runtime);
         MischWerkModules.attachWishStorage(runtime);
         MischWerkModules.attachWishQueue(runtime);
+        MischWerkModules.attachAndroidSigning(runtime);
         MischWerkModules.attachAndroidConnection(runtime);
         MischWerkModules.attachAndroidReceipts(runtime);
         var wire = { sendJson: function (request, finish) {
@@ -69,7 +70,8 @@
             postURL: function (url, params) {
                 nativeCalls.push(params);
                 check(typeof params.data.payload === 'string', 'Nativer Adapter sendet ausschließlich String-payload');
-                check(params.header.Authorization === 'Bearer ' + sync && params.headers === undefined, 'Native header-Signatur');
+                check(params.header === undefined && params.headers === undefined && /^[a-f0-9]{64}$/.test(params.data.sig),
+                    'Native HMAC-Daten ohne Header');
                 params.onSuccess(JSON.stringify({ accepted: true, serverTime: clock }), {
                     getResponseCode: function () { return 200; }, getURLString: function () { return url; }
                 });

@@ -19,17 +19,17 @@ MischWerkModules.attachAndroidVerification = function (runtime, config) {
         if (!allowed(user)) { return; }
         if (authProbe !== undefined && authProbe !== true) { return; }
         var now = runtime.now(), report = {
-            schemaVersion: 1, check: authProbe ? 'native-header-probe-post' : 'native-status-post',
+            schemaVersion: 1, check: authProbe ? 'native-signed-auth-post' : 'native-signed-status-post',
             app: { version: config.version, buildNumber: config.buildNumber },
             checkedAt: now, targetUrl: target, request: { stationUpdatedAt: null, wishUpdateCount: 0,
-                encoding: 'data.payload JSON string', authentication: 'header.Authorization Bearer' },
+                encoding: 'data payload,ts,nonce,sig strings', authentication: 'HMAC-SHA256 UTF-8 signed body v1' },
             http: { status: null, callback: null, responseUrlMatches: null, jsonParsed: false, accepted: false, serverTime: null },
             configuration: { enabled: null, runtimeVerified: null, written: false, scope: 'request-start' }, nativeResponseAccepted: false,
             firestoreWriteConfirmed: null, errors: []
         };
         if (authProbe) {
             report.authenticationAccepted = false; report.request.payloadShape = 'empty-object';
-            report.request.probeHeaderIncluded = true; report.http.bodyRead = false;
+            report.http.bodyRead = false;
             report.http.invalidPayloadConfirmed = null;
         }
         function rejected(code) { report.errors.push(code); reply(user, report); }
@@ -71,8 +71,8 @@ MischWerkModules.attachAndroidVerification = function (runtime, config) {
         }
         try {
             if (!authProbe) {
-                station = runtime.androidStationProjection(); station.updatedAt = now;
-                report.request.stationUpdatedAt = now;
+                station = runtime.androidStationProjection(); station.updatedAt = runtime.nextAndroidProjectionTimestamp();
+                report.request.stationUpdatedAt = station.updatedAt;
             }
             active = entry; lastAttempt = now;
             entry.timer = setTimeout(function () { complete(null, 'timeout'); }, 10000);

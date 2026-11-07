@@ -21,6 +21,7 @@
         runtime.state = { requestsEnabled: true, topic: 'Synthetisches Thema', moderator: null };
         owner.sendPrivateMessage = function (text) { replies.push(JSON.parse(String(text))); };
         MischWerkModules.attachChanges(runtime);
+        MischWerkModules.attachAndroidSigning(runtime);
         MischWerkModules.attachAndroidConnection(runtime);
         MischWerkModules.attachAndroidPublisher(runtime);
         MischWerkModules.attachAndroidVerification(runtime, MischWerkConfig);
@@ -29,7 +30,7 @@
         check(calls.length === 0 && replies.length === 0, 'Nur authentisierter Inhaber prüft');
         authorized = true; runtime.androidVerificationCommand(owner);
         check(calls.length === 1 && typeof calls[0].data.payload === 'string', 'Ein ausdrücklicher nativer String-payload');
-        check(calls[0].header.Authorization === 'Bearer ' + sync && !calls[0].headers, 'Dokumentiertes header im Singular');
+        check(!calls[0].header && !calls[0].headers && /^[a-f0-9]{64}$/.test(calls[0].data.sig), 'Signierte Daten ohne Header');
         var body = JSON.parse(calls[0].data.payload);
         check(body.station.topic === runtime.state.topic && body.station.updatedAt === now && body.wishUpdates.length === 0,
             'Aktuelle Senderprojektion, kein Wunschversand');
@@ -49,15 +50,14 @@
         check(replies.length === 2 && calls.length === 2, 'Abgebrochene native Antwort bleibt verworfen');
         now += 30000; runtime.androidVerificationCommand(owner, true);
         check(calls.length === 3 && calls[2].data.payload === '{}', 'Auth-Probe sendet ausschließlich leeres Objekt');
-        check(calls[2].header.Authorization === 'Bearer ' + sync && calls[2].header['X-MischWerk-Probe'] === '1' &&
-            !calls[2].headers, 'Headerprobe nutzt dokumentiertes header und vereinbarten Zusatzheader');
+        check(!calls[2].header && !calls[2].headers && /^[a-f0-9]{64}$/.test(calls[2].data.sig), 'Auth-Probe nutzt signierten Body');
         var forbiddenReads = 0;
         calls[2].onFailure({ toString: function () { forbiddenReads += 1; throw new Error('Body darf nicht gelesen werden'); } }, {
             getResponseCode: function () { return new java.lang.Integer(400); },
             getURLString: function () { forbiddenReads += 1; throw new Error('Adresse darf nicht gelesen werden'); }
         });
         var auth = replies[replies.length - 1];
-        check(auth.check === 'native-header-probe-post' && auth.authenticationAccepted === true, '400 im Fehlercallback bestätigt Statusvertrag');
+        check(auth.check === 'native-signed-auth-post' && auth.authenticationAccepted === true, '400 im Fehlercallback bestätigt Statusvertrag');
         check(auth.http.invalidPayloadConfirmed === null && auth.http.jsonParsed === false && auth.http.bodyRead === false,
             'Kein Body gelesen oder Fehlerinhalt behauptet');
         check(forbiddenReads === 0 && auth.http.responseUrlMatches === null, 'Nur dokumentierter Statuscode abgefragt');

@@ -3,7 +3,7 @@
 #handover-open { display:flex; align-items:center; justify-content:center; min-height:44px; margin:0; }
 .handover-panel { display:flex; flex-direction:column; flex:1; min-height:0; }
 .handover-heading { display:flex; align-items:center; gap:12px; margin-bottom:10px; flex:none; }
-.handover-symbol { display:grid; place-items:center; width:44px; height:44px; border:1px solid #55585b; border-radius:13px; background:#202225; color:#b9bdc3; font-size:26px; flex-shrink:0; }
+.handover-symbol { display:grid; place-items:center; width:44px; height:44px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--gold); font-size:26px; flex-shrink:0; }
 .handover-heading h2 { margin:2px 0 0; font-size:20px; }
 #handover-body { grid-template-columns:minmax(0,1fr); }
 .studio-part-form { display:contents; }

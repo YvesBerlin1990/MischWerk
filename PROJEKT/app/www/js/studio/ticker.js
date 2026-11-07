@@ -1,22 +1,30 @@
 /* Lauftextentwurf im vorhandenen Moderationsmenü; nur bestätigte Werte werden öffentlich. */
 MischWerkUI.define('studioTicker', function (dependencies) {
   'use strict';
-  var model = dependencies.model, dom = dependencies.dom, commands = dependencies.commands, signals = dependencies.signals;
+  var model = dependencies.model, dom = dependencies.dom, commands = dependencies.commands, signals = dependencies.signals, pages = dependencies.pages;
   dom.mount('ticker-editor-placeholder', `
     <section id="studio-ticker-panel" role="tabpanel" aria-labelledby="studio-ticker-tab" hidden>
     <section id="ticker-editor" class="ticker-editor" aria-labelledby="ticker-heading">
       <form id="ticker-form">
-        <div class="ticker-heading"><h3 id="ticker-heading">Lauftext</h3><span id="ticker-count">0 / 300</span></div>
-        <label for="ticker-text">Text für alle Hörer</label>
-        <textarea id="ticker-text" rows="3" maxlength="300" aria-describedby="ticker-help ticker-feedback"></textarea>
-        <p id="ticker-help" class="form-hint">Erscheint unter der Appleiste. Einschalten benötigt einen Text.</p>
+        <div id="ticker-body" class="studio-part-area">
+        <section class="studio-part ticker-copy">
+        <div class="ticker-heading"><label id="ticker-heading" for="ticker-text">Text für alle Hörer</label><span id="ticker-count">0 / 300</span></div>
+        <textarea id="ticker-text" rows="2" maxlength="300" aria-describedby="ticker-help ticker-feedback"></textarea>
+        <p id="ticker-help" class="form-hint">Wird unter der Appleiste angezeigt.</p>
+        </section>
+        <section class="studio-part">
         <div class="ticker-options">
           <label for="ticker-speed">Tempo<select id="ticker-speed"><option value="32">Langsam</option><option value="48">Normal</option><option value="72">Zügig</option></select></label>
           <label for="ticker-direction">Laufrichtung<select id="ticker-direction"><option value="left">Nach links</option><option value="right">Nach rechts</option></select></label>
         </div>
         <label class="ticker-enabled" for="ticker-enabled"><input id="ticker-enabled" type="checkbox">Lauftext einschalten</label>
+        </section>
+        <section class="studio-part ticker-actions">
         <p id="ticker-feedback" role="status" aria-live="polite"></p>
         <div class="button-row"><button id="ticker-save" class="primary-button" type="submit" disabled>Speichern</button><button id="ticker-reset" class="secondary-button" type="button" hidden>Verwerfen</button><button id="ticker-reload" class="secondary-button" type="button" hidden>Aktuellen Stand laden</button></div>
+        </section>
+        </div>
+        <nav id="ticker-paging" class="studio-part-pagination" aria-label="Bereiche der Lauftexteinstellung" hidden><button class="secondary-button" data-part-previous type="button">Zurück</button><span data-part-label role="status"></span><button class="secondary-button" data-part-next type="button">Weiter</button></nav>
       </form>
     </section>
     </section>
@@ -48,12 +56,6 @@ MischWerkUI.define('studioTicker', function (dependencies) {
     controls();
   }
   function reset() { dirty = false; requestId = null; pendingValue = null; fill(current()); base = current().revision; feedback('',false); controls(); }
-  function measure() {
-    var panel = dom.el('studio-ticker-panel');
-    if (!panel.getClientRects().length || !allowed()) { return; }
-    signals.emit('studio-natural-height',{tab:'ticker',height:panel.getBoundingClientRect().top +
-      dom.el('ticker-editor').getBoundingClientRect().height + parseFloat(getComputedStyle(document.querySelector('.dialog-shell')).paddingBottom)});
-  }
   function start() {
     fields.forEach(function (id) {
       if (id !== 'ticker-text') { dom.el(id).addEventListener('input',function (event) { event.stopPropagation(); }); }
@@ -64,7 +66,7 @@ MischWerkUI.define('studioTicker', function (dependencies) {
       dirty = key(value()) !== key(current()); feedback(dirty ? 'Ungespeicherte Änderungen' : '',false); controls();
       signals.emit('overlay-dirty');
     }); });
-    ['ticker-reset','ticker-reload'].forEach(function (id) { dom.el(id).addEventListener('click',function () { if (!this.disabled) { reset(); signals.emit('overlay-dirty'); dom.el('ticker-text').focus(); } }); });
+    ['ticker-reset','ticker-reload'].forEach(function (id) { dom.el(id).addEventListener('click',function () { if (!this.disabled) { reset(); signals.emit('overlay-dirty'); pages.reveal('ticker-body','ticker-text'); } }); });
     dom.el('ticker-form').addEventListener('submit',function (event) {
       event.preventDefault(); if (dom.el('ticker-save').disabled || !this.reportValidity()) { return; }
       pendingValue = key(value()); feedback('Lauftext wird gespeichert …',false);
@@ -80,8 +82,6 @@ MischWerkUI.define('studioTicker', function (dependencies) {
       controls(); signals.emit('overlay-dirty');
     });
     signals.on('snapshot',render); signals.on('controls',controls);
-    signals.on('studio-fit',measure);
-    signals.on('studio-selection',function () { requestAnimationFrame(measure); });
     signals.on('overlay-capture',function (state) { if (allowed() && dirty) { state.tickerDraft = {value:value(),revision:base}; } });
     signals.on('overlay-restore',function (state) {
       var draft = state.tickerDraft;

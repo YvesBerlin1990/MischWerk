@@ -27,6 +27,7 @@
 .wish-button-copy { min-width:0; min-height:calc(var(--action-font) * 1.25 + 14px); }
 .wish-button-copy strong { display:block; font-size:var(--action-font); font-weight:600; letter-spacing:0; line-height:1.25; white-space:nowrap; }
 #wish-button-caption,#schedule-button-caption { display:none; font-size:12px; line-height:14px; }
+#schedule-button-caption { display:block; }
 .public-action-icon svg { width:var(--action-icon); height:var(--action-icon); }
 .wish-button-icon .wish-icon-lock,.wishes-closed .wish-icon-music { display:none; }
 .wishes-closed .wish-icon-lock,.wishes-closed #wish-button-caption { display:block; }

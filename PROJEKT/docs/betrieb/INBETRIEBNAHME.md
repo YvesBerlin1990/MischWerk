@@ -1,18 +1,44 @@
 # MischWerk – Installation, Betrieb und STREAMPANEL
 
-**App 0.1.269 · Build 269**, Stand 06.11.2026. Das lokale Paket umfasst 140 Laufzeitdateien und fünf Manifeste. GitHub enthält Quellen und Nachweise; der erzeugte UPLOAD ist ausgeschlossen. Der letzte vollständige Diagnosebericht gehört zu Build 229; private Sync-Speicherung unter Build 230 ist bestätigt. Build 269 ist lokal vorbereitet. GitHub-Veröffentlichung und Knuddels-Installation sind getrennt.
+**App 0.1.288 · Build 288**, Stand 07.11.2026. Das lokale Paket umfasst 143 Laufzeitdateien und fünf Manifeste. GitHub enthält Quellen und Nachweise; der erzeugte UPLOAD ist ausgeschlossen. Build 270 ist nativ mit HTTP 200/accepted:true und unabhängig exakt passendem Firestore-Zeitstempel bestätigt. Die private reguläre Aktivierung und Hook-Adressübergabe ist implementiert. Build 279 ist nativ installiert und vollständig neu gestartet; beide Schlüssel sind gespeichert. Knuddels verweigert die WebHook-Registrierung ausdrücklich wegen fehlender App-Freischaltung. Publisher und Freigabeflags bleiben false. GitHub-Veröffentlichung und Knuddels-Installation sind getrennt.
 
 Radio bleibt eine Headerbar. Wunschbox, Moderation, Verwaltung und Sendeplan öffnen als getrennte Channel-Overlays; Menüwechsel ersetzen die Radioleiste nicht. [Aufbau](../architektur/ARCHITEKTUR.md) · [Verbindliche Projektregeln](../../AGENTS.md).
 
+Otterchen kann als anwesender Channelinhaber den Sendeplan über die Taste der Appleiste zum Weiterarbeiten öffnen; der Hinweis „In Kürze“ entfällt dabei. Für andere Nutzer bleibt die Taste deaktiviert mit „In Kürze“. Ohne Verbindung oder während eines laufenden Auftrags ist die Taste auch beim Inhaber gesperrt. Wunschbox und Radioregie bleiben über ihre vorhandenen Aktionen erreichbar.
+
 ## Begrüßung im MyChannel
 
-Bei jedem echten menschlichen Channelbeitritt erscheint „Willkommen bei Radio MischWerk, {Nick}. Viel Spaß beim Zuhören.“ Die erste Begrüßungszeile erscheint größer, fett und im Goldton #e6c77b der Appleiste; „Viel Spaß beim Zuhören.“ folgt in normaler Channelschrift darunter. Nick und Foto öffnen über native Profillinks dasselbe Nutzerprofil. Das vorhandene Profilfoto steht ganz am Ende, nach dem letzten Punkt und einem Leerzeichen. Die kleine Anfrage beträgt weiterhin 24 × 24 Pixel. Für normale User, MCM, Radio-Team und Inhaber gilt derselbe Text. Die bisherigen 30 Sätze und die Zufallsauswahl sind entfernt. Ohne nutzbares Foto bleibt der Text erhalten; bereits Anwesende erhalten beim Appstart keine nachträgliche Meldung.
+Bei jedem echten menschlichen Channelbeitritt erscheint „Willkommen bei Radio MischWerk, {Nick}. Viel Spaß beim Zuhören.“ Der erste Begrüßungssatz erscheint größer, fett und im Goldton #e6c77b der Appleiste; „Viel Spaß beim Zuhören.“ folgt mit einem Leerzeichen in normaler Channelschrift. Die Nachricht enthält keinen erzwungenen Zeilenumbruch. Nick und Foto öffnen über native Profillinks dasselbe Nutzerprofil. Das vorhandene Profilfoto steht ganz am Ende, nach dem letzten Punkt und einem Leerzeichen. Die kleine Anfrage beträgt weiterhin 24 × 24 Pixel. Für normale User, MCM, Radio-Team und Inhaber gilt derselbe Text. Die bisherigen 30 Sätze und die Zufallsauswahl sind entfernt. Ohne nutzbares Foto bleibt der Text erhalten; bereits Anwesende erhalten beim Appstart keine nachträgliche Meldung.
 
 Text und Fotoausgabe liegen in `src/backend/users/greetings.js`. Die Begrüßung verändert keine Apprechte und meldet niemanden im Studio an. Die tatsächliche native Fotoanzeige und Bildgröße bleiben nach Installation zu prüfen. Eine lokale Bereitstellung führt selbst keine echte Nachricht oder Installation aus.
+
+## Channel-Thema setzen
+
+Im MischWerk-Channel **`/settopic TEXT`** eingeben, beispielsweise `/settopic Willkommen bei Radio MischWerk!`. Nach erfolgreicher Änderung erscheint eine private Bestätigung. Der Befehl verwendet das native Channel-Thema; Sendungsthema und Lauftext sind eigene Einstellungen. KCode wird unverändert übernommen. Der Themeneditor kann eine kleinere Eingabegrenze anzeigen als der API-Weg. Rechte, Zeichenlimit und Fehlerverhalten stehen zentral in [AGENTS.md](../../AGENTS.md#natives-channel-thema).
+
+Nach Installation von Build 286 als Otterchen im MischWerk-Channel eingeben:
+
+```text
+/settopic --buttons
+```
+
+Der Befehl erzeugt den Radiotext samt drei Buttons unmittelbar im Backend; der lange KCode muss nicht mehr in die Chat-Eingabe eingefügt werden. Die Vorlage fordert eine mittige Ausrichtung an, mit goldenem Sendernamen, neutralhellgrauem Spruch und drei gleich großen neutral anthrazitfarbenen Buttons. Die oliv wirkende Goldtönung der Flächen ist entfernt. Sie übernimmt die bereits fette native Themenschrift ohne zusätzliche Unterstriche. Der vollständige Themeninhalt endet mit `°#r°°>LEFT<°` für nativen Zeilenumbruch, Farbreset und Links-Reset. Die tatsächliche Zentrierung und normale Position/Formatierung der nächsten Chatzeile müssen in der StApp separat bestätigt werden. Der Befehl muss nach dem Update erneut eingegeben werden, um das bereits gespeicherte Thema auf die neue Gestaltung umzustellen. „Readme setzen“ trägt bei der klickenden Person „Ich höre Radio MischWerk.“ als neue Readme ein und ersetzt damit ihre bisherige Readme.
+
+Eigene Texte mit eigenen Buttons lassen sich weiterhin unmittelbar über `/settopic TEXT` übergeben; `--buttons` ist nur die fertige Vorlage. Ein kurzes Syntaxbeispiel für einen eigenen Button:
+
+```text
+/settopic Radio MischWerk °>{button}Channelinfo||call|/info|color|44,44,44~26,26,26~36,36,36<°
+```
+
+Beschriftung und call-Ziel können im selbst geschriebenen KCode angepasst und mehrere vollständige Elemente hintereinander gesetzt werden. Für eigene native Zeilenumbrüche die vollständige Anweisung `°#r°` verwenden; der freie Textweg führt keine ChannelMaster-artige Normalisierung durch. Die bestätigte Anzeige der serverseitigen Radio-Vorlage ist von einer noch zu prüfenden manuellen Eingabe im jeweiligen Client zu unterscheiden.
+
+Die private Antwort nennt das Rückleseergebnis. „Rücklesen unverändert. Button-Elemente: 3 von 3“ bedeutet, dass Knuddels denselben Text zurückliefert; sichtbare Darstellung und Klickwirkung sind damit nicht bestätigt. Liefert Knuddels veränderten Text oder weniger Elemente zurück, nennt die Antwort die Abweichung. Ohne erneutes Setzen kann `/settopic --pruefen` die aktuell gespeicherte Zeichen- und Buttonzahl anzeigen. Ein späterer Channelbeitritt kann dann mit dem Speichernachweis verglichen werden. Es wird kein Thema beim Start oder Update automatisch gesetzt. Verbindliche Einzelheiten und Clientgrenzen stehen in [AGENTS.md](../../AGENTS.md#natives-channel-thema).
 
 ## Lauftext unter der Appleiste
 
 Unter **Radioregie → Lauftext** den Reiter öffnen. Nur bestehende Radiomoderation einschließlich des automatisch berechtigten Inhabers darf ändern; normale User, MCM und Appmanager erhalten keinen Zugriff.
+
+Der Editor verwendet kompakte Felder ohne äußere Scrollleiste. Bei niedrigen Fenstern führen **Zurück/Weiter** durch Text, Anzeigeoptionen und Rückmeldung/Aktionen. Verwerfen oder aktuellen Stand laden kehrt zum sichtbaren Textfeld zurück.
 
 Text bis 300 Zeichen eingeben, Tempo Langsam/Normal/Zügig und Laufrichtung wählen, Ein/Aus setzen und **Speichern**. Erst die erfolgreiche Quittung veröffentlicht die Werte senderweit. Die Einstellungen bleiben nach App-Neustart erhalten. Der Anfangszustand ist leer und aus; Einschalten braucht Text. Ausschalten erhält Text, Tempo und Richtung.
 
@@ -38,14 +64,14 @@ Ausschließlich **C:/Users/Yves/Desktop/MischWerk/UPLOAD** verwenden. Darunter l
 
 Passwörter ausschließlich im FTP-Programm eingeben. Die Entwickler-ID ersetzt kein Passwort. app.config verwendet den Entwicklernamen Otterchen; das bestätigte knuddelsDEV-Präfix der App-ID darf nicht aus dem LIVE-FTP-Host anders abgeleitet werden. [App-ID-Dokumentation](https://developer.knuddels.de/docs/classes/AppInfo.html).
 
-Aus PROJEKT/ mit **node tools/build/prepare-upload.cjs** die Bereitstellung prüfen und den verbindlichen Desktop-Upload aktualisieren. **node tools/checks/upload.cjs** gleicht alle 140 Laufzeitdateien einschließlich 52 Servermodulen, Größen, SHA-256 und Textgrenzen mit den fünf Manifesten ab. Der Build erzeugt keine zweite Uploadkopie und veröffentlicht nichts. main.js allein enthält keine App-Fachlogik. Tests, Referenzstubs, Dokumentation und Zugangsdaten gehören nicht ins FTP-Ziel.
+Aus PROJEKT/ mit **node tools/build/prepare-upload.cjs** die Bereitstellung prüfen und den verbindlichen Desktop-Upload aktualisieren. **node tools/checks/upload.cjs** gleicht alle 143 Laufzeitdateien einschließlich 56 Backendmodulen, Größen, SHA-256 und Textgrenzen mit den fünf Manifesten ab. Der Build erzeugt keine zweite Uploadkopie und veröffentlicht nichts. main.js allein enthält keine App-Fachlogik. Tests, Referenzstubs, Dokumentation und Zugangsdaten gehören nicht ins FTP-Ziel.
 
 Nach einem gesonderten Uploadauftrag:
 
 1. In FileZilla mit den obigen Angaben verbinden. Rechts /ftp, links C:/Users/Yves/Desktop/MischWerk/UPLOAD öffnen. Den lokalen Ordner MischWerk nach /ftp übertragen. Direkt unter /ftp/MischWerk müssen main.js, app.config, server/ und www/ liegen; kein zusätzliches MischWerk/MischWerk. Fremde Appordner erhalten. Vor einem Produktivupdate bestehende Dateien und AppPersistence sichern.
 2. Das Ende aller Manifestübertragungen abwarten, einschließlich www/audio/werbung.mp3 und sämtlicher server/-Module. Eine leere FileZilla-Warteschlange und erfolgreiche Übertragungen prüfen; anschließend kann noch Plattform-Synchronisationszeit nötig sein.
 3. Bei Erstinstallation als Otterchen im eigenen Channel /apps öffnen, App installieren und 30807196.MischWerk eintragen. Knuddels ergänzt das bestätigte Präfix. Falls nötig den bestätigten AppBot einrichten; anschließend die App starten. Bei bestehender Installation den unten beschriebenen /update-Weg verwenden. Beim erstmaligen Wechsel von einem Stand vor 0.1.36 einmal über /apps aktualisieren.
-4. Die tatsächlich gestartete Version im App-Log bestätigen: lokal ist 0.1.223 (Build 223) mit aktiver leerer dunkler Overlayabdeckung vorbereitet. Die Startmeldung enthält Version und Buildnummer sowie die Radioleiste mit vier Channel-Overlays. Radioleiste bei Bedarf mit /mischwerk erneut öffnen; bestehende Appansichten nach Updates schließen und neu öffnen.
+4. Die tatsächlich gestartete Version im App-Log bestätigen: lokal ist 0.1.284 (Build 284) mit aktiver leerer dunkler Overlayabdeckung vorbereitet. Die Startmeldung enthält Version und Buildnummer sowie die Radioleiste mit vier Channel-Overlays. Radioleiste bei Bedarf mit /mischwerk erneut öffnen; bestehende Appansichten nach Updates schließen und neu öffnen.
 
 Für eine ausdrücklich angeforderte Auslieferungsabnahme anschließend aus PROJEKT/ **pnpm run check:delivery --base-url https://apps8.knuddels.biz/apps/de2635007/** ausführen. Die hier am 03.11.2026 beobachtete öffentliche Basisadresse bei einem Appwechsel erneut prüfen. Das Werkzeug lädt ausschließlich öffentliche HTML-/JS-/CSS-Dateien lesend und vergleicht deren tatsächliche SHA-256 mit den reproduzierbaren gebündelten Auslieferungsbytes. Fehlende Dateien oder alte Fassungen liefern Exitcode 1; vollständig passende Dateien Exitcode 0. Keine Benutzer-/Sitzungsdaten oder Zugangsdaten angeben. Betriebsvorgaben bleiben zentral in AGENTS.md.
 
@@ -88,12 +114,13 @@ Thema, Wunschboxfreigabe, Radio-Team, datierte Wochenpläne und Bot-Einstellunge
 ## Moderation verwenden
 
 - **Deine Sendung:** Anmeldung, Abmeldung, Thema, Wunschboxfreigabe und Übergabe.
-- **Musikwünsche:** vollständiger Text, Absender, Empfang und manuelle Bearbeitungsstufen. Gespielt oder Verwerfen entfernt den ausgewählten Wunsch; das steuert keinen Encoder.
+- **Wünsche:** vollständiger Text, Absender, Empfang und manuelle Bearbeitungsstufen. Gespielt oder Verwerfen entfernt den ausgewählten Wunsch; das steuert keinen Encoder.
 - **Heute gespielt:** verfügbare Titelmeldungen des Tages mit vollständigen Textseiten.
+- **Lauftext:** Text für alle Hörer, Tempo, Richtung und Ein/Aus einstellen; speichern, Änderungen verwerfen oder bei einem Konflikt den aktuellen Stand laden. [Bedienung](#lauftext-unter-der-appleiste).
 
 Eine Studio-Anmeldung gilt ohne Zeitlimit. Es gibt keine automatische Sechs-Stunden-Abmeldung, Verlängerung oder Zeitangaben im Moderationsmenü. Solange angemeldet, stehen Abmelden und Sendung übergeben bereit. Wiederholtes Anmelden verändert die Sitzung nicht. Verlassen oder Rechteverlust beendet die Anmeldung weiterhin. Ausdrückliche Abmeldung leert das gespeicherte Thema, automatisches Ende durch Verlassen/Rechteverlust erhält es. Ohne Thema zeigt die Appleiste MischWerk Radio Show als reinen Standardtext.
 
-Die Moderation startet mit 780 × 730 px und passt ihre Höhe an vollständige Bediengruppen an. Bei Clientgrenzen bleiben Gruppen-/Textseiten erreichbar. Themenbearbeitung erhält eine stabile Geometrie. Studioanmeldung und tatsächliche Anbieterübertragung sind unabhängige Zustände.
+Die Radioregie startet mit 640 × 580 px und passt ihre Höhe an vollständige Bediengruppen an. Bei Clientgrenzen bleiben Gruppen-/Textseiten erreichbar. Themenbearbeitung erhält eine stabile Geometrie. Studioanmeldung und tatsächliche Anbieterübertragung sind unabhängige Zustände.
 
 ## Sendung an den nächsten Moderator übergeben
 
@@ -105,7 +132,7 @@ Ablehnen/Abbrechen ändern die Anmeldung nicht. Verlassen, Rechteverlust, Ablauf
 
 ## Verwaltung und Bot-Texte
 
-Otterchen öffnet die Verwaltung im MischWerk-Channel mit **/MW Verwaltung**. Der Verwaltungsknopf in der Appleiste entfällt. Geprüft werden der authentifizierte Nick, tatsächliches Channelinhaberrecht und Anwesenheit; Appmanager, Entwickler, Channel- und Radiomoderatoren erhalten keinen Zugang. Die Verwaltung behält 560 × 630 px und ihre Bereiche Radio-Team und Bot-Texte. Eine vorhandene Radioleiste mit laufendem Ton bleibt erhalten; eine fehlende Leiste wird regulär geöffnet. Beim Schließen kehrt der Fokus zu Sendeplan zurück.
+Otterchen öffnet die Verwaltung im MischWerk-Channel mit **/MW Verwaltung**. Der Verwaltungsknopf in der Appleiste entfällt. Geprüft werden der authentifizierte Nick, tatsächliches Channelinhaberrecht und Anwesenheit; Appmanager, Entwickler, Channel- und Radiomoderatoren erhalten keinen Zugang. Die Verwaltung verwendet 500 × 560 px und ihre Bereiche Radio-Team und Bot-Texte. Eine vorhandene Radioleiste mit laufendem Ton bleibt erhalten; eine fehlende Leiste wird regulär geöffnet. Beim Schließen kehrt der Fokus zu Sendeplan zurück.
 
 Otterchen erhält als authentifizierter, anwesender Channelinhaber automatisch alle bestehenden Apprechte. Moderationsbutton und Übergabeempfang sind ohne Radio-Team-Eintrag verfügbar. Ein optionaler eigener Listeneintrag kann entfernt werden, ohne seine Rechte oder laufende Moderation zu beenden. Für andere Nutzer bleiben Ernennung und Entzug wie bisher. Nick, Appmanager-, Entwickler- oder CM-Rolle allein verleihen keinen Inhaberzugriff.
 
@@ -154,7 +181,39 @@ Der native Diagnosebefund aus Build 229 bleibt gültig. Build 230 ergänzt den e
 
 Die Anwendung verwendet dokumentierte Knuddels-Identitäten, Sitzungen, `Client.sendEvent`, `App.onEventReceived` und AppPersistence. Nur die eröffnete private Sitzung des aktuellen Channelinhabers ist berechtigt. Rolle/Anwesenheit, aktive Sitzung, Frist, Revision und Eingabeschema werden serverseitig erneut geprüft. Schließen, Rechteverlust, Channelverlassen und Shutdown entfernen die private Berechtigung. Die Anwendung schreibt Schlüssel weder in Logs noch in Statusantworten oder Browser-Storage. Eingabefelder werden vor dem Versand und bei Seitenende geleert. Der serverseitige Plattform-Speicher ist damit kein zusätzlich nachgewiesener verschlüsselter Secret-Vault; lokale Plattform-Fakes sind kein nativer Transportnachweis.
 
-## Schreibfreier Headervergleich ab Build 265
+## Signierter Statusanschluss ab Build 270
+
+### Reguläre Freigabe ab Build 275
+
+**Aktuell blockiert:** Der native Build 279 meldet nach frischer Vorbereitung: „Die App [Wert entfernt] ist nicht für WebHooks freigeschaltet.“ Zuerst das Freigabeverfahren für die konfigurierte App-ID knuddelsDEV.30807196.MischWerk beim Knuddels-UserApps-Team klären. Es wurde keine dokumentierte Selbstfreigabe gefunden. Schlüssel nicht erneut speichern oder drehen; weitere Builds und identische Registrierungsversuche ersetzen diese Berechtigung nicht. Der folgende Ablauf wird erst nach bestätigter Freigabe fortgesetzt.
+
+Nach vollständiger Betreiberinstallation `/mischwerk-relay einrichten` öffnen. Den bereits vorhandenen KNUDDELS_RELAY_SECRET Version 1 ausschließlich geschützt aus Google Secret Manager ins Wunsch-Schlüsselfeld übertragen; das leere Sync-Feld erhält den bestehenden Sync-Schlüssel. Speichern beendet die Verbindung und setzt beide Freigabeflags false.
+
+**WebHook vorbereiten** registriert den tatsächlichen Wunsch-Hook und zeigt seine vollständige private HTTPS-Zieladresse einschließlich /v1/wishes im selben Fenster. Diese Adresse ausschließlich als erste Version des vorhandenen Firebase-Secrets KNUDDELS_WEBHOOK_URL hinterlegen. Keine Adresse in Chat oder Brückenstand kopieren. Vorbereitung allein startet keinen Publisher. Reload/Schließen löscht die angezeigte Adresse; erneute Vorbereitung liefert denselben registrierten Endpunkt.
+
+Danach ausdrücklich **Verbindung aktivieren** wählen. Beide Freigabeflags werden true; der vorhandene signierte Publisher sendet sofort und alle 20 Sekunden sowie bei Zustands-/Wunschänderung. Die bestehende Knuddels-Wunschboxschaltung bleibt maßgeblich. **Status neu laden** zeigt Publisher-/Hookstatus und letzte HTTP-Annahme. `/mischwerk-relay status` liefert einen teilbaren privaten technischen Bericht ohne Schlüssel/Hook-Adresse; dessen ersten regulären UTC/HTTP/accepted-Nachweis zusammen mit der neuen Firebase-Secret-Versionsnummer an die Gegenseite geben. Diese deployed submitWish und übernimmt Android-/Wunsch-Ende-zu-Ende-Abnahme. **Verbindung ausschalten** beendet Publisher und Hook und speichert beide Freigabeflags false. Erneutes Speichern schaltet ebenfalls aus.
+
+### Vorbereitete Anfrage an Knuddels
+
+Hallo UserApps-Team, bitte prüft die WebHook-Freigabe für MischWerk (konfigurierte App-ID knuddelsDEV.30807196.MischWerk, Entwickler Otterchen, Channel MischWerk). Die laufende App 0.1.279 stellt WebHookAccess bereit, aber registerWebHook wirft nach vollständigem Neustart einen InternalError: „Die App [Wert entfernt] ist nicht für WebHooks freigeschaltet.“ Ist eine Freischaltung durch euch erforderlich oder gibt es einen dokumentierten Schritt für den App-Inhaber? Benötigt wird ein serverseitiger POST-Endpunkt für Musikwünsche aus unserem Firebase-Relay. Es werden keine Geheimnisse oder privaten Endpunktadressen mitgeschickt.
+
+Die Anfrage ist vorbereitet, aber nicht versendet. Der offizielle [UserApps-Wiki-Einstieg](https://github.com/knuddelsgmbh/UserApps/wiki) verlinkt den Entwickler-Discord als Kontaktweg. Die genaue zuständige Freigabestelle ist noch nicht bestätigt.
+
+Die nachfolgenden Einmal-Prüfschritte beschreiben die historische Build-270-Abnahme und sind für die reguläre Aktivierung nicht erneut vorgeschaltet.
+
+Der verbindliche Vertrag aus Brückenstand Revision 23 verwendet HMAC-SHA256 im Requestbody und ersetzt sämtliche bisherigen Header-/Probeheader-Aufträge. Bestehenden Sync-Schlüssel behalten; keine neue Eingabe oder Rotation erforderlich. Der vollständige Build 270 ist lokal unter dem festen Desktop-UPLOAD vorbereitet und geprüft.
+
+Abnahmestand 06.11.2026: Build 270 ist installiert. Der angeforderte Einmaltest um 23:33:57.830 MEZ / 22:33:57.830 UTC wurde mit HTTP 200/accepted:true und errors:[] angenommen. stationUpdatedAt=1794004437830. station/current ist in der Firebase Console zur passenden Sekunde sichtbar; die Oberfläche zeigt keine Millisekunden. Firebase-Codex gleicht den gespeicherten Wert exakt ab und dokumentiert das Ergebnis in Revision 25. Dafür keinen weiteren Knuddels-Aufruf ausführen. Der Dauerbetrieb bleibt ausgeschaltet, bis die übrige Abnahme und ausdrückliche Freigabe vorliegen. Die folgenden Schritte beschreiben den allgemeinen Ablauf und sind für diesen bereits erfolgreichen Aufruf nicht erneut abzuarbeiten.
+
+1. Den vollständigen Build durch den Betreiber installieren und als anwesender tatsächlicher Inhaber genau einmal `/mischwerk-relay http-pruefen` ausführen. Dieser neue Aufruf sendet den aktuellen Senderstatus mit den vier Strings payload, ts, nonce und sig ohne eigene Header. Keine Wünsche und keine Konfigurationsänderung.
+2. Die vollständige private JSON-Antwort mit Appversion/Build, checkedAt, request.stationUpdatedAt und HTTP-/accepted-Ergebnis weitergeben. Der Bericht enthält weder Schlüssel noch Signatur oder Nutzlast. Erwartet: native-signed-status-post, HTTP 200 und accepted:true. Firebase gleicht station/current unabhängig mit exakt dem gesendeten Zeitstempel ab. Der Dauerbetrieb bleibt bis zur vollständigen Abnahme ausgeschaltet.
+3. Bei Fehler zuerst den einmaligen Aufruf in Firebase zuordnen. Nur freigegebene Metadaten wie authMode, payloadPresent, tsPresent, nonceStringOk, sigPresent, sigLength, tsSkewBucket und requestContentType lesen. postURLs tatsächlicher nativer Content-Type ist noch nicht nachgewiesen; die Gegenstelle akzeptiert JSON und form-urlencoded, kein Multipart. Keine Body-/Signaturausgaben oder Formatvarianten auf Verdacht.
+
+Der bestehende `/mischwerk-relay auth-pruefen` sendet bei Bedarf ebenfalls signierte Felder, aber payload `{}`. Ein 400 bestätigt nach dem festen Firebase-Vertrag erfolgreiche Authentisierung vor der Nutzlastvalidierung ohne Datenbankschreiben. Dieser Zusatztest ist für den jetzt angeforderten echten Statuslauf nicht vorgeschaltet. Beide Befehle teilen den bisherigen Port, 10-Sekunden-Timeout und 30-Sekunden-Abstand. Jeder neue Zustand und Heartbeat verwendet eine streng höhere Projektionszeit; nach über 45 Sekunden keine alte Nutzlast wiederholen.
+
+## Historischer Headervergleich ab Build 265
+
+Der folgende Ablauf beschreibt den bisherigen Nachweis und wird durch den signierten Vertrag ab Build 270 ersetzt. Keine weiteren Header-Proben ausführen.
 
 Revision 21 bestätigt die bereitgestellte sichere Probeheader-Diagnose auf Firebase-Seite. Build 265 erweitert `/mischwerk-relay auth-pruefen` um den gemeinsam vereinbarten harmlosen Zusatzheader und liest ausschließlich den HTTP-Status. Bestehende private Schlüssel bleiben erhalten. Den vollständigen lokalen UPLOAD wie gewohnt durch den Betreiber installieren. Dieser Arbeitsschritt enthält keine automatische FTP-Übertragung, Aktualisierung oder Neustartfreigabe.
 

@@ -1,4 +1,5 @@
 /* Statisches Vinyl, dunkle Deckfläche und an echte Wiedergabe gebundene Kontur. */
+html[data-view=radio] { --canvas:#000000; }
 html[data-view=radio],html[data-view=radio] body,.radio-bar { background:var(--canvas); }
 html[data-view=radio] body { display:flex; flex-direction:column; }
 /* Eigene Hintergrundfläche unter der unverändert großen Bedienleiste.
@@ -40,7 +41,8 @@ html[data-view=radio] body::after {
 .radio-bar::before {
   content:"";
   position:absolute;
-  inset:0;
+  inset:var(--deck-top,18px) var(--deck-x,20px);
+  border-radius:var(--deck-radius,24px);
   z-index:-2;
   pointer-events:none;
   background:var(--mw-deck-grooves);

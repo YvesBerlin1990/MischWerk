@@ -12,7 +12,8 @@
             getNick:function () { return new java.lang.String('_Test°Nick'); },
             getProfileLink:function (displayText) {
                 profileDisplays.push(String(displayText));
-                return new java.lang.String('°>' + displayText + '|/w \\_Test\\°Nick<°');
+                var label = String(displayText).replace(/[<>]/g, function (character) { return '\\' + character; });
+                return new java.lang.String('°>' + label + '|/w \\_Test\\°Nick<°');
             },
             getUserType:function () { return UserType.Human; },
             isOnlineInChannel:function () { return true; }, isChannelOwner:function () { return false; },
@@ -35,9 +36,9 @@
         [listener, dj, both, mcm].forEach(runtime.greetUser);
         check(sent.length === 4, 'Eine öffentliche Begrüßung je Rolle');
         var image = ' °>https://example.invalid/photo.png<>--<>|/w \\_Test\\°Nick<°';
-        var greeting = '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>\\_Test\\°Nick|/w \\_Test\\°Nick<°._°r°°#°Viel Spaß beim Zuhören.';
-        check(profileDisplays[0] === '\\_Test\\°Nick' && profileDisplays[1] === 'https://example.invalid/photo.png<>--<>',
-            'Native Profillinks erhalten maskierten Nick und Bild-Linkanzeige');
+        var greeting = '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>\\_Test\\°Nick|/w \\_Test\\°Nick<°._°r° Viel Spaß beim Zuhören.';
+        check(profileDisplays[0] === '\\_Test\\°Nick' && profileDisplays[1] === 'Profil öffnen',
+            'Native Profilfunktion erhält nur Text, Bildtag übernimmt das native Ziel');
         [0, 1, 2, 3].forEach(function (index) {
             check(sent[index] === greeting + image, 'Gleicher Text mit Foto am Ende in jeder Rolle');
         });
@@ -52,7 +53,7 @@
         listener.getProfileLink = function () { throw new Error('private-profile-link'); };
         listener.getProfilePhoto = function () { return new java.lang.String('https://example.invalid/photo.png'); };
         runtime.greetUser(listener);
-        check(sent[sent.length - 1] === '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, \\_Test\\°Nick._°r°°#°Viel Spaß beim Zuhören. °>https://example.invalid/photo.png<°',
+        check(sent[sent.length - 1] === '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, \\_Test\\°Nick._°r° Viel Spaß beim Zuhören. °>https://example.invalid/photo.png<°',
             'Defekter Link erhält lesbare Begrüßung und Foto');
         listener.getProfileLink = originalLink;
         fail = true; runtime.forgetUserGreeting(40); var before = attempts;

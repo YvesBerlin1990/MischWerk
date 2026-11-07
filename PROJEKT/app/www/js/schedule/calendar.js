@@ -18,6 +18,7 @@ MischWerkUI.define('scheduleCalendar', function () {
   function range(week) { return label(week) + ' – ' + label(shift(week, 6)); }
   function minutes(time) { return Number(time.slice(0, 2)) * 60 + Number(time.slice(3)); }
   function time(value) {
+    value = Math.round(value);
     return String(Math.floor(value / 60)).padStart(2, '0') + ':' + String(value % 60).padStart(2, '0');
   }
   function slots(entries, day) {
@@ -27,6 +28,10 @@ MischWerkUI.define('scheduleCalendar', function () {
       var end = entry.timing === 'allDay' ? start + 1440 : entry.timing === 'openEnd' ?
         (typeof entry.until === 'number' ? entry.until : Infinity) :
         start - minutes(entry.start) + minutes(entry.end) + (entry.end < entry.start ? 1440 : 0);
+      if (entry.automatic && typeof entry.actualFrom === 'number') {
+        start = Math.floor(entry.actualFrom);
+        end = typeof entry.actualUntil === 'number' ? Math.max(start + 1, Math.ceil(entry.actualUntil)) : start + 1;
+      }
       return { entry: entry, from: Math.max(0, start - midnight), to: Math.min(1440, end - midnight) };
     }).filter(function (slot) { return slot.from < slot.to; }).sort(function (a, b) {
       return a.from - b.from;

@@ -9,7 +9,10 @@ MischWerkModules.attachScheduleProgramme = function (runtime) {
     }
     function publicEntry(entry, week) {
         return { id: entry.id, week: week, date: entry.date, start: entry.start, end: entry.end,
-            nick: entry.nick, topic: entry.topic, kind: entry.kind || 'live', timing: entry.timing || 'fixed' };
+            nick: entry.nick, topic: entry.topic, kind: entry.kind || 'live', timing: entry.timing || 'fixed',
+            automatic: !!entry.automatic, actualStart: entry.actualStart || null, actualEnd: entry.actualEnd || null,
+            actualFrom: entry.automatic ? runtime.scheduleInterval(entry).start : null,
+            actualUntil: entry.automatic ? runtime.scheduleInterval(entry).end : null };
     }
     runtime.schedulePage = function (user, date, page) {
         var today = runtime.scheduleToday();
@@ -25,19 +28,25 @@ MischWerkModules.attachScheduleProgramme = function (runtime) {
         var beginning = runtime.scheduleDate(week) / 60000, finish = beginning + 7 * 1440;
         entries = entries.filter(function (entry, index, timeline) {
             var interval = runtime.scheduleInterval(entry);
-            if (entry.timing === 'openEnd') {
+            if (entry.timing === 'openEnd' && !entry.automatic) {
                 interval.end = index + 1 < timeline.length ? runtime.scheduleInterval(timeline[index + 1]).start : Infinity;
                 entry.until = isFinite(interval.end) ? interval.end : null;
             }
             return interval.start < finish && interval.end > beginning;
         });
-        var pages = Math.max(1, Math.ceil(entries.length / 20));
+        var chunks = [[]], length = 0;
+        entries.forEach(function (entry) {
+            var size = JSON.stringify(entry).length + 1;
+            if (chunks[chunks.length - 1].length >= 20 || length + size > 8200) { chunks.push([]); length = 0; }
+            chunks[chunks.length - 1].push(entry); length += size;
+        });
+        var pages = chunks.length;
         page = Math.max(0, Math.min(pages - 1, Math.floor(Number(page) || 0)));
         return { week: week, today: today, revision: saved.revision, previousRevision: previousSaved.revision,
             boundaryRevision: before.week + ':' + before.revision + '/' + after.week + ':' + after.revision,
             canManage: runtime.isChannelOwner(user),
             days: [0, 1, 2, 3, 4, 5, 6].map(function (offset) { return runtime.scheduleDay(week, offset); }),
-            entries: entries.slice(page * 20, (page + 1) * 20), page: page, pages: pages, total: entries.length };
+            entries: chunks[page], page: page, pages: pages, total: entries.length };
     };
     runtime.changeSchedule = function (user, type, data) {
         if (!runtime.isChannelOwner(user)) { throw runtime.failure('Nur der Channelinhaber darf den Sendeplan ändern.'); }
@@ -51,6 +60,12 @@ MischWerkModules.attachScheduleProgramme = function (runtime) {
         if (typeof id !== 'number' || id < 0 || Math.floor(id) !== id) { throw runtime.failure('Ungültige Sendung.'); }
         var existing = saved.entries.filter(function (entry) { return entry.id === id; })[0];
         if (id && !existing) { throw runtime.failure('Diese Sendung ist nicht mehr im Wochenplan.'); }
+        if (existing && existing.automatic && type !== 'mw:schedule.delete') {
+            throw runtime.failure('Automatische Studioeinträge dokumentieren die tatsächliche Moderation.');
+        }
+        if (existing && existing.broadcastKey && !existing.actualEnd) {
+            throw runtime.failure('Bitte die laufende Moderation zuerst abmelden.');
+        }
         if (type === 'mw:schedule.delete') {
             if (!existing) { throw runtime.failure('Bitte eine vorhandene Sendung auswählen.'); }
             saved.entries = saved.entries.filter(function (entry) { return entry.id !== id; });
@@ -75,6 +90,10 @@ MischWerkModules.attachScheduleProgramme = function (runtime) {
                 end: timing === 'allDay' ? '00:00' : timing === 'openEnd' ? '' : data.end,
                 userId: userId, nick: nick,
                 topic: runtime.text(data.topic, 80, true) };
+            if (existing && existing.actualStart) {
+                entry.actualStart = existing.actualStart; entry.actualEnd = existing.actualEnd;
+                entry.broadcastKey = existing.broadcastKey;
+            }
             [-7, 0, 7].forEach(function (offset) {
                 var otherWeek = runtime.scheduleDay(week, offset);
                 var other = offset === 0 ? saved : runtime.readScheduleWeek(otherWeek);

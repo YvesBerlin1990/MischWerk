@@ -44,6 +44,7 @@ var KnuddelsServer = {
     }; } }; }
 };
 var UserType = { Human: 'human' };
+var RandomOperations = { getRandomString: function (length, alphabet) { return alphabet.slice(0, length); } };
 function HTMLFile(asset, data) { this.data = copy(data); }
 var Color = { fromHexString: function (hex) { return { asHexString: function () { return hex; } }; } };
 function content(html, mode) {
@@ -106,8 +107,8 @@ var listener = person(1, 'Musikfreund', false);
 var owner = person(2, 'Otterchen', true);
 App.onUserJoined(listener); App.onUserJoined(owner);
 check(publicMessages.length === 2 &&
-    publicMessages[0] === "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Musikfreund|/w Musikfreund<°._°r°°#°Viel Spaß beim Zuhören." &&
-    publicMessages[1] === "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Otterchen|/w Otterchen<°._°r°°#°Viel Spaß beim Zuhören.",
+    publicMessages[0] === "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Musikfreund|/w Musikfreund<°._°r° Viel Spaß beim Zuhören." &&
+    publicMessages[1] === "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Otterchen|/w Otterchen<°._°r° Viel Spaß beim Zuhören.",
     'Einheitliche Channelbegrüßungen getrennt von Studio-Meldungen');
 publicMessages = [];
 var listenerSession = listener.sessions[0];
@@ -358,11 +359,34 @@ check(latest(ownerSession, 'mw:state').curtain.closed === true, 'Ungueltige Chat
     app.chatCommands.mw(user, 'Verwaltung');
     check(replies.length === 2 && replies[1].indexOf('Nur Otterchen') !== -1, 'Nick allein verleiht kein Inhaberrecht');
 }());
+load('tests/rhino/channel-topic.js');
 load('tests/rhino/channel-texts.js');
 load('tests/rhino/greetings.js');
 load('tests/rhino/ticker.js');
 load('tests/rhino/website.js');
+load('tests/rhino/android-signing.js');
 load('tests/rhino/android.js');
 load('tests/rhino/android-settings.js');
 load('tests/rhino/android-verification.js');
+load('tests/rhino/android-operation.js');
+(function () {
+    var previousStore=store, previousPeople=people;
+    store={data:{},getObject:function(key,fallback){return this.data[key]?copy(this.data[key]):fallback;},
+        setObject:function(key,value){this.data[key]=copy(value);}};
+    var tester=person(9901,'Otterchen',true); people=[tester];
+    var app=MischWerkModules.createApp(MischWerkConfig);
+    app.chatCommands.mischwerk(tester,''); var session=tester.sessions[tester.sessions.length-1];
+    app.onEventReceived(tester,'mw:onAir',{},session);
+    app.onEventReceived(tester,'mw:schedule.get',{requestId:'broadcast-rhino'},session);
+    var plan=latest(session,'mw:schedule.data');
+    check(plan.entries.length===1 && plan.entries[0].actualStart && !plan.entries[0].actualEnd,'Automatische Studio-Anmeldung in Rhino');
+    app.onEventReceived(tester,'mw:onAir',{},session);
+    app.onEventReceived(tester,'mw:offAir',{},session);
+    app.onEventReceived(tester,'mw:schedule.get',{requestId:'broadcast-end-rhino',week:plan.week},session);
+    var entries=latest(session,'mw:schedule.data').entries;
+    check(entries.length===1 && entries[0].actualEnd,'Abmeldung ohne Dublette in Rhino');
+    check(entries[0].actualUntil>entries[0].actualFrom,'Gleiche An-/Abmeldeminute bleibt sichtbar');
+    check(JSON.stringify(entries).indexOf('broadcastKey')===-1,'Keine private Studiokennung im Sendeplan');
+    store=previousStore;people=previousPeople;
+}());
 print('Rhino-Wunschweg OK: ' + assertions + ' Pruefungen, 125 Wuensche, ' + links.length + ' abgewiesene Links; Sendeplan, Studio-Meldungen und Bot-Texte ebenfalls geprueft.');

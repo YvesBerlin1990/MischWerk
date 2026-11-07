@@ -2,7 +2,7 @@
 MischWerkUI.define('studioPages', function(dependencies){
   'use strict';
   var dom=dependencies.dom, signals=dependencies.signals, states={}, fitting=false, timer;
-  function fitArea(id,pagerId){
+  function fitArea(id,pagerId,tab){
     var area=dom.el(id), pager=dom.el(pagerId);
     if(!area.getClientRects().length)return;
     var state=states[id]||(states[id]={selected:0,pages:[],anchor:null});
@@ -19,7 +19,7 @@ MischWerkUI.define('studioPages', function(dependencies){
       var back=dom.el('handover-back'),card=getComputedStyle(dom.el('handover-panel'));
       bottom+=back.getBoundingClientRect().height+parseFloat(getComputedStyle(back).marginTop)+parseFloat(card.paddingBottom)+parseFloat(card.borderBottomWidth);
     }
-    signals.emit('studio-natural-height',{tab:'programme',height:bottom+parseFloat(getComputedStyle(document.querySelector('.dialog-shell')).paddingBottom)});
+    signals.emit('studio-natural-height',{tab:tab||'programme',height:bottom+parseFloat(getComputedStyle(document.querySelector('.dialog-shell')).paddingBottom)});
     var fits=area.scrollHeight<=area.clientHeight+1;
     parts.forEach(function(part){part.hidden=true;});pager.hidden=fits;
     var pages=[],current=[];
@@ -44,9 +44,15 @@ MischWerkUI.define('studioPages', function(dependencies){
   function fit(){
     if(fitting)return;fitting=true;
     fitArea('studio-setup','studio-paging');fitArea('handover-body','handover-paging');
+    fitArea('ticker-body','ticker-paging','ticker');
     fitting=false;signals.emit('studio-readers');signals.emit('history-layout');
   }
   function request(){cancelAnimationFrame(timer);timer=requestAnimationFrame(fit);}
+  function reveal(id,target){
+    if(!states[id])return;
+    states[id].requested=dom.el(target).closest('.studio-part');fit();
+    dom.el(target).focus({preventScroll:true});
+  }
   function bind(id,pagerId){var pager=dom.el(pagerId);
     [[-1,'[data-part-previous]'],[1,'[data-part-next]']].forEach(function(entry){pager.querySelector(entry[1]).addEventListener('click',function(){
       if(this.disabled)return;
@@ -57,10 +63,11 @@ MischWerkUI.define('studioPages', function(dependencies){
   }
   function start(){
     bind('studio-setup','studio-paging');bind('handover-body','handover-paging');
+    bind('ticker-body','ticker-paging');
     signals.on('studio-fit',fit);signals.on('studio-selection',function(){request();});
     signals.on('controls',request);window.addEventListener('resize',request);
     if(typeof ResizeObserver==='function')new ResizeObserver(request).observe(document.querySelector('.dialog-content'));
     window.addEventListener('pagehide',function(){cancelAnimationFrame(timer);});
   }
-  return {start:start};
+  return {start:start,reveal:reveal};
 });

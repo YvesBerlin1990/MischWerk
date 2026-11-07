@@ -27,8 +27,9 @@ MischWerkModules.attachPersistence = function (runtime, config) {
         });
     };
 
-    runtime.persist = function (next, failureMessage) {
+    runtime.persist = function (next, failureMessage, purgedUserId) {
         try {
+            runtime.prepareScheduleSync(next, purgedUserId);
             next.revision = (runtime.state && runtime.state.revision || 0) + 1;
             runtime.compactCooldowns(next, runtime.maxReplayEntries);
             var serialized = JSON.stringify(next);
@@ -60,6 +61,12 @@ MischWerkModules.attachPersistence = function (runtime, config) {
             }
         }
         runtime.state = next;
+        if (next.scheduleSync && runtime.flushScheduleSync()) {
+            var acknowledged = runtime.copy(next);
+            delete acknowledged.scheduleSync;
+            try { runtime.persist(acknowledged); }
+            catch (ackError) { runtime.warn('SCHEDULE_SYNC_ACK'); }
+        }
         runtime.changed('station');
     };
 

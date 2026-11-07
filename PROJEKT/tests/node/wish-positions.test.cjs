@@ -115,7 +115,7 @@ test('Wunschbox öffnet als natives Channel-Overlay; Header bleibt beim Wechsel 
  assert.equal(events.find(e=>e.type==='mw:result').data.ok,true);
  const surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
  assert.ok(surface);assert.equal(as.content.height,176);assert.equal(as.removed,false);
- assert.deepEqual([surface.content.width,surface.content.height],[560,340]);
+ assert.deepEqual([surface.content.width,surface.content.height],[480,340]);
  assert.equal(surface.content.responsive,true);assert.equal(surface.content.allowJFXBrowser,false);
  assert.equal(surface.content.htmlFile.pageData.wishSurface,true);
  assert.equal(surface.content.htmlFile.pageData.wishPresentation.text,'Mein Entwurf');

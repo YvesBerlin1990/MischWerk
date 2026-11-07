@@ -1,14 +1,14 @@
-# MischWerk – Frontendarchitektur 0.1.269 · Build 269
+# MischWerk – Frontendarchitektur 0.1.278 · Build 278
 
-Stand 06.11.2026: **50 Komponenten, 20 Stylesheets, 83 Browser-/Mediendateien**. Das gepflegte Frontend liegt unter `app/www/`. Ladepläne und vollständiges Inventar: `tools/lib/frontend-files.cjs`.
+Stand 07.11.2026: **50 Komponenten, 20 Stylesheets, 83 Browser-/Mediendateien**. Das gepflegte Frontend liegt unter `app/www/`. Ladepläne und vollständiges Inventar: `tools/lib/frontend-files.cjs`.
 
 ## Öffnung und Inhalt
 
 Die Radioleiste bleibt ein eigenes Dokument mit einem Audioelement. Sendeplan, Wunschbox und die für ernannte Radiomoderatoren sowie den echten Inhaber Otterchen sichtbare Moderation öffnen ein getrenntes natives Overlay; Verwaltung ist über /MW Verwaltung erreichbar. Der Server prüft Zielinhalt, Fähigkeit, Identität und Rolle; `sendAppContent` ersetzt die bisherige Overlayansicht. Fachliche Eingaben und laufende Aktionen werden vorher bestätigt übernommen. Gleiche Anfrage-IDs öffnen keine zweite Instanz.
 
-Der SDK-Ladeweg läuft während des HTML-Parsens. Markup und benötigte Komponenten werden einmalig zusammengesetzt; vollständiges CSS und Anfangslayout setzen `mw-ready`. Pflichtressourcenfehler werden sichtbar gemeldet. Langsame Logos blockieren den Start nicht. Keine private SDK-Readiness-Manipulation, alte gemeinsame Overlaynavigation oder versteckte Vorabfenster.
+Die beiden gemeinsamen lokalen Schriften beginnen bereits über reguläre Font-Preloads im HTML-Kopf; ein fehlgeschlagener Preload setzt keinen Pflichtressourcenfehler. Der SDK-Ladeweg läuft während des HTML-Parsens. Markup und benötigte Komponenten werden einmalig zusammengesetzt; vollständiges CSS, abgeschlossenes Schriftladen der Overlays und Anfangslayout setzen `mw-ready`. Die vorhandene Bereitschaftsprüfung wartet auf `document.fonts.status`, sofern unterstützt; ein Schriftfehler erlaubt Rückfallschrift. Regiegrößen werden ebenfalls erst danach angefordert. Früher und fertiger Menükopf behalten 76 px Höhe und ein 64-px-Logo. Pflichtressourcenfehler werden sichtbar gemeldet. Langsame Logos blockieren den Start nicht. Keine private SDK-Readiness-Manipulation, alte gemeinsame Overlaynavigation oder versteckte Vorabfenster.
 
-`ui/layout` passt Inhalte an den tatsächlichen Rahmen an. Native Größen besitzen ausschließlich die fachlich zuständigen Radio-, Wunsch- und Studio-Fenstermodule. Verwaltung und Sendeplan behalten ihre Anfangsmaße. Moderationsgruppen, Historientexte und Kalender bleiben über Seiten vollständig erreichbar; Bot-Texte haben eine gemeinsame Inhalts-Scrollfläche.
+`ui/layout` passt Inhalte an den tatsächlichen Rahmen an. Native Größen besitzen ausschließlich die fachlich zuständigen Radio-, Wunsch- und Studio-Fenstermodule. Verwaltung und Sendeplan behalten ihre Anfangsmaße. Moderationsgruppen, Historientexte und Kalender bleiben über Seiten vollständig erreichbar; Bot-Texte haben eine gemeinsame Inhalts-Scrollfläche. Der Lauftexteditor verwendet denselben studio/pages-Weg für vollständige Bediengruppen statt eines eigenen Scrollbereichs. Die vorherige separate Lauftext-Höhenmessung entfällt; Verwerfen und Konfliktladen wählen gezielt die Textgruppe und deren Fokus.
 
 Schmale Radioansichten trennen Schallplatte, Musikangaben und Aktionen. Bei höchstens 420 px hoher Moderation scrollt der Wunschbereich mit vollständig erhaltenen Textseiten und Aktionen; die übrigen Radioflächen bleiben erhalten.
 
