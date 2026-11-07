@@ -43,7 +43,7 @@ Die GitHub-Übersicht liegt unter `.github/README.md`. Der technische Einstieg s
 | `docs/` · `docs/pruefung/oberflaeche/` | Dokumentation und Prüfbilder nach Themen |
 | `deployment/` | Zielkonfiguration und fünf Auslieferungsmanifeste |
 
-Das Knuddels-Paket wird lokal im festen Desktop-UPLOAD vorbereitet. Es gehört nicht ins Repository; ebenso bleiben private Konfigurationen und installierte Abhängigkeiten außerhalb des Gitbestands.
+Das Knuddels-Paket wird lokal im festen Desktop-UPLOAD vorbereitet: 126 Auslieferungsdateien statt 144 Dateien im App-Arbeitsbestand. Vollständig gebündelte Einzeldateien werden nicht doppelt hochgeladen; die Quellmodule und fachlichen Ordner bleiben erhalten. Das Paket gehört nicht ins Repository; ebenso bleiben private Konfigurationen und installierte Abhängigkeiten außerhalb des Gitbestands.
 
 ## Lokal starten
 

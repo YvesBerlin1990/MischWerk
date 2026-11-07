@@ -1,5 +1,15 @@
 # MischWerk – Prüfbericht 0.1.290 / Build 290
 
+## Kompakter UPLOAD bei erhaltenen Modulen · 07.11.2026
+
+Der bisherige Paketbau bündelte bereits vollständige benachbarte Browsermodule und filterte ihre Einzelpfade aus den Ladeplänen, kopierte die enthaltenen Einzeldateien aber zusätzlich in den UPLOAD. Das Auslieferungsinventar leitet sich jetzt direkt aus denselben Bündeln ab. 16 JS- und zwei CSS-Einzelkopien entfallen ausschließlich im festen Desktop-UPLOAD. Der Paketbau entfernt diese bekannten alten Kopien gezielt; fremde oder fehlende Dateien werden weiterhin abgewiesen. Quellen, App-Arbeitsbestand, fachliche Ordner, Backendmodule, Modulreihenfolge, SDK-Ladewege und bestehende Bündel bleiben erhalten. Quell-/Arbeitsinventar, kompaktes Paket und öffentliche HTTP-Dateiprüfung werden passend getrennt vollständig abgeglichen.
+
+Der ergänzte bestehende Bündelfall schlägt vor der Korrektur fehl und besteht danach: Für jede der fünf Ansichten bleiben vollständiger JS-/CSS-Inhalt und Reihenfolge erhalten; das Paketinventar umfasst genau die angeforderten Skripte, Styles und übrigen Laufzeitdateien. Ein zusätzlicher Gegenfall weist sowohl eine wieder hinzugefügte Einzelkopie als auch eine fehlende benötigte Datei zurück und bestätigt die weiterhin vorhandenen Arbeitsmodule. Bestehende Manipulations-/Hashprüfungen und die lokale HTTP-Abnahme bestehen auch für den kompakten Bestand.
+
+Vollständiger Paketbau bestanden: 431/431 Nodefälle, Architektur/API/Syntax, Quellen-/Laufzeitgleichheit und je 1124 Prüfungen in den beiden SHA-256-verifizierten echten Rhino-Engines 1.7.7.2 und 1.9.1. Fünf vorhandene Edge-Browserfälle direkt am reduzierten UPLOAD bestehen: Radio lädt nur eigene Ressourcen; erneutes Overlayöffnen erhält die SDK-Cachekennung; alle vier Overlays erhalten in K3 und STAPP Entwürfe, Wunschversand, Fokus und laufendes Audio; ein absichtlich fehlendes Pflichtmodul verhindert weiterhin eine falsche Bereitschaftsmeldung.
+
+check:upload bestätigt unverändert Version 0.1.290 / Build 290 mit 126 Dateien, 119 Texten, maximal 9485 UTF-16-Zeichen und fünf konsistenten Manifesten. SHA-256-Vergleich mit dem vor der Aufräumaktion erfassten Bestand: alle 144 App-Arbeitsdateien und alle 126 verbleibenden UPLOAD-Dateien bytegleich; ausschließlich die 18 zusätzlichen UPLOAD-Einzelkopien fehlen. Das sind 12,5 % weniger hochzuladende Dateien. Reine Paketbereinigung ohne Funktions-/Versionsänderung; keine FTP-Übertragung, native Installation oder neue Produktionsabnahme. Die bisherigen offenen nativen Abnahmen bleiben bestehen.
+
 ## Knuddels-Lauftext im Android-Payload · Build 290 · 07.11.2026
 
 Die bestehende Senderprojektion ergänzt ausschließlich `ticker: runtime.tickerState()`. Damit erreicht der kanonisch gespeicherte und bereinigte Lauftext den vorhandenen signierten Status-POST, ausdrücklich auch mit `enabled: false`. Keine zweite Quelle oder Lauftextlogik. Rückersetzung dieser einen Ergänzung ergibt bytegleich den zuvor erfassten, bereits bearbeiteten Publisherstand; bestehende Änderungen bleiben erhalten.

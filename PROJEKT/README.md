@@ -90,6 +90,6 @@ Aus `website/` startet `pnpm start` den regulären Webserver, `pnpm test` die ei
 
 ## Bereitstellung und Nachweise
 
-`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Die Browserrunde läuft separat. Das aktuelle Paket umfasst 144 Laufzeitdateien, darunter 137 Texte; fünf Manifeste dokumentieren die tatsächlichen Bytes. Alle Laufzeittexte und Manifeste bleiben unter 9500 Zeichen. Der Paketbau veröffentlicht nichts und startet keine echte App neu.
+`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Die Browserrunde läuft separat. Der App-Arbeitsbestand behält alle 144 Dateien. Das aktuelle UPLOAD-Paket umfasst 126 Dateien, darunter 119 Texte; 18 vollständig gebündelte Einzeldateien werden dort nicht zusätzlich kopiert. Der Paketbau entfernt ihre alten UPLOAD-Kopien automatisch. Die fachlichen Ordner, alle 57 Backendmodule und die unveränderten übrigen Ladepfade bleiben erhalten. Fünf Manifeste dokumentieren die tatsächlichen Auslieferungsbytes. Alle Laufzeittexte und Manifeste bleiben unter 9500 Zeichen. Der Paketbau veröffentlicht nichts und startet keine echte App neu.
 
 [App-Prüfbericht](docs/pruefung/PRUEFBERICHT.md) · [Website-Prüfbericht](website/docs/PRUEFUNG.md) · [API-Nachweis](docs/api/API-NACHWEIS.md) · [Architektur](docs/architektur/ARCHITEKTUR.md) · [Frontend](docs/architektur/ARCHITEKTUR-FRONTEND.md) · [Design](docs/architektur/DESIGN.md) · [LIVE-Abnahme](docs/betrieb/LIVE-ABNAHME.md)

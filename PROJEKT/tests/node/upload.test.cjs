@@ -10,7 +10,7 @@ const { frontendFilesForView } = require('../../tools/lib/frontend-files.cjs');
 const { runtimeFiles, isBinary } = require('../../tools/checks/lengths.cjs');
 const { checkUpload } = require('../../tools/checks/upload.cjs');
 const { manifestGroups } = require('../../tools/lib/upload-manifests.cjs');
-function fixture(t) {
+function fixture(t, bundled = false) {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'MischWerk-Uploadpruefung-'));
   assert.ok(path.resolve(base).startsWith(path.join(os.tmpdir(), 'MischWerk-Uploadpruefung-')));
   t.after(() => fs.rmSync(base, { recursive:true, force:true }));
@@ -26,12 +26,16 @@ function fixture(t) {
     filter:file => fs.statSync(file).isDirectory() || file.endsWith('.json') });
   const file = path.join(folder, 'manifest-live.json');
   const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
-  manifest.delivery = 'upload-directory'; manifest.bundled = false; manifest.localUploadRoot = upload;
+  manifest.delivery = 'upload-directory'; manifest.bundled = bundled; manifest.localUploadRoot = upload;
+  const delivery = bundled ? createDelivery(project) : new Map();
+  const files = bundled ? [...delivery.keys()] : runtimeFiles;
+  for (const [relative, bytes] of delivery) fs.writeFileSync(path.join(upload, 'MischWerk', relative), bytes);
+  for (const relative of runtimeFiles.filter(file => !files.includes(file))) fs.unlinkSync(path.join(upload, 'MischWerk', relative));
   // Die Fixture gehört zum gerade getesteten Quellstand, nicht zum vorherigen Upload.
   const release = JSON.parse(fs.readFileSync(path.join(source,'package.json'),'utf8'));
   manifest.version = release.version; manifest.buildNumber = release.buildNumber;
   const digest = input => crypto.createHash('sha256').update(fs.readFileSync(input)).digest('hex').toUpperCase();
-  const groups=manifestGroups(runtimeFiles,isBinary);
+  const groups=manifestGroups(files,isBinary);
   manifest.fileManifests=Object.keys(groups).map(name=>({path:name}));
   for(const part of manifest.fileManifests){
     const partFile=path.join(folder,part.path);
@@ -62,6 +66,8 @@ test('Auslieferungsbündel erhalten alle vollständigen Module und ihre Reihenfo
   const project = path.resolve(__dirname,'../..'), delivery = createDelivery(project);
   const read = file => fs.readFileSync(path.join(project,'app/www',file),'utf8');
   const delivered = file => (delivery.get('www/'+file) || Buffer.from(read(file))).toString('utf8');
+  const required = new Set(runtimeFiles.filter(file => !/^www\/(?:js|css)\//.test(file)));
+  required.add('www/js/start.js'); required.add('www/js/operator/relay-settings.js');
   for (const view of ['radio','wishes','studio','team','schedule']) {
     const scripts = [], styles = [];
     const scope = { document:{readyState:'loading',addEventListener(){},documentElement:{getAttribute:() => view,setAttribute(){}}},
@@ -76,13 +82,16 @@ test('Auslieferungsbündel erhalten alle vollständigen Module und ihre Reihenfo
     assert.equal(scripts.map(delivered).join('\n;\n'), sourceJS.map(read).join('\n;\n'), 'JS unverändert: '+view);
     assert.equal(styles.map(delivered).join('\n'), sourceCSS.map(read).join('\n'), 'CSS unverändert: '+view);
     assert.ok(scripts.length < sourceJS.length, 'Weniger parserzeitige SDK-Skriptaufrufe: '+view);
-    for (const file of [...scripts,...styles]) assert.ok(delivered(file).length < 9500, file);
+    for (const file of [...scripts,...styles]) {
+      required.add('www/'+file);
+      assert.ok(delivered(file).length < 9500, file);
+    }
   }
+  assert.deepEqual([...delivery.keys()].sort(), [...required].sort(), 'Nur tatsächlich benötigte Auslieferungsdateien, keine zusätzlichen Bündelbestandteile');
 });
 
 test('Uploadprüfung validiert Bündel gegen die Quellmodule und weist nachgehashte Fremdinhalte zurück', t => {
-  const f = fixture(t), delivery = createDelivery(f.project), folder = path.join(f.project,'deployment/manifests');
-  for (const [file, bytes] of delivery) fs.writeFileSync(path.join(f.upload,'MischWerk',file),bytes);
+  const f = fixture(t, true), delivery = createDelivery(f.project), folder = path.join(f.project,'deployment/manifests');
   const manifestFile = path.join(folder,'manifest-live.json'), manifest = JSON.parse(fs.readFileSync(manifestFile,'utf8'));
   manifest.bundled = true;
   const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex').toUpperCase();
@@ -95,9 +104,25 @@ test('Uploadprüfung validiert Bündel gegen die Quellmodule und weist nachgehas
     }
     fs.writeFileSync(manifestFile,JSON.stringify(manifest));
   }
-  updateHashes();assert.equal(checkUpload({project:f.project}).files,runtimeFiles.length);
+  updateHashes();assert.equal(checkUpload({project:f.project}).files,delivery.size);
   fs.appendFileSync(path.join(f.upload,'MischWerk/www/js/ui/composition.js'),'\n/* Fremder Inhalt */\n');
   updateHashes();assert.throws(() => checkUpload({project:f.project}),/Upload weicht von den Quellen ab/);
+});
+
+test('Kompakter Upload behält Quellmodule und weist zusätzliche Bündelbestandteile sowie fehlende Ladedateien zurück', t => {
+  const f = fixture(t, true), delivery = createDelivery(f.project);
+  const omitted = runtimeFiles.filter(file => !delivery.has(file));
+  assert.ok(omitted.length > 0);
+  for (const file of omitted) {
+    assert.ok(fs.existsSync(path.join(f.project, 'app', file)), 'Quellmodul erhalten: ' + file);
+    assert.equal(fs.existsSync(path.join(f.upload, 'MischWerk', file)), false, 'Kein doppelter Upload: ' + file);
+  }
+  const extra = path.join(f.upload, 'MischWerk', omitted[0]);
+  fs.copyFileSync(path.join(f.project, 'app', omitted[0]), extra);
+  assert.throws(() => checkUpload({project:f.project}), /Unerwartete oder fehlende Laufzeitdateien/);
+  fs.unlinkSync(extra);
+  fs.unlinkSync(path.join(f.upload, 'MischWerk', 'www/js/radio/markup.js'));
+  assert.throws(() => checkUpload({project:f.project}), /Unerwartete oder fehlende Laufzeitdateien/);
 });
 test('Uploadprüfung weist fehlende, ungültige und fremde Buildnummern zurück', t => {
   const f = fixture(t), file = path.join(f.project, 'package.json');
@@ -168,7 +193,7 @@ test('HTTP-Abnahme erkennt trotz vollständigem lokalem Upload fehlende neue und
   let incomplete = false;
   const server = http.createServer((request, response) => {
     const file = new URL(request.url, 'http://localhost').pathname.slice(1);
-    if (!frontendFiles.includes(file)) { response.writeHead(404).end(); return; }
+    if (!frontendFiles.includes(file) || (manifest.bundled === true && !delivery.has('www/'+file))) { response.writeHead(404).end(); return; }
     if (incomplete && ['js/ui/composition.js', 'js/ui/layout.js'].includes(file)) {
       response.writeHead(404).end('Nicht gefunden'); return;
     }
@@ -179,7 +204,7 @@ test('HTTP-Abnahme erkennt trotz vollständigem lokalem Upload fehlende neue und
   t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
   const base = 'http://127.0.0.1:' + server.address().port + '/';
   const complete = await checkDelivery(base);
-  const publicFiles = frontendFiles.filter(file => /\.(?:html|js|css)$/.test(file)).length;
+  const publicFiles = frontendFiles.filter(file => /\.(?:html|js|css)$/.test(file) && (manifest.bundled !== true || delivery.has('www/'+file))).length;
   assert.equal(complete.ok, true); assert.equal(complete.checkedFiles, publicFiles);
   incomplete = true;
   const mixed = await checkDelivery(base);

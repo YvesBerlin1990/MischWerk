@@ -69,7 +69,7 @@ assert.ok(!js.includes('innerHTML'), 'Fremde Texte mit textContent ausgeben');
 assert.ok(!js.includes('MischWerkDemo'), 'Demo-Code darf nicht im Produktions-Frontend liegen');
 console.log('Backend-Module, API-Signaturen, UI-IDs, Laufzeitgrenzen und Trennung der Demo: OK');
 const lengths = checkRuntime(path.join(root, 'app'));
-console.log(lengths.length + ' tatsächlich ausgelieferte Textdateien: jeweils strikt unter 9.500 Zeichen.');
+console.log(lengths.length + ' Textdateien im App-Arbeitsbestand: jeweils strikt unter 9.500 Zeichen.');
 assert.ok(backend.includes('AppContent.headerbarContent'), 'Radio benötigt die Channelleiste.');
 assert.ok(backend.includes('AppContent.overlayContent') && !backend.includes('AppContent.popupContent'), 'Alle vier Channelansichten benötigen echte Overlays.');
 assert.ok(frontendApi.includes('Client.HostFrame.prototype.setSize'), 'Headerbar-Höhenanpassung fehlt in Referenz.');

@@ -10,11 +10,10 @@ const { runtimeFiles, isBinary, checkText, checkRuntime } = require('../checks/l
 const { manifestGroups } = require('../lib/upload-manifests.cjs');
 const { readRelease, checkAppConfig } = require('../lib/release-identity.cjs');
 const root = path.resolve(__dirname, '../..');
-const include = runtimeFiles;
 const { frontendFiles } = require('../lib/frontend-files.cjs');
 const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').toUpperCase();
 // Ausschließlich Auslieferung: vollständige Quellmodule in unveränderter Reihenfolge bündeln.
-// Bestehende Dateinamen/Inventare bleiben erhalten; kein Minifizieren und kein neuer Ladeweg.
+// Bestehende Bündelnamen und Ladewege erhalten; vollständig enthaltene Einzeldateien nicht zusätzlich ausliefern.
 function createDelivery(project = root) {
   const read = file => fs.readFileSync(path.join(project, 'app/www', file), 'utf8');
   const plans = {};
@@ -61,7 +60,9 @@ function createDelivery(project = root) {
     assert.ok(bytes.toString('utf8').length < 9500, 'Auslieferungsbündel zu groß: ' + file);
     if (file.endsWith('.js')) new vm.Script(bytes.toString('utf8'), { filename:file });
   }
-  return delivery;
+  const omitted = new Set([...skipped.scripts, ...skipped.styles].map(file => 'www/' + file));
+  return new Map(runtimeFiles.filter(file => !omitted.has(file)).map(file =>
+    [file, delivery.get(file) || fs.readFileSync(path.join(project, 'app', file))]));
 }
 function properties(text) {
   const data = {};
@@ -106,6 +107,7 @@ function build() {
   const manifestFolders = [...new Set([installation, path.join(path.dirname(uploadRoot), 'PROJEKT', 'deployment', 'manifests')])];
   const upload = path.join(uploadRoot, live.appKey);
   const delivery = createDelivery();
+  const include = [...delivery.keys()];
   for (const folder of manifestFolders) { fs.mkdirSync(folder, { recursive: true }); }
   fs.mkdirSync(uploadRoot, { recursive: true });
   assert.ok(fs.readdirSync(uploadRoot).every(name => name === live.appKey), 'Fremde Dateien neben dem Uploadziel');
@@ -114,11 +116,16 @@ function build() {
     const input = path.join(appRoot, file); const output = path.join(upload, file);
     if (!isBinary(file)) { assert.ok(!fs.readFileSync(input).subarray(0, 3).equals(Buffer.from([239,187,191])), 'UTF-8-BOM in ' + file); }
     fs.mkdirSync(path.dirname(output), { recursive: true });
-    if (delivery.has(file)) fs.writeFileSync(output, delivery.get(file));
-    else fs.copyFileSync(input, output);
-    assert.ok(fs.readFileSync(output).equals(delivery.get(file) || fs.readFileSync(input)));
+    fs.writeFileSync(output, delivery.get(file));
+    assert.ok(fs.readFileSync(output).equals(delivery.get(file)));
   }
-  checkRuntime(upload);
+  // Nur bekannte, bereits vollständig gebündelte Laufzeitdateien aus älteren Paketen entfernen.
+  for (const file of runtimeFiles.filter(file => !delivery.has(file))) {
+    const target = path.resolve(upload, file);
+    assert.ok(target.startsWith(path.resolve(upload) + path.sep), 'Bündelbestandteil außerhalb des Uploadziels');
+    if (fs.existsSync(target)) { fs.unlinkSync(target); }
+  }
+  checkRuntime(upload, include);
   const { createHarness } = require('../../tests/support/knuddels.cjs');
   const h = createHarness();
   const probeUser = h.user(1, 'Lokale Paketpruefung', 'owner');
@@ -151,5 +158,5 @@ function build() {
   console.log(JSON.stringify({ version, buildNumber, appId: live.appId, remotePath: manifest.remotePath, uploadRoot,
     upload, fileCount: include.length, stationConfigured: manifest.stationConfigured }, null, 2));
 }
-module.exports = { properties, include, createDelivery };
+module.exports = { properties, createDelivery };
 if (require.main === module) { try { build(); } catch (error) { console.error('Upload-Bereitstellung: ' + error.message); process.exitCode = 1; } }

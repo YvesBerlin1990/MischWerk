@@ -14,9 +14,10 @@ async function checkDelivery(baseUrl, { project = root } = {}) {
       !(base.protocol === 'https:' || (base.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].includes(base.hostname)))) {
     throw new Error('Basisadresse ohne Zugangsdaten, Query oder Fragment und mit abschließendem / verwenden; HTTPS oder lokales HTTP.');
   }
-  const files = frontendFiles.filter(file => /\.(html|js|css)$/.test(file));
   const manifestFile = path.join(project,'deployment/manifests/manifest-live.json');
-  const delivery = fs.existsSync(manifestFile) && JSON.parse(fs.readFileSync(manifestFile,'utf8')).bundled === true ? createDelivery(project) : new Map();
+  const bundled = fs.existsSync(manifestFile) && JSON.parse(fs.readFileSync(manifestFile,'utf8')).bundled === true;
+  const delivery = bundled ? createDelivery(project) : new Map();
+  const files = frontendFiles.filter(file => /\.(html|js|css)$/.test(file) && (!bundled || delivery.has('www/' + file)));
   const results = new Array(files.length);
   let cursor = 0;
   await Promise.all(Array.from({ length: 4 }, async () => {

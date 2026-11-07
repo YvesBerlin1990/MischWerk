@@ -30,7 +30,8 @@ function checkUpload(options = {}) {
   assert.equal(manifest.buildNumber, release.buildNumber, 'Upload-Buildnummer passt nicht zur Paketdatei');
   const files = [];
   const delivery = manifest.bundled === true ? createDelivery(source) : new Map();
-  const groups = manifestGroups(runtimeFiles, isBinary);
+  const expectedFiles = manifest.bundled === true ? [...delivery.keys()] : runtimeFiles;
+  const groups = manifestGroups(expectedFiles, isBinary);
   assert.deepEqual(manifest.fileManifests.map(item => item.path).sort(), Object.keys(groups).sort());
   for (const item of manifest.fileManifests) {
     const file = path.join(folder, item.path);
@@ -45,9 +46,9 @@ function checkUpload(options = {}) {
     files.push(...content.files);
   }
   assert.equal(files.length, manifest.fileCount);
-  assert.deepEqual(files.map(file => file.path).sort(), runtimeFiles.map(file => 'MischWerk/' + file).sort());
+  assert.deepEqual(files.map(file => file.path).sort(), expectedFiles.map(file => 'MischWerk/' + file).sort());
   assert.deepEqual(fs.readdirSync(upload).sort(), ['MischWerk'], 'Fremde Dateien neben der App');
-  const lengths = checkRuntime(path.join(upload, 'MischWerk'));
+  const lengths = checkRuntime(path.join(upload, 'MischWerk'), expectedFiles);
   checkRuntime(path.join(source, 'app'));
   for (const item of files) {
     const file = path.join(upload, item.path);

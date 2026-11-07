@@ -17,7 +17,7 @@ function checkText(file) {
   assert.ok(text.length < 9500, path.basename(file) + ': ' + text.length + ' Zeichen, erforderlich: < 9500');
   return { file, characters: text.length };
 }
-function checkRuntime(directory) {
+function checkRuntime(directory, expectedFiles = runtimeFiles) {
   function list(folder, prefix = '') {
     return fs.readdirSync(folder, { withFileTypes: true }).flatMap(entry => {
       assert.ok(!entry.isSymbolicLink(), 'Symlink in Laufzeitdateien: ' + prefix + entry.name);
@@ -25,8 +25,8 @@ function checkRuntime(directory) {
       return entry.isDirectory() ? list(path.join(folder, entry.name), relative + '/') : [relative];
     });
   }
-  assert.deepEqual(list(directory).sort(), [...runtimeFiles].sort(), 'Unerwartete oder fehlende Laufzeitdateien');
-  return runtimeFiles.filter(file => !isBinary(file)).map(file => checkText(path.join(directory, file)));
+  assert.deepEqual(list(directory).sort(), [...expectedFiles].sort(), 'Unerwartete oder fehlende Laufzeitdateien');
+  return expectedFiles.filter(file => !isBinary(file)).map(file => checkText(path.join(directory, file)));
 }
 if (require.main === module) {
   const results = checkRuntime(path.join(root, 'app'));

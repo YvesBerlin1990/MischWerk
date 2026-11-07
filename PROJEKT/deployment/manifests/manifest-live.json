@@ -12,7 +12,7 @@
   "delivery": "upload-directory",
   "bundled": true,
   "localUploadRoot": "C:\\Users\\Yves\\Desktop\\MischWerk\\UPLOAD",
-  "fileCount": 144,
+  "fileCount": 126,
   "fileManifests": [
     {
       "path": "manifest-server.json",
@@ -22,15 +22,15 @@
     },
     {
       "path": "manifest-www.json",
-      "fileCount": 53,
-      "bytes": 9071,
-      "sha256": "299987CBE30AC4E43C24BFF479EE94838B25F21A314BDE6D8AAC6725785763B9"
+      "fileCount": 41,
+      "bytes": 7041,
+      "sha256": "B0D5261D72E36C8E5A46D66AEC2CEFC5ABAB677905575CAA10FE252363D55949"
     },
     {
       "path": "manifest-studio.json",
-      "fileCount": 32,
-      "bytes": 5532,
-      "sha256": "DB87D651CE7FAB70469C7F21D65C6397D025649F6CFFB6352453E8BF1C9D6E49"
+      "fileCount": 26,
+      "bytes": 4502,
+      "sha256": "ED4E53820E4C49281D1D0B7A4E49EC16379F0FA9BB7C813E4BDCE7F16FBC9486"
     },
     {
       "path": "manifest-media.json",
