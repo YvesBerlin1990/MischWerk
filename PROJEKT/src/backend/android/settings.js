@@ -65,7 +65,7 @@ MischWerkModules.attachAndroidSettings = function (runtime, config) {
         var requestId = null;
         try {
             if (type === 'mw:androidSettings.status') { respond(session, 'status', { ok: true, state: state(read()) }); return; }
-            if (['mw:androidSettings.prepare', 'mw:androidSettings.activate', 'mw:androidSettings.deactivate'].indexOf(type) !== -1) {
+            if (['mw:androidSettings.activate', 'mw:androidSettings.deactivate'].indexOf(type) !== -1) {
                 if (!data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).sort().join(',') !== 'requestId,revision' ||
                         typeof data.requestId !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(data.requestId)) {
                     throw runtime.failure('Die Anfrage ist ungültig.');
@@ -85,7 +85,7 @@ MischWerkModules.attachAndroidSettings = function (runtime, config) {
             if (!data || typeof data !== 'object' || Array.isArray(data) || JSON.stringify(data).length > 1200 ||
                     Object.keys(data).some(function (name) { return ['revision', 'requestId', 'syncSecret', 'relaySecret'].indexOf(name) === -1; }) ||
                     typeof data.requestId !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(data.requestId) ||
-                    typeof data.syncSecret !== 'string' || typeof data.relaySecret !== 'string') {
+                    typeof data.syncSecret !== 'string' || (data.relaySecret !== undefined && data.relaySecret !== '')) {
                 throw runtime.failure('Die Eingabe ist unvollständig oder ungültig.');
             }
             requestId = data.requestId;
@@ -96,20 +96,20 @@ MischWerkModules.attachAndroidSettings = function (runtime, config) {
             var previous = read();
             if (data.revision !== revision(previous)) { throw runtime.failure('Die Einstellungen wurden inzwischen geändert. Bitte öffne die Einrichtung erneut.'); }
             var sync = data.syncSecret || (secret(previous.syncSecret) ? previous.syncSecret : '');
-            var relay = data.relaySecret || (secret(previous.relaySecret) ? previous.relaySecret : '');
-            if (!secret(sync) || (relay && (!secret(relay) || relay === sync))) {
-                throw runtime.failure('Bitte unterschiedliche Schlüssel mit jeweils 43 bis 128 Zeichen aus Buchstaben, Ziffern, Bindestrich oder Unterstrich verwenden.');
+            var relay = previous.relaySecret;
+            if (!secret(sync)) {
+                throw runtime.failure('Bitte einen Sync-Schlüssel mit 43 bis 128 Zeichen aus Buchstaben, Ziffern, Bindestrich oder Unterstrich verwenden.');
             }
             var next = { enabled: false, runtimeVerified: false, syncUrl: target, syncSecret: sync, revision: revision(previous) + 1 };
-            if (relay) { next.relaySecret = relay; }
+            if (typeof relay === 'string') { next.relaySecret = relay; }
             runtime.stopAndroidRelay();
             KnuddelsServer.getPersistence().setObject(key, next);
             respond(session, 'result', { ok: true, requestId: requestId, state: state(next),
-                message: 'Einstellungen gespeichert. Die Verbindung bleibt bis zur Funktionsprüfung ausgeschaltet.' });
+                message: 'Einstellungen gespeichert. Die Verbindung bleibt bis zur ausdrücklichen Aktivierung ausgeschaltet.' });
         } catch (error) {
             var failed = { ok: false, requestId: requestId,
                 message: error.publicMessage || 'Die Einstellungen konnten nicht gespeichert werden. Bitte erneut öffnen.' };
-            if (['mw:androidSettings.prepare', 'mw:androidSettings.activate', 'mw:androidSettings.deactivate'].indexOf(type) !== -1) {
+            if (['mw:androidSettings.activate', 'mw:androidSettings.deactivate'].indexOf(type) !== -1) {
                 try { failed.state = state(read()); } catch (ignoredState) {}
             }
             respond(session, type === 'mw:androidSettings.status' ? 'status' : 'result', failed);

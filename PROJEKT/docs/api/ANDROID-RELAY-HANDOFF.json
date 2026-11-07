@@ -1,81 +1,151 @@
 {
   "schemaVersion": 1,
-  "status": "blocked-by-knuddels-app-permission",
-  "sourceSharedRevision": 25,
-  "targetSharedRevision": 26,
-  "updatedAt": "2026-11-07T01:07:51.549Z",
-  "nativeEvidence": {
-    "build": 279,
-    "version": "0.1.279",
-    "publisherActive": false,
+  "status": "native-wish-roundtrip-confirmed-position-movement-pending",
+  "sourceSharedRevision": 31,
+  "targetSharedRevision": 32,
+  "updatedAt": "2026-11-07T15:03:51.224Z",
+  "knuddels": {
+    "sourceRevision": 32,
+    "lastReportedBuild": 289,
+    "lastReportedVersion": "0.1.289",
+    "lastReportedScope": "Aktuelle vom Betreiber übermittelte private /mischwerk-relay status-Antwort nach dem echten Android-Durchlauf; Gegenstellenbeleg getrennt in firebase.verification.liveWishRoundTrip.",
+    "implementationBuild": 289,
+    "implementationVersion": "0.1.289",
+    "installationConfirmed": true,
+    "regularStartConfirmed": true,
+    "nativeSignedStatusAccepted": true,
+    "nativeSignedStatusScope": "Aktueller regulärer HTTP-200-/accepted-Erfolg in Build 289 und native Übernahme eines echten Android-Wunsches bestätigt. Android/Firebase hat frische Firestore-Projektionen, native queued-Quittung, entfernten pending-Auftrag und Position 1 in der normalen Android-App unabhängig belegt; Referenz firebase.runtimeReadiness und firebase.verification.liveWishRoundTrip.",
+    "publisherActive": true,
     "flags": {
-      "enabled": false,
-      "runtimeVerified": false
+      "enabled": true,
+      "runtimeVerified": true
     },
-    "firstRegularPost": null,
-    "relaySecretConfigured": true,
-    "webhookRegistered": false,
-    "webhookRegistration": {
-      "registerApiPresent": true,
-      "lookupApiPresent": true,
-      "registrationReturned": false,
-      "returnedType": null,
-      "lookupUsed": false,
-      "scheme": "none",
-      "failedStage": "register-call",
-      "error": {
-        "name": "InternalError",
-        "message": "Die App [Wert entfernt] ist nicht für WebHooks freigeschaltet."
-      }
-    }
-  },
-  "implementation": {
-    "completed": "Private Owner-Aktionen mit Sitzungs-/Revisions-/Schema-/Replay-Prüfung; dokumentierter getWebHookUrl-Fallback, vollständige HTTPS-Route einschließlich nativer Query; sichere bereinigte Originalfehlermeldung; tatsächliche Publisher-/HTTP-Metadaten.",
-    "unchanged": "Signierter Body-Vertrag, bestehender Timer und gemeinsame persistente Wunschqueue."
-  },
-  "verification": {
-    "build": 279,
-    "nodePassed": 434,
-    "rhino1772Assertions": 1120,
-    "rhino191Assertions": 1120,
-    "privateBrowserCasesPassed": 10,
-    "privateBrowserScope": "Am finalen Build-277-UPLOAD geprüft; beide privaten Frontenddateien in Build 279 bytegleich.",
-    "packageFiles": 143,
-    "textFiles": 136,
-    "backendModules": 56,
-    "manifests": 5,
-    "allDeliveredTextsStrictlyBelow9500": true,
-    "ftpReadOnly": {
-      "filesCompared": 4,
-      "allMatchBuild279Upload": true,
-      "tlsCertificateVerified": true,
-      "writes": 0
+    "flagsScope": "Tatsächliche gespeicherte Freigabeflags aus dem aktuellen nativen Bericht.",
+    "firstRegularPost": {
+      "atUtc": "2026-11-07T14:41:59.927Z",
+      "status": 200,
+      "accepted": true,
+      "wishesReceived": 0
     },
-    "nativeRestart": "Betreiber führte vollständigen Neustart aus: Registrierungsdiagnose zunächst null; frische Vorbereitung ergibt nun explizite fehlende WebHook-Freigabe."
+    "transport": "status-response-v1",
+    "webhookRequired": false,
+    "relaySecretRequired": false,
+    "implementation": {
+      "activation": "Authentifizierte private Inhaber-Sitzung, Revision/Schema/Replay geprüft. Nur vorhandener Sync-Schlüssel, festes Hostingziel und native Domain/API erforderlich. Idempotent aktivieren, sofortiger regulärer POST und bestehender 20-Sekunden-Heartbeat; Ausschalten/Speichern setzt beide Flags false.",
+      "response": "Nur regulärer postURL-onSuccess mit tatsächlichem HTTP 200, passender Antwortadresse, accepted===true, plausibler serverTime und wishes-Array bis zehn. Alte Generationen, >10 Sekunden alte Antworten, onFailure und fehlerhafte Antworten verändern keine Queue.",
+      "responseBound": "32768 UTF-16-Zeichen und UTF-8-Bytes als lokaler Schutz; keine dokumentierte Plattformgarantie behauptet. Zehn vollständig maskierte kurze Einträge passen hinein.",
+      "adoption": "ID, Text/Links und displayName string|null bis 50 prüfen. Name erzeugt keine Knuddelsidentität; Anzeige bleibt Android. Dieselbe persistente DJ-Queue, Reihenfolge und Regiestatus. Vor-/Nachcommit-Fehler, Neustart sowie fehlende Quittungsmarker werden anhand der echten Queue abgeglichen.",
+      "idempotency": "submissionId anhand offener Androideinträge, dauerhafter Queue-Endmarker und technischer Quittungen erkennen; Wiederholung bestätigt bestehenden Status/Platz ohne erneutes Einreihen, auch nach Abschluss. Vorhandene technische Outbox bis 256 ohne Texte/Namen bleibt erhalten.",
+      "acknowledgement": "Im nächsten regulären POST queued/received mit echtem Platz oder Regie-/Endstatus; nicht annehmbare neue Wünsche mit gültiger ID als discarded. pending wird nicht gesendet. Vorgängerentfernung meldet echte neue Position. Streng monotone station.updatedAt bleiben erhalten.",
+      "scheduling": "Während Antwortübernahme keine rekursive Sendeschleife; keine neue Queue, Persistenz oder zusätzlicher Timer. Einmal-Prüfbefehle übernehmen keine Antwortwünsche.",
+      "removal": "Android-WebHookmodul und Prepare-Aktion, URL-Ausgabe sowie Relay-Eingabe entfernt. Alte gespeicherte Relay-Werte unangetastet; keine Secret-Rotation oder Firebase-Änderung."
+    },
+    "ownerConfiguration": {
+      "command": "/mischwerk-relay einrichten",
+      "statusCommand": "/mischwerk-relay status",
+      "syncSecretAlreadySaved": true,
+      "instructions": "Build 289 bleibt installiert und regulär aktiv. Den echten angekommenen Wunsch normal in der bestehenden DJ-Regie behandeln. Kein neuer Build, Upload, Speichern, Aktivierung oder Secret-Schritt erforderlich. Ein Vorrücknachweis ergibt sich erst bei einer echten späteren Queue-Situation mit Vorgänger; dafür keine zusätzlichen Wünsche oder Vorgänger erzeugen.",
+      "statusFields": "build/version, publisherActive, tatsächliche flags, firstRegularPost {atUtc,status,accepted,wishesReceived}, transport, queueReturn {received,adopted,duplicates,discarded,invalid}, statusUpdatesConfirmed. Zähler sind technische kumulative Laufzeitwerte ohne Wunschinhalt."
+    },
+    "queueReturn": {
+      "nativeProcessingVerified": true,
+      "nativeObservedCounts": {
+        "received": 1,
+        "adopted": 1,
+        "duplicates": 0,
+        "discarded": 0,
+        "invalid": 0
+      },
+      "nativeStatusUpdatesConfirmed": 4,
+      "localIdempotencyVerified": true,
+      "localQueuePositionAndAcknowledgementVerified": true,
+      "nativePositionMovementVerified": false,
+      "nativeDuplicateDeliveryVerified": false,
+      "note": "Genau ein Empfang und eine Übernahme; vier bestätigte technische Statusupdates, keine vier Wünsche. Die Gegenseite sah für diesen Wunsch queued und Position 1. Aktueller nativer Status enthält keinen Queueplatz; kein Vorrücken behauptet. Dublettenschutz bleibt lokal belegt, native Doppelzustellung wurde nicht beobachtet."
+    },
+    "verification": {
+      "build": 289,
+      "nodeTestsPassed": 430,
+      "rhino1772Assertions": 1122,
+      "rhino191Assertions": 1122,
+      "privateBrowserSourceCasesPassed": 10,
+      "privateBrowserDeliveredCasesPassed": 10,
+      "counterexample": "Zwei neue Rückkanal-/Sync-allein-Fälle scheitern am unveränderten Ausgang 288 und bestehen nach Umsetzung.",
+      "coverage": "Native Callbacks/Java-Strings, zehn lange Unicode-Wünsche, Fehlerstatus/Ziel/Frische/Schema/ID/Links/Name, Datenschutz, gemischte Queue und echte Positionen, Wiederholung vor/nach Abschluss, Speicherfehler vor/nach Commit, Neustart/fehlende Marker, alte Generationen, 100er-Quittungspakete, Owner-/Sitzungs-/Revision-/Replay-Schutz und unveränderter HMAC-Vertrag.",
+      "architectureApiSyntaxPassed": true,
+      "sourceRuntimeUploadAndManifestsMatched": true,
+      "runtimeFiles": 144,
+      "textFiles": 137,
+      "backendModules": 57,
+      "manifests": 5,
+      "maximumUtf16Characters": 9485,
+      "productionEvidenceNotClaimed": false,
+      "nativeRegularStartConfirmed": true,
+      "nativeFirstRegularPostAccepted": true,
+      "nativeNonemptyWishProcessingVerified": true,
+      "productionEvidenceScope": "Regulärer nativer Betrieb, ein echter Android-Wunsch, Übernahme/Quittung und Positionsrückgabe 1 durch Betreiberbericht plus unabhängige Gegenstellenbelege bestätigt. Echtes Vorrücken sowie physisches Smartphone/Wear und Release-Play-Integrity bleiben nicht nachgewiesen.",
+      "nativeAcknowledgementConfirmed": true,
+      "peerIndependentFreshProjectionVerified": true,
+      "peerIndependentWishPositionOneVerified": true,
+      "nativePositionMovementVerified": false
+    },
+    "delivery": {
+      "version": "0.1.289",
+      "build": 289,
+      "localPath": "C:\\Users\\Yves\\Desktop\\MischWerk\\UPLOAD\\MischWerk",
+      "ready": true,
+      "ftpWrittenByKnuddelsCodex": false,
+      "nativeUpdateOrRestartByKnuddelsCodex": false
+    },
+    "remainingBlockers": [
+      "Echtes Vorrücken bei regulärer Entfernung eines tatsächlichen Vorgängers noch nicht beobachtet, da der bestätigte Android-Wunsch sofort Platz 1 hatte. Dies ist ein offener Abnahmenachweis, kein bestätigter Fehler und keine weitere Implementierungsaufgabe."
+    ],
+    "relevantSourcesInOwnProject": [
+      "PROJEKT/src/backend/android/settings.js",
+      "PROJEKT/src/backend/android/operation.js",
+      "PROJEKT/src/backend/android/connection.js",
+      "PROJEKT/src/backend/android/receipts.js",
+      "PROJEKT/src/backend/android/incoming.js",
+      "PROJEKT/src/backend/android/publisher.js",
+      "PROJEKT/src/backend/android/relay.js",
+      "PROJEKT/src/backend/android/signing.js"
+    ],
+    "nativeStatusReport": {
+      "build": 289,
+      "version": "0.1.289",
+      "publisherActive": true,
+      "flags": {
+        "enabled": true,
+        "runtimeVerified": true
+      },
+      "firstRegularPost": {
+        "atUtc": "2026-11-07T14:41:59.927Z",
+        "status": 200,
+        "accepted": true,
+        "wishesReceived": 0
+      },
+      "transport": "status-response-v1",
+      "queueReturn": {
+        "received": 1,
+        "adopted": 1,
+        "duplicates": 0,
+        "discarded": 0,
+        "invalid": 0
+      },
+      "statusUpdatesConfirmed": 4
+    },
+    "statusUpdatesConfirmed": 4
   },
-  "remainingBlockers": [
-    "Knuddels muss Freigabeverfahren für WebHooks dieser App bestätigen bzw. App freischalten.",
-    "Danach echte Hook-Adresse geschützt in vorhandenem URL-Secret hinterlegen und regulären Betrieb tatsächlich aktivieren.",
-    "Anschließend übernimmt Android/Firebase-Codex submitWish-Deployment und Android-Ende-zu-Ende-Abnahme."
-  ],
-  "supportRequest": {
-    "sent": false,
-    "text": "Hallo UserApps-Team, bitte prüft die WebHook-Freigabe für MischWerk (konfigurierte App-ID knuddelsDEV.30807196.MischWerk, Entwickler Otterchen, Channel MischWerk). Die laufende App 0.1.279 stellt WebHookAccess bereit, aber registerWebHook wirft nach vollständigem Neustart einen InternalError: „Die App [Wert entfernt] ist nicht für WebHooks freigeschaltet.“ Ist eine Freischaltung durch euch erforderlich oder gibt es einen dokumentierten Schritt für den App-Inhaber? Benötigt wird ein serverseitiger POST-Endpunkt für Musikwünsche aus unserem Firebase-Relay. Es werden keine Geheimnisse oder privaten Endpunktadressen mitgeschickt."
-  },
+  "peerEvidenceReference": "firebase.verification.liveWishRoundTrip und firebase.runtimeReadiness in gemeinsamer Revision 31/32",
   "sharedPublication": {
-    "revision": 26,
+    "revision": 32,
     "verified": true,
+    "method": "local-dropbox-sync-and-connector-readback",
     "dropboxFileId": "id:B2g_GXdhR1MAAAAAAAgySw",
-    "dropboxRev": "0165fa562c5079d0000000361c48d63",
-    "serverModified": "2026-11-07T01:09:51Z",
+    "dropboxRev": "0165fb10e77b4370000000361c48d63",
+    "serverModified": "2026-11-07T15:05:16Z",
+    "entireJsonReadbackMatched": true,
     "firebaseSectionUnchanged": true,
     "sharedContractUnchanged": true
-  },
-  "firebaseSignedContract": "Unverändert in MischWerk-Brückenstand.json; keine erneute native Signaturdiagnose erforderlich.",
-  "secretTransfer": {
-    "existingRelaySecretVersion": 1,
-    "relaySecretConfiguredNative": true,
-    "webhookUrlSecretVersion": null,
-    "secretValuesIncluded": false
   }
 }

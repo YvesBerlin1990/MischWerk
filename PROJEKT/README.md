@@ -1,10 +1,12 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.288 · Build 288 · Website 0.2.1**, Stand 07.11.2026.
+**App 0.1.290 · Build 290 · Website 0.2.1**, Stand 07.11.2026.
 
 [Projekt und Bilder](../.github/README.md) · [Verbindliche Regeln](AGENTS.md) · [Installation und Betrieb](docs/betrieb/INBETRIEBNAHME.md)
 
 Die GitHub-Übersicht liegt in [.github/README.md](../.github/README.md). Fachliche Regeln stehen zentral in [AGENTS.md](AGENTS.md); die folgenden Abschnitte erklären Ablage und Werkzeuge.
+
+Die App- und Website-Badges in der GitHub-Übersicht lesen die jeweilige `package.json` auf `main`; der Commit-Badge zeigt die letzte Änderung dieses Branches. Die Versionsanzeigen aktualisieren sich dadurch nach einem Push automatisch. Die Node.js-Voraussetzung ist separat verlinkt.
 
 Neue Channelbeitritte erhalten einheitlich „Willkommen bei Radio MischWerk, {Nick}. Viel Spaß beim Zuhören.“ mit vorhandenem kleinen Profilfoto am Ende. Der größere fette erste Satz verwendet Appleisten-Gold #e6c77b, danach folgt der zweite Satz in normaler Channelschrift ohne festen Zeilenumbruch. Nick und Foto sind native Profillinks. Die bisherigen 30 Vorlagen und die Zufallsauswahl sind entfernt. Der Appstart begrüßt bereits Anwesende nicht nachträglich. [API-Nachweis](docs/api/API-NACHWEIS.md#öffentliche-userbegrüßung) · [Prüfbericht](docs/pruefung/PRUEFBERICHT.md).
 
@@ -17,6 +19,8 @@ Alle Menüs bleiben kompakte Overlays: Radioregie bis 640 × 580 px, Sendeplan 7
 Der Sendeplan-Button in der Appleiste ist vorerst für andere Nutzer deaktiviert und zeigt darunter „In Kürze“. Otterchen als anwesender Channelinhaber kann ihn zum Weiterarbeiten öffnen.
 
 Der senderweite Lauftext lässt sich in **Radioregie → Lauftext** einstellen. Nur Radiomoderation einschließlich des automatisch berechtigten Inhabers kann Text, Tempo, Richtung und Ein/Aus speichern. Die feste Kennzeichnung lautet „Information:“. [Bedienung](docs/betrieb/INBETRIEBNAHME.md#lauftext-unter-der-appleiste).
+
+Der Android-Publisher überträgt Senderdaten und den bestätigten Lauftext einschließlich ausgeschaltetem Zustand im signierten Status-POST. Android-Musikwünsche werden aus dessen frischen bestätigten Antworten in dieselbe dauerhafte Wunschqueue übernommen und mit tatsächlichem Status und Platz quittiert. Die Einrichtung benötigt nur den privaten Sync-Schlüssel; Android-WebHook, Hook-URL und zusätzlicher Relay-Schlüssel entfallen. [Einrichtung und Abnahme](docs/betrieb/INBETRIEBNAHME.md#regulärer-rückkanal-ab-build-289) · [Anbindungsvertrag](docs/api/ANDROID-RELAY-HANDOFF.json).
 
 Das native Channel-Thema lässt sich mit **`/settopic TEXT`** setzen. **`/settopic --buttons`** erzeugt die vereinbarte Vorlage mit Lieblings-MyChannel, Readme und Channelinfo direkt im Backend und liest das Ergebnis zurück. **`/settopic --pruefen`** liest nur die gespeicherte Zeichen- und Buttonzahl. [Bedienung](docs/betrieb/INBETRIEBNAHME.md#channel-thema-setzen).
 
@@ -86,6 +90,6 @@ Aus `website/` startet `pnpm start` den regulären Webserver, `pnpm test` die ei
 
 ## Bereitstellung und Nachweise
 
-`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Die Browserrunde läuft separat. Das aktuelle Paket umfasst 143 Laufzeitdateien, darunter 136 Texte; fünf Manifeste dokumentieren die tatsächlichen Bytes. Alle Laufzeittexte und Manifeste bleiben unter 9500 Zeichen. Der Paketbau veröffentlicht nichts und startet keine echte App neu.
+`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Die Browserrunde läuft separat. Das aktuelle Paket umfasst 144 Laufzeitdateien, darunter 137 Texte; fünf Manifeste dokumentieren die tatsächlichen Bytes. Alle Laufzeittexte und Manifeste bleiben unter 9500 Zeichen. Der Paketbau veröffentlicht nichts und startet keine echte App neu.
 
 [App-Prüfbericht](docs/pruefung/PRUEFBERICHT.md) · [Website-Prüfbericht](website/docs/PRUEFUNG.md) · [API-Nachweis](docs/api/API-NACHWEIS.md) · [Architektur](docs/architektur/ARCHITEKTUR.md) · [Frontend](docs/architektur/ARCHITEKTUR-FRONTEND.md) · [Design](docs/architektur/DESIGN.md) · [LIVE-Abnahme](docs/betrieb/LIVE-ABNAHME.md)

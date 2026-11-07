@@ -29,6 +29,7 @@ MischWerkModules.attachAndroidReceipts = function (runtime) {
             throw new Error('ANDROID_RECEIPTS');
         }
         var seen = {};
+        entries = [];
         stored.entries.forEach(function (row) {
             if (!row || typeof row.submissionId !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(row.submissionId) ||
                     seen['$' + row.submissionId] || ['queued', 'received', 'preparing', 'playing', 'done', 'discarded'].indexOf(row.state) < 0 ||
@@ -56,6 +57,18 @@ MischWerkModules.attachAndroidReceipts = function (runtime) {
     runtime.androidReceipt = function (id) { clean(); return find(id); };
     runtime.androidReceiptsReady = function () { return started && healthy; };
     runtime.androidReceiptCapacity = function () { clean(); return entries.length < 256; };
+    runtime.requeueAndroidReceipt = function (id, state, position) {
+        clean();
+        var row = find(id);
+        if (!row) {
+            if (entries.length >= 256) { throw new Error('ANDROID_RECEIPT_CAPACITY'); }
+            row = { submissionId: id, createdAt: runtime.now(), revision: 0 };
+            entries.push(row);
+        }
+        row.state = state; row.position = position; row.at = runtime.now();
+        row.revision += 1; row.committed = true; row.dirty = true; row.repeatAt = 0;
+        save();
+    };
     runtime.rememberAndroidWish = function (item, position) {
         var row = { submissionId: item.externalSubmissionId, state: 'queued', position: position,
             createdAt: runtime.now(), at: runtime.now(), committed: false, revision: 1, dirty: false, repeatAt: 0 };

@@ -1,93 +1,79 @@
-/* Echte ES5/Rhino-Prüfung; HTTP-Port und Plattform bleiben vollständig isolierte Fakes. */
+/* Echte Rhino-Engines; native HTTP-Antworten/Java-Strings im isolierten Plattformmodell. */
 (function () {
     var previousPersistence = KnuddelsServer.getPersistence, previousHooks = KnuddelsServer.getWebHookAccess;
     var previousExternal = KnuddelsServer.getExternalServerAccess, previousInfo = KnuddelsServer.getAppServerInfo;
-    var secret = new Array(65).join('r'), sync = new Array(65).join('s'), observer = null, sends = [];
-    var data = { 'mischwerk.android.private.v1': { enabled: true, relaySecret: secret, syncSecret: sync,
-        syncUrl: 'https://europe-west3-radio-mischwerk.cloudfunctions.net/publishKnuddelsState' } };
+    var sync = new Array(65).join('s'), observer = null, nativeCalls = [], hookCalls = 0, clock = 1800000000000;
+    var data = { 'mischwerk.android.private.v1': { enabled: true, runtimeVerified: true, syncSecret: sync,
+        syncUrl: 'https://radio-mischwerk.web.app/api/publishKnuddelsState' } };
     KnuddelsServer.getPersistence = function () { return {
-        getObjectKeys: function () { return Object.keys(data); },
-        deleteObject: function (key) { delete data[key]; },
+        getObjectKeys: function () { return Object.keys(data); }, deleteObject: function (key) { delete data[key]; },
         getObject: function (key, fallback) { return copy(Object.prototype.hasOwnProperty.call(data, key) ? data[key] : fallback); },
         setObject: function (key, value) { data[key] = copy(value); }
     }; };
-    KnuddelsServer.getWebHookAccess = function () { return {
-        registerWebHook: function (key, handler) { check(key === 'android-wishes', 'Android eigener Hook'); observer = handler; return 'https://example.invalid/private'; },
-        unregisterWebHook: function () { observer = null; }
+    KnuddelsServer.getWebHookAccess = function () { hookCalls += 1; throw new Error('No WebHook permission'); };
+    KnuddelsServer.getExternalServerAccess = function () { return {
+        canAccessURL: function () { return true; }, postURL: function (url, params) { nativeCalls.push({ url: url, params: params }); }
     }; };
     try {
-        var runtime = MischWerkModules.createRuntime(MischWerkConfig), clock = 1800000000000;
-        runtime.now = function () { return clock; };
-        runtime.warn = function () {};
-        runtime.broadcast = function () {};
-        runtime.moderatorIsActive = function () { return false; };
-        runtime.isModerator = function () { return true; };
+        channelTextTasks = {};
+        var runtime = MischWerkModules.createRuntime(MischWerkConfig);
+        runtime.now = function () { return clock; }; runtime.warn = function () {}; runtime.broadcast = function () {};
+        runtime.moderatorIsActive = function () { return false; }; runtime.isModerator = function () { return true; };
         runtime.state = { requestsEnabled: true, topic: '', moderator: null };
-        MischWerkModules.attachChanges(runtime);
-        MischWerkModules.attachValidation(runtime);
-        MischWerkModules.attachWishStorage(runtime);
-        MischWerkModules.attachWishQueue(runtime);
-        MischWerkModules.attachAndroidSigning(runtime);
-        MischWerkModules.attachAndroidConnection(runtime);
-        MischWerkModules.attachAndroidReceipts(runtime);
-        var wire = { sendJson: function (request, finish) {
-            sends.push(copy(request)); finish({ status: 200, body: { accepted: true, serverTime: clock } });
-        } };
-        MischWerkModules.attachAndroidPublisher(runtime, wire);
-        MischWerkModules.attachAndroidWebHook(runtime, wire);
-        runtime.startAndroidRelay(); runtime.startAndroidRelay();
-        check(runtime.androidRelayHealthy(), 'Android-Sync im lokalen Fake bestätigt');
-        function call(id, text, authorization) {
-            var result;
-            observer({ getMethod: function () { return 'POST'; }, getPath: function () { return '/v1/wishes'; },
-                getQueryString: function () { return ''; }, getHeaders: function () { return { authorization: [authorization || 'Bearer ' + secret], 'content-type': ['application/json'] }; },
-                getBody: function () { return JSON.stringify({ action: 'submitWish', submissionId: id, text: text, displayName: null }); }
-            }, { send: function (status, headers, body) { result = { status: status, body: JSON.parse(body) }; } });
-            return result;
+        MischWerkModules.attachChanges(runtime); MischWerkModules.attachValidation(runtime);
+        MischWerkModules.attachTicker(runtime);
+        MischWerkModules.attachWishStorage(runtime); MischWerkModules.attachWishQueue(runtime);
+        MischWerkModules.attachAndroidSigning(runtime); MischWerkModules.attachAndroidConnection(runtime);
+        MischWerkModules.attachAndroidReceipts(runtime); MischWerkModules.attachAndroidIncoming(runtime);
+        MischWerkModules.attachAndroidPublisher(runtime); MischWerkModules.attachAndroidRelay(runtime);
+        function answer(rows, status) {
+            var c = nativeCalls[nativeCalls.length - 1], reply = { accepted: true, serverTime: clock, wishes: rows };
+            c.params[status ? 'onFailure' : 'onSuccess'](new java.lang.String(JSON.stringify(reply)), {
+                getResponseCode: function () { return new java.lang.Integer(status || 200); },
+                getURLString: function () { return new java.lang.String(c.url); }
+            });
         }
-        for (var index = 0; index < 3; index += 1) { runtime.submitWish({ getNick: function () { return 'Nativ'; }, getUserId: function () { return 1; } }, { submissionId: 'native-' + index, text: 'Band' }); }
-        check(call('android', 'M.I.A. – Song').body.position === 4, 'Android auf Platz 4 in Rhino');
-        check(call('android', 'M.I.A. – Song').body.position === 4 && runtime.wishItems().length === 4, 'Android genau einmal');
-        check(call('bad', 'https://example.invalid').status === 400, 'Gemeinsame Linkprüfung in Rhino');
-        check(call('bad', 'Band', 'Bearer wrong').status === 401, 'Bearer-Prüfung in Rhino');
-        runtime.resolveWish(1, 'done');
-        check(sends[sends.length - 1].body.wishUpdates[0].position === 3, 'Echte neue Position in Rhino');
+        function tick() {
+            var id = Object.keys(channelTextTasks)[0], task = channelTextTasks[id];
+            delete channelTextTasks[id]; clock += 20000; channelTextTime += 20000; task.callback();
+        }
+        runtime.startAndroidRelay(); runtime.startAndroidRelay();
+        check(nativeCalls.length === 1 && hookCalls === 0, 'Sync allein startet ohne WebHook oder zweiten Schlüssel');
+        check(Object.keys(nativeCalls[0].params.data).sort().join(',') === 'nonce,payload,sig,ts', 'Unveränderte vier signierte Strings');
+        answer([]); check(runtime.androidRelayHealthy(), 'Native Java-String-Antwort und Java-Integer normalisiert');
+        runtime.state.ticker = { text: new Array(301).join('Ä'), enabled: true, speed: 72, direction: 'right', revision: 1 };
+        runtime.changed('station');
+        var ticker = JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload).station.ticker;
+        check(ticker.enabled && ticker.text.length === 300 && ticker.speed === 72 && ticker.direction === 'right', 'Aktiver kanonischer Lauftext im signierten Android-Payload');
+        answer([]); runtime.state.ticker.enabled = false; runtime.changed('station');
+        ticker = JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload).station.ticker;
+        check(ticker.enabled === false && ticker.text.length === 300 && ticker.speed === 72 && ticker.direction === 'right', 'Ausgeschalteter Lauftext mit erhaltenen Werten im Android-Payload');
+        answer([]);
+        for (var i = 0; i < 3; i += 1) { runtime.submitWish({ getNick: function () { return 'Nativ'; }, getUserId: function () { return 1; } }, { submissionId: 'native-' + i, text: 'Band' }); }
+        var incoming = [{ submissionId: 'android', text: 'M.I.A. – Song', displayName: 'Untrusted' }];
+        tick(); answer(incoming); check(runtime.wishItems().length === 4, 'Android aus Antwort in derselben Queue auf Platz 4');
+        check(runtime.wishItems()[3].nick === 'Android', 'Name wird keine behauptete Knuddelsidentität');
+        tick(); check(JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload).wishUpdates[0].position === 4, 'Nächster POST quittiert echten Platz');
+        tick(); answer(incoming); check(runtime.wishItems().length === 4, 'Antwortwiederholung ist idempotent');
+        runtime.resolveWish(1, 'done'); answer([]);
+        check(JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload).wishUpdates[0].position === 3, 'Entfernung eines Vorgängers aktualisiert echte Position');
+        runtime.resolveWish(2, 'done'); answer([]); runtime.resolveWish(3, 'done'); answer([]);
         runtime.changeWishStage(null, { id: 4, previousStage: 'queued', stage: 'preparing' });
-        check(sends[sends.length - 1].body.wishUpdates[0].state === 'preparing', 'Android vorbereitet');
-        runtime.resolveWish(2, 'done'); runtime.resolveWish(3, 'discarded');
-        runtime.changeWishStage(null, { id: 4, previousStage: 'preparing', stage: 'playing' });
-        check(sends[sends.length - 1].body.wishUpdates[0].state === 'playing', 'Android spielt');
-        runtime.resolveWish(4, 'done');
-        check(sends[sends.length - 1].body.wishUpdates[0].state === 'done', 'Endstatus vor Verlust des Eintrags');
-        check(call('android', 'M.I.A. – Song').body.position === null && runtime.wishItems().length === 0, 'Terminale Wiederholung bleibt idempotent');
-        runtime.state.requestsEnabled = false; runtime.changed('station');
-        check(sends[sends.length - 1].body.station.wishboxOpen === false, 'Geschlossener echter Senderstatus');
-        check(call('closed', 'Band').body.relayCode === 'CLOSED', 'Geschlossen sperrt Versand');
-        check(JSON.stringify(data['mischwerk.android.receipts.v1']).indexOf('M.I.A.') === -1, 'Kein Wunschtext in Persistenz');
-        var nativeCalls = [], nativeAllowed = true;
-        KnuddelsServer.getExternalServerAccess = function () { return {
-            canAccessURL: function () { return nativeAllowed; },
-            postURL: function (url, params) {
-                nativeCalls.push(params);
-                check(typeof params.data.payload === 'string', 'Nativer Adapter sendet ausschließlich String-payload');
-                check(params.header === undefined && params.headers === undefined && /^[a-f0-9]{64}$/.test(params.data.sig),
-                    'Native HMAC-Daten ohne Header');
-                params.onSuccess(JSON.stringify({ accepted: true, serverTime: clock }), {
-                    getResponseCode: function () { return 200; }, getURLString: function () { return url; }
-                });
-            }
-        }; };
-        var connection = { runtimeVerified: true, syncUrl: 'https://radio-mischwerk.web.app/api/publishKnuddelsState', syncSecret: sync };
-        var nativeWire = runtime.createAndroidWire(connection), nativeReply = null;
-        nativeWire.sendJson({ url: connection.syncUrl, authorization: 'Bearer ' + sync, body: { station: { wishboxOpen: false }, wishUpdates: [] } }, function (result) { nativeReply = result; });
-        check(nativeCalls.length === 1 && nativeReply.status === 200 && nativeReply.body.accepted, 'Nativer Responseadapter in Rhino');
-        check(JSON.parse(nativeCalls[0].data.payload).station.wishboxOpen === false, 'Innerer Vertrag bleibt typisiert');
-        nativeAllowed = false;
-        check(runtime.createAndroidWire(connection) === null, 'Fehlende Domainfreigabe sperrt nativen Port');
-        connection.runtimeVerified = false; nativeAllowed = true;
-        check(runtime.createAndroidWire(connection) === null, 'Fehlender Laufzeitnachweis sperrt nativen Port');
+        check(JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload).wishUpdates[0].state === 'preparing', 'Vorbereitung wird zurückgemeldet'); answer([]);
+        runtime.changeWishStage(null, { id: 4, previousStage: 'preparing', stage: 'playing' }); answer([]);
+        runtime.resolveWish(4, 'done'); answer(incoming);
+        check(runtime.wishItems().length === 0 && runtime.pendingAndroidUpdates()[0].state === 'done', 'Terminale Antwortwiederholung erzeugt keine Dublette');
+        tick(); answer([{ submissionId: 'invalid', text: 'https://example.invalid', displayName: null }]);
+        check(runtime.androidReceipt('invalid').state === 'discarded', 'Ungültiger Text wird verworfen und quittiert');
+        tick(); var longRows = [];
+        for (i = 0; i < 10; i += 1) { longRows.push({ submissionId: 'long-' + i, text: new Array(301).join('Ä'), displayName: new Array(51).join('名') }); }
+        answer(longRows); check(runtime.wishItems().length === 10, 'Zehn Unicode-Wünsche über alter 4096-Byte-Grenze in Rhino');
+        check(JSON.stringify(data['mischwerk.android.receipts.v1']).indexOf('Untrusted') === -1, 'Technische Marker ohne Wunschtext oder Namen');
         runtime.stopAndroidRelay(); runtime.stopAndroidRelay();
-        check(observer === null && Object.keys(channelTextTasks).length === 0, 'Shutdown beendet Hook und Timer');
+        check(hookCalls === 0 && Object.keys(channelTextTasks).length === 0, 'Stop beendet Timer ohne WebHook-Zugriff');
+        KnuddelsServer.getWebHookAccess = function () { return {
+            registerWebHook: function () { throw new Error('Keine Registrierung bei Diagnose'); }, unregisterWebHook: function () {}
+        }; };
         var probeCalls = [], probeReport = null, beforeProbe = JSON.stringify(data);
         KnuddelsServer.getAppServerInfo = function () { return {
             getVersion: function () { return '20990101-010101'; }, getServerId: function () { return 'synthetic-rhino'; }

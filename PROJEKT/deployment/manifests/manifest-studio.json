@@ -1,6 +1,6 @@
 {
-  "version": "0.1.288",
-  "buildNumber": 288,
+  "version": "0.1.290",
+  "buildNumber": 290,
   "files": [
     {
       "path": "MischWerk/server/android/signing.js",
@@ -9,8 +9,8 @@
     },
     {
       "path": "MischWerk/server/android/connection.js",
-      "bytes": 7479,
-      "sha256": "05C524321B7F9543BB5C9E2A82B712455A75158D95B309785B35A584CB7E2E4E"
+      "bytes": 5682,
+      "sha256": "3C4845A70C8990BD88467D543B3A252202433259D94AC21B408BC1A04DE3D537"
     },
     {
       "path": "MischWerk/server/android/diagnostics.js",
@@ -19,18 +19,23 @@
     },
     {
       "path": "MischWerk/server/android/settings.js",
-      "bytes": 8665,
-      "sha256": "533A5617580FD3017469E1BD85984C16A3417C047E82548D5A14A10EAFEB4BDA"
+      "bytes": 8537,
+      "sha256": "587874BE75F000E7085B06236D35ED9AAD9383F3B92EED082714D826B4D46DBE"
     },
     {
       "path": "MischWerk/server/android/receipts.js",
-      "bytes": 6195,
-      "sha256": "F6E4EB0A99393E6A6329D1D315A67FA76C9C369749DD66E4D6AADF0DC83EAFA9"
+      "bytes": 6743,
+      "sha256": "D29264086941B1FBA319D79791930A354FBCB21DF25095238C9194565D684775"
+    },
+    {
+      "path": "MischWerk/server/android/incoming.js",
+      "bytes": 3201,
+      "sha256": "5F17C77F504E4E24C45805C00225F9D0D80BB2C911605471D94878E9ECAAD954"
     },
     {
       "path": "MischWerk/server/android/publisher.js",
-      "bytes": 5976,
-      "sha256": "C55EC36CF18E8CCB53EB1E64675CBEAF37BA8983CC3B84A20A84679B6BD084C0"
+      "bytes": 6895,
+      "sha256": "FF28473F6C40346D47F234963E8E697CB54085A86398B546F334711AA2A27453"
     },
     {
       "path": "MischWerk/server/android/verification.js",
@@ -38,14 +43,14 @@
       "sha256": "B25B1EC7ED685CDF668FC82FD05BE6A623A2E85ABC360B51B0B2FAC5391FEA65"
     },
     {
-      "path": "MischWerk/server/android/webhook.js",
-      "bytes": 9122,
-      "sha256": "AEE65C1A2F1440D2C186DC2FBCF73E67D68C2C8A4940E73B4D5D5912683DB084"
+      "path": "MischWerk/server/android/relay.js",
+      "bytes": 1103,
+      "sha256": "F016A8158EE3F9AC791377A36BE926143203D7533C1634AF8A3462E79D352E99"
     },
     {
       "path": "MischWerk/server/android/operation.js",
-      "bytes": 4420,
-      "sha256": "4C38A0A497051ED421BAB3693CEDF295DDC8DC63A5DC0357D7EF88329F29CD3F"
+      "bytes": 3785,
+      "sha256": "43F11584D043C46012DCFB9A0B6CDDEE65B22E33B80D554861907D7FBC4CAFE1"
     },
     {
       "path": "MischWerk/www/js/studio/markup.js",
@@ -149,13 +154,13 @@
     },
     {
       "path": "MischWerk/www/relay-settings.html",
-      "bytes": 3890,
-      "sha256": "86B24AAEE42B3B3E01881EBB8694C453CA1E3F5E684E4E2FEE81F44FF797A391"
+      "bytes": 3170,
+      "sha256": "39DEE39707C9FF830593468627D7A3D6646B1C9055FE743359081C6E52305D66"
     },
     {
       "path": "MischWerk/www/js/operator/relay-settings.js",
-      "bytes": 6048,
-      "sha256": "75550A3DC497D1F2AFD07BC84B74ADA79A56AEB4A2559D7776697756A4315530"
+      "bytes": 4927,
+      "sha256": "65D3A015F4F36E3FFA6219D9021CE5EA4C43A098C5248A086E6B977FC6923340"
     }
   ]
 }

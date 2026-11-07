@@ -13,6 +13,9 @@ function checkArchitecture() {
   assert.doesNotMatch(allBackend, /KnuddelsServer\.(?:set|clear)(?:Timeout|Interval)\s*\(/, 'Hosttimer sind globale Funktionen, keine unbelegten KnuddelsServer-Methoden');
   assert.equal((backend['channel-texts/scheduler.js'].match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Ein Bot-Versandtimer');
   assert.equal((backend['android/publisher.js'].match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Ein eigener Android-Heartbeat, nur bei eingerichtetem Transport');
+  for (const file of ['android/relay.js', 'android/incoming.js', 'android/operation.js', 'android/publisher.js']) {
+    assert.doesNotMatch(backend[file], /getWebHookAccess|registerWebHook|relaySecret/, 'Android-Rückkanal ohne WebHook oder zusätzlichen Schlüssel: ' + file);
+  }
   assert.equal((backend['android/verification.js'].match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Ein begrenzter Timeout je ausdrücklicher HTTP-Prüfung');
   assert.equal((allBackend.match(/\bsetTimeout\s*\(/g) || []).length, 3, 'Nur Bot-/Heartbeat-Timer und ausdrücklicher Prüf-Timeout');
   assert.match(backend['website/transport.js'], /getWebHookAccess\(\)\.registerWebHook\('website', handle\)/, 'Website verwendet ausschließlich dokumentierten WebHook');

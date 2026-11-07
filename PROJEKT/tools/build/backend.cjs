@@ -15,7 +15,7 @@ const modules = [
   'schedule/calendar.js', 'schedule/storage.js', 'schedule/programme.js', 'schedule/broadcasts.js', 'schedule/transport.js',
   'ui/snapshot.js', 'ui/session-state.js', 'transport/views.js', 'ui/loading.js', 'ui/content.js', 'ui/sessions.js', 'ui/wish-surface.js', 'ui/overlays.js', 'ui/administration.js', 'maintenance.js',
   'channel-texts/settings.js', 'wishes/website.js', 'website/access.js', 'website/public.js', 'website/commands.js', 'website/transport.js',
-  'android/signing.js', 'android/connection.js', 'android/diagnostics.js', 'android/settings.js', 'android/receipts.js', 'android/publisher.js', 'android/verification.js', 'android/webhook.js', 'android/operation.js',
+  'android/signing.js', 'android/connection.js', 'android/diagnostics.js', 'android/settings.js', 'android/receipts.js', 'android/incoming.js', 'android/publisher.js', 'android/verification.js', 'android/relay.js', 'android/operation.js',
   'lifecycle.js', 'transport/events.js', 'app.js'
 ];
 function source(file) {

@@ -1,415 +1,159 @@
-// Ausschließlich lokale Plattform- und HTTPS-Port-Fakes; keine externen Requests.
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { createHarness, persistence } = require('../support/knuddels.cjs');
-const privateKey = 'mischwerk.android.private.v1';
-const journalKey = 'mischwerk.android.receipts.v1';
-const settings = () => ({ enabled: true, relaySecret: 'r'.repeat(64), syncSecret: 's'.repeat(64),
-  syncUrl: 'https://europe-west3-radio-mischwerk.cloudfunctions.net/publishKnuddelsState' });
-function setup(options = {}) {
-  const hooks = new Map(), sends = [], pending = [], removed = [];
-  const store = options.store || persistence({ [privateKey]: settings() });
-  let h;
-  const wire = { sendJson(request, finish) {
-    sends.push(JSON.parse(JSON.stringify(request)));
-    if (options.throwSend) throw Error('private HTTP details');
-    if (options.hang) pending.push(finish);
-    else finish({ status: options.status || 200, body: options.response || { accepted: true, serverTime: h ? h.now() : Date.now() } });
-  } };
-  h = createHarness(store, { serverMethods: { getWebHookAccess: () => ({
-    registerWebHook(key, handle) { hooks.set(key, handle); return 'https://hooks.example.invalid/private/' + key; },
-    unregisterWebHook(key) { removed.push(key); hooks.delete(key); }
-  }), ...options.serverMethods }, configureModules(context) {
-    const create = context.MischWerkModules.createApp;
-    context.MischWerkModules.createApp = config => create(config, options.noWire ? undefined : wire);
-  } });
-  const owner = h.user(1, 'Otterchen', 'owner'), listener = h.user(2, 'Privater Nick');
-  const radio = h.open(owner), listenerRadio = h.open(listener);
-  function call(data = {}, override = {}) {
-    const handle = hooks.get('android-wishes');
-    assert.equal(typeof handle, 'function', 'Android-WebHook muss lokal registriert sein');
-    let result;
-    handle({ getMethod: () => override.method || 'POST', getPath: () => override.path || '/v1/wishes',
-      getQueryString: () => override.query || '', getRemoteAddress: () => '127.0.0.1',
-      getHeaders: () => override.headers || { Authorization: ['Bearer ' + settings().relaySecret], 'Content-Type': ['application/json'] },
-      getBody: () => override.raw === undefined ? JSON.stringify({ action: 'submitWish', submissionId: 'android-one', text: 'Band – Song', displayName: null, ...data }) : override.raw
-    }, { send(status, headers, body) { assert.equal(result, undefined, 'Genau eine Antwort'); result = { status, headers, body: JSON.parse(body) }; } });
-    return result;
-  }
-  return { h, store, owner, listener, radio, listenerRadio, call, hooks, sends, pending, removed, options };
+// Reale Backendmodule, dokumentierte postURL-Callbacks und isolierte Plattform-/Speicheradapter.
+const test=require('node:test'),assert=require('node:assert/strict');
+const {createHarness,persistence}=require('../support/knuddels.cjs');
+const privateKey='mischwerk.android.private.v1',journalKey='mischwerk.android.receipts.v1';
+const hostingUrl='https://radio-mischwerk.web.app/api/publishKnuddelsState';
+const settings=()=>({enabled:true,runtimeVerified:true,syncSecret:'s'.repeat(64),syncUrl:hostingUrl});
+function setup(options={}){
+ const calls=[],store=options.store||persistence({[privateKey]:{...settings(),...options.config}});let runtime,hookCalls=0;
+ const external={canAccessURL:()=>options.allowed!==false,postURL(url,p){calls.push({url,p});if(options.throwPost)throw Error('private-network-details');}};
+ const h=createHarness(store,{serverMethods:{getExternalServerAccess:()=>external,getWebHookAccess(){hookCalls++;throw Error('WEBHOOK-MUST-NOT-BE-CALLED');},...options.serverMethods},configureModules(c){const attach=c.MischWerkModules.attachAndroidPublisher;c.MischWerkModules.attachAndroidPublisher=r=>{attach(r);runtime=r;};}});
+ const owner=h.user(1,'Otterchen','owner'),listener=h.user(2,'Privater Nick');const radio=h.open(owner),listenerRadio=h.open(listener);
+ return {h,store,runtime,owner,listener,radio,listenerRadio,calls,options,get hookCalls(){return hookCalls;},
+  reply(wishes=[],opts={}){const c=calls[opts.index===undefined?calls.length-1:opts.index];assert.ok(c,'Nativer Status-POST vorhanden');const body=opts.body||{accepted:true,serverTime:h.now(),wishes};c.p[opts.failure?'onFailure':'onSuccess'](opts.raw===undefined?JSON.stringify(body):opts.raw,{getResponseCode:()=>opts.status||200,getURLString:()=>opts.url||hostingUrl});},
+  poll(wishes=[],opts={}){h.advance(20000);this.reply(wishes,opts);},
+  updates(){return JSON.parse(calls.at(-1).p.data.payload).wishUpdates;},items(){return JSON.parse(JSON.stringify(runtime.wishItems()));},
+  channel(text='Channelwunsch',id){h.event(listener,listenerRadio,'mw:wish.submit',{text,...(id?{submissionId:id}:{})});},
+  resolve(id,outcome='done'){h.event(owner,radio,'mw:resolveRequest',{id,outcome});}
+ };
 }
-const hostingUrl = 'https://radio-mischwerk.web.app/api/publishKnuddelsState';
-test('Neu erzeugte native Adapter teilen den belegten Port bis zur tatsächlichen Antwort',()=>{
- let runtime;const calls=[];const external={canAccessURL:()=>true,postURL:(url,p)=>calls.push({url,p})};
- createHarness(undefined,{serverMethods:{getExternalServerAccess:()=>external},configureModules(c){const attach=c.MischWerkModules.attachAndroidConnection;c.MischWerkModules.attachAndroidConnection=r=>{attach(r);runtime=r;};}});
- const config={runtimeVerified:true,syncUrl:hostingUrl,syncSecret:'s'.repeat(64)},a=runtime.createAndroidWire(config),b=runtime.createAndroidWire(config);
- const req={url:hostingUrl,authorization:'Bearer '+config.syncSecret,body:{station:{wishboxOpen:false},wishUpdates:[]}};
- const cancel=a.sendJson(req,()=>assert.fail('Logisch abgebrochene Antwort ignorieren'));cancel();
- assert.throws(()=>b.sendJson(req,()=>{}));assert.equal(calls.length,1);
- calls[0].p.onSuccess('{}',{getResponseCode:()=>200,getURLString:()=>hostingUrl});
- b.sendJson(req,()=>{});assert.equal(calls.length,2);
+const wish=(id='android-one',text='Band – Song',displayName=null)=>({submissionId:id,text,displayName});
+test('Sync allein startet nativen signierten Publisher ohne WebHook-Zugriff oder Relay-Schlüssel',()=>{
+ const f=setup();assert.equal(f.calls.length,1);assert.equal(f.hookCalls,0);assert.equal(f.runtime.androidPublisherStatus().publisherActive,true);
+ const c=f.calls[0];assert.deepEqual(Object.keys(c.p.data).sort(),['nonce','payload','sig','ts']);assert.equal(c.p.header,undefined);
+ assert.equal(c.p.data.sig,require('node:crypto').createHmac('sha256',settings().syncSecret).update('v1.'+c.p.data.ts+'.'+c.p.data.nonce+'.'+c.p.data.payload).digest('hex'));
+ assert.doesNotMatch(JSON.stringify(c.p.data),new RegExp(settings().syncSecret));f.reply();assert.equal(f.runtime.androidRelayHealthy(),true);
 });
-function setupNative(options = {}) {
-  const calls = [], accessChecks = []; let fixture;
-  const external = { canAccessURL(url) { accessChecks.push(url); return options.allowed !== false; },
-    postURL(url, parameters) {
-      const call = { url, parameters }; calls.push(call);
-      if (options.throwPost) throw Error('private network details');
-      if (options.hang) return;
-      const callback = options.failureCallback ? parameters.onFailure : parameters.onSuccess;
-      callback(options.raw === undefined ? JSON.stringify({ accepted: true, serverTime: fixture ? fixture.h.now() : Date.now() }) : options.raw,
-        { getResponseCode: () => options.responseCode || 200, getURLString: () => options.finalUrl || url });
-    }
-  };
-  const config = { ...settings(), syncUrl: hostingUrl, runtimeVerified: true, ...options.config };
-  fixture = setup({ noWire: true, store: persistence({ [privateKey]: config }), serverMethods: {
-    getExternalServerAccess: () => external, ...options.serverMethods
-  } });
-  return { ...fixture, nativeCalls: calls, accessChecks, nativeOptions: options };
-}
-test('Nativer postURL-Adapter verwendet vier signierte Strings ohne Header oder Schlüsselübertragung', () => {
-  const f = setupNative();
-  assert.equal(f.nativeCalls.length, 1);
-  const first = f.nativeCalls[0];
-  assert.equal(first.url, hostingUrl);
-  assert.deepEqual(Object.keys(first.parameters.data).sort(), ['nonce','payload','sig','ts']);
-  assert.equal(typeof first.parameters.data.payload, 'string');
-  assert.equal(first.parameters.header, undefined);
-  assert.equal(first.parameters.data.sig, require('node:crypto').createHmac('sha256', settings().syncSecret)
-    .update('v1.'+first.parameters.data.ts+'.'+first.parameters.data.nonce+'.'+first.parameters.data.payload).digest('hex'));
-  assert.ok(!JSON.stringify(first.parameters.data).includes(settings().syncSecret));
-  assert.equal('headers' in first.parameters, false); assert.equal('body' in first.parameters, false);
-  assert.deepEqual(JSON.parse(first.parameters.data.payload).wishUpdates, []);
-  assert.equal(f.call().body.accepted, true);
-  assert.equal(JSON.parse(f.nativeCalls.at(-1).parameters.data.payload).wishUpdates[0].state, 'queued');
+test('Wünsche stammen nur aus frischen bestätigten 200-Antworten des festen Ziels',()=>{
+ for(const opts of [{status:401},{status:409},{status:503},{failure:true},{url:'https://evil.invalid'},{raw:'{broken'},
+  {body:{accepted:false,serverTime:Date.now(),wishes:[wish()]}},{body:{accepted:true,serverTime:1,wishes:[wish()]}},
+  {body:{accepted:true,serverTime:Date.now(),wishes:{}}},{body:{accepted:true,serverTime:Date.now()}},
+  {body:{accepted:true,serverTime:Date.now(),wishes:Array.from({length:11},(_,i)=>wish('many-'+i))}}]){
+  const f=setup();f.reply([wish()],opts);assert.equal(f.items().length,0);assert.equal(f.runtime.androidRelayHealthy(),false);
+ }
+ const f=setup();f.h.advance(10001);f.reply([wish()]);assert.equal(f.items().length,0);
 });
-test('Nativer Start benötigt ausdrücklichen Laufzeitnachweis, passende APIs und Domainfreigabe', () => {
-  for (const options of [{ config: { runtimeVerified: false } }, { config: { runtimeVerified: 'true' } },
-    { allowed: false }, { serverMethods: { getExternalServerAccess: undefined } }]) {
-    const f = setupNative(options); assert.equal(f.hooks.size, 0); assert.equal(f.nativeCalls.length, 0);
-  }
+test('Zehn lange Unicode-Wünsche über 4096 Bytes werden vollständig übernommen und im nächsten POST quittiert',()=>{
+ const f=setup(),rows=Array.from({length:10},(_,i)=>wish('batch-'+i,'Ä'.repeat(300),'名'.repeat(50)));
+ f.reply(rows);assert.equal(f.items().length,10);assert.equal(f.calls.length,1,'Kein rekursiver Status-POST aus der Antwortverarbeitung');
+ f.h.advance(20000);assert.equal(f.updates().length,10);assert.ok(f.updates().every((r,i)=>r.position===i+1&&r.state==='queued'));
+ f.reply();assert.equal(f.runtime.androidPublisherStatus().statusUpdatesConfirmed,10);
 });
-test('Hosting-Konfiguration akzeptiert ausschließlich den vereinbarten HTTPS-Zielpfad', () => {
-  for (const syncUrl of ['https://radio-mischwerk.web.app.evil.invalid/api/publishKnuddelsState',
-    'https://radio-mischwerk.web.app/api/other', hostingUrl + '?token=bad', hostingUrl + '#fragment',
-    'http://radio-mischwerk.web.app/api/publishKnuddelsState']) {
-    const f = setupNative({ config: { syncUrl } }); assert.equal(f.nativeCalls.length, 0); assert.equal(f.hooks.size, 0);
-  }
+test('Rückkanal reiht hinter Channelwünschen ein und vermischt keine eigenen Hörerpositionen',()=>{
+ const f=setup();for(let i=0;i<3;i++)f.channel('Channel '+i);f.reply([wish()]);
+ assert.equal(f.items().length,4);assert.equal(f.items()[3].nick,'Android');assert.equal(f.items()[3].source,'Android');
+ assert.equal(f.h.state(f.listener,f.listenerRadio).wishPositions.total,3);f.h.advance(20000);assert.equal(f.updates()[0].position,4);
 });
-test('Native HTTP-/JSON-/Weiterleitungsfehler werden nie zu einer offenen Verbindung', () => {
-  for (const options of [{ responseCode: 401 }, { responseCode: 409 }, { raw: '<html>failure</html>' },
-    { raw: 'x'.repeat(4097) }, { finalUrl: 'https://unrelated.invalid' }, { throwPost: true },
-    { failureCallback: true }]) {
-    const f = setupNative(options); assert.equal(f.call().body.relayCode, 'CLOSED');
-    assert.doesNotMatch(JSON.stringify(f.h.logs), /private network details|rrrrrrrr|ssssssss/);
-  }
+test('Erneute Zustellung und gleichlautende native Kennung erzeugen keinen zweiten Androideintrag',()=>{
+ const f=setup();f.channel('Anderer Ursprung','android-one');f.reply([wish(),wish()]);assert.equal(f.items().length,2);
+ f.poll([wish('android-one','Anderer Inhalt')]);assert.equal(f.items().length,2);assert.equal(f.items()[1].text,'Band – Song');
+ assert.equal(f.runtime.androidIncomingStatus().duplicates,2);assert.equal(f.updates()[0].position,2);
 });
-test('Native Domainfreigabe wird vor jedem Versand erneut geprüft', () => {
-  const f = setupNative(); f.nativeOptions.allowed = false;
-  f.h.advance(20000); assert.equal(f.nativeCalls.length, 1);
-  assert.equal(f.call().body.relayCode, 'CLOSED');
-  assert.ok(f.accessChecks.length >= 2);
+test('Terminale Wiederholung bleibt erledigt und wird erneut mit aktuellem Ergebnis quittiert',()=>{
+ const f=setup();f.reply([wish()]);f.resolve(1);f.reply();f.poll([wish()]);assert.equal(f.items().length,0);f.h.advance(20000);
+ assert.deepEqual(f.updates(),[{submissionId:'android-one',state:'done',position:null}]);
 });
-test('Nicht abbrechbarer nativer Aufruf startet nach logischem Timeout keinen parallelen Request', () => {
-  const f = setupNative(); f.nativeOptions.hang = true; f.call();
-  assert.equal(f.nativeCalls.length, 2);
-  f.h.advance(20000); assert.equal(f.nativeCalls.length, 2);
-  const old = f.nativeCalls[1];
-  f.nativeOptions.hang = false;
-  old.parameters.onSuccess(JSON.stringify({ accepted: true, serverTime: f.h.now() }), {
-    getResponseCode: () => 200, getURLString: () => hostingUrl
-  });
-  assert.equal(f.call({ submissionId: 'too-early' }).body.relayCode, 'CLOSED');
-  f.h.advance(20000); assert.equal(f.nativeCalls.length, 3);
-  assert.equal(f.call({ submissionId: 'recovered' }).body.accepted, true);
+test('Geschlossene Wunschbox und ungültige Inhalte erzeugen discarded statt einer falschen Queueannahme',()=>{
+ const changes=[{text:''},{text:'x'.repeat(301)},{text:'https://example.invalid'},{text:'www.example.invalid'},{text:null},
+  {displayName:{}},{displayName:'x'.repeat(51)},{uid:'forged'}];
+ for(const data of changes){const f=setup();f.reply([{...wish(),...data}]);assert.equal(f.items().length,0);f.h.advance(20000);assert.equal(f.updates()[0].state,'discarded');}
+ const f=setup();f.h.event(f.owner,f.radio,'mw:setRequests',{enabled:false});f.reply([wish()]);assert.equal(f.items().length,0);f.h.advance(20000);assert.equal(f.updates()[0].state,'discarded');
 });
-test('Ohne verifizierten JSON-Transport bleibt Android auch mit Konfiguration ausgeschaltet', () => {
-  const f = setup({ noWire: true });
-  assert.equal(f.hooks.size, 0); assert.equal(f.sends.length, 0); assert.equal(f.h.timers.size, 0);
-  f.h.event(f.listener, f.listenerRadio, 'mw:wish.submit', { text: 'Channel bleibt nutzbar' });
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 1);
+test('Ungültige Kennungen werden nicht gespeichert; gültige Nachbarn und __proto__ bleiben sicher',()=>{
+ const f=setup();f.reply([null,[],wish(''),wish('x'.repeat(81)),wish('bad/id'),wish(2),wish('__proto__'),wish('safe')]);
+ assert.equal(f.items().length,2);assert.equal(f.runtime.androidIncomingStatus().invalid,6);f.h.advance(20000);assert.deepEqual(f.updates().map(x=>x.submissionId),['__proto__','safe']);
 });
-test('Drei echte Wünsche plus Android ergeben Platz 4 und einen erkennbaren externen Absender', () => {
-  const f = setup();
-  for (let i = 0; i < 3; i++) f.h.event(f.listener, f.listenerRadio, 'mw:wish.submit', { text: 'Channel ' + i });
-  assert.deepEqual(f.call().body, { accepted: true, position: 4 });
-  const row = f.h.state(f.owner, f.radio, 3).queue[0];
-  assert.equal(row.nick, 'Android'); assert.equal(row.text, 'Band – Song');
-  assert.equal(f.h.state(f.listener, f.listenerRadio).wishPositions.total, 3);
-  assert.equal(f.sends.at(-1).body.wishUpdates[0].submissionId, 'android-one');
-  assert.equal(f.sends.at(-1).body.wishUpdates[0].position, 4);
+test('Wunschtext wird normalisiert; fremde Namen werden weder als Identität noch als KCode ausgegeben',()=>{
+ const f=setup();f.reply([wish('safe',' \u0000  M.I.A.   – Song \n ','°>evil<°')]);assert.equal(f.items()[0].text,'M.I.A. – Song');assert.equal(f.items()[0].nick,'Android');
+ assert.doesNotMatch(JSON.stringify([f.h.logs,f.h.bot.messages,f.store.data[journalKey]]),/evil|M\.I\.A\./);
 });
-test('Wiederholungen sind vor und nach Erledigung idempotent; native ID kollidiert nicht', () => {
-  const f = setup();
-  f.h.event(f.listener, f.listenerRadio, 'mw:wish.submit', { text: 'Anderer Ursprung', submissionId: 'android-one' });
-  assert.equal(f.call().body.position, 2); assert.equal(f.call().body.position, 2);
-  assert.equal(f.call({ text: 'Anderer Inhalt' }).status, 400);
-  f.h.event(f.owner, f.radio, 'mw:resolveRequest', { id: 2, outcome: 'done' });
-  assert.deepEqual(f.call().body, { accepted: true, position: null });
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 1);
+test('Bestätigte Nutzlasten enthalten nur technische Androidstatusfelder, keine Wunschtexte oder Namen',()=>{
+ const f=setup();f.channel('Privater Channeltext');f.reply([wish('private','Privater Androidtext','Privater Androidname')]);f.h.advance(20000);
+ const outgoing=JSON.stringify(f.calls.map(c=>c.p.data));assert.doesNotMatch(outgoing,/Privater Channeltext|Privater Androidtext|Privater Androidname|Privater Nick|senderKey|userId/);
+ for(const row of f.updates())assert.deepEqual(Object.keys(row).sort(),['position','state','submissionId']);
+ assert.doesNotMatch(JSON.stringify(f.store.data[journalKey]),/Privater Androidtext|Privater Androidname/);
 });
-test('Geschlossen und Shutdown sperren neue Wünsche; bestätigte Wiederholung bleibt sicher', () => {
-  const f = setup(); f.call();
-  f.h.event(f.owner, f.radio, 'mw:setRequests', { enabled: false });
-  assert.deepEqual(f.call({ submissionId: 'new' }).body, { accepted: false, relayCode: 'CLOSED' });
-  assert.equal(f.call().body.accepted, true);
-  f.h.app.onPrepareShutdown();
-  assert.equal(f.hooks.has('android-wishes'), false); assert.equal(f.h.timers.size, 0);
+test('Position rückt nach echtem Vorgängerabschluss vor; received/preparing/playing/done folgen der Regie',()=>{
+ const f=setup();f.channel('Vorher');f.reply([wish()]);f.resolve(1);assert.equal(f.updates()[0].position,1);f.reply();
+ f.h.event(f.owner,f.radio,'mw:openStudio');const studio=f.owner.sessions.find(s=>s.content.viewMode==='Overlay');
+ f.h.event(f.owner,studio,'mw:ackRequest',{id:2});assert.equal(f.updates()[0].state,'received');f.reply();
+ f.h.event(f.owner,studio,'mw:setWishStage',{id:2,stage:'preparing',previousStage:'queued'});assert.equal(f.updates()[0].state,'preparing');f.reply();
+ f.h.event(f.owner,studio,'mw:setWishStage',{id:2,stage:'playing',previousStage:'preparing'});assert.equal(f.updates()[0].state,'playing');f.reply();
+ f.h.event(f.owner,studio,'mw:resolveRequest',{id:2,outcome:'done'});assert.equal(f.updates()[0].state,'done');assert.equal(f.items().length,0);
 });
-test('Strenge Authentisierung, Methode, Pfad, JSON-Schema und Bodygrenze', () => {
-  const f = setup();
-  assert.equal(f.call({}, { headers: {} }).status, 401);
-  assert.equal(f.call({}, { headers: { authorization: ['Bearer wrong'], 'Content-Type': ['application/json'] } }).status, 401);
-  assert.equal(f.call({}, { headers: { Authorization: ['Bearer ' + settings().relaySecret, 'Bearer wrong'] } }).status, 401);
-  assert.equal(f.call({}, { method: 'GET' }).status, 405);
-  assert.equal(f.call({}, { path: '/status' }).status, 404);
-  assert.equal(f.call({}, { query: 'secret=ignored' }).status, 400);
-  assert.equal(f.call({}, { raw: '{broken' }).status, 400);
-  assert.equal(f.call({}, { raw: 'x'.repeat(4097) }).status, 413);
-  assert.equal(f.call({ uid: 'forged' }).status, 400);
-  assert.equal(f.call({ action: 'getStatus' }).status, 400);
-  assert.equal(f.call({ displayName: { nick: 'forged' } }).status, 400);
-  assert.equal(f.call({ submissionId: '__proto__' }).body.accepted, true);
+test('Nutzerlöschung verändert nur echte Positionen; Androidverwerfen meldet discarded',()=>{
+ const f=setup();f.channel('Vorher');f.reply([wish()]);f.h.app.onUserDeleted(f.listener.id);assert.equal(f.updates()[0].position,1);f.reply();
+ f.resolve(2,'discarded');assert.equal(f.updates()[0].state,'discarded');
 });
-test('Ungültige IDs, leere/zu lange Texte und Links werden wie bei Knuddels abgewiesen', () => {
-  const f = setup();
-  for (const submissionId of ['', 'x'.repeat(81), 'bad/id', 2]) assert.equal(f.call({ submissionId }).status, 400);
-  for (const text of ['', 'x'.repeat(301), 'https://example.invalid', 'www.example.invalid', 'example.com', null]) {
-    assert.equal(f.call({ text }).status, 400);
-  }
-  assert.equal(f.call({ text: ' \u0000  M.I.A.   – Song \n ' }).body.accepted, true);
-  assert.equal(f.h.state(f.owner, f.radio).queue[0].text, 'M.I.A. – Song');
+test('Queuecommitfehler bestätigt keine Annahme; dieselbe Kennung kann nach Erholung übernommen werden',()=>{
+ const f=setup(),write=f.store.setObject;f.store.setObject=(k,v)=>{if(k==='mischwerk.wishes.v3')throw Error('private-storage-detail');write(k,v);};
+ f.reply([wish()]);assert.equal(f.items().length,0);f.store.setObject=write;f.poll([wish()]);assert.equal(f.items().length,1);f.poll([wish()]);assert.equal(f.items().length,1);
+ assert.doesNotMatch(JSON.stringify(f.h.logs),/private-storage-detail/);
 });
-test('Nur angenommene Android-IDs und technische Statusfelder werden übertragen/gespeichert', () => {
-  const f = setup(); f.h.event(f.listener, f.listenerRadio, 'mw:wish.submit', { text: 'Geheimer Channelwunsch' });
-  f.call({ text: 'Privater Androidsong', displayName: 'Privater Androidname' });
-  const serialized = JSON.stringify(f.sends);
-  assert.doesNotMatch(serialized, /Geheimer Channelwunsch|Privater Nick|Privater Androidsong|Privater Androidname|senderKey|userId/);
-  assert.doesNotMatch(JSON.stringify(f.store.data[journalKey]), /Privater Androidsong|Privater Androidname|Geheimer Channelwunsch/);
-  for (const send of f.sends) for (const row of send.body.wishUpdates) {
-    assert.deepEqual(Object.keys(row).sort(), ['position', 'state', 'submissionId']);
-  }
+test('Abgestürzte Quittung nach dauerhaftem Queuecommit wird nach Neustart ohne Dublette repariert',()=>{
+ const f=setup(),write=f.store.setObject;f.store.setObject=(k,v)=>{if(k===journalKey&&v.entries.some(r=>r.committed))throw Error('receipt offline');write(k,v);};
+ f.reply([wish()]);assert.equal(f.items().length,1);f.store.setObject=write;f.h.app.onShutdown();const reboot=setup({store:f.store});reboot.reply([wish()]);assert.equal(reboot.items().length,1);reboot.h.advance(20000);assert.equal(reboot.updates()[0].state,'queued');
 });
-test('Status folgt Empfang, Vorbereitung, Wiedergabe, Erledigt und echtem Vorrücken', () => {
-  const f = setup();
-  f.h.event(f.listener, f.listenerRadio, 'mw:wish.submit', { text: 'Vorher' }); f.call();
-  f.h.event(f.owner, f.radio, 'mw:resolveRequest', { id: 1, outcome: 'done' });
-  assert.equal(f.sends.at(-1).body.wishUpdates[0].position, 1);
-  f.h.event(f.owner, f.radio, 'mw:openStudio');
-  const studio = f.owner.sessions.find(s => s.content.viewMode === 'Overlay');
-  f.h.event(f.owner, studio, 'mw:ackRequest', { id: 2 });
-  assert.equal(f.sends.at(-1).body.wishUpdates[0].state, 'received');
-  f.h.event(f.owner, studio, 'mw:setWishStage', { id: 2, stage: 'preparing', previousStage: 'queued' });
-  assert.equal(f.sends.at(-1).body.wishUpdates[0].state, 'preparing');
-  f.h.event(f.owner, studio, 'mw:setWishStage', { id: 2, stage: 'playing', previousStage: 'preparing' });
-  assert.equal(f.sends.at(-1).body.wishUpdates[0].state, 'playing');
-  f.h.event(f.owner, studio, 'mw:resolveRequest', { id: 2, outcome: 'done' });
-  assert.deepEqual(f.sends.at(-1).body.wishUpdates, [{ submissionId: 'android-one', state: 'done', position: null }]);
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 0);
+test('Fehlender Quittungsmarker wird aus der dauerhaft vorhandenen Queue wiederhergestellt',()=>{
+ const f=setup();f.reply([wish()]);f.h.app.onShutdown();f.store.data[journalKey]={version:1,entries:[]};const reboot=setup({store:f.store});reboot.reply([wish()]);assert.equal(reboot.items().length,1);reboot.h.advance(20000);assert.equal(reboot.updates()[0].position,1);
 });
-test('Verwerfen und Nutzerlöschung übertragen korrekte Endzustände/Positionen', () => {
-  const f = setup();
-  f.h.event(f.listener, f.listenerRadio, 'mw:wish.submit', { text: 'Vorher' }); f.call();
-  f.h.app.onUserDeleted(f.listener.id);
-  assert.equal(f.sends.at(-1).body.wishUpdates[0].position, 1);
-  f.h.event(f.owner, f.radio, 'mw:resolveRequest', { id: 2, outcome: 'discarded' });
-  assert.equal(f.sends.at(-1).body.wishUpdates[0].state, 'discarded');
+test('Verlorene/verspätete Antwort und Shutdown führen keine alten Wünsche aus',()=>{
+ const f=setup();f.h.advance(20000);const before=f.calls.length;f.reply([wish()],{index:0});assert.equal(f.items().length,0);assert.equal(f.calls.length,before);
+ f.h.advance(20000);f.h.app.onPrepareShutdown();f.reply([wish()]);assert.equal(f.items().length,0);assert.equal(f.h.timers.size,0);
 });
-test('Station projiziert echten Schalter/Studiozustand und Heartbeat spätestens nach 20 Sekunden', () => {
-  const f = setup(), first = f.sends.length;
-  f.h.advance(19999); assert.equal(f.sends.length, first);
-  f.h.advance(1); assert.equal(f.sends.length, first + 1);
-  assert.equal(f.sends.at(-1).authorization, undefined);
-  assert.equal(f.sends.at(-1).url, settings().syncUrl);
-  assert.deepEqual(f.sends.at(-1).body.station, { wishboxOpen: true, onAir: false, moderatorNick: null, topic: null, updatedAt: f.h.now() });
-  f.h.event(f.owner, f.radio, 'mw:onAir'); f.h.event(f.owner, f.radio, 'mw:setTopic', { topic: 'Sendung' });
-  assert.equal(f.sends.at(-1).body.station.onAir, true);
-  assert.equal(f.sends.at(-1).body.station.moderatorNick, 'Otterchen');
-  assert.equal(f.sends.at(-1).body.station.topic, 'Sendung');
-  f.owner.online = false; f.h.advance(20000);
-  assert.equal(f.sends.at(-1).body.station.onAir, false);
-  assert.equal(f.sends.at(-1).body.station.moderatorNick, null);
+test('Nativer belegter Port bleibt bis zum echten Callback gesperrt, logisches Cancel genügt nicht',()=>{
+ const f=setup();f.h.advance(60000);assert.equal(f.calls.length,1);f.reply([wish()]);assert.equal(f.items().length,0);f.h.advance(20000);assert.equal(f.calls.length,2);f.reply([wish()]);assert.equal(f.items().length,1);
 });
-test('Fehlende/kaputte Konfiguration und fehlerhafte Statusantwort sperren Android', () => {
-  for (const value of [undefined, {}, { ...settings(), syncUrl: 'http://127.0.0.1' }, { ...settings(), relaySecret: 'short' }]) {
-    const f = setup({ store: persistence({ [privateKey]: value }) }); assert.equal(f.hooks.size, 0); assert.equal(f.sends.length, 0);
-  }
-  const f = setup({ status: 401 }); assert.equal(f.call().body.relayCode, 'CLOSED');
+test('Antwortgrenze ist ein lokaler 32-KiB-Schutz, keine behauptete Plattformgrenze',()=>{
+ const f=setup();f.reply([],{raw:'x'.repeat(32769)});assert.equal(f.items().length,0);assert.equal(f.runtime.androidRelayHealthy(),false);
+});
+test('Domainfreigabe wird vor jedem Versand erneut geprüft; fehlerhafte Konfiguration startet nicht',()=>{
+ const f=setup();f.reply();f.options.allowed=false;f.h.advance(20000);assert.equal(f.calls.length,1);
+ for(const config of [{enabled:false},{runtimeVerified:false},{syncSecret:'short'},{syncUrl:hostingUrl+'?bad=1'},{syncUrl:'http://evil.invalid'}])assert.equal(setup({config}).calls.length,0);
+});
+test('Jede neue Projektion ist monoton und nach mehr als 45 Sekunden frisch',()=>{
+ const f=setup();f.reply();for(const topic of ['Eins','Zwei','Drei']){f.h.event(f.owner,f.radio,'mw:setTopic',{topic});f.reply();}f.h.advance(20000);f.reply();
+ const stamps=f.calls.map(c=>JSON.parse(c.p.data.payload).station.updatedAt);for(let i=1;i<stamps.length;i++)assert.ok(stamps[i]>stamps[i-1]);
+ const old=f.calls.at(-1).p.data;f.h.event(f.owner,f.radio,'mw:setTopic',{topic:'Hängt'});f.h.advance(60000);f.reply([],{failure:true,status:401});f.h.advance(20000);assert.ok(JSON.parse(f.calls.at(-1).p.data.payload).station.updatedAt>JSON.parse(old.payload).station.updatedAt+45000);
+});
+test('Quittungsrevision einer alten Projektion löscht keine neuere Regieänderung',()=>{
+ const f=setup();f.reply([wish()]);f.h.advance(20000);f.resolve(1,'discarded');f.reply();assert.ok(f.calls.some(c=>JSON.parse(c.p.data.payload).wishUpdates.some(r=>r.state==='discarded')));
+});
+test('Große ausstehende Statusmenge wird weiterhin in Paketen bis 100 ohne Verlust bestätigt',()=>{
+ const at=Date.now()-120000,entries=Array.from({length:205},(_,i)=>({submissionId:'old-'+i,state:'done',position:null,createdAt:at,at,committed:true,dirty:true,revision:1}));
+ const f=setup({store:persistence({[privateKey]:settings(),[journalKey]:{version:1,entries}})});f.reply();f.reply();f.reply();assert.deepEqual(f.calls.map(c=>JSON.parse(c.p.data.payload).wishUpdates.length),[100,100,5]);
+});
+test('Sieben-Tage-Bereinigung und Kapazitätsgrenze bleiben begrenzt, ohne Hörerwünsche zu sperren',()=>{
+ const at=Date.now()-8*86400000,entry={submissionId:'expired',state:'done',position:null,createdAt:at,at,committed:true,dirty:true,revision:1};const f=setup({store:persistence({[privateKey]:settings(),[journalKey]:{version:1,entries:[entry]}})});assert.equal(f.store.data[journalKey].entries.length,0);
+ f.reply();for(let n=0;n<26;n++)f.poll(Array.from({length:10},(_,i)=>wish('capacity-'+(n*10+i))));assert.equal(f.items().length,256);assert.equal(f.store.data[journalKey].entries.length,256);f.channel();assert.equal(f.items().length,257);
+});
+test('Station überträgt bestätigten Lauftext einschließlich Aus mit Studiozustand und genau einem 20-Sekunden-Heartbeat',()=>{
+ const f=setup(),station=()=>JSON.parse(f.calls.at(-1).p.data.payload).station;
+ assert.deepEqual(station().ticker,{text:'',enabled:false,speed:48,direction:'left',revision:0});
+ f.reply();f.h.advance(19999);assert.equal(f.calls.length,1);f.h.advance(1);assert.equal(f.calls.length,2);f.reply();
+ f.h.event(f.owner,f.radio,'mw:onAir');f.reply();f.h.event(f.owner,f.radio,'mw:setTopic',{topic:'Sendung'});const state=JSON.parse(f.calls.at(-1).p.data.payload).station;assert.equal(state.onAir,true);assert.equal(state.moderatorNick,'Otterchen');assert.equal(state.topic,'Sendung');
+ f.reply();f.h.event(f.owner,f.radio,'mw:openStudio');const studio=f.owner.sessions.find(s=>s.activeView==='studio');
+ const save=(data)=>f.h.event(f.owner,studio,'mw:setTicker',{view:'studio',viewRevision:1,...data});
+ const text='Ä'.repeat(300);
+ for(const [index,values] of [{text:'  Radio\n MischWerk  ',enabled:true,speed:32,direction:'right'},
+  {text,enabled:true,speed:72,direction:'left'},{text,enabled:false,speed:72,direction:'left'}].entries()){
+  const before=f.calls.length;
+  const events=save({...values,requestId:'android-ticker-'+index,expectedTickerRevision:index});
+  assert.equal(events.findLast(e=>e.type==='mw:result')?.data.ok,true);
+  assert.equal(f.calls.length,before+1,'Bestätigte Lauftextänderung wird sofort übertragen');
+  const ticker={...values,text:index===0?'Radio MischWerk':text,revision:index+1};
+  assert.deepEqual(station().ticker,ticker);assert.equal(station().topic,'Sendung');
+  assert.equal(station().onAir,true);assert.equal(station().moderatorNick,'Otterchen');assert.equal(station().wishboxOpen,true);
+  const stamp=station().updatedAt;f.reply();f.h.advance(20000);
+  assert.equal(f.calls.length,before+2,'Ein regulärer Heartbeat übernimmt denselben Lauftext');
+  assert.deepEqual(station().ticker,ticker);assert.ok(station().updatedAt>stamp);f.reply();
+ }
+ for(const call of f.calls){const data=call.p.data;assert.deepEqual(Object.keys(data).sort(),['nonce','payload','sig','ts']);
+  assert.equal(data.sig,require('node:crypto').createHmac('sha256',settings().syncSecret).update('v1.'+data.ts+'.'+data.nonce+'.'+data.payload).digest('hex'));}
+ f.h.app.onShutdown();const reboot=setup({store:f.store});
+ assert.deepEqual(JSON.parse(reboot.calls[0].p.data.payload).station.ticker,station().ticker,'Ausgeschalteter gespeicherter Lauftext bleibt nach Neustart übertragen');
 });
 
-test('Jede neue Projektion und jeder Heartbeat erhöhen updatedAt auch bei gleicher Millisekunde',()=>{
- const f=setupNative();
- for(const topic of ['Eins','Zwei','Drei'])f.h.event(f.owner,f.radio,'mw:setTopic',{topic});
- f.h.advance(20000);
- const stamps=f.nativeCalls.map(c=>JSON.parse(c.parameters.data.payload).station.updatedAt);
- assert.ok(stamps.length>=4);for(let i=1;i<stamps.length;i++)assert.ok(stamps[i]>stamps[i-1]);
- for(const call of f.nativeCalls)assert.match(call.parameters.data.sig,/^[a-f0-9]{64}$/);
-});
-
-test('Nach über 45 Sekunden wird frischer Zustand statt alter signierter Nutzlast gesendet',()=>{
- const f=setupNative();f.nativeOptions.hang=true;f.call();const old=f.nativeCalls.at(-1);
- const oldAt=JSON.parse(old.parameters.data.payload).station.updatedAt;
- f.h.advance(60000);const count=f.nativeCalls.length;
- old.parameters.onFailure('',{getResponseCode:()=>401,getURLString:()=>hostingUrl});
- f.nativeOptions.hang=false;f.h.advance(20000);
- assert.equal(f.nativeCalls.length,count+1);const next=f.nativeCalls.at(-1).parameters.data;
- assert.ok(JSON.parse(next.payload).station.updatedAt>oldAt+45000);assert.ok(Number(next.ts)>Number(old.parameters.data.ts)+45000);
- assert.notEqual(next.sig,old.parameters.data.sig);
-});
-test('Hängender Relay-Aufruf läuft ab; alte Antworten nach Shutdown werden ignoriert', () => {
-  const f = setup({ hang: true }); assert.equal(f.call().body.relayCode, 'CLOSED');
-  f.h.advance(20000); assert.ok(f.pending.length >= 2);
-  f.h.app.onPrepareShutdown(); const sent = f.sends.length;
-  for (const done of f.pending) done({ status: 200, body: { accepted: true, serverTime: f.h.now() } });
-  f.h.advance(20000); assert.equal(f.sends.length, sent); assert.equal(f.h.timers.size, 0);
-});
-test('Drosselung betrifft neue Androidwünsche und lässt Wiederholungen/Channelwünsche zu', () => {
-  const f = setup();
-  for (let i = 0; i < 30; i++) assert.equal(f.call({ submissionId: 'rate-' + i }).body.accepted, true);
-  const limited = f.call({ submissionId: 'rate-extra' });
-  assert.equal(limited.status, 429); assert.equal(limited.body.relayCode, 'RATE_LIMITED');
-  assert.ok(limited.body.retryAfterSeconds > 0);
-  assert.equal(f.call({ submissionId: 'rate-0' }).body.accepted, true);
-  f.h.event(f.listener, f.listenerRadio, 'mw:wish.submit', { text: 'Weiterhin frei' });
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 31);
-  f.h.advance(60000); assert.equal(f.call({ submissionId: 'rate-extra' }).body.accepted, true);
-});
-test('Speicherfehler vor Annahme erzeugt weder Queueeintrag noch erfolgreiche Quittung', () => {
-  const f = setup(), save = f.store.setObject;
-  f.store.setObject = () => { throw Error('Secret darf nicht ins Log'); };
-  assert.equal(f.call().body.accepted, false); assert.equal(f.h.state(f.owner, f.radio).queueTotal, 0);
-  f.store.setObject = save;
-  assert.doesNotMatch(JSON.stringify(f.h.logs), /Secret darf nicht ins Log|rrrrrrrr|ssssssss|hooks.example/);
-});
-test('Neustart erhält Androidwünsche samt Position und reiht Wiederholungen nicht neu ein', () => {
-  const f = setup(); f.call(); f.h.app.onPrepareShutdown();
-  const reboot = setup({ store: f.store });
-  assert.equal(reboot.h.state(reboot.owner, reboot.radio).queueTotal, 1);
-  assert.equal(reboot.sends[0].body.wishUpdates[0].state, 'queued');
-  assert.deepEqual(reboot.call().body, { accepted: true, position: 1 });
-});
-
-test('Androidreservierung vor fehlgeschlagenem Queuecommit darf mit derselben Kennung erneut gesendet werden', () => {
-  const f = setup(), write = f.store.setObject;
-  f.store.setObject = (key, value) => {
-    if (key === 'mischwerk.wishes.v3') throw Error('queue offline');
-    write(key, value);
-  };
-  assert.equal(f.call().body.accepted, false);
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 0);
-  f.store.setObject = write;
-  assert.deepEqual(f.call().body, { accepted: true, position: 1 });
-  assert.deepEqual(f.call().body, { accepted: true, position: 1 });
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 1);
-});
-test('Terminale Marker laufen nach sieben Tagen ab; unbekannte Daten werden nicht als offen publiziert', () => {
-  const old = Date.now() - 8 * 86400000;
-  const f = setup({ store: persistence({ [privateKey]: settings(), [journalKey]: { version: 1, entries: [
-    { submissionId: 'expired', state: 'done', createdAt: old, at: old, committed: true, revision: 1, dirty: true, position: null }
-  ] } }) });
-  assert.equal(f.sends[0].body.wishUpdates.length, 0);
-  assert.equal(f.store.data[journalKey].entries.length, 0);
-  const bad = setup({ store: persistence({ [privateKey]: settings(), [journalKey]: { version: 99 } }) });
-  assert.equal(bad.hooks.size, 0); assert.equal(bad.sends.length, 0);
-});
-test('Ungültige Antworten, veraltete Serverzeit und Transportausnahme erlauben keine Annahme', () => {
-  for (const options of [{ throwSend: true }, { response: { accepted: false, serverTime: Date.now() } },
-    { response: { accepted: true, serverTime: 'now' } }, { response: { accepted: true, serverTime: 1 } },
-    { status: 409 }, { status: 503 }]) {
-    const f = setup(options); assert.equal(f.call().body.relayCode, 'CLOSED');
-    assert.doesNotMatch(JSON.stringify(f.h.logs), /private HTTP details|rrrrrrrr|ssssssss/);
-  }
-});
-test('Verlorene Antwort erzeugt keinen Doppelwunsch; Endstatus bleibt bis zur Erholung ausstehend', () => {
-  const f = setup(); f.call(); f.options.hang = true;
-  f.h.event(f.owner, f.radio, 'mw:resolveRequest', { id: 1, outcome: 'done' });
-  assert.equal(f.call().body.accepted, true); assert.equal(f.h.state(f.owner, f.radio).queueTotal, 0);
-  f.h.advance(20000);
-  const latest = f.pending.at(-1), before = f.sends.length;
-  f.pending[0]({ status: 200, body: { accepted: true, serverTime: f.h.now() } });
-  assert.equal(f.sends.length, before, 'Veraltete Bestätigung darf neueren Auftrag nicht bestätigen');
-  f.options.hang = false;
-  latest({ status: 200, body: { accepted: true, serverTime: f.h.now() } });
-  assert.equal(f.call({ submissionId: 'after-recovery' }).body.accepted, true);
-  assert.ok(f.sends.some(send => send.body.wishUpdates.some(row => row.state === 'done')));
-});
-test('UID-Zuordnungsrennen wird durch begrenzte Wiederholung nach der Annahme aufgefangen', () => {
-  const f = setup(); f.call();
-  f.h.event(f.owner, f.radio, 'mw:resolveRequest', { id: 1, outcome: 'done' });
-  let count = f.sends.filter(send => send.body.wishUpdates.some(row => row.state === 'done')).length;
-  for (let i = 0; i < 3; i++) f.h.advance(20000);
-  const after = f.sends.filter(send => send.body.wishUpdates.some(row => row.state === 'done')).length;
-  assert.ok(after >= count + 3);
-  f.h.advance(20000); count = f.sends.at(-1).body.wishUpdates.length;
-  assert.equal(count, 0, 'Nach dem Zuordnungsfenster genügt der Station-Heartbeat');
-});
-test('Große ausstehende Statusmenge wird verlustfrei in Paketen von höchstens 100 übertragen', () => {
-  const at = Date.now() - 120000;
-  const entries = Array.from({ length: 205 }, (_, i) => ({ submissionId: 'batch-' + i, state: 'done', position: null,
-    createdAt: at, at, committed: true, dirty: true, revision: 1 }));
-  const f = setup({ store: persistence({ [privateKey]: settings(), [journalKey]: { version: 1, entries } }) });
-  assert.deepEqual(f.sends.map(send => send.body.wishUpdates.length), [100, 100, 5]);
-  assert.equal(new Set(f.sends.flatMap(send => send.body.wishUpdates.map(row => row.submissionId))).size, 205);
-});
-test('Schreibfehler erhält den offenen Wunsch; erneuter Abschluss nach Erholung ist dauerhaft', () => {
-  const f = setup(); f.call(); const save = f.store.setObject;
-  f.store.setObject = () => { throw Error('storage offline'); };
-  f.h.event(f.owner, f.radio, 'mw:resolveRequest', { id: 1, outcome: 'discarded' });
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 1);
-  assert.equal(f.call({ submissionId: 'while-storage-down' }).body.accepted, false);
-  f.store.setObject = save;
-  f.h.event(f.owner, f.radio, 'mw:resolveRequest', { id: 1, outcome: 'discarded' });
-  f.h.advance(20000);
-  assert.equal(f.sends.at(-1).body.wishUpdates[0].state, 'discarded');
-});
-test('Metadaten bleiben begrenzt; Kapazitätsgrenze nimmt keine weiteren Androidwünsche an', () => {
-  const at = Date.now() - 120000;
-  const entries = Array.from({ length: 256 }, (_, i) => ({ submissionId: 'bound-' + i, state: 'done', position: null,
-    createdAt: at, at, committed: true, dirty: true, revision: 1 }));
-  const f = setup({ store: persistence({ [privateKey]: settings(), [journalKey]: { version: 1, entries } }) });
-  assert.equal(f.call().body.relayCode, 'RATE_LIMITED'); assert.equal(f.store.data[journalKey].entries.length, 256);
-  f.h.event(f.listener, f.listenerRadio, 'mw:wish.submit', { text: 'Native Annahme bleibt frei' });
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 1);
-});
-test('Ohne Datenänderung entstehen keine zusätzlichen Pushes; Neustart/Shutdown sind idempotent', () => {
-  const f = setup(), before = f.sends.length;
-  for (let i = 0; i < 3; i++) f.h.state(f.owner, f.radio);
-  f.h.app.onAppStart();
-  assert.equal(f.hooks.size, 1); assert.equal(f.h.timers.size, 1); assert.equal(f.sends.length, before);
-  f.h.app.onShutdown(); f.h.app.onPrepareShutdown();
-  assert.equal(f.h.timers.size, 0); assert.equal(f.removed.length, 1);
-});
-test('Dauerhafter Queuecommit übersteht ausgefallene Android-Quittung und wird nach Neustart abgeglichen', () => {
-  const f = setup(), save = f.store.setObject; let writes = 0;
-  f.store.setObject = (key, value) => {
-    if (key === journalKey && ++writes === 2) throw Error('receipt failed');
-    save(key, value);
-  };
-  assert.equal(f.call().body.accepted, true);
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 1);
-  assert.equal(f.call().body.accepted, true);
-  f.store.setObject = save; f.h.app.onPrepareShutdown();
-  const reboot = setup({ store: f.store });
-  assert.equal(reboot.call().body.accepted, true);
-  assert.equal(reboot.h.state(reboot.owner, reboot.radio).queueTotal, 1);
-  assert.equal(reboot.sends[0].body.wishUpdates[0].state, 'queued');
-});
-test('Bestätigung einer älteren Revision löscht keine inzwischen geänderte Bearbeitungsstufe', () => {
-  const f = setup(); f.options.hang = true; f.call();
-  f.h.event(f.owner, f.radio, 'mw:setWishStage', { id: 1, stage: 'preparing', previousStage: 'queued' });
-  assert.equal(f.sends.at(-1).body.wishUpdates[0].state, 'queued', 'Vorheriger Auftrag ist noch unterwegs');
-  f.options.hang = false;
-  f.pending[0]({ status: 200, body: { accepted: true, serverTime: f.h.now() } });
-  assert.equal(f.sends.at(-1).body.wishUpdates[0].state, 'preparing');
-});
-test('Rückwärts gestellte Uhr sperrt neue Wünsche; abgelaufene Endmarker werden auch zur Laufzeit entfernt', () => {
-  const f = setup(); f.call();
-  f.h.event(f.owner, f.radio, 'mw:resolveRequest', { id: 1, outcome: 'done' });
-  f.h.advance(-1); assert.equal(f.call({ submissionId: 'clock' }).body.relayCode, 'CLOSED');
-  f.h.advance(8 * 86400000 + 1);
-  assert.equal(f.store.data[journalKey].entries.length, 0);
-  assert.equal(f.call({ submissionId: 'clock' }).body.accepted, true);
-});
 function runtimeProbeFixture(options = {}) {
   const checks = [], secrets = 'private-secret-value';
   const h = createHarness(persistence({ [privateKey]: { enabled: false, relaySecret: secrets } }), { serverMethods: {

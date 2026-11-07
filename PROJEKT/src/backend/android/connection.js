@@ -2,41 +2,16 @@
 MischWerkModules.attachAndroidConnection = function (runtime) {
     'use strict';
     var busy = false;
-    runtime.androidRegistrationError = function (error, settings) {
-        var name = 'Error', message = '';
-        try {
-            var givenName = String(error && error.name || 'Error');
-            if (/^(?:Error|TypeError|ReferenceError|RangeError|InternalError|JavaException|WrappedException)$/.test(givenName)) { name = givenName; }
-            message = String(error && error.message || '');
-        } catch (ignoredRead) { message = ''; }
-        if (message.length > 4096) { message = ''; }
-        [settings && settings.syncSecret, settings && settings.relaySecret].forEach(function (value) {
-            if (typeof value === 'string' && value) { message = message.split(value).join('[Schlüssel entfernt]'); }
-        });
-        message = message.split(/[\r\n]/)[0]
-            .replace(/https?:\/\/[^\s<>"']+/gi, '[URL entfernt]')
-            .replace(/\bBearer\s+\S+/gi, '[Authentisierung entfernt]')
-            .replace(/(['"])[^'"\r\n]*\1/g, '[Wert entfernt]')
-            .replace(/[A-Za-z0-9_-]{32,}/g, '[Wert entfernt]')
-            .replace(/\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?\b/g, '[Adresse entfernt]')
-            .replace(/[A-Za-z]:\\[^\s,;]+/g, '[Pfad entfernt]')
-            .replace(/\/(?:home|Users|var|tmp|opt)\/[^\s,;]+/g, '[Pfad entfernt]')
-            .replace(/\s+/g, ' ').trim();
-        if (!message || (name === 'Error' && !/webhook|permission|denied|disabled|not (?:enabled|configured|initialized|allowed|supported)|unsupported|cannot|can't find method|exception|invalid/i.test(message))) {
-            message = 'Keine freigegebene kurze AppServer-Meldung verfügbar.';
-        }
-        return { name: name, message: message.substring(0, 260) };
-    };
     runtime.readAndroidSettings = function () {
         var value = KnuddelsServer.getPersistence().getObject('mischwerk.android.private.v1', null);
         if (!value || value.enabled !== true) { return null; }
         function secret(text) { return typeof text === 'string' && /^[a-zA-Z0-9_-]{43,128}$/.test(text); }
-        if (!secret(value.relaySecret) || !secret(value.syncSecret) || value.relaySecret === value.syncSecret ||
+        if (!secret(value.syncSecret) ||
                 typeof value.syncUrl !== 'string' ||
                 !/^https:\/\/(?:radio-mischwerk\.web\.app\/api\/publishKnuddelsState|europe-west3-radio-mischwerk\.cloudfunctions\.net\/publishKnuddelsState|[a-z0-9-]+\.a\.run\.app\/?)$/.test(value.syncUrl)) {
             throw new Error('ANDROID_CONFIGURATION');
         }
-        return { relaySecret: value.relaySecret, syncSecret: value.syncSecret, syncUrl: value.syncUrl,
+        return { syncSecret: value.syncSecret, syncUrl: value.syncUrl,
             runtimeVerified: value.runtimeVerified === true };
     };
     function createWire(settings, verification, authProbe) {
@@ -61,7 +36,7 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
                         matches = String(response.getURLString()) === settings.syncUrl;
                         if (matches && code !== null) { result.status = code; }
                         var text = String(raw === null || raw === undefined ? '' : raw);
-                        if (failed || text.length > 4096 || runtime.jsonBytes(text) > 4096 ||
+                        if (failed || text.length > 32768 || runtime.jsonBytes(text) > 32768 ||
                                 code === null || !matches) { throw new Error('ANDROID_HTTP_RESPONSE'); }
                         result = { status: code, body: JSON.parse(text) };
                         parsed = true;

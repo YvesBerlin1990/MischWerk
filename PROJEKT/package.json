@@ -1,7 +1,7 @@
 {
   "name": "mischwerk-knuddels-userapp",
-  "version": "0.1.288",
-  "buildNumber": 288,
+  "version": "0.1.290",
+  "buildNumber": 290,
   "private": true,
   "packageManager": "pnpm@11.25.0",
   "description": "MischWerk MyChannel Radio für Otterchen – Knuddels UserApps / K3",

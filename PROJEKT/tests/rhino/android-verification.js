@@ -21,6 +21,7 @@
         runtime.state = { requestsEnabled: true, topic: 'Synthetisches Thema', moderator: null };
         owner.sendPrivateMessage = function (text) { replies.push(JSON.parse(String(text))); };
         MischWerkModules.attachChanges(runtime);
+        MischWerkModules.attachTicker(runtime);
         MischWerkModules.attachAndroidSigning(runtime);
         MischWerkModules.attachAndroidConnection(runtime);
         MischWerkModules.attachAndroidPublisher(runtime);

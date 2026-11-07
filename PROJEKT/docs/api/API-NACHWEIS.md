@@ -1,4 +1,16 @@
-# MischWerk – API-Nachweis 0.1.288 · Build 288
+# MischWerk – API-Nachweis 0.1.290 · Build 290
+
+## Bestätigter Lauftext in der Android-Senderprojektion · Build 290
+
+`androidStationProjection()` ergänzt `ticker: runtime.tickerState()` aus dem vorhandenen Fachmodul `radio/ticker`. Der reguläre signierte Status-POST enthält damit `station.ticker` mit bereinigtem Text bis 300 Zeichen, booleschem enabled, speed 32/48/72, direction left/right und der bestehenden Lauftextrevision. Auch ausgeschaltete Lauftexte werden ausdrücklich übertragen. Derselbe Projektionsweg gilt für den vorhandenen Einzelstatustest; Auth-Prüfung mit leerem Objekt, Signaturvertrag, Senderfelder, Heartbeat und Wunschquittungen bleiben erhalten. Keine neue Plattformmethode, Quelle oder Persistenz. Build 290 wird lokal geprüft und paketiert; native Installation und Lauftextübernahme durch Firebase/Android/Homepage sind hier noch nicht nachgewiesen.
+
+## Wunsch-Rückkanal in Statusantworten · Build 289 · Revision 28
+
+Auf ausdrücklichen Betreiberauftrag ersetzt der additive Vertrag aus Revision 27 den bisherigen Android-WebHook dauerhaft. Die offizielle [ExternalServerAccess.postURL-Referenz](https://developer.knuddels.de/docs/classes/ExternalServerAccess.html) und unveränderte lokale Stubs bestätigen onSuccess(responseData, externalServerResponse). Der vorhandene Adapter normalisiert den Antwortstring, liest Status/Ziel und JSON; nur der reguläre Publisher verarbeitet wishes nach vollständiger 200-/accepted-/Frischeprüfung. Authentisierung und vier HMAC-Bodystrings bleiben bytegleich zum eingefrorenen Vertrag. Keine neue Plattformmethode, Headerdiagnose oder Firebase-Codeänderung.
+
+Lokal sind maximal 32768 Zeichen/UTF-8-Bytes vor JSON.parse zulässig. Diese Schranke deckt zehn vollständig JSON-maskierte Wünsche samt Namen und Hülle ab; die Plattform dokumentiert hier keine Antwortgrößengarantie. wishes muss ein Array mit höchstens zehn Einträgen sein. Einträge werden einzeln nach ID und bestehender Text-/Linkvalidierung geprüft; Name bleibt untrusted und wird nicht als Knuddels-Nick ausgegeben. Nur dieselbe dauerhafte Queue, ihre Endmarker und bestehende technische Outbox werden verwendet. Quittung im nächsten regulären POST; kein rekursiver Versand während des Empfangs.
+
+Aktivierung benötigt nur den gespeicherten Sync-Schlüssel und bestehende Domain-/Runtimevoraussetzungen. Android-WebHookmodul, Vorbereitungsschaltfläche und Relay-Eingabe sind entfernt; frühere gespeicherte Relay-Werte bleiben unangetastet. Historische WebHook-/Fehlerbefunde unten beschreiben den ersetzten Weg und sind keine aktuelle Betriebsvoraussetzung. Der aktuelle Betreiberbericht bestätigt Build 289, laufenden Publisher, beide true-Flags und firstRegularPost=2026-11-07T14:41:59.927Z mit HTTP 200/accepted:true und zunächst wishesReceived=0. Danach wurden kumulativ ein Wunsch empfangen und übernommen; duplicates/discarded/invalid=0, statusUpdatesConfirmed=4. Android/Firebase belegt in Revision 31 unabhängig pending → native queued-Quittung → Position 1 in der normalen Android-App, Entfernung des pending-Auftrags und frische monotone Senderprojektionen. Nur die native Positionsänderung bei echter regulärer Vorgängerentfernung ist noch offen; lokale Positions-/Idempotenznachweise ersetzen sie nicht.
 
 ## ChannelMaster-Quellvergleich und vollständiger KCode-Zeilenumbruch · Build 286
 

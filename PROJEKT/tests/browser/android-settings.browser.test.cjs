@@ -9,7 +9,7 @@ async function pageFor(t,options={}){
  await page.addInitScript(opts=>{window.__sent=[];window.__listeners={};window.__emit=(type,data)=>(window.__listeners[type]||[]).forEach(fn=>fn({type,data}));
   if(!opts.noClient)window.Client={addEventListener(type,fn){(window.__listeners[type]||(window.__listeners[type]=[])).push(fn);},sendEvent(type,data){
    if(type==='mw:androidSettings.save'&&opts.throwSend)throw Error('private exception');
-   window.__sent.push({type,data:JSON.parse(JSON.stringify(data)),fieldsEmpty:document.getElementById('relay-sync').value===''&&document.getElementById('relay-wishes').value===''});
+   window.__sent.push({type,data:JSON.parse(JSON.stringify(data)),fieldsEmpty:document.getElementById('relay-sync').value===''});
   }};
  },options);
  await page.goto('https://settings.invalid/relay-settings.html');await page.waitForFunction(()=>window.__sent.length||document.getElementById('relay-result').textContent);return page;
@@ -20,10 +20,10 @@ test('Formular bleibt ohne bestätigte private Sitzung gesperrt',async t=>{
  await open(p);assert.equal(await p.locator('#relay-save').isEnabled(),true);assert.equal(await p.locator('#relay-sync').inputValue(),'');assert.equal(await p.locator('#relay-url').getAttribute('readonly'),'');
 });
 test('Secrets werden vor dem Versand aus den Eingabefeldern gelöscht und nie gespeichert oder angezeigt',async t=>{
- const p=await pageFor(t);await open(p);const sync='s'.repeat(64),relay='r'.repeat(64);await p.locator('#relay-sync').fill(sync);await p.locator('#relay-wishes').fill(relay);await p.locator('#relay-save').click();
+ const p=await pageFor(t);await open(p);const sync='s'.repeat(64),relay='r'.repeat(64);await p.locator('#relay-sync').fill(sync);await p.locator('#relay-save').click();
  const sent=await p.evaluate(()=>window.__sent.at(-1));assert.equal(sent.data.syncSecret,sync);assert.equal(sent.fieldsEmpty,true);assert.equal(await p.locator('#relay-save').isDisabled(),true);
- await p.evaluate(s=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'save-1',state:{...s,revision:1,hasSyncSecret:true,hasRelaySecret:true},message:'Einstellungen gespeichert.'}),state);
- assert.equal(await p.locator('#relay-sync').inputValue(),'');assert.equal(await p.locator('#relay-wishes').inputValue(),'');assert.equal(await p.locator('#relay-save').isEnabled(),true);
+ await p.evaluate(s=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'save-1',state:{...s,revision:1,hasSyncSecret:true,hasRelaySecret:false},message:'Einstellungen gespeichert.'}),state);
+ assert.equal(await p.locator('#relay-sync').inputValue(),'');assert.equal(await p.locator('#relay-save').isEnabled(),true);
  assert.doesNotMatch(await p.locator('body').innerText(),new RegExp(sync+'|'+relay));assert.deepEqual(await p.evaluate(()=>[localStorage.length,sessionStorage.length]),[0,0]);
 });
 test('Versandfehler und Seitenende behalten keine Secret-Eingaben',async t=>{
@@ -36,32 +36,28 @@ test('Antworten anderer Anfragen und fehlerhafter Status aktivieren die Eingabe 
  const q=await pageFor(t);await open(q,{...state,syncUrl:'https://evil.invalid'});assert.equal(await q.locator('#relay-save').isDisabled(),true);
 });
 for(const width of [320,560])test('Einrichtung bleibt bei '+width+' Pixeln lesbar und mit Tastatur bedienbar',async t=>{
- const p=await pageFor(t,{width});await open(p,{...state,hasSyncSecret:true});await p.locator('#relay-sync').focus();await p.keyboard.press('Tab');assert.equal(await p.locator('#relay-wishes').evaluate(e=>e===document.activeElement),true);
+ const p=await pageFor(t,{width});await open(p,{...state,hasSyncSecret:true});await p.locator('#relay-sync').focus();await p.keyboard.press('Tab');assert.equal(await p.locator('#relay-save').evaluate(e=>e===document.activeElement),true);
  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.ok(await p.locator('#relay-save').evaluate(e=>e.getBoundingClientRect().height>=44));
  await p.locator('#relay-close').click();assert.equal((await p.evaluate(()=>window.__sent.at(-1))).type,'mw:androidSettings.close');
 });
 test('Außerhalb Knuddels bleibt der Dialog ohne Client geschlossen',async t=>{const p=await pageFor(t,{noClient:true});assert.equal(await p.locator('#relay-save').isDisabled(),true);assert.match(await p.locator('#relay-result').innerText(),/im MischWerk-Channel/);});
-test('Betriebsaktionen bleiben bis zu zwei gespeicherten Schlüsseln gesperrt und senden nur Revision/Anfragekennung',async t=>{
- const p=await pageFor(t);await open(p,{...state,hasSyncSecret:true});assert.equal(await p.locator('#relay-activate').isDisabled(),true);
- await open(p,{...state,hasSyncSecret:true,hasRelaySecret:true});await p.locator('#relay-activate').click();
+test('Betriebsaktionen benötigen nur den gespeicherten Sync-Schlüssel und senden nur Revision/Anfragekennung',async t=>{
+ const p=await pageFor(t);await open(p,state);assert.equal(await p.locator('#relay-activate').isDisabled(),true);
+ await open(p,{...state,hasSyncSecret:true,hasRelaySecret:false});await p.locator('#relay-activate').click();
  const sent=await p.evaluate(()=>window.__sent.at(-1));assert.equal(sent.type,'mw:androidSettings.activate');assert.deepEqual(Object.keys(sent.data).sort(),['requestId','revision']);
- await p.evaluate(s=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'activate-1',state:{...s,hasSyncSecret:true,hasRelaySecret:true,enabled:true,runtimeVerified:true,revision:1,operation:{publisherActive:true,webhookRegistered:true,lastPost:{status:200,accepted:true}}},message:'Verbindung aktiviert.'}),state);
+ await p.evaluate(s=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'activate-1',state:{...s,hasSyncSecret:true,hasRelaySecret:false,enabled:true,runtimeVerified:true,revision:1,operation:{publisherActive:true,webhookRegistered:true,lastPost:{status:200,accepted:true}}},message:'Verbindung aktiviert.'}),state);
  assert.equal(await p.locator('#relay-deactivate').isEnabled(),true);assert.match(await p.locator('#relay-status').innerText(),/Publisher läuft/);assert.match(await p.locator('#relay-status').innerText(),/HTTP 200, angenommen/);
 });
-test('Private WebHook-Adresse erscheint nur nach passender Anfrage und wird bei Reload/Seitenende entfernt',async t=>{
- const p=await pageFor(t),ready={...state,hasSyncSecret:true,hasRelaySecret:true},hook='https://hooks.example.invalid/private/android-wishes/v1/wishes';await open(p,ready);
- assert.equal(await p.locator('#relay-hook-panel').isHidden(),true);await p.locator('#relay-prepare').click();
- await p.evaluate(({s,hook})=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'foreign',state:s,webhookUrl:hook}),{s:ready,hook});assert.equal(await p.locator('#relay-hook-panel').isHidden(),true);
- await p.evaluate(({s,hook})=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'prepare-1',state:s,webhookUrl:hook}),{s:ready,hook});assert.equal(await p.locator('#relay-hook').inputValue(),hook);
- assert.equal(await p.locator('#relay-hook').getAttribute('readonly'),'');assert.deepEqual(await p.evaluate(()=>[localStorage.length,sessionStorage.length]),[0,0]);
- await p.locator('#relay-refresh').click();assert.equal(await p.locator('#relay-hook').inputValue(),'');await open(p,ready);await p.locator('#relay-prepare').click();
- await p.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
- await p.evaluate(({s,hook})=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'prepare-2',state:s,webhookUrl:hook}),{s:ready,hook});
- assert.equal(await p.locator('#relay-hook').inputValue(),'');assert.equal(await p.locator('#relay-activate').isDisabled(),true);
+test('Keine Hook-/Relay-Eingaben; verspätete Aktivierungsantwort nach Schließen bleibt verworfen',async t=>{
+ const p=await pageFor(t),ready={...state,hasSyncSecret:true};await open(p,ready);
+ for(const id of ['relay-prepare','relay-hook','relay-hook-panel','relay-wishes'])assert.equal(await p.locator('#'+id).count(),0);
+ await p.locator('#relay-activate').click();await p.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
+ await p.evaluate(s=>window.__emit('mw:androidSettings.result',{ok:true,requestId:'activate-1',state:{...s,enabled:true,runtimeVerified:true,operation:{publisherActive:true}}}),ready);
+ assert.equal(await p.locator('#relay-activate').isDisabled(),true);assert.equal(await p.locator('#relay-sync').inputValue(),'');
 });
 test('Fehlerantwort aktualisiert tatsächliche Freigabeflags und Laufstatus ohne Geheimnisse',async t=>{
- const p=await pageFor(t),active={...state,revision:1,hasSyncSecret:true,hasRelaySecret:true,enabled:true,runtimeVerified:true,operation:{publisherActive:true,webhookRegistered:true}};await open(p,active);await p.locator('#relay-deactivate').click();
+ const p=await pageFor(t),active={...state,revision:1,hasSyncSecret:true,hasRelaySecret:false,enabled:true,runtimeVerified:true,operation:{publisherActive:true,webhookRegistered:true}};await open(p,active);await p.locator('#relay-deactivate').click();
  await p.evaluate(s=>window.__emit('mw:androidSettings.result',{ok:false,requestId:'deactivate-1',state:{...s,operation:{publisherActive:false,webhookRegistered:false,webhookRegistration:{failedStage:'url-result'}}},message:'Bitte Status neu laden.'}),active);
- assert.match(await p.locator('#relay-status').innerText(),/Verbindung freigegeben/);assert.match(await p.locator('#relay-status').innerText(),/Publisher aus/);assert.match(await p.locator('#relay-status').innerText(),/url-result/);
- assert.equal(await p.locator('#relay-refresh').isEnabled(),true);assert.equal(await p.locator('#relay-hook').inputValue(),'');
+ assert.match(await p.locator('#relay-status').innerText(),/Verbindung freigegeben/);assert.match(await p.locator('#relay-status').innerText(),/Publisher aus/);
+ assert.equal(await p.locator('#relay-refresh').isEnabled(),true);
 });

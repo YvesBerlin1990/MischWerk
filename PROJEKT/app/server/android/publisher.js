@@ -3,7 +3,7 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
     'use strict';
     var settings = null, wire = null, running = false, timer = null, generation = 0, requestToken = 0;
     var active = null, healthy = false, confirmedAt = 0, lastClock = 0, dirty = false, lastProjection = null, lastStamp = 0;
-    var lastPost = null, firstAcceptedPost = null;
+    var lastPost = null, firstAcceptedPost = null, processingReply = false, confirmedUpdates = 0;
     function clock() {
         var now = runtime.now();
         if (typeof now !== 'number' || !isFinite(now) || now < lastClock) { throw new Error('ANDROID_CLOCK'); }
@@ -24,11 +24,11 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
         var onAir = runtime.moderatorIsActive();
         return { wishboxOpen: runtime.state.requestsEnabled === true && !runtime.shuttingDown,
             onAir: onAir, moderatorNick: onAir ? runtime.state.moderator.nick : null,
-            topic: runtime.state.topic || null };
+            topic: runtime.state.topic || null, ticker: runtime.tickerState() };
     };
     function projection() { return runtime.androidStationProjection(); }
     function publish(force) {
-        if (!running || runtime.shuttingDown || active) { return; }
+        if (!running || runtime.shuttingDown || active || processingReply) { return; }
         var updates, body, startedAt;
         try {
             updates = runtime.pendingAndroidUpdates();
@@ -52,13 +52,21 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
                     var now = clock(), reply = result && result.body;
                     if (now - startedAt > 10000 || !result || result.status !== 200 || !reply || reply.accepted !== true ||
                             typeof reply.serverTime !== 'number' || !isFinite(reply.serverTime) ||
-                            reply.serverTime < now - 45000 || reply.serverTime > now + 30000) { throw new Error('ANDROID_RESPONSE'); }
+                            reply.serverTime < now - 45000 || reply.serverTime > now + 30000 ||
+                            !Array.isArray(reply.wishes) || reply.wishes.length > 10) { throw new Error('ANDROID_RESPONSE'); }
                     lastPost.accepted = true;
-                    if (!firstAcceptedPost) { firstAcceptedPost = { at: startedAt, status: result.status, accepted: true }; }
+                    lastPost.wishesReceived = reply.wishes.length;
+                    if (!firstAcceptedPost) { firstAcceptedPost = { at: startedAt, status: result.status, accepted: true,
+                        wishesReceived: reply.wishes.length }; }
+                    processingReply = true;
                     runtime.confirmAndroidUpdates(updates);
+                    confirmedUpdates += updates.length;
                     healthy = true; confirmedAt = now;
-                    publish(false);
-                } catch (error) { healthy = false; dirty = true; runtime.warn('ANDROID_PUBLISH_RESPONSE'); }
+                    runtime.acceptAndroidResponseWishes(reply.wishes);
+                    processingReply = false;
+                    // Neue Quittungen gehen im nächsten regulären POST; keine rekursive Antwort-/Sendeschleife.
+                    if (!reply.wishes.length) { publish(false); }
+                } catch (error) { processingReply = false; healthy = false; dirty = true; runtime.warn('ANDROID_PUBLISH_RESPONSE'); }
             });
             if (active && active.token === token) { active.cancel = cancel; }
         } catch (error) { cancelActive(); healthy = false; dirty = true; runtime.warn('ANDROID_PUBLISH_SEND'); }
@@ -82,8 +90,11 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
     };
     runtime.androidPublisherStatus = function () {
         return { publisherActive: running, firstAcceptedPost: firstAcceptedPost ? {
-            at: firstAcceptedPost.at, status: firstAcceptedPost.status, accepted: true } : null,
-            lastPost: lastPost ? { at: lastPost.at, status: lastPost.status, accepted: lastPost.accepted } : null };
+            at: firstAcceptedPost.at, status: firstAcceptedPost.status, accepted: true,
+            wishesReceived: firstAcceptedPost.wishesReceived } : null,
+            lastPost: lastPost ? { at: lastPost.at, status: lastPost.status, accepted: lastPost.accepted,
+                wishesReceived: lastPost.wishesReceived === undefined ? null : lastPost.wishesReceived } : null,
+            statusUpdatesConfirmed: confirmedUpdates };
     };
     runtime.androidRelayHealthy = function () {
         return running && healthy && !runtime.shuttingDown && runtime.now() >= lastClock && runtime.now() - confirmedAt < 45000 &&

@@ -302,7 +302,7 @@ test('main.js laedt fachlich getrennte Serverdateien statt eines Sammelbundles',
 });
 test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
   const result = require('../../tools/checks/architecture.cjs').checkArchitecture();
-  assert.equal(result.backendModules, 56);
+  assert.equal(result.backendModules, 57);
   assert.equal(result.frontendComponents, 50);
 });
 
