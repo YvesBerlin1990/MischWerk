@@ -29,7 +29,7 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
     function projection() { return runtime.androidStationProjection(); }
     function publish(force) {
         if (!running || runtime.shuttingDown || active || processingReply) { return; }
-        var updates, body, startedAt;
+        var updates, body, startedAt, relayProjection = null, relayResults = null;
         try {
             updates = runtime.pendingAndroidUpdates();
             if (!force && !dirty && !updates.length) { return; }
@@ -39,6 +39,12 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
             body = { station: current, wishUpdates: updates.map(function (row) {
                 return { submissionId: row.submissionId, state: row.state, position: row.position };
             }) };
+            if (typeof runtime.prepareRelayProjection === 'function') {
+                relayProjection = runtime.prepareRelayProjection();
+                Object.keys(relayProjection.body).forEach(function (field) { body[field] = relayProjection.body[field]; });
+                relayResults = runtime.pendingRelayResults();
+                Object.keys(relayResults).forEach(function (field) { body[field] = relayResults[field]; });
+            }
         } catch (error) { healthy = false; runtime.warn('ANDROID_PUBLISH_PREPARE'); return; }
         dirty = false;
         var token = ++requestToken, epoch = generation;
@@ -60,12 +66,16 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
                         wishesReceived: reply.wishes.length }; }
                     processingReply = true;
                     runtime.confirmAndroidUpdates(updates);
+                    if (relayProjection) { runtime.confirmRelayProjection(relayProjection); runtime.confirmRelayResults(relayResults); }
                     confirmedUpdates += updates.length;
                     healthy = true; confirmedAt = now;
                     runtime.acceptAndroidResponseWishes(reply.wishes);
+                    if (typeof runtime.acceptRelayCommands === 'function') { runtime.acceptRelayCommands(reply); }
                     processingReply = false;
                     // Neue Quittungen gehen im nächsten regulären POST; keine rekursive Antwort-/Sendeschleife.
-                    if (!reply.wishes.length) { publish(false); }
+                    var hasCommands = (Array.isArray(reply.scheduleCommands) && reply.scheduleCommands.length > 0) ||
+                        (Array.isArray(reply.moderatorCommands) && reply.moderatorCommands.length > 0);
+                    if (!reply.wishes.length && !hasCommands) { publish(false); }
                 } catch (error) { processingReply = false; healthy = false; dirty = true; runtime.warn('ANDROID_PUBLISH_RESPONSE'); }
             });
             if (active && active.token === token) { active.cancel = cancel; }
@@ -85,6 +95,7 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
         if (running) { return; }
         if (!connection || typeof connection.sendJson !== 'function') { throw new Error('ANDROID_TRANSPORT_UNVERIFIED'); }
         wire = connection;
+        if (typeof runtime.resetRelayProjection === 'function') { runtime.resetRelayProjection(); }
         settings = configuration; running = true; generation += 1; dirty = true; lastPost = null; firstAcceptedPost = null;
         publish(true); arm();
     };
@@ -108,5 +119,6 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
     runtime.observeChanges(function (kind) {
         if (kind === 'station' && JSON.stringify(projection()) !== lastProjection) { dirty = true; publish(true); }
         else if (kind === 'wishes' || kind === 'wish-removed') { publish(false); }
+        else if (kind === 'schedule') { dirty = true; publish(true); }
     });
 };

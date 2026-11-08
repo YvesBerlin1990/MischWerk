@@ -2,25 +2,27 @@
 MischWerkUI.define('scheduleMarkup', function (dependencies) {
   'use strict';
   dependencies.dom.mount('schedule-placeholder', `
-    <section id="schedule-panel" aria-label="Wöchentlicher Sendeplan" hidden>
+    <section id="schedule-panel" aria-label="Sendeplan ab heute für 14 Tage" hidden>
       <div id="schedule-calendar">
-      <p class="schedule-intro">Das Programm von Radio MischWerk <span>Alle Zeiten · Europe/Berlin</span></p>
-      <section class="schedule-controls" aria-label="Woche und Sendeplanaktionen">
-        <nav class="schedule-navigation" aria-label="Kalenderwoche">
+      <p class="schedule-intro">Das Programm von Radio MischWerk</p>
+      <section class="schedule-controls" aria-label="Zeitraum und Sendeplanaktionen">
+        <nav class="schedule-navigation" aria-label="Zeitraum">
           <button id="schedule-previous" class="secondary-button schedule-step" type="button" aria-label="Vorherige Woche" title="Vorherige Woche"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
-          <div class="schedule-week"><span>Montag bis Sonntag</span><strong id="schedule-range">Sendeplan</strong></div>
+          <div class="schedule-week"><span id="schedule-period">Ab heute · nächste 14 Tage</span><strong id="schedule-range">Sendeplan</strong></div>
           <button id="schedule-next" class="secondary-button schedule-step" type="button" aria-label="Nächste Woche" title="Nächste Woche"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
         </nav>
-        <div class="schedule-toolbar">
-          <button id="schedule-current" class="secondary-button" type="button">Diese Woche</button>
-          <button id="schedule-refresh" class="icon-button" type="button" aria-label="Sendeplan aktualisieren" title="Sendeplan aktualisieren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-12-2L4 11m2 4a7 7 0 0 0 12 2l2-4"/></svg></button>
+        <div class="schedule-toolbar" role="group" aria-label="Sendeplanaktionen">
+          <div class="schedule-view-actions" role="group" aria-label="Ansicht">
+            <button id="schedule-current" class="secondary-button" type="button">Ab heute</button>
+            <button id="schedule-refresh" class="icon-button" type="button" aria-label="Sendeplan aktualisieren" title="Sendeplan aktualisieren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-12-2L4 11m2 4a7 7 0 0 0 12 2l2-4"/></svg></button>
+          </div>
           <button id="schedule-new" class="secondary-button" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Sendung eintragen</button>
         </div>
       </section>
       <p id="schedule-summary" class="schedule-summary" role="status" aria-live="polite"></p>
       <p id="schedule-feedback" class="schedule-feedback" role="status" aria-live="polite">Sendeplan wird geladen …</p>
-      <div id="schedule-days" class="schedule-days" aria-label="Sendungen der Woche"></div>
-      <nav id="schedule-pagination" class="schedule-pagination" aria-label="Seiten der Kalenderwoche" hidden>
+      <div id="schedule-days" class="schedule-days" aria-label="Geplante Sendungen"></div>
+      <nav id="schedule-pagination" class="schedule-pagination" aria-label="Seiten des Sendeplans" hidden>
         <button id="schedule-page-previous" class="secondary-button" type="button" aria-controls="schedule-days">Zurück</button>
         <span id="schedule-page-label" role="status" aria-live="polite"></span>
         <button id="schedule-page-next" class="secondary-button" type="button" aria-controls="schedule-days">Weiter</button>
@@ -40,7 +42,7 @@ MischWerkUI.define('scheduleMarkup', function (dependencies) {
           <p id="schedule-timing-hint" class="form-hint">Ein Ende vor dem Beginn liegt am Folgetag. Live: Channelinhaber oder Radio-Team.</p>
           <div class="schedule-form-actions">
             <button id="schedule-save" class="primary-button" type="submit">Speichern</button>
-            <button id="schedule-cancel" class="secondary-button" type="button">Zurück zur Woche</button>
+            <button id="schedule-cancel" class="secondary-button" type="button">Zurück zum Sendeplan</button>
             <button id="schedule-delete" class="text-button" type="button" hidden>Sendung löschen</button>
           </div>
         </fieldset>

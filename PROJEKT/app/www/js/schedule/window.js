@@ -16,7 +16,8 @@ MischWerkUI.define('scheduleWindow', function (dependencies) {
     var feedback = dom.el('schedule-feedback');
     var notice = dom.el('notice');
     var key = [window.innerWidth, window.innerHeight, pages.revision(), form.hidden,
-      dom.el('schedule-new').hidden, feedback.hidden, feedback.textContent, notice.hidden, notice.textContent].join('|');
+      dom.el('schedule-new').hidden, feedback.hidden, feedback.textContent, notice.hidden, notice.textContent,
+      document.querySelectorAll('.schedule-delete-confirm').length].join('|');
     if (key === lastKey && !revealKey) { return; }
     lastKey = key;
     var focused = document.activeElement;
@@ -45,7 +46,7 @@ MischWerkUI.define('scheduleWindow', function (dependencies) {
   function start() {
     if (model.view !== 'schedule') { return; }
     pages.start();
-    signals.on('schedule-content', function (data) { pages.capture(data.week); lastKey = null; request(); });
+    signals.on('schedule-content', function (data) { pages.capture(data.week, data.fromToday); lastKey = null; request(); });
     signals.on('schedule-layout', function (initial) { if (initial === true) { clearTimeout(timer); fitWindow(true); } else { request(); } });
     signals.on('schedule-reveal', function (key) { revealKey = key; request(); });
     window.addEventListener('resize', request);

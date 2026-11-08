@@ -65,12 +65,12 @@ for(const k3 of [true,false])test('Wiedergabe-Heartbeat in '+(k3?'K3':'STAPP')+'
 });
 
 test('Vinyl Deck bleibt über alle Leistenbreiten, Rollen und Pixeldichten erreichbar',async t=>{
- const rows=[],widths=[320,360,374,375,390,560,561,640,641,699,700,701,850,899,900,901,1024,1100,1199,1200,1201,1280,1350,1351,1360,1490,1600,1920,2290,2560,3440,3840];
+ const rows=[],widths=[320,360,374,375,390,499,500,560,561,640,641,699,700,701,850,899,900,901,1024,1100,1199,1200,1201,1280,1350,1351,1359,1360,1490,1499,1500,1600,1920,2290,2560,3440,3840];
  try{
   for(const deviceScaleFactor of [1,1.25,1.5,2])for(const role of ['listener','radioModerator','owner']){
    const {page,state,errors,requests}=await setup(t,{role,deviceScaleFactor,station:true,viewport:{width:1280,height:160}});
    await page.evaluate(()=>document.fonts.ready);
-   for(const [width,height] of [...widths.map(w=>[w,160]),[320,360],[390,600],[700,600],[701,600],[1199,600],[1200,600]]){
+   for(const [width,height] of [...widths.map(w=>[w,160]),[320,360],[390,600],[499,600],[500,600],[560,600],[700,600],[701,600],[1199,600],[1200,600]]){
     await resizeViewport(page,{width,height});
     const row=await page.evaluate(()=>{
      const m=document.getElementById('radio-metadata'),face=document.querySelector('.radio-program-face'),f=face.getBoundingClientRect();
@@ -997,11 +997,11 @@ async function resizeViewport(page, viewport) {
 }
 async function publicActionContentsFit(page) {
  const measurements=await page.locator('#open-schedule,#open-wishes,#studio-tab').evaluateAll(buttons=>buttons.filter(b=>b.getClientRects().length).map(button=>{
-  const b=button.getBoundingClientRect(),icon=button.querySelector('.public-action-icon').getBoundingClientRect(),copy=button.querySelector('.wish-button-copy'),c=copy.getBoundingClientRect();
+  const b=button.getBoundingClientRect(),deck=document.querySelector('.radio-panel-face').getBoundingClientRect(),icon=button.querySelector('.public-action-icon').getBoundingClientRect(),copy=button.querySelector('.wish-button-copy'),c=copy.getBoundingClientRect();
   const title=copy.querySelector('strong'),t=title.getBoundingClientRect(),style=getComputedStyle(title),shown=!!copy.getClientRects().length,svg=Array.from(button.querySelectorAll('.public-action-icon svg')).find(n=>n.getClientRects().length).getBoundingClientRect();
-  return {id:button.id,viewport:innerWidth,closed:button.classList.contains('wishes-closed'),left:b.left,right:b.right,width:b.width,height:b.height,iconHeight:icon.height,iconY:icon.top,svgSize:svg.width,titleY:shown?t.top:null,font:shown?[style.fontFamily,style.fontSize,style.fontWeight,style.lineHeight]:null,inside:[icon,...shown?[c]:[]].every(r=>r.left>=b.left-.5&&r.right<=b.right+.5&&r.top>=b.top-.5&&r.bottom<=b.bottom+.5),textFits:!shown||copy.scrollWidth<=copy.clientWidth+1,separate:!shown||icon.right<=c.left+.5||icon.bottom<=c.top+.5};
+  return {id:button.id,viewport:innerWidth,closed:button.classList.contains('wishes-closed'),left:b.left,right:b.right,width:b.width,height:b.height,iconHeight:icon.height,iconY:icon.top,svgSize:svg.width,titleY:shown?t.top:null,font:shown?[style.fontFamily,style.fontSize,style.fontWeight,style.lineHeight]:null,insideDeck:b.left>=deck.left+3.5&&b.right<=deck.right-3.5&&b.top>=deck.top+3.5&&b.bottom<=deck.bottom-3.5,inside:[icon,...shown?[c]:[]].every(r=>r.left>=b.left-.5&&r.right<=b.right+.5&&r.top>=b.top-.5&&r.bottom<=b.bottom+.5),textFits:!shown||copy.scrollWidth<=copy.clientWidth+1,separate:!shown||icon.right<=c.left+.5||icon.bottom<=c.top+.5};
  }));
- for(const row of measurements)assert.ok(row.inside&&row.textFits&&row.separate,'Symbol und vollständige Beschriftung passen ohne Überlagerung in die Radiotaste: '+JSON.stringify(row));
+ for(const row of measurements)assert.ok(row.insideDeck&&row.inside&&row.textFits&&row.separate,'Tasten bleiben mit Abstand im Deck; Symbol und vollständige Beschriftung passen ohne Überlagerung: '+JSON.stringify(row));
  for(const row of measurements.slice(1)){
   for(const key of ['width','height','iconHeight','iconY','svgSize'])assert.ok(Math.abs(measurements[0][key]-row[key])<.6,'Radiotasten haben gemeinsame Maße und Symbolhöhe ('+key+'): '+JSON.stringify(measurements));
   if(row.titleY!==null){assert.ok(Math.abs(measurements[0].titleY-row.titleY)<.6,'Alle Hauptbeschriftungen auf derselben Höhe: '+JSON.stringify(measurements));assert.deepEqual(row.font,measurements[0].font,'Gemeinsame Schriftmaße');}
@@ -1232,7 +1232,7 @@ test('Neue Radioanordnung hält die Hauptaktionen in 160 Pixeln sichtbar und ord
       const volume=await page.locator('.volume-control').boundingBox();
       assert.ok(logo.x>=0&&logo.y>=0&&logo.y+logo.height<=160&&(logo.x+logo.width<=play.x||play.x+play.width<=logo.x||logo.y+logo.height<=play.y+1),'Logo bleibt vollständig sichtbar und vom Player getrennt');
       const action=await page.locator('#open-schedule').boundingBox();
-      assert.ok(volume.x>=play.x+play.width&&(volume.x+volume.width<=action.x||volume.y+volume.height<=action.y),'Lautstärke überlagert weder Player noch Hauptaktionen');
+      assert.ok(volume.x>=play.x+play.width&&(volume.x+volume.width<=action.x||volume.y+volume.height<=action.y),'Lautstärke überlagert weder Player noch Hauptaktionen: '+JSON.stringify({width,volume,action,play}));
     }
     const title=await page.locator('#track-title').boundingBox(),artist=await page.locator('#track-artist').boundingBox();
     assert.ok(artist.y>=title.y+title.height-1,'Interpret unter dem Titel');
@@ -1261,6 +1261,7 @@ test('Öffentliche Aktionen und private Zugänge folgen ausschließlich der echt
     assert.equal(await page.locator('#schedule-button-caption').isVisible(),!available,'Hinweis nur bei pausierter Freigabe sichtbar');
     assert.ok(Math.abs(schedule.width-wishes.width)<1&&Math.abs(schedule.height-wishes.height)<1,'Gleich große öffentliche Aktionen');
     assert.ok(Math.abs(schedule.y-wishes.y)<1&&wishes.x>=schedule.x+schedule.width,'Zwei öffentliche Aktionen nebeneinander');
+    await publicActionContentsFit(page);
   }
   for(const role of ['listener','channelModerator','manager','radioModerator','owner']) {
     const {page,state,errors}=await setup(t,{role,station:true,viewport:{width:1360,height:160}});
@@ -1580,7 +1581,8 @@ test('Deaktivierte Wunschbox ist sichtbar gesperrt, sendet keine Popup-Anfrage u
       assert.equal(await page.locator('#wish-button-caption').textContent(),'Deaktiviert');
       assert.equal(await page.locator('#open-wishes .wish-icon-lock').evaluate(n=>getComputedStyle(n).display!=='none'),true);
       assert.equal(await page.locator('#open-wishes .wish-icon-music').isVisible(),false);
-      assert.equal(await page.locator('#open-wishes').evaluate(n=>getComputedStyle(n).backgroundColor),'rgba(0, 0, 0, 0)','Gesperrte Wunschbox bleibt offen auf der gemeinsamen Deckfläche bei '+width);
+      await page.waitForFunction(()=>getComputedStyle(document.getElementById('open-wishes')).backgroundColor==='rgb(37, 37, 37)');
+      assert.equal(await page.locator('#open-wishes').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(37, 37, 37)','Gesperrte Wunschbox bleibt als eigene lesbare Taste erkennbar bei '+width);
       await publicActionContentsFit(page);
       assert.equal(await page.locator('#open-wishes .wish-button-arrow').isVisible(),false);
       assert.match(await page.locator('#open-wishes').getAttribute('title'),/deaktiviert/);
@@ -3153,18 +3155,24 @@ test('Breite Radioleiste nutzt die Mittelbreite und erhält Tastaturbedienung',a
   const boxes=await Promise.all(ids.map(id=>page.locator('#'+id).boundingBox()));
   assert.equal((await page.locator('#radio-panel').boundingBox()).width,2290);
   assert.equal((await page.locator('#play-button').boundingBox()).width,60);
-  assert.ok(Math.abs(boxes[0].width-boxes[1].width)<1&&boxes[0].height===92&&boxes[1].height===92);
+  assert.ok(boxes.every(box=>Math.abs(box.width-190)<1&&box.height===80),'Alle drei Aktionen nutzen große gleichmäßige rechteckige Flächen: '+JSON.stringify(boxes));
   assert.ok(Math.abs(boxes[0].y-boxes[1].y)<1);
   const logo=await page.locator('.bar-logo').boundingBox(),play=await page.locator('#play-button').boundingBox(),music=await page.locator('.radio-program-face').boundingBox();
   assert.ok(play.x+play.width<=logo.x&&play.x>=music.x&&boxes[1].x+boxes[1].width<=music.x+music.width);
   assert.equal(await page.locator('.bar-logo').getAttribute('src'),'img/mischwerk-logo.png');
-  assert.deepEqual(await page.locator('#studio-tab .action-label strong').evaluate(n=>{const s=getComputedStyle(n);return [s.fontSize,s.fontWeight];}),['15px','600']);
+  assert.deepEqual(await page.locator('#studio-tab .action-label strong').evaluate(n=>{const s=getComputedStyle(n);return [s.fontSize,s.fontWeight];}),['18px','500']);
+  for(const id of ids){
+    const size=await page.locator('#'+id).evaluate(node=>({disc:node.querySelector('.public-action-icon').getBoundingClientRect().width,
+      icon:node.querySelector('.public-action-icon svg').getBoundingClientRect().width}));
+    assert.deepEqual(size,{disc:32,icon:32});
+  }
+  await publicActionContentsFit(page);
   for(const [index,id] of ids.entries()){
     const node=page.locator('#'+id),before=await node.boundingBox();
     await node.hover();await page.mouse.down();
     assert.deepEqual(await node.boundingBox(),before,'Druckzustand verschiebt keine Klickfläche');
     const styles=await node.evaluate(n=>{const s=getComputedStyle(n);return {shadow:s.boxShadow,textShadow:s.textShadow,background:s.backgroundImage};});
-    assert.equal(styles.shadow,'none');assert.equal(styles.textShadow,'none');assert.equal(styles.background,'none');
+    assert.match(styles.shadow,/inset/);assert.equal(styles.textShadow,'none');assert.match(styles.background,/radial-gradient/);
     await page.mouse.move(0,0);await page.mouse.up();
     await node.focus();await page.keyboard.press('Enter');
     const sent=await page.evaluate(()=>window.__sent.at(-1));
@@ -3174,6 +3182,23 @@ test('Breite Radioleiste nutzt die Mittelbreite und erhält Tastaturbedienung',a
   }
   await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,curtain:{...state.curtain,closed:false}}),state);
   assert.equal(await page.locator('#curtain-toggle').count(),0);
+  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:3,requestsEnabled:false,curtain:{...state.curtain,closed:false}}),state);
+  await publicActionContentsFit(page);
+  if(process.env.MISCHWERK_DESIGN_CAPTURE){
+    const folder=path.join(require('node:os').tmpdir(),'MischWerk-Pruefbilder','radio');fs.mkdirSync(folder,{recursive:true});
+    await page.waitForFunction(()=>getComputedStyle(document.getElementById('open-wishes')).backgroundColor==='rgb(37, 37, 37)');
+    await page.locator('#studio-tab').evaluate(node=>node.blur());await page.mouse.move(0,0);
+    async function captureActions(name){
+      const group=await page.locator('#open-schedule,#open-wishes,#studio-tab').evaluateAll(nodes=>{
+        const boxes=nodes.map(node=>node.getBoundingClientRect());return {x:Math.floor(boxes[0].left-6),y:Math.floor(Math.min(...boxes.map(box=>box.top))-6),
+          width:Math.ceil(boxes.at(-1).right-boxes[0].left+12),height:Math.ceil(Math.max(...boxes.map(box=>box.bottom))-Math.min(...boxes.map(box=>box.top))+12)};
+      });
+      await page.screenshot({path:path.join(folder,name+'.png'),clip:group});
+    }
+    await captureActions('Aktionen-Gross');
+    await resizeViewport(page,{width:390,height:160});await publicActionContentsFit(page);
+    await captureActions('Aktionen-Schmal');
+  }
   assert.deepEqual(errors,[]);
 });
 

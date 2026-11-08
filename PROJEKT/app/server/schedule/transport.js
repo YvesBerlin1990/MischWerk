@@ -21,7 +21,7 @@ MischWerkModules.attachScheduleTransport = function (runtime) {
             requestId = data.requestId;
             if (runtime.shuttingDown) { throw runtime.failure('MischWerk wird gerade neu gestartet. Bitte später erneut öffnen.'); }
             if (type === 'mw:schedule.get') {
-                var result = runtime.schedulePage(user, data.week, data.page);
+                var result = data.range === true ? runtime.scheduleOverviewPage(user, data.page) : runtime.schedulePage(user, data.week, data.page);
                 result.requestId = requestId;
                 if (JSON.stringify(result).length >= 9500) { throw new Error('schedule packet'); }
                 runtime.send(session, 'mw:schedule.data', result);
@@ -30,7 +30,7 @@ MischWerkModules.attachScheduleTransport = function (runtime) {
             runtime.changeSchedule(user, type, data);
             runtime.send(session, 'mw:schedule.result', { requestId: requestId, ok: true,
                 message: type === 'mw:schedule.delete' ? 'Sendung entfernt.' : 'Sendung gespeichert.' });
-            runtime.notifySchedule();
+            runtime.changed('schedule');
         } catch (error) {
             if (!error.publicMessage) { runtime.warn('SCHEDULE_ACTION', error); }
             runtime.send(session, 'mw:schedule.result', { requestId: requestId, ok: false,

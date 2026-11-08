@@ -8,10 +8,14 @@
 .schedule-form-grid > [hidden] { display:none; }
 .schedule-form-grid:has(#schedule-end-field[hidden]) #schedule-start-field { grid-column:1 / -1; }
 .schedule-autodj-gap {
-  grid-column:2; margin:6px 0; color:var(--muted); font-size:13px; line-height:1.5;
+  display:grid; grid-template-columns:152px minmax(0,1fr); gap:4px 12px;
+  margin:6px 0; color:var(--muted); font-size:13px; line-height:1.5;
   overflow-wrap:anywhere;
 }
+.schedule-gap-time { font-variant-numeric:tabular-nums; }
+.schedule-gap-copy { min-width:0; }
 .schedule-autodj-gap + .schedule-show { margin-top:6px; }
+@media (max-width:500px) { .schedule-autodj-gap { grid-template-columns:minmax(0,1fr); gap:2px; } }
 @media (max-height:700px) {
   .schedule-form select,.schedule-form input { margin-bottom:6px; }
   .schedule-form h2 { margin-bottom:6px; }

@@ -9,24 +9,31 @@
 
 Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderation, Sendeplan und eigener Homepage.
 
-**App 0.1.290 · Build 290 · Website 0.2.1** — Stand: 7. November 2026.
+**App 0.1.305 · Build 305 · Website 0.2.5** — Stand: 8. November 2026.
 
-![MischWerk-Appleiste mit goldenen Tasten und aktivem Wiedergabelicht](../PROJEKT/docs/pruefung/oberflaeche/radio/vinyl-glow-desktop.png)
+![Aktuelle Appleiste: unveränderte runde Playtaste, große gerundete Aktionen und aktives Wiedergabelicht](../PROJEKT/docs/pruefung/oberflaeche/radio/vinyl-glow-desktop.png)
 
+- **Bedienung:** Große, gut lesbare Tasten für Sendeplan, Wunschbox und Radioregie. Gerundete Konturen, warme Goldränder und dunkle Materialfarben passen zur unveränderten Playtaste; schmale Fenster ordnen die Inhalte passend an.
 - **Begrüßung:** Einheitlich „Willkommen bei Radio MischWerk, {Nick}. Viel Spaß beim Zuhören.“ für alle User; größere fette Begrüßungszeile in Gold, Nick und Foto als Profillinks, Foto weiterhin am Ende.
 - **Lauftext:** Frei einstellbarer Hinweis unter der Appleiste; Text, Tempo, Richtung und Ein/Aus in der Radioregie. Die feste Beschriftung lautet „Information:“.
 - **Radio:** HTTPS-Livestream, Play/Stop, Lautstärke und aktuelle Titel. Neue Titel erscheinen unabhängig von der AutoDJ-/Live-Abfrage.
 - **Wunschbox:** Musikwünsche senden und den eigenen Platz privat verfolgen. Bestätigte offene Wünsche bleiben bei Updates und Neustarts mit Reihenfolge und Bearbeitungsstatus gespeichert.
 - **Moderation:** Anmelden und Abmelden ohne Zeitlimit, Sendungsthema, Wunschregie und bestätigte Übergabe. Keine Verlängerung oder automatische Sechs-Stunden-Abmeldung.
-- **Sendeplan:** Wochenübersicht mit Live, AutoDJ und flexiblen Laufzeiten.
+- **Sendeplan:** Hörerprogramm für die nächsten 14 Tage ab heute. Sendungstitel, Uhrzeiten und Namen stehen im Vordergrund; freie Zeiten heißen „Musikmix von MischWerk“. Ein reiner Musikplan zeigt im Standardfenster fünf Tage pro Seite. Automatische Studioeinträge erscheinen für Hörer ab fünf Minuten und mit vollen Anfangsstunden; der Inhaber kann abgeschlossene und manuelle Einträge direkt entfernen.
 - **Verwaltung:** Radio-Team und öffentliche Bot-Texte für den Channelinhaber.
 - **Android-Anbindung:** Signierte Senderdaten einschließlich Lauftext; Android-Musikwünsche gelangen über Statusantworten in dieselbe dauerhafte Wunschqueue. Für die Einrichtung genügt der private Sync-Schlüssel.
 
+Der öffentliche **Sendeplan-Button bleibt bewusst auf „In Kürze“**. Otterchen als anwesender Channelinhaber kann die Ansicht bereits öffnen. Die folgenden Kalenderbilder zeigen die lokale Höreransicht.
+
 ## Einblicke
 
-| Moderation | Sendeplan |
+| Appleiste mobil | Aktionsbuttons im Detail |
 | --- | --- |
-| ![Radioregie mit An-/Abmeldung, Übergabe und Sendungsthema](../PROJEKT/docs/pruefung/oberflaeche/moderation/moderation-780.png) | ![Sendeplan mit Live und AutoDJ](../PROJEKT/docs/pruefung/oberflaeche/sendeplan/sendeplan-820.png) |
+| <img src="../PROJEKT/docs/pruefung/oberflaeche/radio/vinyl-glow-mobil.png" alt="Mobile Appleiste mit unveränderter Playtaste und vollständig sichtbaren Aktionen" width="320"> | ![Große gerundete Tasten für Sendeplan, Wunschbox und Radioregie; Wunschbox hier deaktiviert](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-buttons.png) |
+
+| Radioregie | Hörer-Sendeplan |
+| --- | --- |
+| ![Radioregie mit An-/Abmeldung, Übergabe und Sendungsthema](../PROJEKT/docs/pruefung/oberflaeche/moderation/moderation-780.png) | ![Hörerprogramm mit Sendungstiteln, Zeiten und Namen](../PROJEKT/docs/pruefung/oberflaeche/sendeplan/sendeplan-hoerer-720.png) |
 
 *Lokale Vorschau mit Beispieldaten; kein Nachweis eines auf Knuddels veröffentlichten Stands.* Weitere Ansichten und Ergebnisse stehen im [App-Prüfbericht](../PROJEKT/docs/pruefung/PRUEFBERICHT.md).
 
@@ -43,7 +50,7 @@ Die GitHub-Übersicht liegt unter `.github/README.md`. Der technische Einstieg s
 | `docs/` · `docs/pruefung/oberflaeche/` | Dokumentation und Prüfbilder nach Themen |
 | `deployment/` | Zielkonfiguration und fünf Auslieferungsmanifeste |
 
-Das Knuddels-Paket wird lokal im festen Desktop-UPLOAD vorbereitet: 126 Auslieferungsdateien statt 144 Dateien im App-Arbeitsbestand. Vollständig gebündelte Einzeldateien werden nicht doppelt hochgeladen; die Quellmodule und fachlichen Ordner bleiben erhalten. Das Paket gehört nicht ins Repository; ebenso bleiben private Konfigurationen und installierte Abhängigkeiten außerhalb des Gitbestands.
+Das Knuddels-Paket wird lokal im festen Desktop-UPLOAD vorbereitet: 131 Auslieferungsdateien statt 149 Dateien im App-Arbeitsbestand. Vollständig gebündelte Einzeldateien werden nicht doppelt hochgeladen; die Quellmodule und fachlichen Ordner bleiben erhalten. Das Paket gehört nicht ins Repository; ebenso bleiben private Konfigurationen und installierte Abhängigkeiten außerhalb des Gitbestands.
 
 ## Lokal starten
 
@@ -62,7 +69,7 @@ Das integrierte Testlabor ist unter [127.0.0.1:8776](http://127.0.0.1:8776) erre
 
 Die [Homepage](../PROJEKT/website/README.md) besitzt eigene Bereiche für Radio, Sendeplan, Team, Mitmachen und Wunschbox sowie einen geschützten Arbeitsbereich. Sie benötigt Node.js ab 22. Appanschluss und Mailversand sind standardmäßig ausgeschaltet; produktive Anbindung und Hosting bleiben gesondert abzunehmen.
 
-Die Android-Anbindung benötigt keinen Android-WebHook und keinen zusätzlichen Relay-Schlüssel. Einrichtung, Aktivierung und offene native Abnahmen sind in [Installation und Betrieb](../PROJEKT/docs/betrieb/INBETRIEBNAHME.md#regulärer-rückkanal-ab-build-289) beschrieben; den technischen Vertrag dokumentiert die [Android-Übergabe](../PROJEKT/docs/api/ANDROID-RELAY-HANDOFF.json). Die tatsächliche Übernahme des Lauftexts aus Build 290 in Firebase, Android und Homepage bleibt gesondert nachzuweisen.
+Die Android-Anbindung benötigt keinen Android-WebHook und keinen zusätzlichen Relay-Schlüssel. Einrichtung, Aktivierung und offene native Abnahmen sind in [Installation und Betrieb](../PROJEKT/docs/betrieb/INBETRIEBNAHME.md#regulärer-rückkanal-ab-build-289) beschrieben; den technischen Vertrag dokumentiert die [Android-Übergabe](../PROJEKT/docs/api/ANDROID-RELAY-HANDOFF.json). Sendeplan und Radioteam verwenden ebenfalls den bestehenden signierten Statusweg; die [aktuelle Vertragsrückantwort](../PROJEKT/docs/api/HOMEPAGE-SENDEPLAN-RUECKANTWORT.md) hält den abgestimmten Vertrag und die noch offenen gemeinsamen Nachweise fest.
 
 [Projektregeln](../PROJEKT/AGENTS.md) · [Architektur](../PROJEKT/docs/architektur/ARCHITEKTUR.md) · [Installation und Betrieb](../PROJEKT/docs/betrieb/INBETRIEBNAHME.md) · [Native Abnahme](../PROJEKT/docs/betrieb/LIVE-ABNAHME.md) · [Website-Prüfbericht](../PROJEKT/website/docs/PRUEFUNG.md)
 

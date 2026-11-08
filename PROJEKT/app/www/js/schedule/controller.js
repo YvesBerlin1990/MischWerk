@@ -25,39 +25,29 @@ MischWerkUI.define('schedule', function (dependencies) {
     box.setAttribute('role', error ? 'alert' : 'status');
   }
   function availability() {
-    var live = model.connected();
     if (model.view !== 'schedule') { return; }
-    var busy = !!reading || !!mutation;
-    var owner = !!(data && data.canManage && model.current() && model.current().user.canManageRadioModerators);
-    ['schedule-previous', 'schedule-next', 'schedule-current'].forEach(function (id) {
-      dom.el(id).disabled = !live || busy || editor.isOpen() || !data;
-    });
-    dom.el('schedule-refresh').disabled = busy;
-    dom.el('schedule-new').hidden = !owner || editor.isOpen();
-    dom.el('schedule-new').disabled = !live || busy;
-    dom.el('schedule-fields').disabled = !owner || !live || !!mutation;
-    dom.el('schedule-save').disabled = !owner || !live || busy || !data || !editor.ready(data.week);
-    dom.el('schedule-form').hidden = !owner || !editor.isOpen();
-    dom.el('schedule-days').hidden = owner && editor.isOpen();
-    var message = dom.el('schedule-feedback');
-    if (owner && editor.isOpen()) { dom.el('schedule-form').appendChild(message); }
-    else { dom.el('schedule-calendar').insertBefore(message, dom.el('schedule-days')); }
-    dom.el('schedule-save').setAttribute('aria-busy', String(!!mutation));
-    dom.el('schedule-refresh').setAttribute('aria-busy', String(!!reading));
-    if (editor.isOpen()) { dom.el('schedule-pagination').hidden = true; }
-    document.querySelectorAll('.schedule-edit').forEach(function (button) {
-      button.hidden = !owner;
-      button.disabled = !live || busy;
-    });
-    signals.emit('schedule-layout');
+    if (!canManage() && (selectedWeek || data && data.canManage)) {
+      selectedWeek = null; data = null; batch = null;
+      clearTimeout(readTimer); reading = null;
+      clearTimeout(mutationTimer); mutation = null; savedEntry = null;
+      feedback('');
+      view.clear(); signals.emit('schedule-access-lost');
+    }
+    view.availability({ live: model.connected(), owner: !!(data && data.canManage && canManage()),
+      reading: !!reading, mutation: !!mutation, loaded: !!data, editorOpen: editor.isOpen(),
+      ready: !!data && editor.ready(data.week) });
   }
-  function load(week, page) {
+  function canManage() {
+    return !!model.current() && model.current().user.canManageRadioModerators === true;
+  }
+  function load(week, page, range) {
     if (model.view !== 'schedule' || !bridge || !model.connected() || document.hidden) { return; }
     page = page || 0;
+    if (range === undefined) { range = !week; }
     if (!page) { batch = null; }
     clearTimeout(readTimer);
     var requestId = commands.nextId('schedule-read');
-    reading = { requestId: requestId, week: week, page: page };
+    reading = { requestId: requestId, week: week, page: page, range: range };
     readTimer = setTimeout(function () {
       if (!reading || reading.requestId !== requestId) { return; }
       reading = null;
@@ -65,7 +55,7 @@ MischWerkUI.define('schedule', function (dependencies) {
       availability();
     }, 15000);
     availability();
-    try { bridge.sendEvent('mw:schedule.get', { requestId: requestId, week: week, page: page }); }
+    try { bridge.sendEvent('mw:schedule.get', { requestId: requestId, week: week, page: page, range: range }); }
     catch (error) { clearTimeout(readTimer); reading = null; feedback('Sendeplan nicht erreichbar. Bitte erneut öffnen.', true); availability(); }
   }
   function reload() {
@@ -74,16 +64,19 @@ MischWerkUI.define('schedule', function (dependencies) {
   }
   function receive(event) {
     var response = event.data;
-    if (!reading || !response || response.requestId !== reading.requestId || response.page !== reading.page ||
-        !Array.isArray(response.entries) || !Array.isArray(response.days) || response.days.length !== 7) { return; }
+    if (!reading || !response || response.requestId !== reading.requestId ||
+        (!reading.range && reading.week && response.week !== reading.week) || (response.range === true) !== reading.range ||
+        !Array.isArray(response.entries) || !Array.isArray(response.days) || response.days.length !== (reading.range ? 14 : 7)) { return; }
+    var range = reading.range;
+    if (response.page !== reading.page || response.canManage && !canManage()) { reload(); return; }
     clearTimeout(readTimer);
     reading = null;
-    if (!response.page) { batch = { week: response.week, revision: response.revision,
+    if (!response.page) { batch = { week: response.week, today: response.today, revision: response.revision, canManage: response.canManage,
       previousRevision: response.previousRevision, boundaryRevision: response.boundaryRevision, entries: [] }; }
-    if (!batch || batch.week !== response.week || batch.revision !== response.revision ||
+    if (!batch || batch.week !== response.week || batch.today !== response.today || batch.revision !== response.revision || batch.canManage !== response.canManage ||
         batch.previousRevision !== response.previousRevision || batch.boundaryRevision !== response.boundaryRevision) { reload(); return; }
     batch.entries = batch.entries.concat(response.entries);
-    if (response.page < response.pages - 1) { load(response.week, response.page + 1); return; }
+    if (response.page < response.pages - 1) { load(response.week, response.page + 1, range); return; }
     response.entries = batch.entries;
     data = response;
     batch = null;
@@ -101,7 +94,7 @@ MischWerkUI.define('schedule', function (dependencies) {
     availability();
   }
   function submit(action) {
-    if (!data || !data.canManage || !model.connected() || mutation) { return; }
+    if (!data || !data.canManage || !canManage() || !model.connected() || mutation) { return; }
     if (action.type === 'mw:schedule.save' && (reading || !editor.ready(data.week))) { return; }
     var requestId = commands.nextId('schedule-write');
     action.data.requestId = requestId;
@@ -142,10 +135,10 @@ MischWerkUI.define('schedule', function (dependencies) {
   }
   function start() {
     signals.on('overlay-capture', function (state) {
-      if (model.view !== 'schedule') { return; } state.scheduleWeek = selectedWeek || data && data.week; state.busy = !!mutation; });
+      if (model.view !== 'schedule') { return; } state.scheduleWeek = selectedWeek; state.busy = !!mutation; });
     signals.on('overlay-restore', function (state) {
       if (model.view !== 'schedule') { return; }
-      if (typeof state.scheduleWeek === 'string' && calendar.week(state.scheduleWeek)) { selectedWeek = state.scheduleWeek; reload(); }
+      if (canManage() && typeof state.scheduleWeek === 'string' && calendar.week(state.scheduleWeek)) { selectedWeek = state.scheduleWeek; reload(); }
     });
     if (model.view !== 'schedule' || !bridge) { return; }
     bridge.addEventListener('mw:schedule.data', receive);
@@ -167,10 +160,12 @@ MischWerkUI.define('schedule', function (dependencies) {
     signals.on('schedule-submit', submit);
     dom.el('schedule-new').addEventListener('click', function () { if (data) { feedback(''); editor.open(data); } });
     dom.el('schedule-refresh').addEventListener('click', reload);
-    dom.el('schedule-current').addEventListener('click', function () { selectedWeek = null; reload(); });
+    dom.el('schedule-current').addEventListener('click', function () {
+      selectedWeek = null; signals.emit('schedule-reveal', data && data.today); reload();
+    });
     ['schedule-previous', 'schedule-next'].forEach(function (id, index) {
       dom.el(id).addEventListener('click', function () {
-        if (!data || editor.isOpen()) { return; }
+        if (!data || !data.canManage || editor.isOpen()) { return; }
         selectedWeek = calendar.shift(data.week, index ? 7 : -7);
         reload();
       });

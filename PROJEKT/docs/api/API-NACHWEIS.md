@@ -1,4 +1,28 @@
-# MischWerk – API-Nachweis 0.1.290 · Build 290
+# MischWerk – API-Nachweis 0.1.305 · Build 305
+
+## Homepage-Sendeplan und Radioteam im Relay
+
+Additive Nutzlastfelder `scheduleUpdates`, `teamUpdates`, `scheduleResults` und `moderatorResults` verwenden unverändert den vorhandenen signierten `postURL`-Port und dessen frische angenommene reguläre Antwort. Firebase prüft Konto, App Check und Berechtigung vor der Auslieferung; die Aufträge benötigen keine `authorization`-, Rollen- oder Nutzeridentitätsfelder. Eine zusätzliche Knuddels-Rollenprüfung entfällt ab Build 302. HTTP-, Ziel-, Frische-, Revisions- und Fachdatenprüfung bleiben bestehen. Keine neue Knuddels-/K3-Signatur, kein weiterer Netzwerkport und kein direkter Callable-Aufruf. Nickauflösung verwendet die bereits bestehenden `UserAccess.exists/getUserId/getNick`-Methoden. Bestehende Wochen-/Teamadapter speichern technische Belege im selben Fachcommit. Die Beschränkung auf volle Stunden betrifft ausschließlich eingehende Relayplanungen; vorhandene lokale Minuten- und automatische exakte Studiozeiten bleiben erhalten. [Aktuelle Vertragsrückantwort](HOMEPAGE-SENDEPLAN-RUECKANTWORT.md).
+
+## Hörerprogramm · Build 295
+
+Reine Darstellung im bestehenden Sendeplan: Sendungstitel vor dem Namen, freie Zeiten als „Musikmix von MischWerk“, Open End als „Ende offen“, Kennzeichnung von heute/morgen und sichtbarer Datumsbereich an der Fußnavigation. Dieselben Einträge, Zeitwerte und Berechtigungen bleiben Grundlage. Keine neue öffentliche Projektion, Plattformmethode, Persistenz oder Timerquelle; automatische Studioeinträge behalten die bestehende Fünf-Minuten-Filterung und Stundenanzeige.
+
+## Sendeplanprüfung · Build 294
+
+Das bestehende Protokoll bleibt erhalten. Der Client beginnt eine neue Paketfolge, wenn eine angeforderte Paketnummer wegen zwischenzeitlich gelöschter Einträge nach unten begrenzt wurde. Berechtigungswechsel dürfen keine Pakete unterschiedlicher Sichtbarkeit verbinden. Bei Inhaberrechteverlust verwirft der Client die Verwaltungswoche und private Inhalte; die öffentliche 14-Tage-Ansicht wird neu gelesen. Nachträge bleiben ausdrücklich erlaubt; tatsächliche automatische Studiointervalle gelten bei der vorhandenen Überschneidungsprüfung als belegt. Keine neue Plattformmethode, Persistenz oder Timerquelle.
+
+Manuelle Anfangs-/Endzeiten werden zusätzlich mit dem vorhandenen `scheduleTimestamp` auf ihre tatsächliche Existenz in Europe/Berlin geprüft. Die ausgelassene Stunde im März wird vor dem Speichern abgewiesen, einschließlich eines Endes am Folgetag. Ganztags und gültige Intervalle über die Zeitumstellung bleiben möglich.
+
+## Automatische Studioeinträge und Entfernen · Build 292
+
+Die bestehende öffentliche Projektion `schedulePage` filtert automatische Einträge unter fünf Minuten vor Nachbarwochenwahl und Paketaufteilung. Für laufende Einträge zählt die vorhandene Serverzeit, für abgeschlossene deren tatsächliches Ende. Der anwesende authentifizierte Inhaber erhält weiterhin alle Einträge, kurze Anmeldungen mit `shortBroadcast`. Die Sichtbarkeitsanzahl ergänzt die ohnehin opake Grenzrevision, damit ein Grenzübertritt während einer Paketfolge keine unterschiedlichen Eintragsmengen mischt. Die rollende Übersicht und die vorhandene Website-Projektion verwenden denselben Leseweg.
+
+Exakte Zeitwerte bleiben Grundlage der vorhandenen Dauer-/Intervallberechnung und Persistenz. Nur die App-Beschriftung zeigt bei automatischen Einträgen volle Stunden; minutengenaue technische An-/Abmeldezeilen entfallen. Die neue direkte Zeilenaktion nutzt ausschließlich das vorhandene `mw:schedule.delete` mit Woche, ID, erwarteter Wochenrevision und Anfragekennung. Bestehende Rollen-/Sitzungsprüfung, der Schutz laufender Moderationen und der zusätzliche Schutz gegen einen noch unbestätigten Studioabgleich verhindern fremde Löschungen oder Wiederanlage. Keine neue Knuddels-/K3-Signatur, Persistenz oder Timerquelle.
+
+## Sendeplan ab heute für 14 Tage · Build 291
+
+Der bestehende eigene Aufruf `mw:schedule.get` unterstützt `range: true` für die rollende Übersicht. Das Backend bestimmt heute ausschließlich mit dem vorhandenen Europe/Berlin-Kalender und liefert genau 14 Tage. `schedule/overview` verbindet dafür die bestehenden Wochenlesepakete ohne neue Persistenz. Fortsetzungen werden über Woche und Sendungs-ID dedupliziert; eine gemeinsame Grenzrevision umfasst alle beteiligten Wochen und Nachbargrenzen. Die bestehende Paketgrenze und Sitzungs-/Rechteprüfung bleiben erhalten. `range` fehlt bzw. ist false bei der ausdrücklichen Wochenwahl und beim revisionsgeprüften Inhabereditor. Dies ist eine Erweiterung des eigenen App-Protokolls; keine neue Knuddels-/K3-Methode oder externe API.
 
 ## Bestätigter Lauftext in der Android-Senderprojektion · Build 290
 

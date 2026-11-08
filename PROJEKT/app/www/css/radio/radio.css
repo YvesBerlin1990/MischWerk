@@ -1,6 +1,6 @@
 /* Vinyl Deck: vorhandene Radiobedienung in einer gemeinsamen dunklen Fläche. */
 html[data-view=radio] .radio-bar { display:grid; }
-.radio-bar { --text:#f5f5f2; --muted:#b4b4b0; --gold:#e9eaec; --gold-ink:#cfd2d6; --line:#3a3a3a; --live:#ff9a8f; position:relative; isolation:isolate; width:100%; min-width:0; min-height:160px; margin:0; padding:18px 20px; grid-template-columns:170px 120px minmax(300px,1fr) 178px 112px; gap:0 20px; align-items:center; font-family:Outfit,system-ui,sans-serif; }
+.radio-bar { --text:#f5f5f2; --muted:#b4b4b0; --gold:#e9eaec; --gold-ink:#cfd2d6; --line:#3a3a3a; --live:#ff9a8f; position:relative; isolation:isolate; width:100%; min-width:0; min-height:160px; margin:0; padding:18px 32px 18px 20px; grid-template-columns:170px 120px minmax(300px,1fr) 392px 190px; gap:0 12px; align-items:center; font-family:Outfit,system-ui,sans-serif; }
 .radio-program { display:contents; }
 .radio-panel-face { position:absolute; inset:18px 20px; z-index:-1; pointer-events:none; }
 .radio-brand { grid-column:2; grid-row:1; width:120px; min-width:0; padding-right:19px; border-right:1px solid var(--line); }

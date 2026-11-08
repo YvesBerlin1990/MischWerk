@@ -1,6 +1,6 @@
 {
-  "version": "0.1.290",
-  "buildNumber": 290,
+  "version": "0.1.305",
+  "buildNumber": 305,
   "files": [
     {
       "path": "MischWerk/server/android/signing.js",
@@ -33,9 +33,19 @@
       "sha256": "5F17C77F504E4E24C45805C00225F9D0D80BB2C911605471D94878E9ECAAD954"
     },
     {
+      "path": "MischWerk/server/android/projection.js",
+      "bytes": 3017,
+      "sha256": "9C14EECC3118F7003BAE78C653BE9A71EC8425B259A9B8A31A3FD388941E367F"
+    },
+    {
+      "path": "MischWerk/server/android/commands.js",
+      "bytes": 6726,
+      "sha256": "7CD328706BFC5F9A43379BF99E1A7A9D4314682FDDF290ED3051DEE0549F4213"
+    },
+    {
       "path": "MischWerk/server/android/publisher.js",
-      "bytes": 6895,
-      "sha256": "FF28473F6C40346D47F234963E8E697CB54085A86398B546F334711AA2A27453"
+      "bytes": 8049,
+      "sha256": "E83A389B85C1D292ADD84B2E35657A6935A97FED4FA1795F90E9BD5EDB4C4BFF"
     },
     {
       "path": "MischWerk/server/android/verification.js",

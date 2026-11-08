@@ -19,18 +19,20 @@ MischWerkModules.attachScheduleStorage = function (runtime) {
         if (!Array.isArray(list)) { throw new Error('schedule index'); }
         return list;
     }
-    runtime.scheduleNeighbour = function (week, direction) {
+    runtime.scheduleWeeks = function () { return weeks().slice(); };
+    runtime.scheduleNeighbour = function (week, direction, visible) {
         var list = weeks().filter(function (item) { return direction < 0 ? item < week : item > week; }).sort();
         if (direction < 0) { list.reverse(); }
         for (var index = 0; index < list.length; index += 1) {
             var saved = runtime.readScheduleWeek(list[index]);
-            if (saved.entries.length) { return { week: list[index], revision: saved.revision, entries: saved.entries }; }
+            var entries = visible ? saved.entries.filter(visible) : saved.entries;
+            if (entries.length) { return { week: list[index], revision: saved.revision, entries: entries }; }
         }
         return { week: '', revision: 0, entries: [] };
     };
-    runtime.writeScheduleWeek = function (week, next) {
+    function write(week, next, advance) {
         var saved = runtime.copy(next);
-        saved.revision += 1;
+        if (advance) { saved.revision += 1; }
         if (runtime.jsonBytes(JSON.stringify(saved)) > 90000) {
             throw runtime.failure('Dieser Wochenplan ist zu umfangreich und konnte nicht gespeichert werden.');
         }
@@ -43,6 +45,12 @@ MischWerkModules.attachScheduleStorage = function (runtime) {
         }
         KnuddelsServer.getPersistence().setObject(prefix + week, saved);
         return saved;
+    }
+    runtime.writeScheduleWeek = function (week, next) { return write(week, next, true); };
+    runtime.recordScheduleRelayResult = function (week, result) {
+        var saved = runtime.readScheduleWeek(week);
+        runtime.addRelayResult(saved, 'relayResults', result);
+        write(week, saved, false);
     };
     runtime.removeScheduleUser = function (userId) {
         userId = runtime.numericUserId(userId);

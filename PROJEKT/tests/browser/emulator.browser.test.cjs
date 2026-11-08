@@ -1178,12 +1178,13 @@ for(const client of ['k3','stapp']) test('Neugestaltete Arbeitsfenster in '+clie
   }
   await studio.locator('#studio-programme-tab').click();await revealStudio(studio,'#off-air');await studio.locator('#off-air').click();await studio.locator('#on-air:not([disabled])').waitFor();
   await openRadioAction(radio,'open-schedule');let plan=await overlayView(page,'schedule');
-  await plan.locator('.schedule-broadcast').filter({hasText:'Abgemeldet:'}).first().waitFor();
+  await plan.locator('.schedule-show').first().waitFor({state:'attached'});
+  assert.doesNotMatch(await plan.locator('#schedule-days').textContent(),/Angemeldet:|Abgemeldet:/);
   assert.equal(await plan.locator('.schedule-show').count(),1,'Ein tatsächlicher Studiobesuch, keine Zukunftsduplikate');
   for(const width of [820,320,560]) {
     await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await plan.waitForTimeout(150);
     plan=await reopen('schedule',()=>openRadioAction(radio,'open-schedule'));
-    await plan.locator('.schedule-broadcast').first().waitFor();
+    await plan.locator('.schedule-show').first().waitFor({state:'attached'});
     assert.ok(await plan.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
     if(client==='k3')await page.locator('#overlays iframe').screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/sendeplan/sendeplan-'+width+'.png'),animations:'disabled'});
   }
@@ -1239,6 +1240,29 @@ for (const client of ['k3', 'stapp']) {
     assert.deepEqual(lab.errors, []); assert.deepEqual(runtime.errors, []); assert.deepEqual(lab.external, []);
   });
 }
+
+for(const client of ['k3','stapp'])test('Sendeplan wechselt bei Rechteverlust aus einer Verwaltungswoche zurück auf die 14-Tage-Höreransicht in '+client,async t=>{
+  const lab=await setup(t),{page,radio}=await lab.join('Otterchen',client,1280,false);
+  await openRadioAction(radio,'open-schedule');const schedule=await overlayView(page,'schedule');
+  await schedule.locator('#schedule-next:not([disabled])').click();
+  await schedule.waitForFunction(()=>document.getElementById('schedule-period').textContent==='Montag bis Sonntag');
+  lab.hub.runtime.users.find('Otterchen').state.role='listener';
+  await schedule.evaluate(()=>Client.sendEvent('mw:refresh',{}));
+  await schedule.waitForFunction(()=>document.getElementById('schedule-period').textContent==='Ab heute · nächste 14 Tage',null,{timeout:5000});
+  assert.equal(await schedule.locator('.schedule-day').evaluateAll(nodes=>new Set(nodes.map(n=>n.dataset.scheduleDate)).size),14);
+  assert.equal(await schedule.locator('#schedule-new').isVisible(),false);
+  assert.equal(await schedule.locator('#schedule-previous').isVisible(),false);
+  const account=lab.hub.runtime.users.find('Otterchen');account.state.role='owner';
+  await schedule.evaluate(()=>Client.sendEvent('mw:refresh',{}));
+  await schedule.locator('#schedule-new').waitFor();await schedule.locator('#schedule-new').click();
+  await schedule.locator('#schedule-topic').fill('Privater Entwurf vor Rechteverlust');
+  account.state.role='listener';await schedule.evaluate(()=>Client.sendEvent('mw:refresh',{}));
+  await schedule.locator('#schedule-form').waitFor({state:'hidden'});
+  assert.equal(await schedule.locator('#schedule-topic').inputValue(),'','Private Eingaben werden beim Rechteverlust verworfen');
+  assert.equal(await schedule.locator('.schedule-owner-action:visible').count(),0);
+  assert.equal(await schedule.evaluate(()=>document.activeElement.id),'schedule-days');
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
 
 async function setup(t, faults = {}, clock = false, contextOptions = {}) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'MischWerk-Emulator-Browser-'));
@@ -1321,6 +1345,70 @@ for (const client of ['k3','stapp']) {
 }
 
 for(const client of ['k3','stapp']) {
+  test('Automatische Studioeinträge zeigen in '+client+' volle Stunden, beachten fünf Minuten und lassen sich vom Inhaber entfernen',async t=>{
+    const lab=await setup(t),owner=await lab.join('Otterchen',client,1280,false);
+    const before=lab.hub.runtime.clock.now(),local=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',minute:'2-digit',second:'2-digit'}).format(new Date(before)).split(':').map(Number);
+    let advance=((40-local[0]+60)%60)*60000-local[1]*1000;if(advance<=0)advance+=3600000;
+    lab.hub.runtime.clock.advance(advance);
+    const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',hour:'2-digit',hourCycle:'h23'}).format(new Date(lab.hub.runtime.clock.now())));
+    await owner.radio.locator('#studio-tab:not([disabled])').click();let studio=await overlayView(owner.page,'studio');
+    await studio.locator('#on-air:not([disabled])').click();await studio.locator('#off-air:not([disabled])').waitFor();
+    await openRadioAction(owner.radio,'open-schedule');let plan=await overlayView(owner.page,'schedule');
+    await plan.locator('.schedule-show').waitFor({state:'attached'});
+    assert.equal(await plan.locator('.schedule-remove').isDisabled(),true,'Laufende Moderation zuerst regulär beenden');
+    assert.equal(await plan.locator('.schedule-broadcast').textContent(),'Unter 5 Minuten · privat');
+    if(client==='k3'&&process.env.MISCHWERK_CAPTURE_SCHEDULE){
+      await owner.page.setViewportSize({width:1800,height:1400});await plan.waitForTimeout(100);
+      const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','sendeplan');fs.mkdirSync(folder,{recursive:true});
+      await owner.page.locator('#overlays iframe').screenshot({path:path.join(folder,'Sendeplan-Kurze-Anmeldung-720.png')});
+      await owner.page.locator('#width').fill('320');await owner.page.locator('#width').dispatchEvent('change');
+      await plan.waitForFunction(()=>innerWidth===320);await plan.waitForTimeout(100);
+      while(!await plan.locator('.schedule-show').first().isVisible())await plan.locator('#schedule-page-next:not([disabled])').click();
+      const compact=await plan.evaluate(()=>({height:innerHeight,scroll:document.documentElement.scrollHeight,pager:document.getElementById('schedule-pagination').getBoundingClientRect().bottom}));
+      assert.ok(compact.scroll<=compact.height+1&&compact.pager<=compact.height,'Auch der private Kurzzeiteintrag samt Navigation passt vollständig: '+JSON.stringify(compact));
+      await owner.page.locator('#overlays iframe').screenshot({path:path.join(folder,'Sendeplan-Kurze-Anmeldung-320.png')});
+      await owner.page.locator('#width').fill('1280');await owner.page.locator('#width').dispatchEvent('change');
+      await openRadioAction(owner.radio,'open-schedule');plan=await overlayView(owner.page,'schedule');
+      await plan.waitForFunction(()=>innerWidth===720);
+    }
+    const listener=await lab.join('Polaroid',client);await openRadioAction(listener.radio,'open-schedule');
+    const publicPlan=await overlayView(listener.page,'schedule');
+    await publicPlan.waitForFunction(()=>document.querySelectorAll('.schedule-day').length===14);
+    assert.equal(await publicPlan.locator('.schedule-show').count(),0);
+    lab.hub.runtime.clock.advance(5*60000);
+    await publicPlan.locator('#schedule-refresh:not([disabled])').click();
+    await publicPlan.locator('.schedule-show').waitFor({state:'attached'});
+    assert.equal(await publicPlan.locator('.schedule-time').textContent(),hour+' Uhr');
+    assert.equal(await publicPlan.locator('.schedule-broadcast,.schedule-remove').count(),0);
+    assert.doesNotMatch(await publicPlan.locator('#schedule-days').textContent(),/Angemeldet:|Abgemeldet:|\d{2}:4[05]/);
+    await owner.radio.locator('#studio-tab:not([disabled])').click();studio=await overlayView(owner.page,'studio');
+    await studio.locator('#off-air:not([disabled])').click();await studio.locator('#on-air:not([disabled])').waitFor();
+    await openRadioAction(owner.radio,'open-schedule');plan=await overlayView(owner.page,'schedule');
+    await plan.locator('.schedule-remove:not([disabled])').waitFor({state:'attached'});await plan.waitForTimeout(100);
+    const row=plan.locator('.schedule-show').first();let guard=0;
+    while(!await row.isVisible()){assert.ok(guard++<30);await plan.locator('#schedule-page-next:not([disabled])').click();}
+    assert.equal(await row.locator('.schedule-time').textContent(),hour+' Uhr');
+    assert.equal(await row.locator('.schedule-edit').count(),0,'Automatische Zeiten werden nicht manuell umgeschrieben');
+    const geometry=await plan.evaluate(()=>{
+      const pager=document.getElementById('schedule-pagination').getBoundingClientRect();
+      return {height:innerHeight,shell:document.querySelector('.dialog-shell').getBoundingClientRect().bottom,
+        pager:pager.toJSON(),scroll:document.documentElement.scrollHeight};
+    });
+    assert.ok(geometry.scroll<=geometry.height+1 && geometry.pager.bottom<=geometry.height && Math.abs(geometry.shell-geometry.height)<=1,
+      'Die kurze gefüllte Kalenderseite samt Fußnavigation passt vollständig in den Rahmen: '+JSON.stringify(geometry));
+    if(client==='k3'){
+      await owner.page.setViewportSize({width:1800,height:1400});
+      await owner.page.locator('#overlays iframe').screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/sendeplan/sendeplan-sendungen-820.png')});
+    }
+    await row.locator('.schedule-remove').click();await row.locator('.schedule-delete-cancel').click();
+    assert.equal(await plan.locator('.schedule-show').count(),1);
+    await row.locator('.schedule-remove').click();await row.locator('.schedule-delete-confirm').click();
+    await plan.waitForFunction(()=>document.querySelectorAll('.schedule-show').length===0);
+    await publicPlan.locator('#schedule-refresh:not([disabled])').click();
+    await publicPlan.waitForFunction(()=>document.querySelectorAll('.schedule-show').length===0);
+    assert.equal(lab.hub.runtime.persistence.api().getObject('mischwerk.state.v1').moderator,null,'Löschen ist eine Kalenderaktion');
+    assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+  });
   test('Hörerplan zeigt in '+client+' beide Moderationen, vollständige Sendungen und erhält bewusst gewählte Seiten',async t=>{
     const lab=await setup(t),owner=await lab.join('Otterchen',client);
     await owner.radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(owner.page,'team');
@@ -1328,10 +1416,10 @@ for(const client of ['k3','stapp']) {
     await team.locator('#radio-moderator-form button[type=submit]').click();
     await team.locator('#radio-moderator-list').filter({hasText:'Polaroid'}).waitFor();
     await openRadioAction(owner.radio,'open-schedule');const editor=await overlayView(owner.page,'schedule');
-    await editor.waitForFunction(()=>document.querySelectorAll('.schedule-day').length===7);
+    await editor.waitForFunction(()=>document.querySelectorAll('.schedule-day').length===14);
     const days=await editor.locator('.schedule-day').evaluateAll(nodes=>nodes.map(node=>node.dataset.scheduleDate));
-    const shows=[{date:days[2],nick:'Otterchen',start:'19:00',end:'21:00',topic:'Lokaler Test: Feierabend'},
-      {date:days[4],nick:'Polaroid',start:'20:00',end:'22:00',topic:'Lokaler Test: Freitag'}];
+    const shows=[{date:days[2],nick:'Otterchen',start:'19:00',end:'21:00',topic:'Feierabend mit MischWerk'},
+      {date:days[4],nick:'Polaroid',start:'20:00',end:'22:00',topic:'Hits und Entdeckungen'}];
     for(const show of shows){
       await editor.locator('#schedule-new:not([disabled])').click();
       for(const [key,value] of Object.entries(show))await editor.locator('#schedule-'+key).fill(value);
@@ -1355,9 +1443,11 @@ for(const client of ['k3','stapp']) {
       if(!await frame.locator('#schedule-pagination').isVisible()||await frame.locator('#schedule-page-next').isDisabled())break;
       assert.ok(guard++<30);await frame.locator('#schedule-page-next').click();
     }
-    assert.deepEqual([...dates].sort(),days.slice().sort(),'Alle sieben Tage bleiben mit größerer Schrift erreichbar');
+    assert.deepEqual([...dates].sort(),days.slice().sort(),'Alle 14 Tage bleiben mit größerer Schrift erreichbar');
     assert.equal(await frame.locator('#schedule-new').isVisible(),false);
     assert.equal(await frame.locator('.schedule-edit:visible').count(),0);
+    assert.equal(await frame.locator('.schedule-owner-controls').count(),0);
+    assert.doesNotMatch(await frame.locator('#schedule-panel').innerText(),/AutoDJ|Open End|Anmeldung|Verwaltung|Bearbeiten|Entfernen|eintragen/);
     assert.deepEqual((await frame.locator('.schedule-presenter').allTextContents()).sort(),['Mit Otterchen','Mit Polaroid']);
     assert.equal(await frame.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),true);
     for(const show of shows){const row=await revealShow(show.topic);
@@ -1365,17 +1455,22 @@ for(const client of ['k3','stapp']) {
       assert.equal(await row.locator('.schedule-presenter').textContent(),'Mit '+show.nick);
       const time=await row.locator('.schedule-time').boundingBox(),nick=await row.locator('.schedule-presenter').boundingBox();
       assert.ok(time.x<nick.x,'Uhrzeit und Moderation stehen nebeneinander');
+      assert.ok(time.height<=26,'Die feste Zeitspanne bleibt samt Uhr in einer Zeile');
+      const fonts=await row.evaluate(node=>[parseFloat(getComputedStyle(node.querySelector('.schedule-topic')).fontSize),parseFloat(getComputedStyle(node.querySelector('.schedule-presenter')).fontSize)]);
+      assert.ok(fonts[0]>fonts[1],'Der Sendungstitel bleibt das wichtigste Textmerkmal');
     }
     if(client==='k3'&&process.env.MISCHWERK_CAPTURE_SCHEDULE){
       await listener.page.setViewportSize({width:1800,height:1400});
       const picture=listener.page.locator('#overlays iframe');await picture.scrollIntoViewIfNeeded();
-      await picture.screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/sendeplan/sendeplan-sendungen-820.png')});
+      await picture.screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/sendeplan/sendeplan-hoerer-720.png')});
     }
     await revealShow(shows[0].topic);
     await listener.page.locator('#width').fill('320');await listener.page.locator('#width').dispatchEvent('change');
     await frame.waitForFunction(()=>innerWidth===320&&document.querySelector('.schedule-page:not([hidden]) .schedule-show'));
     assert.equal(await frame.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     assert.match(await frame.locator('.schedule-show:visible').first().textContent(),/Otterchen/);
+    assert.ok(await frame.locator('.schedule-show:visible').first().evaluate(node=>parseFloat(getComputedStyle(node.querySelector('.schedule-topic')).fontSize)>parseFloat(getComputedStyle(node.querySelector('.schedule-presenter')).fontSize)));
+    if(client==='k3'&&process.env.MISCHWERK_CAPTURE_SCHEDULE)await listener.page.locator('#overlays iframe').screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/sendeplan/sendeplan-hoerer-320.png')});
     await frame.locator('#schedule-page-previous:not([disabled])').click();
     const chosen=await frame.locator('#schedule-page-label').textContent();
     assert.equal(await frame.locator('.schedule-show:visible').count(),0,'Auch eine leere Kalenderseite bleibt erreichbar');
@@ -1411,15 +1506,31 @@ for(const client of ['k3','stapp']) {
     assert.equal(Math.round((await handle.boundingBox()).height),600,'Nativer Rahmen steht bereits vor dem fertigen Appinhalt');
     const frame=await handle.contentFrame();
     await frame.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));
-    await frame.waitForFunction(()=>document.querySelectorAll('.schedule-day').length===7);
+    await frame.waitForFunction(()=>document.querySelectorAll('.schedule-day').length===14);
     await frame.waitForTimeout(800);
     const opened=lab.hub.trace.slice(at).find(e=>e.kind==='contentShow'&&e.mode==='Overlay');
     assert.equal(opened.width,720);assert.equal(opened.height,600);
     const sizes=()=>lab.hub.trace.filter(e=>e.kind==='hostSize'&&e.sessionId===opened.sessionId&&e.method==='setSize');
     assert.deepEqual(sizes(),[]);
     assert.deepEqual(await frame.evaluate(()=>[innerWidth,innerHeight]),[720,600]);
-    assert.equal(await frame.locator('.schedule-day:visible').count(),7,'Leere Woche passt einschließlich aller sieben Tage');
-    assert.equal(await frame.locator('#schedule-pagination').isVisible(),false);
+    const compactPreview=await frame.evaluate(()=>{
+      const rows=[...document.querySelectorAll('.schedule-day')].filter(node=>node.getClientRects().length);
+      const list=document.getElementById('schedule-days').getBoundingClientRect();
+      return {days:rows.length,heights:rows.map(node=>node.getBoundingClientRect().height),list:list.height,
+        available:document.getElementById('schedule-pagination').getBoundingClientRect().top-list.top,
+        summaryHidden:document.getElementById('schedule-summary').hidden};
+    });
+    assert.equal(compactPreview.days,5,'Fünf kompakte Vorschautage nutzen den breiten 600-px-Rahmen: '+JSON.stringify(compactPreview));
+    assert.equal(compactPreview.summaryHidden,true,'Keine zusätzliche Ankündigungszeile über dem Programm');
+    assert.ok(await frame.locator('.schedule-day:visible').count()>0,'Heute steht auf der ersten sichtbaren Kalenderseite');
+    assert.equal(await frame.locator('.schedule-day:visible').first().getAttribute('data-schedule-date'),
+      new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Berlin'}).format(new Date(lab.hub.runtime.clock.now())));
+    assert.equal(await frame.locator('#schedule-pagination').isVisible(),true);
+    if(client==='k3'){
+      await page.locator('#overlays iframe').screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/sendeplan/sendeplan-820.png')});
+      const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','sendeplan');fs.mkdirSync(folder,{recursive:true});
+      await frame.locator('.schedule-controls').screenshot({path:path.join(folder,'Sendeplan-Kopf-293.png')});
+    }
     await frame.locator('#schedule-new').click();await frame.locator('#schedule-topic').fill('Mein Entwurf');
     await frame.waitForTimeout(150);
     assert.deepEqual(sizes(),[]);assert.equal(await frame.locator('#schedule-topic').inputValue(),'Mein Entwurf');
@@ -1485,6 +1596,8 @@ for(const client of ['k3','stapp']) {
     await page.locator('#width').fill('320');await page.locator('#width').dispatchEvent('change');
     await reopened.waitForFunction(()=>innerWidth===320);
     await reopened.waitForTimeout(150);
+    if(client==='k3')await page.locator('#overlays iframe').screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/sendeplan/sendeplan-320.png')});
+    if(client==='k3')await reopened.locator('.schedule-controls').screenshot({path:path.join(os.tmpdir(),'MischWerk-Pruefbilder','sendeplan','Sendeplan-Kopf-293-schmal.png')});
     const dates=new Set();
     while(await reopened.locator('#schedule-pagination').isVisible() && !(await reopened.locator('#schedule-page-previous').isDisabled())) {
       await reopened.locator('#schedule-page-previous').click();
@@ -1494,7 +1607,7 @@ for(const client of ['k3','stapp']) {
       if(!(await reopened.locator('#schedule-pagination').isVisible())||await reopened.locator('#schedule-page-next').isDisabled())break;
       await reopened.locator('#schedule-page-next').click();
     }
-    assert.equal(dates.size,7,'Native Breitenbegrenzung erhält alle Wochentage');
+    assert.equal(dates.size,14,'Native Breitenbegrenzung erhält alle 14 Vorschautage');
     assert.equal(await reopened.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
   });
@@ -2070,6 +2183,7 @@ for (const client of ['k3','stapp']) test('Verwaltung wird in '+client+' über d
   if (process.env.MISCHWERK_ADMIN_CAPTURE && client==='stapp') {
     await page.setViewportSize({width:2700,height:1400});
     await radio.evaluate(()=>document.fonts.ready);
+    await radio.locator('#open-schedule').evaluate(node=>node.blur());
     if(process.env.MISCHWERK_GLOW_CAPTURE)await radio.locator('.radio-program-face').evaluate(n=>{for(const a of n.getAnimations()){a.pause();a.currentTime=32000;}});
     const directory=path.resolve(__dirname,'../../docs/pruefung/oberflaeche/radio');
     await page.locator('#headerbars iframe').screenshot({path:path.join(directory,'vinyl-glow-desktop.png')});

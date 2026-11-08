@@ -1,4 +1,10 @@
-# MischWerk – aktuelle Websiteprüfung 0.2.1
+# MischWerk – aktuelle Websiteprüfung 0.2.5
+
+## Eigenständige Programmvorschau entfernt · 07.11.2026
+
+Die auf Nutzerauftrag angelegte eigenständige Programmvorschau ist vollständig entfernt: HTML, eigenes CSS/JavaScript, Browserprüfungen und Prüfbild gelöscht; beide Serveradressen, Ressourcenrouten und die Ausnahme für das externe Anbieterskript ausgebaut. Zugehörige Regel- und README-Einträge sowie die überholten Prüfabschnitte entfernt. Die bestehende Homepage, ihr Sendeplan, der geschützte Arbeitsbereich und die App bleiben erhalten.
+
+**22/22 bestehende Websiteprüfungen erfolgreich.** Zusätzlich geprüft: entfernte Vorschau-/Ressourcenadressen antworten HTTP 404, Startseite, Sendeplan und Arbeitsbereich weiterhin HTTP 200; keine verbleibende Ausnahme für das externe Skript. Entfernte Dateien fehlen auch im Dateisystem. Git-Diffprüfung fehlerfrei. Websiteversion 0.2.5, mit aktuellem Appbestand Build 297 geprüft; keine Veröffentlichung oder Anbieteränderung.
 
 ## Studio ohne Verlängerung · App Build 269 · 06.11.2026
 

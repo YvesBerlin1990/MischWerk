@@ -2,6 +2,86 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createHarness } = require('../support/knuddels.cjs');
 let sequence = 0;
+
+test('Automatische Anmeldungen erscheinen für Hörer erst ab genau fünf Minuten und bleiben für den Inhaber sichtbar', () => {
+  const f=fixture();f.h.advance(Date.parse('2026-11-07T15:40:00Z')-f.h.now());
+  const selected=currentWeek(f.h);f.h.event(f.owner,f.radio,'mw:onAir');
+  const own=read(f,selected);assert.equal(own.entries.length,1);assert.equal(own.entries[0].shortBroadcast,true);
+  assert.equal(read(f,selected,0,f.listener,f.listenerRadio).total,0);
+  f.h.advance(299999);assert.equal(read(f,selected,0,f.listener,f.listenerRadio).total,0);
+  f.h.advance(1);assert.equal(read(f,selected,0,f.listener,f.listenerRadio).total,1);
+  f.h.event(f.owner,f.radio,'mw:offAir');
+  assert.equal(read(f,selected,0,f.listener,f.listenerRadio).total,1);
+  assert.equal(read(f,selected).entries[0].actualStart,Date.parse('2026-11-07T15:40:00Z'));
+});
+
+test('Kurze abgeschlossene automatische Einträge bleiben privat löschbar; manuelle Kurzsendungen bleiben öffentlich', () => {
+  const f=fixture(),selected=currentWeek(f.h);f.h.event(f.owner,f.radio,'mw:onAir');f.h.advance(1000);f.h.event(f.owner,f.radio,'mw:offAir');
+  const own=read(f,selected),entry=own.entries[0];assert.equal(entry.shortBroadcast,true);
+  assert.equal(read(f,selected,0,f.listener,f.listenerRadio).total,0);
+  const forged=event(f,'mw:schedule.delete',{week:selected,id:entry.id,expectedRevision:own.revision},f.listener,f.listenerRadio);
+  assert.equal(forged.find(e=>e.type==='mw:schedule.result').data.ok,false);
+  const removed=event(f,'mw:schedule.delete',{week:selected,id:entry.id,expectedRevision:own.revision});
+  assert.equal(removed.find(e=>e.type==='mw:schedule.result').data.ok,true);
+  const h=createHarness(f.h.store),owner=h.user(1,'Otterchen','owner'),session=h.open(owner);
+  assert.equal(read({h,owner,session},selected).total,0);
+  assert.equal(save(f,{start:'18:00',end:'18:01',topic:'Geplant, eine Minute'}).ok,true);
+  assert.equal(read(f,week,0,f.listener,f.listenerRadio).total,1);
+});
+
+test('Nachträge dürfen tatsächliche automatische Studiozeiten nicht überdecken; Anschluss nach der Abmeldung ist erlaubt', () => {
+  const f=fixture();f.h.advance(Date.parse('2026-11-07T15:00:00Z')-f.h.now());
+  const selected=currentWeek(f.h),date='2026-11-07';
+  f.h.event(f.owner,f.radio,'mw:onAir');f.h.advance(10*60000);f.h.event(f.owner,f.radio,'mw:offAir');
+  for(const timing of ['fixed','openEnd']){
+    const result=save(f,{week:selected,date,timing,start:'16:05',end:timing==='fixed'?'16:08':''});
+    assert.equal(result.ok,false,'Die tatsächliche Zeit von 16:00 bis 16:10 bleibt belegt');
+    assert.match(result.message,/überschneidet/);
+  }
+  assert.equal(save(f,{week:selected,date,start:'16:10',end:'16:20'}).ok,true);
+  assert.equal(read(f,selected).total,2);
+});
+
+test('Planung weist bei der Sommerzeitumstellung entfallende Anfangs- und Endzeiten ab', () => {
+  for(const values of [
+    {date:'2027-03-28',start:'02:10',end:'03:30'},
+    {date:'2027-03-28',start:'01:30',end:'02:30'},
+    {date:'2027-03-27',start:'23:00',end:'02:30'},
+    {date:'2027-03-28',start:'02:30',timing:'openEnd',end:''}
+  ]){
+    const result=save(fixture(),{week:'2027-03-22',...values});
+    assert.equal(result.ok,false,JSON.stringify(values));assert.match(result.message,/Zeitumstellung/);
+  }
+  assert.equal(save(fixture(),{week:'2027-03-22',date:'2027-03-28',start:'01:30',end:'03:30'}).ok,true);
+  assert.equal(save(fixture(),{week:'2027-03-22',date:'2027-03-28',timing:'allDay'}).ok,true);
+});
+
+test('Ausgeblendete kurze Studioeinträge verdecken keine ältere offene Fortsetzung aus einer Nachbarwoche', () => {
+  const f=fixture();f.h.store.setObject('mischwerk.schedule.v1.weeks',['2026-10-12','2026-10-19']);
+  f.h.store.setObject('mischwerk.schedule.v1.2026-10-12',{version:1,revision:1,nextId:2,entries:[
+    {id:1,date:'2026-10-18',start:'19:00',end:'',timing:'openEnd',kind:'live',userId:1,nick:'Otterchen',topic:'Offene Planung'}]});
+  f.h.store.setObject('mischwerk.schedule.v1.2026-10-19',{version:1,revision:1,nextId:2,entries:[
+    {id:1,date:'2026-10-25',start:'19:00',end:'',timing:'openEnd',kind:'live',automatic:true,userId:1,nick:'Otterchen',topic:'Kurzer Test',
+      actualStart:Date.parse('2026-10-25T18:00:00Z'),actualEnd:Date.parse('2026-10-25T18:01:00Z')}]});
+  const plan=read(f,week,0,f.listener,f.listenerRadio);
+  assert.equal(plan.total,1);assert.equal(plan.entries[0].topic,'Offene Planung');
+});
+
+test('Löschen wartet auf einen noch unbestätigten Studioabgleich und wird nach dessen Abschluss dauerhaft', () => {
+  const f=fixture(),selected=currentWeek(f.h);f.h.event(f.owner,f.radio,'mw:onAir');f.h.advance(6*60000);
+  const write=f.h.store.setObject;
+  f.h.store.setObject=(key,value)=>{if(key==='mischwerk.state.v1'&&!value.scheduleSync)throw Error('ack');write(key,value);};
+  f.h.event(f.owner,f.radio,'mw:offAir');assert.ok(f.h.store.data['mischwerk.state.v1'].scheduleSync);
+  const own=read(f,selected),id=own.entries[0].id;
+  const pending=event(f,'mw:schedule.delete',{week:selected,id,expectedRevision:own.revision});
+  assert.equal(pending.find(e=>e.type==='mw:schedule.result').data.ok,false);
+  f.h.store.setObject=write;
+  const ready=read(f,selected);
+  assert.equal(event(f,'mw:schedule.delete',{week:selected,id,expectedRevision:ready.revision}).find(e=>e.type==='mw:schedule.result').data.ok,true);
+  const h=createHarness(f.h.store),owner=h.user(1,'Otterchen','owner'),session=h.open(owner);
+  assert.equal(read({h,owner,session},selected).total,0);
+});
+
 function currentWeek(h) {
   const date = new Intl.DateTimeFormat('sv-SE', { timeZone:'Europe/Berlin' }).format(new Date(h.now()));
   const stamp = new Date(date + 'T12:00:00Z');
@@ -85,9 +165,59 @@ test('Verlassen beendet den automatischen Eintrag, fehlender Moderationscommit e
   f.h.event(f.owner,f.radio,'mw:onAir'); assert.equal(read(f,selected).total,0);
   f.h.store.setObject=write; f.h.event(f.owner,f.radio,'mw:onAir'); f.h.advance(5000);
   f.owner.online=false; f.h.app.onUserLeft(f.owner);
-  assert.equal(read(f,selected,0,f.listener,f.listenerRadio).entries[0].actualEnd,f.h.now());
+  assert.equal(f.h.store.data['mischwerk.schedule.v1.'+selected].entries[0].actualEnd,f.h.now());
+  assert.equal(read(f,selected,0,f.listener,f.listenerRadio).total,0,'Kurze beendete Anmeldung bleibt für Hörer verborgen');
 });
 const week = '2026-10-26';
+test('Hörerübersicht beginnt heute und enthält exakt 14 Tage über Wochen-, Jahres- und Zeitumstellungsgrenzen', () => {
+  for (const [stamp, today] of [['2026-11-07T12:00:00Z','2026-11-07'], ['2026-12-31T23:30:00Z','2027-01-01'],
+    ['2026-03-28T23:30:00Z','2026-03-29'], ['2026-10-24T22:30:00Z','2026-10-25']]) {
+    const f = fixture(); f.h.advance(Date.parse(stamp)-f.h.now());
+    const result = event(f, 'mw:schedule.get', { range:true, week:'2020-01-06' }, f.listener, f.listenerRadio)
+      .find(item => item.type === 'mw:schedule.data').data;
+    assert.equal(result.days.length,14); assert.equal(result.days[0],today);
+    assert.equal(result.today,today); assert.equal(result.range,true); assert.equal(result.canManage,false);
+    for (let index=1;index<14;index++) assert.equal(Date.parse(result.days[index])-Date.parse(result.days[index-1]),86400000);
+    assert.equal(result.entries.length,0);
+  }
+});
+
+test('14-Tage-Übersicht verbindet drei Wochen ohne Dubletten und berücksichtigt Revisionen und Paketgrenzen', () => {
+  const f=fixture(); f.h.advance(Date.parse('2026-11-07T12:00:00Z')-f.h.now());
+  const dates=['2026-11-06','2026-11-07','2026-11-09','2026-11-16','2026-11-20','2026-11-21'];
+  for(const [index,date] of dates.entries()){
+    const stamp=new Date(date+'T12:00:00Z');stamp.setUTCDate(stamp.getUTCDate()-(stamp.getUTCDay()+6)%7);
+    assert.equal(save(f,{week:stamp.toISOString().slice(0,10),date,topic:'Sendung '+index}).ok,true);
+  }
+  function overview(page=0){return event(f,'mw:schedule.get',{range:true,page},f.listener,f.listenerRadio).find(e=>e.type==='mw:schedule.data').data;}
+  const first=overview();
+  assert.deepEqual(first.entries.map(entry=>entry.date),dates.slice(1,5));
+  assert.equal(new Set(first.entries.map(entry=>entry.week+':'+entry.id)).size,4);
+  assert.equal(first.weeks.length,3);assert.equal(first.days[13],'2026-11-20');
+  assert.equal(JSON.stringify(first).includes('userId'),false);
+  const revision=first.boundaryRevision;
+  assert.equal(save(f,{week:'2026-11-16',date:'2026-11-19',topic:'Neue Vorschau'}).ok,true);
+  assert.notEqual(overview().boundaryRevision,revision);
+  assert.ok(JSON.stringify(overview()).length<9500);
+});
+
+test('14-Tage-Übersicht überträgt viele Sendungen vollständig in kleinen revisionsgleichen Paketen', () => {
+  const f=fixture();f.h.advance(Date.parse('2026-11-07T12:00:00Z')-f.h.now());
+  const weeks=['2026-11-02','2026-11-09','2026-11-16'],dates=['2026-11-07','2026-11-09','2026-11-20'];
+  f.h.store.setObject('mischwerk.schedule.v1.weeks',weeks);
+  for(const [index,week] of weeks.entries()) f.h.store.setObject('mischwerk.schedule.v1.'+week,{version:1,revision:index+1,nextId:26,
+    entries:Array.from({length:25},(_,i)=>({id:i+1,date:dates[index],start:'00:'+String(i*2).padStart(2,'0'),
+      end:'00:'+String(i*2+1).padStart(2,'0'),userId:1,nick:'Otterchen',topic:'Sendung '+index+' '+i}))});
+  const rows=[];let first;
+  for(let page=0;;page++){
+    const data=event(f,'mw:schedule.get',{range:true,page},f.listener,f.listenerRadio).find(e=>e.type==='mw:schedule.data').data;
+    first=first||data;assert.equal(data.total,75);assert.equal(data.boundaryRevision,first.boundaryRevision);
+    assert.ok(data.entries.length<=20);assert.ok(JSON.stringify(data).length<9500);rows.push(...data.entries);
+    if(page===data.pages-1)break;
+  }
+  assert.equal(rows.length,75);assert.equal(new Set(rows.map(row=>row.week+':'+row.id)).size,75);
+});
+
 function fixture() {
   const h = createHarness();
   const owner = h.user(1, 'Otterchen', 'owner');

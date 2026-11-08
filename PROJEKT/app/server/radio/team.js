@@ -6,6 +6,15 @@ MischWerkModules.attachRadioTeam = function (runtime, config) {
         if (!runtime.canAdminister(user)) {
             throw runtime.failure('Nur der Channelinhaber darf Radiomoderatoren verwalten.');
         }
+        return change(user, type, data, null);
+    };
+    runtime.changeRadioModeratorFromRelay = function (type, data, commandId) { return change(null, type, data, commandId); };
+    runtime.recordModeratorRelayResult = function (result) {
+        var next = runtime.copy(runtime.state);
+        runtime.addRelayResult(next, 'moderatorRelayResults', result);
+        runtime.persist(next);
+    };
+    function change(user, type, data, commandId) {
         if (data.expectedRadioModeratorRevision !== undefined &&
                 data.expectedRadioModeratorRevision !== runtime.state.radioModeratorRevision) {
             throw runtime.failure('Das Radio-Team wurde inzwischen geändert. Bitte erneut prüfen.');
@@ -37,16 +46,19 @@ MischWerkModules.attachRadioTeam = function (runtime, config) {
                 throw runtime.failure('Dieser Nutzer ist kein Radiomoderator mehr.');
             }
             next.radioModeratorUserIds = next.radioModeratorUserIds.filter(function (id) { return id !== userId; });
-            ownOwnerEntry = userId === runtime.userId(user);
+            ownOwnerEntry = user ? userId === runtime.userId(user) :
+                String(KnuddelsServer.getUserAccess().getNick(userId)).toLowerCase() === config.ownerNick.toLowerCase();
             if (next.moderator && next.moderator.userId === userId && !ownOwnerEntry) {
                 next.moderator = null;
             }
         } else { throw runtime.failure('Unbekannte Radio-Team-Aktion.'); }
         next.radioModeratorRevision = runtime.state.radioModeratorRevision + 1;
+        if (commandId) { runtime.addRelayResult(next, 'moderatorRelayResults', {
+            commandId: commandId, state: 'applied', revision: next.radioModeratorRevision }); }
         runtime.persist(next);
         if (type === 'mw:removeRadioModerator' && !ownOwnerEntry) { runtime.dropWebsiteUser(userId); }
         return nick;
-    };
+    }
 
     runtime.radioModeratorViews = function (user, page) {
         if (!runtime.canAdminister(user)) { return { items: [], total: 0, page: 0, pages: 1 }; }

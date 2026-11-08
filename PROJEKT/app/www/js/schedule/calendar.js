@@ -15,7 +15,7 @@ MischWerkUI.define('scheduleCalendar', function () {
   }
   function label(value) { return value.slice(8) + '.' + value.slice(5, 7) + '.' + value.slice(0, 4); }
   function day(value) { return weekdays[date(value).getUTCDay()] + ', ' + label(value); }
-  function range(week) { return label(week) + ' – ' + label(shift(week, 6)); }
+  function range(start, count) { return label(start) + ' – ' + label(shift(start, (count || 7) - 1)); }
   function minutes(time) { return Number(time.slice(0, 2)) * 60 + Number(time.slice(3)); }
   function time(value) {
     value = Math.round(value);
@@ -42,5 +42,32 @@ MischWerkUI.define('scheduleCalendar', function () {
     if (cursor < 1440) { result.push({ from: cursor, to: 1440 }); }
     return result;
   }
-  return { shift: shift, week: week, label: label, day: day, range: range, slots: slots, time: time };
+  function gapTime(slots, index) {
+    var slot = slots[index], before = slots[index - 1], after = slots[index + 1];
+    var fromHour = !!(before && before.entry && before.entry.automatic);
+    var toHour = !!(after && after.entry && after.entry.automatic);
+    var from = fromHour ? Math.floor(slot.from / 60) * 60 : slot.from;
+    var to = toHour ? Math.floor(slot.to / 60) * 60 : slot.to;
+    if (from >= to) { return ''; }
+    if (fromHour || toHour) {
+      return (from % 60 ? time(from) : String(from / 60).padStart(2, '0')) + ' – ' +
+        (to % 60 ? time(to) : String(to / 60).padStart(2, '0')) + ' Uhr';
+    }
+    return time(from) + ' – ' + time(to) + ' Uhr';
+  }
+  function entryTime(entry, day) {
+    var continued = entry.date !== day;
+    var result = continued ? '00:00 – ' + entry.end + ' Uhr · vom Vortag' :
+      entry.start + ' – ' + entry.end + ' Uhr' + (entry.end < entry.start ? ' · Ende am Folgetag' : '');
+    if (entry.timing === 'allDay') { result = 'Ganztags'; }
+    if (entry.timing === 'openEnd') {
+      result = (continued ? 'Seit ' + label(entry.date) : entry.start + ' Uhr') + ' · Ende offen';
+    }
+    if (entry.automatic) {
+      result = (continued ? 'Seit ' + label(entry.date) + ', ' : '') + Number(entry.start.slice(0, 2)) + ' Uhr';
+    }
+    return result;
+  }
+  return { shift: shift, week: week, label: label, day: day, range: range, slots: slots, time: time,
+    gapTime: gapTime, entryTime: entryTime };
 });

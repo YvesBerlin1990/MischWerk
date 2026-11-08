@@ -60,6 +60,7 @@ MischWerkUI.define('scheduleEditor', function (dependencies) {
     dom.el('schedule-form').hidden = false;
     dom.el('schedule-days').hidden = true;
     signals.emit('schedule-editor-state');
+    signals.emit('schedule-select-week', draft.week);
     dom.el('schedule-date').focus();
   }
   function bindWeek(data) {

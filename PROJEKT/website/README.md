@@ -1,6 +1,6 @@
 # MischWerk – Homepage und Arbeitsbereich
 
-Lokaler Stand **Website 0.2.1**, passend zur Knuddels-App **0.1.269 / Build 269**. Auf Nutzerauftrag vom 05.11.2026 wiederaufgenommen. Die Homepage verwendet das aktuelle Vinyl-Design mit goldenen Radiotasten mit lokalen Outfit-/Fraunces-Schriften und unveränderten Originalmedien.
+Lokaler Stand **Website 0.2.5**, mit Knuddels-App **0.1.297 / Build 297** lokal geprüft. Auf Nutzerauftrag vom 05.11.2026 wiederaufgenommen. Die Homepage verwendet das aktuelle Vinyl-Design mit goldenen Radiotasten mit lokalen Outfit-/Fraunces-Schriften und unveränderten Originalmedien.
 
 Der öffentliche Teil enthält Radio, Sendeplan, Teamvorstellungen und Musikwünsche. Der eigene Arbeitsbereich unter **/arbeitsbereich** bietet Anmelden und Abmelden ohne Zeitlimit, Thema, Wunschregie, privater Übergabe und Tageshistorie, außerdem Besitzerverwaltung, Bot-Texte und Sendeplanung. Die bestehenden App-Menüs bleiben bis zur erfolgreichen echten Verbindungsabnahme erhalten.
 

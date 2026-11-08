@@ -54,10 +54,236 @@ async function setup(t, { clock = false, nativeSizing = false } = {}) {
   await owner.goto(base + '/preview?role=moderator&view=schedule');
   await listener.goto(base + '/preview?view=schedule');
   for (const page of [owner, listener]) {
-    await page.waitForFunction(() => document.querySelectorAll('.schedule-day').length === 7);
+    await page.waitForFunction(() => document.querySelectorAll('.schedule-day').length === 14);
   }
   return { base, context, owner, listener, errors };
 }
+
+test('Tageskopf, Musikzeiten und kurze Einträge bleiben geordnet; Inhaberaktionen stehen unter der Sendung',async t=>{
+  const {owner,errors}=await setup(t);
+  const initial=(await scheduleCall(owner,'mw:schedule.get',{range:true})).find(e=>e.type==='mw:schedule.data').data;
+  const date=initial.today,week=futureWeek(date);
+  const entries=['01:23','16:40'].map((start,index)=>({id:101+index,week,date,start,end:'',timing:'openEnd',kind:'live',
+    automatic:true,shortBroadcast:true,nick:'Testleitung',topic:'MischWerk Radio Show',
+    actualStart:Date.parse(date+'T'+start+':00Z')-3600000,actualEnd:Date.parse(date+'T'+start+':15Z')-3600000,
+    actualFrom:Date.parse(date+'T'+start+':00Z')/60000,actualUntil:Date.parse(date+'T'+start+':15Z')/60000}));
+  await owner.route('**/api/event',route=>{
+    const body=route.request().postDataJSON();if(body.type!=='mw:schedule.get')return route.continue();
+    return route.fulfill({json:[{type:'mw:schedule.data',data:{...initial,entries,total:2,page:0,pages:1,requestId:body.data.requestId}}]});
+  });
+  await owner.locator('#schedule-refresh:not([disabled])').click();
+  await owner.locator('.schedule-show').first().waitFor({state:'attached'});
+  for(const width of [720,560,390,320]){
+    await owner.setViewportSize({width,height:660});await owner.waitForTimeout(100);
+    while(!await owner.locator('.schedule-show').first().isVisible())await owner.locator('#schedule-page-next:not([disabled])').click();
+    const row=owner.locator('.schedule-show').first();
+    const geometry=await row.evaluate(node=>{
+      const rect=selector=>node.querySelector(selector).getBoundingClientRect().toJSON();
+      const heading=node.closest('.schedule-day').querySelector('.schedule-day-label').getBoundingClientRect();
+      return {copy:rect('.schedule-show-copy'),actions:rect('.schedule-owner-controls'),time:rect('.schedule-time'),
+        title:rect('.schedule-topic'),headingBottom:heading.bottom,overflow:document.documentElement.scrollWidth>innerWidth};
+    });
+    assert.ok(geometry.actions.top>=geometry.copy.bottom,'Aktionen liegen unter dem zusammengehörenden Programmtext: '+JSON.stringify(geometry));
+    assert.ok(geometry.headingBottom<=geometry.copy.top,'Das Datum gehört als Kopf über den Tagesverlauf');
+    assert.equal(geometry.overflow,false);
+    assert.equal(await owner.locator('.schedule-gap-time').count(),3);
+    assert.equal(await owner.locator('.schedule-gap-copy').first().textContent(),'Musikmix von MischWerk');
+    assert.doesNotMatch(await owner.locator('#schedule-days').textContent(),/01:23|16:40/);
+  }
+  assert.deepEqual(errors,[]);
+});
+
+test('Hörerprogramm stellt den Sendungstitel vor den Namen und beschreibt offene Enden verständlich',async t=>{
+  const {owner,listener,errors}=await setup(t);
+  const initial=(await scheduleCall(owner,'mw:schedule.get',{range:true})).find(e=>e.type==='mw:schedule.data').data;
+  const date=initial.days[1],week=futureWeek(date);
+  const target=(await scheduleCall(owner,'mw:schedule.get',{week})).find(e=>e.type==='mw:schedule.data').data;
+  assert.equal((await scheduleCall(owner,'mw:schedule.save',{week,expectedRevision:target.revision,date,
+    start:'19:00',end:'',timing:'openEnd',nick:'Testleitung',topic:'Soul am Abend'})).find(e=>e.type==='mw:schedule.result').data.ok,true);
+  await listener.locator('#schedule-refresh:not([disabled])').click();
+  const row=listener.locator('.schedule-show').filter({hasText:'Soul am Abend'}).first();await row.waitFor({state:'attached'});
+  const hierarchy=await row.evaluate(node=>{
+    const title=node.querySelector('.schedule-topic'),name=node.querySelector('.schedule-presenter');
+    return {title:parseFloat(getComputedStyle(title).fontSize),name:parseFloat(getComputedStyle(name).fontSize),
+      first:!!(title.compareDocumentPosition(name)&Node.DOCUMENT_POSITION_FOLLOWING)};
+  });
+  assert.ok(hierarchy.title>hierarchy.name&&hierarchy.first,'Die Sendung hat Vorrang vor dem Namen: '+JSON.stringify(hierarchy));
+  assert.match(await row.locator('.schedule-time').textContent(),/19:00 Uhr · Ende offen/);
+  assert.doesNotMatch(await listener.locator('#schedule-days').textContent(),/AutoDJ|Open End|Anmeldung|Abgemeldet|Verwaltung/);
+  assert.equal(await listener.locator('.schedule-owner-controls').count(),0);
+  assert.deepEqual(errors,[]);
+});
+
+test('Reiner Musikplan beginnt direkt mit den Tagen und kennzeichnet morgen ohne Ankündigungszeile',async t=>{
+  const {listener,errors}=await setup(t);
+  assert.equal(await listener.locator('#schedule-summary').textContent(),'');
+  assert.equal(await listener.locator('#schedule-summary').isVisible(),false);
+  assert.ok((await listener.locator('.schedule-empty').allTextContents()).every(text=>text==='Ganztags · Musikmix von MischWerk'));
+  assert.equal(await listener.locator('.schedule-today').filter({hasText:'Morgen'}).count(),1);
+  assert.doesNotMatch(await listener.locator('#schedule-panel').innerText(),/angekündigt|AutoDJ|Moderator|Verwaltung|Bearbeiten|Löschen|Entfernen|eintragen/);
+  assert.deepEqual(errors,[]);
+});
+
+test('Hörer blättern durch alle Tage; der Zeitraum steht ausschließlich oben',async t=>{
+  const {listener,errors}=await setup(t);
+  assert.equal(await listener.locator('#schedule-page-range').count(),0);
+  const range=await listener.locator('#schedule-range').textContent();
+  for(const width of [720,560,390,320]){
+    await listener.setViewportSize({width,height:600});await listener.locator('#schedule-current').click();await listener.waitForTimeout(100);
+    const seen=new Set();let guard=0;
+    do{
+      const dates=await listener.locator('.schedule-day:visible').evaluateAll(nodes=>nodes.map(n=>n.dataset.scheduleDate));
+      dates.forEach(day=>seen.add(day));
+      assert.equal(await listener.locator('#schedule-range').textContent(),range);
+      assert.match(await listener.locator('#schedule-pagination').innerText(),/^Zurück\s+Seite \d+ von \d+\s+Weiter$/);
+      const fit=await listener.locator('#schedule-pagination').evaluate(node=>{
+        const box=node.getBoundingClientRect();return {bottom:box.bottom,height:innerHeight,overflow:document.documentElement.scrollWidth>innerWidth,
+          hit:[...node.querySelectorAll('button')].filter(n=>!n.disabled).every(n=>{const r=n.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')===n;})};
+      });
+      assert.ok(fit.bottom<=fit.height&&fit.hit&&!fit.overflow,JSON.stringify(fit));
+      if(await listener.locator('#schedule-page-next').isDisabled())break;
+      assert.ok(guard++<30);await listener.locator('#schedule-page-next').click();
+    }while(true);
+    assert.equal(seen.size,14);
+  }
+  assert.deepEqual(errors,[]);
+});
+
+test('Der Jahreswechsel wird nur im Kopf genannt; die Navigation bleibt bei 320 Pixeln sichtbar',async t=>{
+  const {owner,listener,errors}=await setup(t);
+  const initial=(await scheduleCall(owner,'mw:schedule.get',{range:true})).find(e=>e.type==='mw:schedule.data').data;
+  const today='2026-12-31',days=Array.from({length:14},(_,i)=>new Date(Date.parse(today+'T12:00:00Z')+i*86400000).toISOString().slice(0,10));
+  await listener.route('**/api/event',route=>{
+    const body=route.request().postDataJSON();
+    if(body.type!=='mw:schedule.get')return route.continue();
+    return route.fulfill({json:[{type:'mw:schedule.data',data:{...initial,canManage:false,today,days,week:futureWeek(today),
+      entries:[],page:0,pages:1,total:0,requestId:body.data.requestId}}]});
+  });
+  await listener.setViewportSize({width:320,height:600});await listener.locator('#schedule-refresh:not([disabled])').click();
+  await listener.locator('.schedule-day[data-schedule-date="2026-12-31"]').waitFor({state:'attached'});await listener.waitForTimeout(100);
+  assert.equal(await listener.locator('#schedule-range').textContent(),'31.12.2026 – 13.01.2027');
+  assert.match(await listener.locator('#schedule-pagination').innerText(),/^Zurück\s+Seite \d+ von \d+\s+Weiter$/);
+  const layout=await listener.evaluate(()=>({height:innerHeight,shell:document.querySelector('.dialog-shell').getBoundingClientRect().bottom,
+    pager:document.getElementById('schedule-pagination').getBoundingClientRect().bottom,scroll:document.documentElement.scrollHeight}));
+  assert.ok(layout.pager<=layout.height&&layout.scroll<=layout.height&&Math.abs(layout.shell-layout.height)<=1,JSON.stringify(layout));
+  assert.deepEqual(errors,[]);
+});
+
+test('Inhaber kann normale Sendungen direkt entfernen; Abbruch erhält den Eintrag und Hörer haben keine Löschaktion',async t=>{
+  const {owner,listener,errors}=await setup(t);
+  await newShow(owner,'Direkt entfernbares Programm');
+  await owner.setViewportSize({width:320,height:640});await owner.waitForTimeout(100);
+  const row=owner.locator('.schedule-show').filter({hasText:'Direkt entfernbares Programm'});
+  const remove=row.locator('.schedule-remove');assert.equal(await remove.count(),1);
+  await remove.click();await row.locator('.schedule-delete-cancel').click();
+  assert.equal(await remove.evaluate(node=>node===document.activeElement),true);
+  assert.equal((await scheduleCall(owner,'mw:schedule.get')).find(e=>e.type==='mw:schedule.data').data.total,1);
+  assert.equal(await listener.locator('.schedule-remove,.schedule-delete-confirm').count(),0);
+  await remove.click();await row.locator('.schedule-delete-confirm').click();
+  await owner.waitForFunction(()=>document.querySelectorAll('.schedule-show').length===0);
+  assert.equal((await scheduleCall(owner,'mw:schedule.get')).find(e=>e.type==='mw:schedule.data').data.total,0);
+  assert.deepEqual(errors,[]);
+});
+
+test('Hörer sehen zuerst heute und erreichen den letzten der nächsten 14 Tage samt zukünftiger Sendung',async t=>{
+  const {owner,listener,errors}=await setup(t);
+  const initial=(await scheduleCall(owner,'mw:schedule.get',{range:true})).find(e=>e.type==='mw:schedule.data').data;
+  const date=initial.days[13],week=futureWeek(date);
+  const target=(await scheduleCall(owner,'mw:schedule.get',{week})).find(e=>e.type==='mw:schedule.data').data;
+  const saved=(await scheduleCall(owner,'mw:schedule.save',{week,expectedRevision:target.revision,date,
+    start:'19:00',end:'21:00',nick:'Testleitung',topic:'Sendung am letzten Vorschautag'})).find(e=>e.type==='mw:schedule.result').data;
+  assert.equal(saved.ok,true);
+  await listener.locator('#schedule-refresh:not([disabled])').click();
+  await listener.locator('.schedule-topic').filter({hasText:'Sendung am letzten Vorschautag'}).waitFor({state:'attached'});
+  await listener.waitForTimeout(100);
+  assert.deepEqual(await listener.locator('.schedule-day').evaluateAll(nodes=>[...new Set(nodes.map(n=>n.dataset.scheduleDate))]),initial.days);
+  assert.equal(await listener.locator('.schedule-day:visible').first().getAttribute('data-schedule-date'),initial.today);
+  assert.equal(await listener.locator('#schedule-previous').isVisible(),false);
+  assert.equal(await listener.locator('#schedule-next').isVisible(),false);
+  assert.equal(await listener.locator('#schedule-period').textContent(),'Ab heute · nächste 14 Tage');
+  let guard=0;
+  while(!await listener.locator('.schedule-topic').filter({hasText:'Sendung am letzten Vorschautag'}).isVisible()){
+    assert.ok(guard++<30);await listener.locator('#schedule-page-next:not([disabled])').click();
+  }
+  assert.equal(await listener.locator('.schedule-day:visible').last().getAttribute('data-schedule-date'),date);
+  await listener.locator('#schedule-current').click();await listener.waitForTimeout(100);
+  assert.equal(await listener.locator('.schedule-day:visible').first().getAttribute('data-schedule-date'),initial.today);
+  await owner.locator('#schedule-refresh:not([disabled])').click();
+  const edit=owner.locator('.schedule-show').filter({hasText:'Sendung am letzten Vorschautag'}).locator('.schedule-edit');
+  await edit.waitFor({state:'attached'});await owner.waitForTimeout(100);
+  guard=0;while(!await edit.isVisible()){assert.ok(guard++<30);await owner.locator('#schedule-page-next:not([disabled])').click();}
+  await edit.click();await owner.waitForFunction(()=>!document.getElementById('schedule-save').disabled);
+  await owner.locator('#schedule-topic').fill('Letzter Vorschautag bearbeitet');await owner.locator('#schedule-save').click();
+  await owner.waitForFunction(()=>document.getElementById('schedule-form').hidden);
+  const stored=(await scheduleCall(owner,'mw:schedule.get',{week})).find(e=>e.type==='mw:schedule.data').data;
+  assert.ok(stored.entries.some(entry=>entry.date===date&&entry.topic==='Letzter Vorschautag bearbeitet'));
+  assert.deepEqual(errors,[]);
+});
+
+test('Tages- und Wochenwechsel während einer Paketfolge lädt die Vorschau neu statt alte Tage zu mischen',async t=>{
+  const {owner,errors}=await setup(t);
+  const initial=(await scheduleCall(owner,'mw:schedule.get',{range:true})).find(e=>e.type==='mw:schedule.data').data;
+  let step=0;
+  await owner.route('**/api/event',route=>{
+    const body=route.request().postDataJSON();
+    if(body.type!=='mw:schedule.get'||body.data.range!==true||step>=2)return route.continue();
+    const today=step===0?'2026-11-08':'2026-11-09';
+    const days=Array.from({length:14},(_,i)=>new Date(Date.parse(today+'T12:00:00Z')+i*86400000).toISOString().slice(0,10));
+    const data={...initial,week:futureWeek(today),today,days,page:step,pages:2,entries:[],requestId:body.data.requestId};
+    step++;return route.fulfill({json:[{type:'mw:schedule.data',data}]});
+  });
+  const renewed=owner.waitForRequest(request=>{
+    const body=request.url().endsWith('/api/event')&&request.postDataJSON();
+    return step===2&&body?.type==='mw:schedule.get'&&body.data.range===true&&body.data.page===0;
+  },{timeout:5000});
+  await owner.locator('#schedule-refresh:not([disabled])').click();await renewed;
+  await owner.waitForFunction(()=>document.getElementById('schedule-refresh').getAttribute('aria-busy')==='false');
+  assert.equal(step,2);
+  assert.deepEqual(await owner.locator('.schedule-day').evaluateAll(nodes=>[...new Set(nodes.map(n=>n.dataset.scheduleDate))]),initial.days);
+  assert.deepEqual(errors,[]);
+});
+
+test('Aktualisieren hält den gelesenen leeren Tag, wenn frühere Tage zusätzliche Sendungsseiten erhalten',async t=>{
+  const {owner,listener,errors}=await setup(t);
+  const initial=(await scheduleCall(owner,'mw:schedule.get',{range:true})).find(e=>e.type==='mw:schedule.data').data;
+  let date=await listener.locator('.schedule-day:visible').first().getAttribute('data-schedule-date');
+  while(date<initial.days[5]){
+    await listener.locator('#schedule-page-next:not([disabled])').click();
+    date=await listener.locator('.schedule-day:visible').first().getAttribute('data-schedule-date');
+  }
+  const day=initial.days[1],week=futureWeek(day);
+  let revision=(await scheduleCall(owner,'mw:schedule.get',{week})).find(e=>e.type==='mw:schedule.data').data.revision;
+  const time=minute=>String(Math.floor(minute/60)).padStart(2,'0')+':'+String(minute%60).padStart(2,'0');
+  for(let i=0;i<24;i++){
+    const result=(await scheduleCall(owner,'mw:schedule.save',{week,expectedRevision:revision,date:day,
+      start:time(i*20),end:time((i+1)*20),nick:'Testleitung',topic:'Zusätzliche Sendung '+i})).find(e=>e.type==='mw:schedule.result').data;
+    assert.equal(result.ok,true,result.message);revision+=1;
+  }
+  await listener.locator('#schedule-refresh:not([disabled])').click();
+  await listener.locator('.schedule-topic').first().waitFor({state:'attached'});await listener.waitForTimeout(150);
+  assert.ok((await listener.locator('.schedule-day:visible').evaluateAll(nodes=>nodes.map(n=>n.dataset.scheduleDate))).includes(date),
+    'Der zuvor gelesene Tag bleibt nach neuer Seitenaufteilung sichtbar');
+  assert.deepEqual(errors,[]);
+});
+
+test('Eine während des Ladens geschrumpfte Paketfolge wird ohne Antworttimeout erneut geladen',async t=>{
+  const {owner,errors}=await setup(t);
+  const initial=(await scheduleCall(owner,'mw:schedule.get',{range:true})).find(e=>e.type==='mw:schedule.data').data;
+  let step=0;
+  await owner.route('**/api/event',route=>{
+    const body=route.request().postDataJSON();
+    if(body.type!=='mw:schedule.get'||!body.data.range||step>=2)return route.continue();
+    const data={...initial,page:0,pages:step===0?2:1,revision:initial.revision+step,entries:[],requestId:body.data.requestId};
+    step++;return route.fulfill({json:[{type:'mw:schedule.data',data}]});
+  });
+  const renewed=owner.waitForRequest(request=>{
+    const body=request.url().endsWith('/api/event')&&request.postDataJSON();
+    return step===2&&body?.type==='mw:schedule.get'&&body.data.page===0;
+  },{timeout:5000});
+  await owner.locator('#schedule-refresh:not([disabled])').click();await renewed;
+  await owner.waitForFunction(()=>document.getElementById('schedule-refresh').getAttribute('aria-busy')==='false');
+  assert.equal(step,2);assert.deepEqual(errors,[]);
+});
 
 test('Fensteröffnung: Sendeplan behält seine passende Anfangsgröße ohne nachträgliche Hostanpassung',async t=>{
   const {owner,listener,errors}=await setup(t,{nativeSizing:true});
@@ -65,8 +291,24 @@ test('Fensteröffnung: Sendeplan behält seine passende Anfangsgröße ohne nach
     await page.waitForTimeout(1300);
     assert.deepEqual(await page.evaluate(()=>__scheduleSizes),[],'Kein Größenbefehl nach dem nativen Öffnen');
     assert.equal(await page.evaluate(()=>innerHeight),660);
-    assert.equal(await page.locator('.schedule-day').count(),7,'Auch mit zusätzlichem Vorschauhinweis bleibt die vollständige Woche erhalten');
+    assert.equal(await page.locator('.schedule-day').count(),14,'Auch mit Vorschauhinweis bleiben alle 14 Tage erhalten');
     await scheduleReachable(page);
+    assert.doesNotMatch(await page.locator('.schedule-intro').textContent(),/Alle Zeiten|Europe\/Berlin|Zeitzone/);
+    for(const width of [720,560,390,320]){
+      await page.setViewportSize({width,height:660});await page.waitForTimeout(100);
+      const header=await page.evaluate(()=>{
+        const box=id=>document.querySelector(id).getBoundingClientRect().toJSON();
+        const buttons=[...document.querySelectorAll('.schedule-controls button')].filter(node=>node.getClientRects().length);
+        return {nav:box('.schedule-navigation'),toolbar:box('.schedule-toolbar'),current:box('#schedule-current'),refresh:box('#schedule-refresh'),
+          buttons:buttons.map(node=>{const r=node.getBoundingClientRect();return {...r.toJSON(),hit:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')===node};}),
+          overflow:document.documentElement.scrollWidth>innerWidth};
+      });
+      assert.ok(header.nav.bottom<=header.toolbar.top,'Zeitraum und Aktionen stehen in getrennten Zeilen');
+      assert.ok(Math.abs(header.current.top-header.refresh.top)<1,'Ansichtsaktionen bleiben zusammen');
+      assert.equal(header.overflow,false);
+      for(const button of header.buttons){assert.ok(button.width>=44&&button.height>=44);assert.ok(button.left>=0&&button.right<=width+1);assert.equal(button.hit,true);}
+    }
+    await page.setViewportSize({width:820,height:660});await page.waitForTimeout(100);
   }
   await owner.locator('#schedule-new').click();
   await owner.waitForTimeout(250);
@@ -78,25 +320,34 @@ test('Fensteröffnung: Sendeplan behält seine passende Anfangsgröße ohne nach
   await scheduleReachable(owner);
   assert.deepEqual(errors,[]);
 });
-test('Leere Sendeplanwoche verteilt den freien Rahmen auf sieben gleichmäßige Tageszeilen',async t=>{
+test('Leere 14-Tage-Vorschau erhält alle Tageszeilen über erreichbare Seiten im festen Rahmen',async t=>{
  const {owner,listener,errors}=await setup(t);
  for(const page of [owner,listener])for(const height of [630,800]){
   await page.setViewportSize({width:820,height});await page.waitForTimeout(150);
+  await page.locator('#schedule-current').click();await page.waitForTimeout(100);
   const layout=await page.evaluate(()=>{
-   const rows=[...document.querySelectorAll('.schedule-day')].map(n=>n.getBoundingClientRect());
-   return {heights:rows.map(r=>r.height),bottom:innerHeight-rows.at(-1).bottom,
+   const rows=[...document.querySelectorAll('.schedule-day')].filter(n=>n.getClientRects().length).map(n=>n.getBoundingClientRect());
+   return {heights:rows.map(r=>r.height),bottom:innerHeight-document.getElementById('schedule-pagination').getBoundingClientRect().bottom,
     overflow:document.documentElement.scrollHeight>innerHeight||document.documentElement.scrollWidth>innerWidth,
     paged:!document.getElementById('schedule-pagination').hidden};
   });
-  assert.equal(layout.heights.length,7);assert.equal(layout.paged,false);assert.equal(layout.overflow,false);
+  assert.ok(layout.heights.length>0&&layout.heights.length<14);assert.equal(layout.paged,true);assert.equal(layout.overflow,false);
+  if(height===630)assert.ok(layout.heights.length>=5,'Im breiten Standardrahmen sind mindestens fünf kompakte Tage sichtbar');
   assert.ok(Math.max(...layout.heights)-Math.min(...layout.heights)<1,JSON.stringify(layout));
   assert.ok(layout.heights.every(h=>h>=50),JSON.stringify(layout));
   assert.ok(layout.bottom>=(height<=700?16:24)&&layout.bottom<=(height<=700?17:25),JSON.stringify(layout));
+  const dates=new Set();
+  do {
+    for(const date of await page.locator('.schedule-day:visible').evaluateAll(nodes=>nodes.map(n=>n.dataset.scheduleDate)))dates.add(date);
+    if(await page.locator('#schedule-page-next').isDisabled())break;
+    await page.locator('#schedule-page-next').click();
+  } while(dates.size<14);
+  assert.equal(dates.size,14);
  }
  await owner.locator('#schedule-new').click();await owner.locator('#schedule-topic').fill('Mein Wochenentwurf');
  assert.equal(await owner.locator('body').evaluate(n=>getComputedStyle(n).display),'block','Editor erhält seine natürliche Anordnung');
  await owner.locator('#schedule-cancel').click();
- await owner.waitForTimeout(150);assert.equal(await owner.locator('.schedule-day').count(),7);
+ await owner.locator('#schedule-current').click();await owner.waitForTimeout(150);assert.equal(await owner.locator('.schedule-day').count(),14);
  assert.deepEqual(errors,[]);
 });
 
@@ -140,8 +391,8 @@ async function scheduleReachable(page) {
 
 test('Sendeoptionen: AutoDJ ganztags speichern und bearbeiten; Open End begrenzt die freien Planzeiten', async t => {
   const { owner, listener, errors } = await setup(t);
-  assert.equal(await owner.locator('.schedule-empty').count(), 7);
-  assert.match(await owner.locator('.schedule-empty').first().innerText(), /Ganztags.*AutoDJ.*MischWerk/);
+  assert.equal(await owner.locator('.schedule-empty').count(), 14);
+  assert.match(await owner.locator('.schedule-empty').first().innerText(), /Ganztags.*Musikmix von MischWerk/);
   await owner.locator('#schedule-new').click();
   assert.equal(await owner.locator('#schedule-kind').count(), 1);
   await owner.locator('#schedule-kind').selectOption('autodj');
@@ -168,23 +419,24 @@ test('Sendeoptionen: AutoDJ ganztags speichern und bearbeiten; Open End begrenzt
   await owner.locator('#schedule-save').click();
   await owner.locator('#schedule-form').waitFor({state:'hidden'});
   const row = owner.locator('.schedule-show').filter({hasText:'Abend ohne feste Endzeit'}).first();
-  assert.match(await row.innerText(), /18:00.*Open End/);
+  assert.match(await row.innerText(), /18:00.*Ende offen/);
   await listener.locator('#schedule-refresh').click();
   await listener.locator('.schedule-topic').filter({hasText:'Abend ohne feste Endzeit'}).first().waitFor({state:'attached'});
   assert.equal(await listener.locator('.schedule-edit').count(), 0);
   const day = owner.locator('.schedule-day[data-schedule-date="'+date+'"]');
-  assert.match(await day.locator('.schedule-autodj-gap').first().innerText(), /00:00.*18:00.*AutoDJ/);
+  assert.match(await day.locator('.schedule-autodj-gap').first().textContent(), /00:00.*18:00.*Musikmix von MischWerk/);
   assert.equal(await day.locator('.schedule-autodj-gap').count(), 1, 'Keine erfundene AutoDJ-Lücke nach offenem Ende');
   assert.deepEqual(errors, []);
 });
-test('Sendeplan: Anlegen, Bearbeiten und Löschen durch den Besitzer; Hörer sehen sieben datierte Tage', async t => {
+test('Sendeplan: Anlegen, Bearbeiten und Löschen durch den Besitzer; Hörer sehen 14 Tage ab heute', async t => {
   const { owner, listener, errors } = await setup(t);
   assert.equal(await listener.locator('#schedule-new').isVisible(), false);
   assert.equal(await listener.locator('#schedule-topic').isDisabled(), true);
-  assert.equal(await owner.locator('.schedule-day').count(), 7);
+  assert.equal(await owner.locator('.schedule-day').count(), 14);
   assert.doesNotMatch(await owner.locator('.schedule-controls').innerText(), /Deutsche Ortszeit/);
-  assert.match(await owner.locator('.schedule-day-label').first().textContent(), /Montag, \d{2}\.\d{2}\.\d{4}/);
-  assert.match(await owner.locator('.schedule-day-label').last().textContent(), /Sonntag, \d{2}\.\d{2}\.\d{4}/);
+  const range=(await scheduleCall(owner,'mw:schedule.get',{range:true})).find(e=>e.type==='mw:schedule.data').data;
+  assert.equal(await owner.locator('.schedule-day').first().getAttribute('data-schedule-date'),range.today);
+  assert.equal(await owner.locator('.schedule-day').last().getAttribute('data-schedule-date'),range.days[13]);
   await newShow(owner);
   await listener.locator('#schedule-refresh').click();
   await listener.locator('.schedule-topic').filter({ hasText: '80er und 90er' }).waitFor();
@@ -236,8 +488,9 @@ test('Wochenwechsel, Mitternacht und unverlorener Themenentwurf bei Fehler und A
   assert.notEqual(await owner.locator('#schedule-range').textContent(), next);
   await owner.locator('#schedule-current').click();
   await owner.waitForFunction(value => document.getElementById('schedule-range').textContent === value, initial);
-  const monday = await owner.locator('.schedule-day').first().getAttribute('data-schedule-date');
-  const sunday = await owner.locator('.schedule-day').last().getAttribute('data-schedule-date');
+  const days = await owner.locator('.schedule-day').evaluateAll(nodes=>nodes.map(n=>n.dataset.scheduleDate));
+  const monday = days[0];
+  const sunday = days.find(day=>new Date(day+'T12:00:00Z').getUTCDay()===0);
   await owner.locator('#schedule-new').click();
   await owner.locator('#schedule-date').fill(sunday);
   await owner.locator('#schedule-start').fill('22:00');
@@ -329,7 +582,7 @@ test('Inhaber öffnet den Sendeplan auch bei geschlossener Wunschbox als getrenn
   await header.locator('#open-schedule').click();
   await channel.locator('#overlay-frame:not([hidden])').waitFor();
   const overlay=await(await channel.locator('#overlay-frame').elementHandle()).contentFrame();
-  await overlay.waitForFunction(()=>document.querySelectorAll('.schedule-day').length===7);
+  await overlay.waitForFunction(()=>document.querySelectorAll('.schedule-day').length===14);
   assert.equal(await overlay.locator('#dialog-title').textContent(),'Sendeplan');
   assert.equal(context.pages().length,pages,'Kein separates Browserfenster');
   assert.equal(await header.locator('#radio-panel').isVisible(),true);
@@ -350,10 +603,11 @@ test('Mehr als ein Paket wird vollständig als Woche dargestellt; Sendungstexte 
       return response.json();
     }
     const events = await call('mw:schedule.get', {});
-    const week = events.find(event => event.type === 'mw:schedule.data').data.week;
+    const initial = events.find(event => event.type === 'mw:schedule.data').data;
+    const week = initial.week;
     function time(minutes) { return String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0'); }
     for (let i = 0; i < 25; i++) {
-      const result = await call('mw:schedule.save', { week, date: week, expectedRevision: i,
+      const result = await call('mw:schedule.save', { week, date: initial.today, expectedRevision: i,
         start: time(i * 20), end: time((i + 1) * 20), nick: Client.pageData.user.nick,
         topic: i ? 'Sendung ' + (i + 1) : '<img src="x" onerror="window.__bad=true">' });
       if (!result.find(event => event.type === 'mw:schedule.result').data.ok) { return false; }
@@ -363,12 +617,13 @@ test('Mehr als ein Paket wird vollständig als Woche dargestellt; Sendungstexte 
   assert.equal(seeded, true);
   await owner.locator('#schedule-refresh').click();
   await owner.waitForFunction(() => document.querySelectorAll('.schedule-show').length === 25);
-  assert.equal(await owner.locator('.schedule-day').evaluateAll(nodes => new Set(nodes.map(node => node.dataset.scheduleDate)).size), 7);
+  assert.equal(await owner.locator('.schedule-day').evaluateAll(nodes => new Set(nodes.map(node => node.dataset.scheduleDate)).size), 14);
   assert.equal(await owner.locator('#schedule-days img').count(), 0);
   assert.equal(await owner.evaluate(() => window.__bad), undefined);
   assert.ok((await owner.locator('#schedule-days').textContent()).includes('Sendung 25'));
   // Erst die fertige Pagination verwenden; der kurz sichtbare Rohplan ist noch keine Seite.
   await owner.locator('#schedule-pagination').waitFor({ state: 'visible' });
+  await owner.waitForFunction(() => document.querySelectorAll('.schedule-page .schedule-show').length === 25);
   while (!(await owner.locator('.schedule-edit').last().isVisible())) {
     await owner.locator('#schedule-page-next:not([disabled])').click();
   }
@@ -398,7 +653,7 @@ test('Sendeplan behält den Rahmen bei neuen und gelöschten Sendungen; alle Ein
   await scheduleReachable(owner);
   const first = (await scheduleCall(owner, 'mw:schedule.get')).find(e => e.type === 'mw:schedule.data').data;
   for (let i = 0; i < 3; i++) {
-    const events = await scheduleCall(owner, 'mw:schedule.save', { week: first.week, date: first.week,
+    const events = await scheduleCall(owner, 'mw:schedule.save', { week: first.week, date: first.today,
       expectedRevision: i, start: String(i).padStart(2, '0') + ':00',
       end: String(i + 1).padStart(2, '0') + ':00', nick: 'Testleitung', topic: 'Zusätzliche Sendung ' + i });
     assert.equal(events.find(e => e.type === 'mw:schedule.result').data.ok, true);
@@ -430,7 +685,7 @@ test('Sendeplan behält den Rahmen bei neuen und gelöschten Sendungen; alle Ein
     innerHeight === height, emptyHeight);
   await owner.waitForTimeout(100);
   assert.deepEqual(await owner.evaluate(()=>__scheduleSizes),[]);
-  assert.equal(await owner.locator('.schedule-day').count(),7);
+  assert.equal(await owner.locator('.schedule-day').count(),14);
   await scheduleReachable(owner);
   if (process.env.MISCHWERK_CAPTURE_SCHEDULE) {
     await owner.screenshot({ path: path.join(require('node:os').tmpdir(), 'MischWerk-Pruefbilder', 'sendeplan/Sendeplan-Dynamisch-Leer.png') });
@@ -449,7 +704,7 @@ test('Feste K3-Höhe: alle Einträge über sichtbare Seiten erreichbar, auch ein
   });
   const first = (await scheduleCall(owner, 'mw:schedule.get')).find(e => e.type === 'mw:schedule.data').data;
   for (let i = 0; i < 12; i++) {
-    const events = await scheduleCall(owner, 'mw:schedule.save', { week: first.week, date: first.week,
+    const events = await scheduleCall(owner, 'mw:schedule.save', { week: first.week, date: first.today,
       expectedRevision: i, start: String(i).padStart(2, '0') + ':00',
       end: String(i + 1).padStart(2, '0') + ':00', nick: 'Testleitung',
       topic: i === 0 ? 'Kalenderprüfung 0'.padEnd(80, 'W') : 'Kalenderprüfung ' + i });
@@ -529,7 +784,10 @@ test('Neue Sendungen lassen sich direkt im Kalender für nächste Woche, später
     const stored = (await scheduleCall(listener, 'mw:schedule.get', { week: futureWeek(date) })).find(e => e.type === 'mw:schedule.data').data;
     assert.ok(stored.entries.some(e => e.date === date && e.topic === 'Zukunftsprogramm ' + index));
     if (index === 0) {
-      await listener.locator('#schedule-next').click();
+      await listener.locator('#schedule-refresh').click();
+      while(!await listener.locator('.schedule-topic').filter({hasText:'Zukunftsprogramm 0'}).isVisible()){
+        await listener.locator('#schedule-page-next:not([disabled])').click();
+      }
       await listener.locator('.schedule-topic').filter({ hasText: 'Zukunftsprogramm 0' }).waitFor();
       assert.equal(await listener.locator('.schedule-edit').count(), 0);
       await owner.locator('.schedule-edit:visible').first().click();
@@ -539,7 +797,8 @@ test('Neue Sendungen lassen sich direkt im Kalender für nächste Woche, später
     }
   }
   await owner.reload();
-  await owner.waitForFunction(() => document.querySelectorAll('.schedule-day').length === 7);
+  await owner.waitForFunction(() => new Set(Array.from(document.querySelectorAll('.schedule-day'),node=>node.dataset.scheduleDate)).size === 14);
+  assert.equal(await owner.locator('.schedule-day').first().getAttribute('data-schedule-date'),initial.today);
   await owner.locator('#schedule-new').click();
   await owner.locator('#schedule-date').fill(targets[2]);
   await waitScheduleReady(owner);
