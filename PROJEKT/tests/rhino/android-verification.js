@@ -22,7 +22,7 @@
         owner.sendPrivateMessage = function (text) { replies.push(JSON.parse(String(text))); };
         MischWerkModules.attachChanges(runtime);
         MischWerkModules.attachTicker(runtime);
-        MischWerkModules.attachAndroidSigning(runtime);
+        MischWerkModules.attachAndroidFailures(runtime); MischWerkModules.attachAndroidSigning(runtime);
         MischWerkModules.attachAndroidConnection(runtime);
         MischWerkModules.attachAndroidPublisher(runtime);
         MischWerkModules.attachAndroidVerification(runtime, MischWerkConfig);

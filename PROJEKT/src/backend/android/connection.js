@@ -20,14 +20,16 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
         if (!external || typeof external.postURL !== 'function' || typeof external.canAccessURL !== 'function' ||
                 external.canAccessURL(settings.syncUrl) !== true) { return null; }
         return { sendJson: function (request, finish) {
+            if (busy) { var busyError = new Error('ANDROID_CONNECTION'); busyError.androidBusy = true; throw busyError; }
             if (request.url !== settings.syncUrl ||
-                    external.canAccessURL(settings.syncUrl) !== true || busy) { throw new Error('ANDROID_CONNECTION'); }
+                    external.canAccessURL(settings.syncUrl) !== true) { throw new Error('ANDROID_CONNECTION'); }
             var finished = false, cancelled = false;
             function complete(raw, response, failed) {
                 if (finished) { return; }
                 finished = true; busy = false;
                 if (cancelled) { return; }
                 var result = { status: 0, body: null }, code = null, matches = authProbe ? null : false, parsed = false;
+                var stage = 'http_response';
                 try {
                     code = Number(response.getResponseCode());
                     if (!isFinite(code) || code < 100 || code > 599 || Math.floor(code) !== code) { code = null; }
@@ -36,12 +38,20 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
                         matches = String(response.getURLString()) === settings.syncUrl;
                         if (matches && code !== null) { result.status = code; }
                         var text = String(raw === null || raw === undefined ? '' : raw);
-                        if (failed || text.length > 32768 || runtime.jsonBytes(text) > 32768 ||
-                                code === null || !matches) { throw new Error('ANDROID_HTTP_RESPONSE'); }
+                        if (failed || code === null) { throw new Error('ANDROID_HTTP_RESPONSE'); }
+                        stage = 'response_url';
+                        if (!matches) { throw new Error('ANDROID_HTTP_RESPONSE'); }
+                        stage = 'response_size';
+                        if (text.length > 32768 || runtime.jsonBytes(text) > 32768) { throw new Error('ANDROID_HTTP_RESPONSE'); }
+                        stage = 'response_json';
                         result = { status: code, body: JSON.parse(text) };
                         parsed = true;
                     }
-                } catch (error) { runtime.warn('ANDROID_HTTP_RESPONSE'); }
+                } catch (error) {
+                    result.failureStage = stage;
+                    if (!verification) { runtime.recordAndroidFailure(stage, code); }
+                    runtime.warn('ANDROID_HTTP_RESPONSE');
+                }
                 if (verification) { result.observation = { status: code, callback: failed ? 'failure' : 'success',
                     responseUrlMatches: matches, jsonParsed: parsed }; }
                 if (authProbe) { result.observation.bodyRead = false; }

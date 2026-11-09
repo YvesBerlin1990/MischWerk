@@ -9,10 +9,10 @@
 #host-name { flex-basis:100%; min-width:0; max-width:100%; overflow-wrap:anywhere; font-size:inherit; font-weight:600; color:var(--text); }
 #host-name::before { content:attr(data-prefix); font-weight:400; color:var(--muted); }
 .presenter[data-mode=live] #host-name,.presenter[data-mode=moderation] #host-name { flex-basis:auto; color:var(--live); }
-.radio-bar { --radio-action-gap:12px; }
-.radio-actions-panel { grid-column:4; grid-row:1; display:flex; align-items:center; min-width:0; min-height:80px; padding:0; }
+.radio-bar { --radio-action-gap:10px; }
+.radio-actions-panel { grid-column:4; grid-row:1; display:flex; align-items:center; min-width:0; min-height:64px; padding:0; }
 .bar-actions { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:stretch; width:100%; gap:var(--radio-action-gap); }
-.wish-button { --action-font:18px; --action-icon:32px; display:flex; flex-direction:row; align-items:center; justify-content:center; width:100%; min-width:0; min-height:80px; padding:12px; gap:12px; border:1px solid #ad9360; border-radius:32px; background:radial-gradient(ellipse at 38% 25%,#3c3524,transparent 65%),linear-gradient(145deg,#25231e,#171817),#171817; color:#e9eaec; box-shadow:inset 0 1px 0 #fff2,inset 0 -2px 4px #0008; text-shadow:none; }
+.wish-button { --action-font:15px; --action-icon:24px; display:flex; flex-direction:row; align-items:center; justify-content:center; width:100%; min-width:0; min-height:64px; padding:10px; gap:8px; border:1px solid #ad9360; border-radius:24px; background:radial-gradient(ellipse at 38% 25%,#3c3524,transparent 65%),linear-gradient(145deg,#25231e,#171817),#171817; color:#e9eaec; box-shadow:inset 0 1px 0 #fff2,inset 0 -2px 4px #0008; text-shadow:none; }
 .wish-button:hover:enabled { border-color:#ffe2a1; color:#fff5dc; box-shadow:inset 0 1px 0 #fff4,inset 0 -2px 4px #0008; }
 .wish-button:active:enabled { border-color:#ad9360; box-shadow:inset 0 3px 8px #000b; }
 .wish-button:focus-visible { outline:2px solid #e6c77b; outline-offset:-2px; }
@@ -27,7 +27,7 @@
 .public-action-icon svg { width:var(--action-icon); height:var(--action-icon); }
 .wish-button-icon .wish-icon-lock,.wishes-closed .wish-icon-music { display:none; }
 .wishes-closed .wish-icon-lock,.wishes-closed #wish-button-caption { display:block; }
-.bar-utility-links { grid-column:5; grid-row:1; display:flex; flex-direction:column; justify-self:center; width:100%; max-width:190px; min-width:0; }
+.bar-utility-links { grid-column:5; grid-row:1; display:flex; flex-direction:column; justify-self:center; width:100%; max-width:156px; min-width:0; }
 .radio-listener-brand { position:relative; grid-column:5; grid-row:1; justify-self:center; width:100px; aspect-ratio:1; }
 .radio-listener-logo { display:block; width:100%; height:auto; object-fit:contain; background:transparent; mix-blend-mode:lighten; }
 .radio-listener-emblem { display:block; width:100%; height:74.286%; overflow:hidden; }

@@ -1,8 +1,25 @@
-# MischWerk – API-Nachweis 0.1.305 · Build 305
+# MischWerk – API-Nachweis 0.1.311 · Build 311
+
+## Ruhigere Radioanzeigen und kompaktere Aktionen · Build 311
+
+Reine Anpassung der fünf vorhandenen Radio-Stylesheets: gemeinsame Outfit-Typografie, kompaktere Lautstärkedarstellung und kleinere Aktionsflächen mit ausreichenden Klickzielen. Keine Änderung an Markup, IDs, Backendfachlogik, Audio-/Provider-/Wunschdaten, Timer- oder Plattformmethoden. Alle bisherigen nativen Schnittstellen bleiben Grundlage. [Konzept und Ansichten](../architektur/DESIGN.md).
+
+## Rajdhani und automatische Lauftextmarker · Build 310
+
+Der Browser stellt den Lauftext in lokal ausgelieferter Rajdhani Medium (500) dar und ergänzt genau `+++ Text +++`. Alte Plusfolgen ab drei Zeichen werden nur an den Rändern für die Anzeige zusammengefasst; innere Zeichen und C++ bleiben erhalten. Screenreader und Tooltip erhalten den bereinigten Inhalt ohne Dekoration. Editor, Persistenz, 300-Zeichen-Grenze und Android-Vertrag werden dafür nicht umgeschrieben. Bestehender ResizeObserver misst auch die erste Textkopie nach Schriftwechsel; keine weitere Knuddels-/K3-Methode, Timer- oder Transportquelle.
+
+Fontquelle: [Rajdhani-Metadaten](https://github.com/google/fonts/blob/main/ofl/rajdhani/METADATA.pb), [OFL-Lizenz](https://github.com/google/fonts/blob/main/ofl/rajdhani/OFL.txt); lokaler unveränderter Latin-WOFF2 von fonts.gstatic.com/s/rajdhani/v17/LDI2apCSOBg7S-QT7pb0EPOreec.woff2 mit 15084 Bytes, SHA-256 23AFDB9B5B89B878FAB04D80CC30BF41BB4F3F7E8BE88E5F16A7CC7671CDB2DC. Copyright und vollständige SIL OFL liegen als rajdhani-OFL.txt im selben Schriftordner und im Paket. Keine externen Fontabrufe im ausgelieferten Frontend.
+
+
+Build 309 korrigiert ausschließlich die doppelte Erfolgsanzeige am Wunschboxschalter der Radioregie. Bestätigter Schalter und vorhandene Statuszeile genügen; Fehler bleiben sichtbar und werden nach bestätigter Korrektur entfernt. Kein neues Ereignis, kein Transport-/Persistenzwechsel und keine Änderung am Homepage-/Teamvertrag.
 
 ## Homepage-Sendeplan und Radioteam im Relay
 
-Additive Nutzlastfelder `scheduleUpdates`, `teamUpdates`, `scheduleResults` und `moderatorResults` verwenden unverändert den vorhandenen signierten `postURL`-Port und dessen frische angenommene reguläre Antwort. Firebase prüft Konto, App Check und Berechtigung vor der Auslieferung; die Aufträge benötigen keine `authorization`-, Rollen- oder Nutzeridentitätsfelder. Eine zusätzliche Knuddels-Rollenprüfung entfällt ab Build 302. HTTP-, Ziel-, Frische-, Revisions- und Fachdatenprüfung bleiben bestehen. Keine neue Knuddels-/K3-Signatur, kein weiterer Netzwerkport und kein direkter Callable-Aufruf. Nickauflösung verwendet die bereits bestehenden `UserAccess.exists/getUserId/getNick`-Methoden. Bestehende Wochen-/Teamadapter speichern technische Belege im selben Fachcommit. Die Beschränkung auf volle Stunden betrifft ausschließlich eingehende Relayplanungen; vorhandene lokale Minuten- und automatische exakte Studiozeiten bleiben erhalten. [Aktuelle Vertragsrückantwort](HOMEPAGE-SENDEPLAN-RUECKANTWORT.md).
+Build 308 setzt die freigegebene Fassung vom 08.11.2026, 03:10 Uhr um. Der bestehende signierte `postURL`-Port bleibt unverändert; frische angenommene reguläre Antworten enthalten je höchstens einen Plan- und Teamauftrag. Ausgehend nur `scheduleRevisions` (vorige/aktuelle/nächste Berliner ISO-Woche), `moderatorRevision` und höchstens zehn `scheduleResults`/`moderatorResults` je Bereich; keine `scheduleUpdates`/`teamUpdates`, Titel oder Interpreten. Unbekannte Revisionen auslassen beziehungsweise im Ergebnis null melden.
+
+Firebase prüft Konto, App Check und Rechte. Exakte Auftragsfelder enthalten keine Rollen oder Nutzeridentitäten. Stabile Firebase-String-IDs werden intern auf native Wochen-/Eintrags-IDs abgebildet; vollständiger normalisierter Bestandsvergleich, dauerhafte eindeutige Bindungen und Löschmarker sowie Annahmebeleg besitzen denselben bestehenden Wochencommit. Bekannte Auftragskennungen werden erneut quittiert. Neue Ablehnungen unterscheiden validation, business_rule und tatsächlichen revision_conflict. Erfüllte Teamzustände bleiben ohne Teamrevisionssprung oder erneute Nebenwirkung. Lokale Minutenzeiten, Rechte, Studioaktionen und vorhandene Daten bleiben erhalten.
+
+Nickauflösung nutzt ausschließlich vorhandene `UserAccess.exists/getUserId/getNick`-Methoden. Der private Status ergänzt `lastFailure: {stage,httpStatus,atUtc}` ohne Fehlerobjekte oder Nutzdaten. Keine neue Plattformmethode, Signatur, URL, Persistenzablage, Timerquelle oder direkte Firebase-Callable. Die konkreten Annahmen und gemeinsame Abnahme stehen in der [Rückantwort](HOMEPAGE-SENDEPLAN-RUECKANTWORT.md).
 
 ## Hörerprogramm · Build 295
 

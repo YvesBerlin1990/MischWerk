@@ -14,10 +14,7 @@ function fixture(options = {}) {
         const access = c.KnuddelsServer.getUserAccess;
         c.KnuddelsServer.getUserAccess = () => ({ ...access(), getNick: () => null });
       }
-      if (process.env.MISCHWERK_RELAY_BASELINE) {
-        const old = require('node:child_process').execFileSync('git', ['show', 'HEAD:PROJEKT/src/backend/android/publisher.js'], { encoding: 'utf8' });
-        require('node:vm').runInContext(old, c);
-      }
+
       const attach = c.MischWerkModules.attachAndroidPublisher;
       c.MischWerkModules.attachAndroidPublisher = r => { attach(r); runtime = r; };
     } });
@@ -35,7 +32,7 @@ function fixture(options = {}) {
   };
 }
 function command(f, overrides = {}) {
-  return { commandId: 'plan-1', operation: 'save', week: f.week(), expectedRevision: 0,
+  return { commandId: 'plan-1', id: 'firebase-plan', operation: 'save', week: f.week(), expectedRevision: 0,
     entry: { date: f.runtime.scheduleToday(), kind: 'live', timing: 'fixed', start: '18:00', end: '19:00', nick: 'Otterchen', topic: 'Sendung' }, ...overrides };
 }
 const teamCommand = overrides => ({ commandId: 'team-1', operation: 'add', expectedRevision: 0, nick: 'DJ Test', ...overrides });
@@ -46,15 +43,206 @@ function seed(f, week, count) {
   f.store.setObject(prefix + 'weeks', [...new Set([...weeks, week])]);
   f.store.setObject(prefix + week, { version: 1, revision: 1, nextId: count + 1, entries });
 }
-test('Erster regulärer POST ergänzt ausschließlich öffentliche Wochen und ein echtes Teamobjekt', () => {
+function native(f, entry = {}, id = 1) {
+  const row = command(f).entry;
+  return { ...row, userId: 1, id, ...entry };
+}
+function seedEntries(f, entries, revision = 0) {
+  f.store.setObject(prefix + 'weeks', [f.week()]);
+  f.store.setObject(prefix + f.week(), { version: 1, revision, nextId: Math.max(0, ...entries.map(e => e.id)) + 1, entries });
+}
+function result(f, kind = 'schedule') { f.h.advance(20000); return f.body()[kind + 'Results'][0]; }
+
+test('Stabile ID ändert und löscht genau denselben nativen Eintrag nach Neustart', () => {
+  const f = fixture(), row = command(f); f.schedule(row); f.h.app.onShutdown();
+  const reboot = fixture({ store: f.store });
+  reboot.schedule({ ...row, commandId: 'edit', expectedRevision: 1, entry: { ...row.entry, topic: 'Neu' } });
+  assert.equal(reboot.saved().entries.length, 1); assert.equal(reboot.saved().entries[0].id, 1);
+  assert.equal(reboot.saved().entries[0].topic, 'Neu');
+  reboot.tick({ scheduleCommands: [{ ...row, commandId: 'delete', operation: 'delete', expectedRevision: 2, entry: null }] });
+  assert.equal(reboot.saved().revision, 3); assert.deepEqual(reboot.saved().entries, []);
+  assert.deepEqual(reboot.saved().relayBindings, [{ firebaseId: row.id, nativeId: 1, deleted: true }]);
+});
+test('Exakter normalisierter Ausgangsbestand wird ohne Dublette an seine native ID gebunden', () => {
+  const f = fixture(); seedEntries(f, [native(f, {}, 7)]);
+  const row = command(f); row.entry.topic = '  Sendung  '; row.entry.nick = 'otterchen';
+  f.schedule(row);
+  assert.equal(f.saved().entries.length, 1); assert.equal(f.saved().nextId, 8);
+  assert.deepEqual(f.saved().relayBindings, [{ firebaseId: row.id, nativeId: 7, deleted: false }]);
+  assert.equal(result(f).state, 'applied');
+});
+test('Alte native Felddaten werden vor dem exakten Bestandsvergleich normalisiert', () => {
+  const f = fixture(), entry = native(f, { topic: ' Sendung  ' }); delete entry.kind; delete entry.timing;
+  seedEntries(f, [entry]); f.schedule(command(f));
+  assert.equal(f.saved().entries.length, 1); assert.equal(f.saved().relayBindings[0].nativeId, 1);
+});
+test('Belegte native ID bleibt auch bei zurückgesetztem Zähler für eine zweite Firebase-ID gesperrt', () => {
+  const f = fixture(), row = command(f); f.schedule(row);
+  f.tick({ scheduleCommands: [{ ...row, commandId: 'delete', expectedRevision: 1, operation: 'delete', entry: null }] });
+  const saved = f.saved(); saved.nextId = 1; f.store.setObject(prefix + f.week(), saved);
+  f.tick({ scheduleCommands: [command(f, { commandId: 'another', id: 'another-id', expectedRevision: 2 })] });
+  assert.equal(result(f).reason, 'business_rule'); assert.equal(f.saved().entries.length, 0);
+});
+test('Mehrdeutiger Bestand und zweite Firebase-ID für bereits gebundene native ID werden fachlich abgelehnt', () => {
+  const duplicate = fixture(); seedEntries(duplicate, [native(duplicate), native(duplicate, {}, 2)]);
+  duplicate.schedule(command(duplicate)); assert.equal(result(duplicate).reason, 'business_rule');
+  assert.equal(duplicate.saved().revision, 0); assert.equal(duplicate.saved().relayBindings, undefined);
+  const f = fixture(); f.schedule(command(f));
+  f.tick({ scheduleCommands: [command(f, { commandId: 'second-id', id: 'another-id', expectedRevision: 1 })] });
+  assert.equal(result(f).reason, 'business_rule'); assert.equal(f.saved().relayBindings.length, 1); assert.equal(f.saved().entries.length, 1);
+});
+test('Unbekannte Löschung ist dauerhaft idempotent und ihr Schlüssel wird nicht wieder angelegt', () => {
+  const f = fixture(), row = command(f, { operation: 'delete', entry: null });
+  f.schedule(row); assert.equal(f.saved().revision, 0); assert.equal(result(f).state, 'applied');
+  f.reply({ scheduleCommands: [{ ...row, commandId: 'delete-again' }] });
+  assert.equal(f.saved().relayBindings.length, 1); assert.equal(f.saved().revision, 0);
+  f.tick({ scheduleCommands: [command(f, { commandId: 'revive' })] });
+  assert.equal(result(f).reason, 'business_rule'); assert.deepEqual(f.saved().entries, []);
+});
+test('Lokal entferntes gebundenes Ziel wird niemals auf einen anderen Eintrag umgebogen', () => {
+  const f = fixture(), row = command(f); f.schedule(row);
+  f.runtime.changeSchedule(f.h.user(1, 'Otterchen'), 'mw:schedule.delete', { week: f.week(), id: 1, expectedRevision: 1 });
+  const saved = f.saved(); saved.entries.push(native(f, {}, 2)); saved.nextId = 3; f.runtime.writeScheduleWeek(f.week(), saved);
+  f.tick({ scheduleCommands: [{ ...row, commandId: 'missing-target', expectedRevision: 3 }] });
+  assert.equal(result(f).reason, 'business_rule'); assert.equal(f.saved().entries[0].id, 2);
+  assert.equal(f.saved().relayBindings[0].nativeId, 1);
+});
+test('Wochenwechsel verwendet neue Firebase-ID; alte ID bleibt an ihre Woche gebunden', () => {
+  const f = fixture(), row = command(f); f.schedule(row);
+  const next = f.runtime.scheduleDay(f.week(), 7), moved = { ...row, week: next, expectedRevision: 0, entry: { ...row.entry, date: next } };
+  f.tick({ scheduleCommands: [{ ...moved, commandId: 'wrong-move' }] });
+  assert.equal(result(f).reason, 'business_rule'); assert.equal(f.saved(next).entries.length, 0);
+  f.reply({ scheduleCommands: [{ ...row, commandId: 'old-delete', expectedRevision: 1, operation: 'delete', entry: null }] });
+  f.tick({ scheduleCommands: [{ ...moved, id: 'new-week-id', commandId: 'new-week-save' }] });
+  assert.equal(f.saved().entries.length, 0); assert.equal(f.saved(next).entries.length, 1);
+});
+test('Zuordnungen und Löschmarker überleben die Kürzung des 64er-Quittungscaches', () => {
+  const f = fixture(), row = command(f); f.schedule(row);
+  f.tick({ scheduleCommands: [{ ...row, commandId: 'deleted', expectedRevision: 1, operation: 'delete', entry: null }] });
+  for (let i = 0; i < 70; i++) f.tick({ scheduleCommands: [command(f, { commandId: 'empty-' + i, id: 'empty-id-' + i, expectedRevision: 2, operation: 'delete', entry: null })] });
+  assert.equal(f.saved().relayResults.length, 64); assert.equal(f.saved().relayBindings.length, 71);
+  f.h.app.onShutdown(); const reboot = fixture({ store: f.store });
+  reboot.schedule(command(reboot, { commandId: 'late-old-save', expectedRevision: 2 }));
+  assert.equal(result(reboot).reason, 'business_rule'); assert.equal(reboot.saved().entries.length, 0);
+});
+test('Automatische und aktive Studioeinträge werden weder übernommen noch überschrieben', () => {
+  for (const flags of [{ automatic: true }, { broadcastKey: 'active', actualStart: 1 }]) {
+    const f = fixture(); seedEntries(f, [native(f, flags)]); f.schedule(command(f));
+    assert.equal(result(f).reason, 'business_rule'); assert.equal(f.saved().relayBindings, undefined);
+    assert.deepEqual(f.saved().entries[0], native(f, flags));
+  }
+});
+test('Fehlende oder ungültige Revision ist validation; nur eine echte Abweichung ist revision_conflict', () => {
+  for (const value of [undefined, null, '0', -1, 0.5, 2]) {
+    const f = fixture(); f.schedule(command(f, { expectedRevision: value })); const r = result(f);
+    assert.equal(r.reason, value === 2 ? 'revision_conflict' : 'validation'); assert.equal(r.revision, 0);
+  }
+  const f = fixture(); f.schedule(command(f, { week: 'ungültig' }));
+  assert.equal(result(f).revision, null);
+});
+test('Feldschema, Vollstunden, native Nick-/Themenregeln und Sommerzeit werden geprüft', () => {
+  const mutations = [r => ({ ...r, id: 1 }), r => ({ ...r, id: 'bad/id' }), r => ({ ...r, authorization: {} }),
+    r => ({ ...r, entry: { ...r.entry, start: '18:30' } }), r => ({ ...r, entry: { ...r.entry, nick: 'Unbekannt' } }),
+    r => ({ ...r, entry: { ...r.entry, topic: '' } }), r => ({ ...r, entry: { ...r.entry, extra: 'hidden' } }),
+    r => ({ ...r, week: '2027-03-22', entry: { ...r.entry, date: '2027-03-28', start: '02:00', end: '03:00' } }),
+    r => ({ ...r, operation: 'delete' })];
+  for (const mutate of mutations) {
+    const f = fixture(); f.schedule(mutate(command(f))); assert.equal(result(f).reason, 'validation');
+    assert.equal(f.saved().entries.length, 0);
+  }
+});
+test('Native Überschneidungsregeln bleiben Fachablehnung, offene und ganztägige Zeiten werden nativ normalisiert', () => {
+  const f = fixture(); f.schedule(command(f));
+  f.tick({ scheduleCommands: [command(f, { commandId: 'overlap', id: 'overlap-id', expectedRevision: 1, entry: { ...command(f).entry, end: '20:00' } })] });
+  assert.equal(result(f).reason, 'business_rule');
+  for (const timing of ['openEnd', 'allDay']) {
+    const t = fixture(), row = command(t); row.entry = { ...row.entry, timing, end: '', ...(timing === 'allDay' ? { start: '00:00' } : {}) };
+    t.schedule(row); assert.equal(t.saved().entries[0].end, timing === 'allDay' ? '00:00' : '');
+    assert.equal(result(t).state, 'applied');
+  }
+});
+test('Erfüllte Teamzustände quittieren applied ohne Revisionssprung, Studiowechsel oder doppelte Nebenwirkung', () => {
+  const f = fixture(); let removals = 0, broadcasts = 0;
+  f.runtime.dropWebsiteUser = () => removals++; f.runtime.broadcast = () => broadcasts++;
+  f.team(teamCommand());
+  f.tick({ moderatorCommands: [teamCommand({ commandId: 'already-added', expectedRevision: 1 })] });
+  assert.equal(result(f, 'moderator').state, 'applied'); assert.equal(f.runtime.state.radioModeratorRevision, 1);
+  assert.equal(broadcasts, 1);
+  f.reply({ moderatorCommands: [teamCommand({ commandId: 'remove', operation: 'remove', expectedRevision: 1 })] });
+  f.tick({ moderatorCommands: [teamCommand({ commandId: 'already-removed', operation: 'remove', expectedRevision: 2 })] });
+  assert.equal(result(f, 'moderator').state, 'applied'); assert.equal(f.runtime.state.radioModeratorRevision, 2); assert.equal(removals, 1);
+  assert.equal(broadcasts, 2);
+  f.reply({ moderatorCommands: [teamCommand({ commandId: 'unknown', operation: 'remove', expectedRevision: 2, nick: 'Unbekannt' })] });
+  assert.equal(result(f, 'moderator').reason, 'validation');
+});
+test('Teamgrenze, unveränderte native Duplikatprüfung und exaktes Remoteschema bleiben erhalten', () => {
+  const f = fixture(); f.runtime.state.radioModeratorUserIds = Array.from({ length: 50 }, (_, i) => i + 100);
+  f.team(teamCommand()); assert.equal(result(f, 'moderator').reason, 'business_rule');
+  const t = fixture(); t.team(teamCommand());
+  assert.throws(() => t.runtime.manageRadioModerator(t.h.user(1, 'Otterchen'), 'mw:addRadioModerator', { nick: 'DJ Test' }), /bereits/);
+  t.tick({ moderatorCommands: [teamCommand({ commandId: 'roles', expectedRevision: 1, role: 'admin' })] });
+  assert.equal(result(t, 'moderator').reason, 'validation');
+});
+test('Unbekannte Revisionen werden einzeln ausgelassen; Status und Wünsche werden weiter übertragen', () => {
+  const f = fixture(); f.reply(); const read = f.runtime.readScheduleWeek;
+  f.runtime.readScheduleWeek = week => { if (week === f.week()) throw Error('storage'); return read(week); };
+  f.runtime.state.radioModeratorRevision = NaN; f.h.advance(20000);
+  assert.equal(f.body().moderatorRevision, undefined); assert.equal(f.body().scheduleRevisions.length, 2);
+  assert.ok(f.body().scheduleRevisions.every(r => r.week !== f.week())); assert.ok(f.body().station); assert.deepEqual(f.body().wishUpdates, []);
+});
+test('Revisionen um Jahres- und Sommerzeitwechsel verwenden ausschließlich Berliner ISO-Wochen', () => {
+  const f = fixture(); f.reply();
+  for (const iso of ['2026-12-31T23:30:00Z', '2027-03-28T01:30:00Z', '2027-10-31T01:30:00Z']) {
+    f.runtime.now = () => Date.parse(iso);
+    const rows = plain(f.runtime.prepareRelayProjection().body.scheduleRevisions), current = f.week();
+    assert.deepEqual(rows.map(r => r.week), [-7, 0, 7].map(days => f.runtime.scheduleDay(current, days)));
+  }
+});
+test('Grenze des Wochenobjekts entfernt weder Zuordnungen noch Daten und quittiert keinen falschen Erfolg', () => {
+  const f = fixture(); seedEntries(f, [native(f, { topic: 'x'.repeat(89000) })]);
+  const before = f.saved(); f.schedule(command(f, { operation: 'delete', entry: null }));
+  // Ein noch speicherbarer Marker ist erlaubt; danach erzwingt der vorhandene Byte-Guard einen technischen Fehler.
+  const s = f.saved(); s.padding = 'x'.repeat(2000); f.store.setObject(prefix + f.week(), s);
+  const snapshot = f.saved(); f.tick({ scheduleCommands: [command(f, { commandId: 'too-full', id: 'new-id', operation: 'delete', entry: null })] });
+  assert.deepEqual(f.saved(), snapshot); assert.equal(f.saved().entries[0].topic, before.entries[0].topic);
+  assert.ok(!(f.runtime.pendingRelayResults().scheduleResults || []).some(r => r.commandId === 'too-full'));
+  assert.equal(f.runtime.androidLastFailure().stage, 'command_storage');
+});
+test('HTTP-, JSON-, URL-, Größen- und Vertragsfehler liefern ausschließlich private technische Diagnose', () => {
+  for (const [stage, raw, status, target, failed] of [
+    ['http_response', '{}', 503, url, false], ['http_response', 'secret-content', 400, url, true],
+    ['response_json', '{secret-content', 200, url, false], ['response_url', '{}', 200, 'https://evil.invalid', false],
+    ['response_size', 'x'.repeat(32769), 200, url, false], ['response_contract', '{}', 200, url, false]
+  ]) {
+    const f = fixture(); assert.equal(f.runtime.androidLastFailure(), null);
+    f.calls.at(-1).p[failed ? 'onFailure' : 'onSuccess'](raw, { getResponseCode: () => status, getURLString: () => target });
+    const failure = plain(f.runtime.androidPublisherStatus().lastFailure);
+    assert.deepEqual(failure, { stage, httpStatus: status, atUtc: new Date(f.h.now()).toISOString() });
+    assert.deepEqual(Object.keys(failure).sort(), ['atUtc', 'httpStatus', 'stage']);
+    assert.doesNotMatch(JSON.stringify(failure), /secret-content|evil|wish|nick|commandId/);
+    f.h.advance(20000); f.reply(); assert.deepEqual(plain(f.runtime.androidLastFailure()), failure, 'Letzter Fehler bleibt nach Erholung sichtbar');
+  }
+});
+test('Timeout, Vorbereitung, Versand und Speicherfehler verwenden vorhandenen Takt und neutrale Stufen', () => {
+  const timeout = fixture(); timeout.h.advance(20000); assert.equal(timeout.runtime.androidLastFailure().stage, 'timeout');
+  const prepare = fixture(); prepare.reply(); prepare.runtime.pendingAndroidUpdates = () => { throw Error('secret'); };
+  prepare.h.advance(20000); assert.equal(prepare.runtime.androidLastFailure().stage, 'prepare');
+  const send = fixture(); send.reply(); send.runtime.stopAndroidPublisher();
+  send.runtime.startAndroidPublisher({ syncUrl: url }, { sendJson() { throw Error('secret'); } });
+  assert.equal(send.runtime.androidLastFailure().stage, 'send'); assert.equal(send.runtime.androidLastFailure().httpStatus, null);
+  const storage = fixture(); storage.store.setObject = () => { throw Error('secret'); }; storage.schedule(command(storage));
+  assert.equal(storage.runtime.androidLastFailure().stage, 'command_storage');
+});
+test('03:10: Regulärer POST enthält nur tatsächliche Revisionen und keine Kalender-/Teamlisten', () => {
   const f = fixture(), body = f.body();
-  assert.ok(Array.isArray(body.scheduleUpdates), 'Öffentliche Wochenprojektion im regulären Status-POST');
-  assert.equal(body.scheduleUpdates.length, 3); assert.deepEqual(body.teamUpdates, { revision: 0, moderators: [] });
-  for (const page of body.scheduleUpdates) assert.deepEqual(page, plain(f.runtime.publicWebsitePlan(page.week, page.page)));
-  assert.ok(body.scheduleUpdates.every(page => page.entries.length === 0), 'Keine künstlichen AutoDJ-Sendungen');
-  assert.doesNotMatch(JSON.stringify(body), /userId|radioModeratorUserIds|authorization|syncSecret/);
-  assert.ok(body.station.ticker); assert.deepEqual(body.wishUpdates, []);
-  f.reply(); f.h.advance(20000); assert.equal(f.body().scheduleUpdates, undefined); assert.equal(f.body().teamUpdates, undefined);
+  assert.equal(body.scheduleUpdates, undefined); assert.equal(body.teamUpdates, undefined);
+  assert.deepEqual(body.scheduleRevisions, [-7, 0, 7].map(days => ({ week: f.runtime.scheduleDay(f.week(), days), revision: 0 })));
+  assert.equal(body.moderatorRevision, 0);
+});
+test('03:10: Stabile Firebase-ID wird zusammen mit nativer Änderung dauerhaft gespeichert', () => {
+  const f = fixture(); f.schedule(command(f));
+  assert.equal(f.saved().entries.length, 1);
+  assert.deepEqual(f.saved().relayBindings, [{ firebaseId: 'firebase-plan', nativeId: 1, deleted: false }]);
 });
 test('Native Planänderung quittiert zuerst den Erfolg und sendet danach genau eine Änderungsnachricht', () => {
   const f = fixture(); f.reply(); const owner = f.h.user(1, 'Otterchen');
@@ -62,32 +250,7 @@ test('Native Planänderung quittiert zuerst den Erfolg und sendet danach genau e
   const session = owner.sessions.find(s => s.content.htmlFile.pageData.view === 'schedule'), row = command(f);
   const events = f.h.event(owner, session, 'mw:schedule.save', { ...row.entry, week: row.week, expectedRevision: 0, requestId: 'native-plan' });
   assert.deepEqual(events.map(e => e.type), ['mw:schedule.result', 'mw:schedule.changed']);
-  assert.equal(events[0].data.ok, true); assert.equal(f.body().scheduleUpdates[0].entries.length, 1);
-});
-test('Mehr als vier Wochen-Seiten werden in regulären Folgeposts vollständig geliefert; verlorene Antworten wiederholen Seiten', () => {
-  const f = fixture(); f.reply(); seed(f, f.week(), 105); f.h.advance(20000);
-  const first = f.body().scheduleUpdates; assert.equal(first.length, 4); assert.deepEqual(first.map(p => p.page), [0, 1, 2, 3]);
-  f.reply({}, { status: 503 }); f.h.advance(20000); assert.deepEqual(f.body().scheduleUpdates, first);
-  const calls = f.calls.length; f.reply(); assert.equal(f.calls.length, calls, 'Weitere Seiten warten auf den regulären Takt');
-  f.h.advance(20000); const rest = f.body().scheduleUpdates.filter(p => p.week === f.week());
-  assert.deepEqual(rest.map(p => p.page), [4, 5]);
-  assert.equal([...first, ...rest].flatMap(p => p.entries).length, 105);
-  f.reply(); f.h.advance(20000); assert.equal(f.body().scheduleUpdates, undefined);
-});
-test('Neue Revision während laufender Seitensendung startet eine vollständige neue Folge', () => {
-  const f = fixture(); f.reply(); seed(f, f.week(), 105); f.h.advance(20000);
-  const saved = f.saved(); saved.entries[0].topic = 'Neu'; f.runtime.writeScheduleWeek(f.week(), saved); f.runtime.changed('schedule'); f.reply();
-  assert.equal(f.body().scheduleUpdates[0].page, 0); assert.equal(f.body().scheduleUpdates[0].revision, 2);
-  assert.equal(f.body().scheduleUpdates[0].entries[0].topic, 'Neu');
-});
-test('Teamrevision und aufgelöste Nicks werden einmal übertragen; andere Senderänderungen senden kein Team', () => {
-  const f = fixture(); f.team(teamCommand());
-  assert.deepEqual(plain(f.runtime.state.radioModeratorUserIds), [2]);
-  assert.equal(f.calls.length, 1, 'Keine rekursive Sendung aus einem Rückauftrag');
-  f.h.advance(20000); assert.deepEqual(f.body().teamUpdates, { revision: 1, moderators: [{ nick: 'DJ Test' }] });
-  assert.deepEqual(f.body().moderatorResults, [{ commandId: 'team-1', state: 'applied', revision: 1 }]);
-  f.reply(); f.h.advance(20000); assert.equal(f.body().teamUpdates, undefined); assert.equal(f.body().moderatorResults, undefined);
-  f.runtime.state.topic = 'Nur Thema'; f.runtime.changed('station'); f.reply(); f.h.advance(20000); assert.equal(f.body().teamUpdates, undefined);
+  assert.equal(events[0].data.ok, true); assert.equal(f.body().scheduleUpdates, undefined); assert.equal(f.body().scheduleRevisions.find(r => r.week === row.week).revision, 1);
 });
 test('Vorgeprüfter Relayauftrag ohne Rollenfelder speichert ohne anwesenden Inhaber; Wiederholung und Neustart wenden ihn nur einmal an', () => {
   const f = fixture(), row = command(f); f.h.user(1, 'Otterchen').online = false; f.schedule(row);
@@ -97,28 +260,6 @@ test('Vorgeprüfter Relayauftrag ohne Rollenfelder speichert ohne anwesenden Inh
   f.h.app.onShutdown(); const reboot = fixture({ store: f.store }); reboot.schedule(row);
   assert.equal(reboot.saved().revision, 1); assert.equal(reboot.saved().entries.length, 1);
   reboot.h.advance(20000); assert.equal(reboot.body().scheduleResults[0].state, 'applied');
-});
-test('Speichern, Ändern und Löschen verwenden Wochenrevisionen und die bestehenden Zeitregeln', () => {
-  const f = fixture(), row = command(f); f.schedule(row);
-  f.tick({ scheduleCommands: [{ ...row, commandId: 'edit', id: 1, expectedRevision: 1, entry: { ...row.entry, topic: 'Geändert' } }] });
-  assert.equal(f.saved().entries[0].topic, 'Geändert'); assert.equal(f.saved().revision, 2);
-  f.tick({ scheduleCommands: [{ ...row, commandId: 'delete', operation: 'delete', id: 1, expectedRevision: 2 }] });
-  assert.equal(f.saved().entries.length, 0); assert.equal(f.saved().revision, 3);
-  f.h.advance(20000); assert.deepEqual(f.body().scheduleResults, [{ commandId: 'delete', state: 'applied', revision: 3 }]);
-  assert.ok(f.body().scheduleUpdates.some(p => p.week === row.week && p.entries.length === 0));
-});
-test('Konflikte, Minuten, unbekannte Nicks, Überschneidungen und Sommerzeitlücken werden abgelehnt', () => {
-  const variants = [row => ({ ...row, expectedRevision: 2 }), row => ({ ...row, entry: { ...row.entry, start: '18:30' } }),
-    row => ({ ...row, entry: { ...row.entry, nick: 'Unbekannt' } }), row => ({ ...row, entry: { ...row.entry, nick: 'DJ Test' } }),
-    row => ({ ...row, week: '2027-03-22', entry: { ...row.entry, date: '2027-03-28', start: '02:00', end: '03:00' } }),
-    row => ({ ...row, entry: { ...row.entry, end: row.entry.start } })];
-  for (const modify of variants) {
-    const f = fixture(), row = modify(command(f)); f.schedule(row);
-    assert.equal(f.saved(row.week).entries.length, 0); f.h.advance(20000); assert.equal(f.body().scheduleResults[0].state, 'rejected');
-    assert.equal(f.saved(row.week).revision, 0, 'Ablehnung erhöht die Fachrevision nicht');
-  }
-  const f = fixture(), row = command(f); f.schedule(row); f.tick({ scheduleCommands: [{ ...row, commandId: 'overlap', expectedRevision: 1 }] });
-  assert.equal(f.saved().entries.length, 1); f.h.advance(20000); assert.equal(f.body().scheduleResults[0].state, 'rejected');
 });
 test('Behauptete Firebase-Rollen in nativen Clientdaten verleihen keine Sendeplan- oder Teamrechte', () => {
   const f = fixture(), person = f.h.user(2, 'DJ Test'), radio = person.sessions.find(s => s.content.viewMode === 'Headerbar');
@@ -157,16 +298,6 @@ test('Leere Auftragsarrays erhalten die bisherige Nachlieferung großer Wunschqu
   f.h.app.onShutdown(); const reboot = fixture({ store: f.store });
   for (let i = 0; i < 3; i++) reboot.reply({ scheduleCommands: [], moderatorCommands: [] });
   assert.deepEqual(reboot.calls.map(call => JSON.parse(call.p.data.payload).wishUpdates.length), [100, 100, 5]);
-});
-test('Teamregeln erhalten Nick-Auflösung, Duplikatprüfung, 50er-Limit, Revision und Entfernen', () => {
-  const f = fixture(); f.team(teamCommand()); f.tick({ moderatorCommands: [teamCommand({ commandId: 'duplicate', expectedRevision: 1 })] });
-  assert.equal(f.runtime.state.radioModeratorRevision, 1); f.h.advance(20000); assert.equal(f.body().moderatorResults[0].state, 'rejected');
-  f.reply({ moderatorCommands: [teamCommand({ commandId: 'remove', operation: 'remove', expectedRevision: 1 })] });
-  assert.deepEqual(plain(f.runtime.state.radioModeratorUserIds), []); assert.equal(f.runtime.state.radioModeratorRevision, 2);
-  f.tick({ moderatorCommands: [teamCommand({ commandId: 'stale', expectedRevision: 1 })] }); assert.equal(f.runtime.state.radioModeratorRevision, 2);
-  const full = fixture(); full.runtime.state.radioModeratorUserIds = Array.from({ length: 50 }, (_, i) => 100 + i);
-  full.team(teamCommand()); assert.equal(full.runtime.state.radioModeratorUserIds.length, 50); assert.equal(full.runtime.state.radioModeratorRevision, 0);
-  const invalid = fixture(); invalid.team(teamCommand({ nick: 'Unbekannt' })); assert.equal(invalid.runtime.state.radioModeratorRevision, 0);
 });
 test('Teamwiederholung nach Neustart verändert weder Revision noch die ursprüngliche Quittung', () => {
   const f = fixture(), row = teamCommand(); f.team(row); f.h.app.onShutdown(); const reboot = fixture({ store: f.store }); reboot.team(row);
@@ -208,7 +339,11 @@ test('Speicherfehler bestätigen keine fachliche Annahme; Wiederzustellung nach 
   }
 });
 test('Persistierte Quittung und Fachdaten haben denselben Commit; verlorene Quittung wird erneut gesendet', () => {
-  const f = fixture(); f.schedule(command(f)); const saved = f.store.data[prefix + f.week()];
+  const f = fixture(), writes = [], write = f.store.setObject;
+  f.store.setObject = (key, value) => { if (key === prefix + f.week()) writes.push(plain(value)); write(key, value); };
+  f.runtime.broadcast = () => { throw Error('notification'); };
+  f.schedule(command(f)); const saved = f.store.data[prefix + f.week()];
+  assert.equal(writes.length, 1); assert.equal(writes[0].relayBindings[0].nativeId, writes[0].entries[0].id);
   assert.equal(saved.entries.length, 1); assert.equal(saved.relayResults[0].revision, saved.revision);
   f.h.advance(20000); const result = f.body().scheduleResults; f.reply({}, { status: 503 }); f.h.advance(20000);
   assert.deepEqual(f.body().scheduleResults, result); assert.equal(f.saved().entries.length, 1);
@@ -221,21 +356,7 @@ test('Neue Quittungen gehen vor historischen Neustartbelegen im nächsten regul�
       relayResults: [{ commandId: 'historical-' + i, state: 'applied', revision: 1 }] });
   }
   f.store.setObject(prefix + 'weeks', weeks); f.schedule(command(f)); f.h.advance(20000);
-  assert.equal(f.body().scheduleResults.length, 64); assert.equal(f.body().scheduleResults[0].commandId, 'plan-1');
+  assert.equal(f.body().scheduleResults.length, 10); assert.equal(f.body().scheduleResults[0].commandId, 'plan-1');
   f.reply(); f.h.advance(20000); assert.ok(f.body().scheduleResults.length);
   assert.ok(f.body().scheduleResults.every(row => row.commandId !== 'plan-1'));
-});
-test('Öffentliche Projektion filtert kurze Studioeinträge und überträgt ausschließlich bestehende öffentliche Felder', () => {
-  const f = fixture(); f.reply(); const owner = f.h.user(1, 'Otterchen'), radio = owner.sessions.find(s => s.content.viewMode === 'Headerbar');
-  f.h.event(owner, radio, 'mw:onAir'); assert.ok(f.body().scheduleUpdates.every(page => page.entries.length === 0)); f.reply();
-  f.h.advance(300000); const rows = (f.body().scheduleUpdates || []).flatMap(page => page.entries);
-  assert.ok(rows.length); for (const row of rows) assert.deepEqual(Object.keys(row).sort(), ['date', 'end', 'id', 'kind', 'moderator', 'start', 'timing', 'topic', 'week']);
-  assert.doesNotMatch(JSON.stringify(f.body()), /userId|broadcastKey|actualStart|shortBroadcast/);
-});
-test('Fehlende Nickauflösung blockiert nur Teamprojektion und erlaubt deren spätere Nachlieferung', () => {
-  const missing = fixture({ nullNick: true }); missing.reply(); missing.runtime.state.radioModeratorUserIds = [2];
-  missing.h.advance(20000); assert.equal(missing.body().teamUpdates, undefined); assert.ok(missing.body().station);
-  const f = fixture(); f.reply(); f.runtime.state.radioModeratorUserIds = [999]; f.runtime.state.radioModeratorRevision = 1; f.h.advance(20000);
-  assert.ok(f.body().station); assert.equal(f.body().teamUpdates, undefined); f.reply();
-  f.h.user(999, 'Später aufgelöst'); f.h.advance(20000); assert.deepEqual(f.body().teamUpdates, { revision: 1, moderators: [{ nick: 'Später aufgelöst' }] });
 });

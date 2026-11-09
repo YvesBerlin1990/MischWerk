@@ -166,7 +166,7 @@ html[data-view=radio] body::after {
 /* Kleine sichtbare Scheibe mit Abstand zum Leistenrand; Bedienfläche bleibt 44 px. */
 .volume-control #mute-button { position:relative; border:0; border-radius:50%; background:transparent; color:#e6c77b; box-shadow:none; }
 .volume-control #mute-button::before {
-  content:""; position:absolute; inset:6px; border:1px solid #827354; border-radius:50%;
+  content:""; position:absolute; inset:8px; border:1px solid #827354; border-radius:50%;
   background:radial-gradient(circle at 40% 25%,#302d25,#181818 75%); pointer-events:none;
 }
 .volume-control #mute-button svg { position:relative; width:18px; height:18px; }

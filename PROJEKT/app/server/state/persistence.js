@@ -57,7 +57,9 @@ MischWerkModules.attachPersistence = function (runtime, config) {
                 next = emergency;
             } catch (retryError) {
                 runtime.warn('PERSIST_WRITE');
-                throw runtime.failure(failureMessage || 'MischWerk konnte die Änderung nicht speichern. Bitte versuche es erneut.');
+                var writeFailure = runtime.failure(failureMessage || 'MischWerk konnte die Änderung nicht speichern. Bitte versuche es erneut.');
+                writeFailure.relayTechnical = true;
+                throw writeFailure;
             }
         }
         runtime.state = next;

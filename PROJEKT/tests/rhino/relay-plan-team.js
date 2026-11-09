@@ -25,8 +25,8 @@
         MischWerkModules.attachPersistence(r, MischWerkConfig); MischWerkModules.attachRadioTeam(r, MischWerkConfig);
         MischWerkModules.attachTicker(r); MischWerkModules.attachScheduleCalendar(r); MischWerkModules.attachScheduleStorage(r);
         MischWerkModules.attachScheduleProgramme(r, MischWerkConfig); MischWerkModules.attachScheduleCommands(r, MischWerkConfig);
-        MischWerkModules.attachScheduleBroadcasts(r); MischWerkModules.attachWebsitePublic(r, MischWerkConfig);
-        MischWerkModules.attachAndroidSigning(r); MischWerkModules.attachAndroidConnection(r); MischWerkModules.attachAndroidIncoming(r);
+        MischWerkModules.attachScheduleRelay(r); MischWerkModules.attachScheduleBroadcasts(r); MischWerkModules.attachWebsitePublic(r, MischWerkConfig);
+        MischWerkModules.attachAndroidFailures(r); MischWerkModules.attachAndroidSigning(r); MischWerkModules.attachAndroidConnection(r); MischWerkModules.attachAndroidIncoming(r);
         MischWerkModules.attachRelayProjection(r); MischWerkModules.attachRelayCommands(r); MischWerkModules.attachAndroidPublisher(r);
         r.readState();
         var settings = { runtimeVerified: true, syncSecret: new Array(65).join('s'), syncUrl: url };
@@ -48,39 +48,60 @@
     try {
         channelTextTasks = {}; runtime = create();
         var week = runtime.scheduleWeek(runtime.scheduleToday()), prefix = 'mischwerk.schedule.v1.';
-        var plan = { commandId: 'rhino-plan', operation: 'save', week: week, expectedRevision: 0,
+        var plan = { commandId: 'rhino-plan', id: 'firebase-plan', operation: 'save', week: week, expectedRevision: 0,
             entry: { date: runtime.scheduleToday(), kind: 'live', timing: 'fixed', start: '18:00', end: '19:00', nick: 'Otterchen', topic: 'Sendung' } };
         var team = { commandId: 'rhino-team', operation: 'add', expectedRevision: 0, nick: 'DJ Test' };
-        check(body().scheduleUpdates.length === 3 && body().teamUpdates.moderators.length === 0, 'Öffentliche Initialprojektionen in Rhino');
+        check(body().scheduleRevisions.length === 3 && body().moderatorRevision === 0, 'Tatsächliche Revisionen in Rhino');
+        check(!body().scheduleUpdates && !body().teamUpdates, 'Keine vollständigen Listen');
+        check(runtime.androidLastFailure() === null, 'Private Fehlerdiagnose zunächst leer');
         answer({ scheduleCommands: [plan], moderatorCommands: [team] });
         check(calls.length === 1, 'Keine rekursive Sendung nach Rückaufträgen');
-        check(runtime.readScheduleWeek(week).entries.length === 1 && runtime.state.radioModeratorUserIds[0] === 2, 'Beide Relayaufträge ohne Rollenfelder mit nativer Nickauflösung angewandt');
-        check(saved[prefix + week].relayResults[0].revision === saved[prefix + week].revision, 'Wochenänderung und Wiederholungsbeleg atomar');
+        check(runtime.readScheduleWeek(week).entries.length === 1 && runtime.state.radioModeratorUserIds[0] === 2, 'Relayaufträge mit Java-Nickauflösung angewandt');
+        var committed = saved[prefix + week];
+        check(committed.relayBindings[0].firebaseId === plan.id && committed.relayBindings[0].nativeId === committed.entries[0].id,
+            'Firebase-ID, native Änderung und Quittung in einem Commit');
+        check(committed.relayResults[0].revision === committed.revision, 'Quittung enthält tatsächliche Revision');
         tick();
-        check(body().scheduleResults[0].state === 'applied' && body().moderatorResults[0].state === 'applied', 'Nächster regulärer POST quittiert beide Bereiche');
-        check(body().teamUpdates.moderators[0].nick === 'DJ Test', 'Java-Nick als öffentlicher String ohne User-ID');
-        check(JSON.stringify(body()).indexOf('userId') === -1, 'Keine privaten Knuddels-IDs im Relay-Body');
+        check(body().scheduleResults[0].state === 'applied' && body().moderatorResults[0].state === 'applied', 'Regulärer Folgepost quittiert');
+        check(body().moderatorRevision === 1 && !body().teamUpdates, 'Nur Teamrevision ohne Nicks');
+        check(JSON.stringify(body()).indexOf('nativeId') === -1, 'Native IDs bleiben intern');
         answer({ scheduleCommands: [plan], moderatorCommands: [team] });
-        check(runtime.readScheduleWeek(week).revision === 1 && runtime.state.radioModeratorRevision === 1, 'Wiederholung führt keine zweite Fachänderung aus');
+        check(runtime.readScheduleWeek(week).revision === 1 && runtime.state.radioModeratorRevision === 1, 'Wiederholung ohne zweite Änderung');
         runtime.stopAndroidPublisher(); channelTextTasks = {}; runtime = create();
         answer({ scheduleCommands: [plan], moderatorCommands: [team] });
         check(runtime.readScheduleWeek(week).revision === 1 && runtime.state.radioModeratorRevision === 1, 'Neustart erhält Wiederholungsschutz');
-        tick(); answer({ scheduleCommands: [{ commandId: 'stale-revision', operation: 'delete', week: week, expectedRevision: 0, id: 1 }] });
-        check(runtime.readScheduleWeek(week).entries.length === 1 && runtime.readScheduleWeek(week).revision === 1, 'Veraltete Revision weiterhin abgelehnt ohne Fachänderung');
-        tick(); check(body().scheduleResults[0].state === 'rejected', 'Ablehnung im nächsten regulären POST');
-        answer({});
-        var savedWeek = runtime.readScheduleWeek(week);
-        for (var index = 2; index <= 105; index += 1) {
-            var entry = copy(savedWeek.entries[0]); entry.id = index; savedWeek.entries.push(entry);
-        }
-        savedWeek.nextId = 106; runtime.writeScheduleWeek(week, savedWeek); runtime.changed('schedule');
-        check(body().scheduleUpdates.length === 4 && body().scheduleUpdates[3].page === 3, 'Höchstens vier öffentliche Wochen-Seiten pro POST');
-        answer({}); tick(); check(body().scheduleUpdates[0].page === 4, 'Regulärer Folgepost liefert restliche Seiten'); answer({});
-        tick(); fail = true;
-        var failed = copy(plan); failed.commandId = 'storage-failure'; failed.operation = 'delete'; failed.id = 1; failed.expectedRevision = 2;
+        tick();
+        var edit = copy(plan); edit.commandId = 'edit'; edit.expectedRevision = 1; edit.entry.topic = 'Neu';
+        var noop = copy(team); noop.commandId = 'already-added'; noop.expectedRevision = 1;
+        answer({ scheduleCommands: [edit], moderatorCommands: [noop] });
+        check(runtime.readScheduleWeek(week).entries.length === 1 && runtime.readScheduleWeek(week).entries[0].topic === 'Neu', 'Stabile String-ID ändert dasselbe native Ziel');
+        check(runtime.state.radioModeratorRevision === 1, 'Erfülltes Team ohne Fachrevisionssprung');
+        tick();
+        var remove = copy(plan); remove.commandId = 'delete'; remove.expectedRevision = 2; remove.operation = 'delete'; remove.entry = null;
+        answer({ scheduleCommands: [remove] });
+        check(runtime.readScheduleWeek(week).entries.length === 0 && runtime.readScheduleWeek(week).relayBindings[0].deleted, 'Löschen hält dauerhaften Marker atomar');
+        tick(); remove.commandId = 'delete-again'; remove.expectedRevision = 3;
+        answer({ scheduleCommands: [remove] });
+        check(runtime.readScheduleWeek(week).revision === 3, 'Wiederholte Löschung ohne Revisionserhöhung');
+        tick(); var revive = copy(plan); revive.commandId = 'revive'; revive.expectedRevision = 3;
+        answer({ scheduleCommands: [revive] }); tick();
+        check(body().scheduleResults[0].reason === 'business_rule', 'Löschmarker verhindert Umbelegung');
+        var stale = copy(remove); stale.commandId = 'stale'; stale.expectedRevision = 0;
+        answer({ scheduleCommands: [stale] }); tick();
+        check(body().scheduleResults[0].reason === 'revision_conflict' && body().scheduleResults[0].revision === 3, 'Nur echter Konflikt als Konflikt quittiert');
+        var invalid = copy(remove); invalid.commandId = 'missing-revision'; delete invalid.expectedRevision;
+        answer({ scheduleCommands: [invalid] }); tick();
+        check(body().scheduleResults[0].reason === 'validation', 'Fehlende Revision ist Validierung');
+        fail = true; var failed = copy(remove); failed.commandId = 'storage'; failed.id = 'unknown';
         answer({ scheduleCommands: [failed] }); fail = false;
-        check(runtime.readScheduleWeek(week).entries.length === 105, 'Speicherfehler verändert keinen Wochenplan');
-        check(!runtime.pendingRelayResults().scheduleResults, 'Speicherfehler täuscht keine Annahme vor');
+        check(runtime.readScheduleWeek(week).relayBindings.length === 1, 'Speicherfehler verändert keine Marker');
+        var failure = runtime.androidLastFailure();
+        check(failure.stage === 'command_storage' && failure.httpStatus === null && /Z$/.test(failure.atUtc), 'Neutrale private Fehlerstufe mit UTC');
+        tick(); var call = calls[calls.length - 1];
+        call.params.onSuccess(new java.lang.String('{invalid'), {
+            getResponseCode: function () { return new java.lang.Integer(200); }, getURLString: function () { return new java.lang.String(url); }
+        });
+        check(runtime.androidLastFailure().stage === 'response_json' && runtime.androidLastFailure().httpStatus === 200, 'Java-HTTP-JSON-Fehler bleibt präzise diagnostiziert');
     } finally {
         if (runtime) { runtime.stopAndroidPublisher(); }
         KnuddelsServer.getPersistence = persistenceBefore; KnuddelsServer.getExternalServerAccess = externalBefore;

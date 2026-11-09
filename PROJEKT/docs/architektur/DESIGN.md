@@ -1,20 +1,34 @@
-# MischWerk – Design 0.1.288 · Build 288
+# MischWerk – Design 0.1.311 · Build 311
 
-Aktuelle Gestaltung am 07.11.2026. Die Bilder zeigen lokal gerenderten Appcode mit Beispieldaten. Verbindliche Projektvorgaben stehen in [AGENTS.md](../../AGENTS.md).
+Aktuelle Gestaltung am 08.11.2026. Die Bilder zeigen lokal gerenderten Appcode mit Beispieldaten. Verbindliche Projektvorgaben stehen in [AGENTS.md](../../AGENTS.md).
 
 ## Appleiste
 
-Die Radio-Außenfläche passt mit reinem Schwarz #000000 zum Werkshallen-Channelbild. Die Deckfläche bleibt #141414; ihre statischen Vinylrillen enden an der abgerundeten Leistenkontur. Der bestehende Glow läuft mit und ohne Lauftext weich auf Schwarz aus. Outfit für die Oberfläche und Fraunces für hervorgehobene Titel werden lokal mit OFL-Lizenzen geladen. Original-Logos bleiben unverändert und proportional; ihr dunkler Bildgrund wird ausschließlich per CSS verrechnet.
+Die Radio-Außenfläche bleibt reines Schwarz #000000, die Deckfläche #141414 mit ihren vorhandenen Vinylrillen und Goldakzenten. Die drei Informationsgruppen werden typografisch zusammengeführt; die Lautstärkeregelung und die drei Aktionen treten etwas zurück. Original-Logo, Playtaste, Glow und die Bedienabläufe bilden weiter denselben Rahmen.
 
-Musik/Lautstärke, Sendungsthema und eigener Wunsch teilen den verfügbaren Raum. Ohne eigenen Wunsch entsteht keine leere dritte Spalte. Musikangaben sitzen über dem Regler, Thema und Wunsch breit vertikal mittig. Jetzt läuft, Thema und Dein Wunsch sind warmgolden hervorgehoben. Bestätigte Moderation ist rot, AutoDJ neutral. Schmale Ansichten behalten direkt erreichbare Aktionen und native Lesebereiche.
+### Gemeinsame Hierarchie
 
-Play ist eine 60-px-Vinylscheibe mit Goldsymbol und feiner Kontur. Bei tatsächlicher Wiedergabe leuchten Symbol und Kontur statisch; Verbinden, Nachladen, Stop und Fehler bleiben dunkel. Der separate RGB-Halo durchläuft einen ruhigen 48-Sekunden-Zyklus mit 16 px weichem Auslauf unter der Leiste. Die native Höhe beträgt ohne Lauftext 176 px und mit normaler Laufzeile 220 px. Unter der Laufleiste bleibt der ursprüngliche Glowraum von 34 px breit bzw. 24 px kompakt; die letzten 16 px blenden weich auf die Canvasfarbe aus. Reduzierte Bewegung verwendet einen statischen Halo.
+| Bereich | Hauptinformation | Ergänzung |
+| --- | --- | --- |
+| Jetzt läuft | Outfit, 20 px, Gewicht 600 | Interpret 14 px, Gewicht 400 |
+| Thema | Outfit, 20 px, Gewicht 600 | Moderation 14 px, Gewicht 500 |
+| Dein Wunsch | Platz 18 px, Gewicht 600 | Wunschtext 14 px, Gewicht 500; Status 12 px |
 
-Sendeplan, Wunschbox und berechtigte Moderation sind gleich große runde Vinyl-Aktionen mit Goldsymbolen und gleichen Abständen. Die mit Radioregie beschriftete Taste samt Regler-Symbol öffnet die Moderationseinstellungen; sie bietet keine Sprachübertragung. Tooltip und zugänglicher Name lauten ebenfalls Radioregie. Größere Scheiben, Symbole und Beschriftungen nutzen die vorhandenen Tastenflächen; die übrigen Positionen und Maße der Appleiste bleiben erhalten. Bei knapper Höhe gilt weiterhin die kompakte Darstellung. Die Wunschbox zeigt bei Sperre Schloss und Deaktiviert, ohne Symbol oder Hauptbeschriftung zu verschieben. Hover, Druck und Tastaturfokus verschieben nichts. Die Lautstärketaste hat eine 32-px-Symbolfläche innerhalb ihres vollständig erreichbaren 44-px-Ziels; Stumm ergänzt ein korallfarbenes Kreuz. Regler und Prozentfeld bleiben zusammengehörig.
+Die kleinen goldenen Beschriftungen bilden mit 11 px und ruhigerem Abstand die gemeinsame Orientierung. Fraunces gehört weiterhin zu den Menüüberschriften; Rajdhani Medium bleibt dem bewegten Lauftext vorbehalten. Es kommt keine weitere Schrift hinzu. Ohne eigenen Wunsch entfällt die dritte Spalte. Kurze Thema-/Wunschgruppen sind innerhalb der vorhandenen Höhe zentriert; bei mehrzeiligen Inhalten schrumpfen die automatischen Abstände, sodass oben nichts verloren geht. Die zusätzliche Textbreite ist eine Reserve für längere Angaben.
 
-![Appleiste bei Wiedergabe](../pruefung/oberflaeche/radio/vinyl-glow-desktop.png)
+### Zurückhaltende Lautstärke
 
-[Schmal bereit](../pruefung/oberflaeche/radio/vinyl-pause-mobil.png) · [Schmal bei Wiedergabe](../pruefung/oberflaeche/radio/vinyl-glow-mobil.png) · [Radiotasten](../pruefung/oberflaeche/radio/radio-buttons.png) · [Lautstärke](../pruefung/oberflaeche/radio/lautstaerke-gruppe.png) · [Stumm](../pruefung/oberflaeche/radio/lautstaerke-stumm.png).
+Die Gruppe ist höchstens 240 px breit, die sichtbare Spur 4 px und der Griff 14 px groß. Die kleine goldene Lautsprecherscheibe bleibt 28 px sichtbar; Taste und Regler haben weiterhin 44 px Bedienhöhe. Das 52-px-Prozentfeld hält auch 100 % und den vorhandenen Warnhinweis vollständig. Die rote Zone oberhalb 60 %, Tastatur und Stummschaltung verwenden denselben Audioweg.
+
+### Kompaktere Aktionen
+
+Die warmgoldenen Materialtasten bleiben erkennbar. Breit messen Sendeplan, Wunschbox und Radioregie jeweils 156 × 64 px mit 24-px-Symbol und 15-px-Schrift statt zuvor 190 × 80 px. Gleichmäßige 10-px-Abstände und die angepassten Rasterspalten gewinnen zusammen 112 px für die Anzeigen. Zwischen 1200 und 1499 px stehen 24-px-Symbole über 14-px-Text auf 94 × 76 px. Natürliche schmale Ansichten und begrenzte Header behalten ihre vorhandenen Umbruchwege; im festen Header bleiben alle Tasten mindestens 44 px hoch. Beschriftungen, Sperren und Fokuswege bleiben vollständig.
+
+Die Playtaste bleibt 60 px groß und behält ihr eigenes Goldmaterial. Der RGB-Halo folgt weiterhin nur echter Wiedergabe und läuft über 48 Sekunden mit dem bisherigen weichen Rand aus. Die vorhandenen nativen Höhen bleiben Grundlage; daraus entsteht keine neue Fenstersteuerung.
+
+![Harmonisierte Appleiste mit drei Informationsgruppen](../pruefung/oberflaeche/radio/radio-harmonie-breit.png)
+
+[Mittlere Breite](../pruefung/oberflaeche/radio/radio-harmonie-mittel.png) · [Natürliche schmale Ansicht](../pruefung/oberflaeche/radio/radio-harmonie-schmal.png) · [Kompakter nativer Header](../pruefung/oberflaeche/radio/vinyl-glow-mobil.png) · [Aktionen im Detail](../pruefung/oberflaeche/radio/radio-buttons.png).
 
 Die Appleiste behält ihre ursprüngliche Größe, die #141414-Deckfläche als Mischhintergrund des Original-Logos, ihr Muster und ihren sichtbaren Rahmen. Am Übergang zur eingeschalteten Laufleiste laufen die seitlichen Kanten gerade weiter; nur der gemeinsame Außenrahmen ist oben und unten abgerundet. So entstehen keine innenliegenden Viertelkreise oder Eckkeile. Der eingeschaltete Lauftext beginnt direkt an diesem Rahmen. Er nutzt ausschließlich den bisherigen unteren Außenabstand von 18 bzw. 8 px; kein zusätzlicher Zwischenstreifen und keine Verschiebung der Tasten oder Texte. Die Laufzeile ist vollständig einfarbig #141414 ohne Muster; ihre deckende Grundfläche hält auch den oberen Überlappungsbereich ruhig. Der bestehende RGB-Glow umfasst beide und läuft unter der Laufleiste weich aus; zwischen ihnen liegt kein Lichtsaum. Ohne Lauftext gilt die bisherige Appleistenkontur. Der Lauftext ist passend zur 44-px-Leiste 20 px groß, bis einschließlich 700 px Breite 18 px, mit Zeilenhöhe 1,3 und vertikaler Zentrierung. Der optionale Lauftext sitzt als 44-px-Zeile unmittelbar unter der Appleiste: dieselbe Deckgrundfarbe #141414 wie die Appleiste, neutrale Trennlinie #3a3a3a, heller Text #f5f5f2, Kennzeichnung „Information“ in 16 px (bis 700 px Breite 14 px) und Pausenakzent in #e6c77b. Die örtliche Pause-Taste besitzt 44 × 44 px und zeigt ein 24-px-SVG mit zwei gefüllten senkrechten Balken; beim Anhalten erscheint ein Play-Dreieck im gleichen Goldton. Bei reduzierter Bewegung steht der vollständige Text statisch mit Umbruch. Ohne aktive Anzeige entfällt die Zeile. Die Einstellungen liegen als vollständige Bediengruppe unter Radioregie → Lauftext.
 

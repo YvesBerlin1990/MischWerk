@@ -24,7 +24,7 @@ MischWerkModules.attachAndroidOperation = function (runtime, config) {
                 firstRegularPost: first ? { atUtc: new Date(first.at).toISOString(), status: first.status,
                     accepted: first.accepted, wishesReceived: first.wishesReceived } : null,
                 transport: state.transport, queueReturn: state.queueReturn,
-                statusUpdatesConfirmed: state.statusUpdatesConfirmed }).escapeKCode());
+                statusUpdatesConfirmed: state.statusUpdatesConfirmed, lastFailure: state.lastFailure }).escapeKCode());
         } catch (ignoredReport) { runtime.warn('ANDROID_STATUS_REPORT'); }
     };
     runtime.runAndroidOperation = function (action, previous) {

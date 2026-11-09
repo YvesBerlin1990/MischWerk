@@ -1,6 +1,6 @@
 {
-  "version": "0.1.305",
-  "buildNumber": 305,
+  "version": "0.1.311",
+  "buildNumber": 311,
   "files": [
     {
       "path": "MischWerk/server/android/signing.js",
@@ -8,9 +8,14 @@
       "sha256": "454009088CA95B2C7BE9C146EB0A975573C143BED345CCA2905F8AE543FFE85C"
     },
     {
+      "path": "MischWerk/server/android/failures.js",
+      "bytes": 937,
+      "sha256": "26CA6882698CE111631F0F4FB18A4395277C86F679689603D809693AC451D4F0"
+    },
+    {
       "path": "MischWerk/server/android/connection.js",
-      "bytes": 5682,
-      "sha256": "3C4845A70C8990BD88467D543B3A252202433259D94AC21B408BC1A04DE3D537"
+      "bytes": 6270,
+      "sha256": "685808D8B2EFD7B027F680B87A999E76A95F0500EC5C0E5C4866086639B0AF41"
     },
     {
       "path": "MischWerk/server/android/diagnostics.js",
@@ -34,18 +39,18 @@
     },
     {
       "path": "MischWerk/server/android/projection.js",
-      "bytes": 3017,
-      "sha256": "9C14EECC3118F7003BAE78C653BE9A71EC8425B259A9B8A31A3FD388941E367F"
+      "bytes": 1074,
+      "sha256": "7A4D27D5CBEBB73EA806AB9980A18CB6F2BDEAE2EB38C8E667FC1C73B838C96D"
     },
     {
       "path": "MischWerk/server/android/commands.js",
-      "bytes": 6726,
-      "sha256": "7CD328706BFC5F9A43379BF99E1A7A9D4314682FDDF290ED3051DEE0549F4213"
+      "bytes": 7845,
+      "sha256": "C1ECB95B3FA00E910A56CFA2C4AFF1CEDB96744A9691608BF59F0C8D987951E5"
     },
     {
       "path": "MischWerk/server/android/publisher.js",
-      "bytes": 8049,
-      "sha256": "E83A389B85C1D292ADD84B2E35657A6935A97FED4FA1795F90E9BD5EDB4C4BFF"
+      "bytes": 8518,
+      "sha256": "77CA62D59D48CD5DE41EF7410A498759B3FB2F98BA4552FB7B7920393059A7AB"
     },
     {
       "path": "MischWerk/server/android/verification.js",
@@ -59,13 +64,13 @@
     },
     {
       "path": "MischWerk/server/android/operation.js",
-      "bytes": 3785,
-      "sha256": "43F11584D043C46012DCFB9A0B6CDDEE65B22E33B80D554861907D7FBC4CAFE1"
+      "bytes": 3817,
+      "sha256": "913A4020ED6942E4C96E6412DD2E6B7281F0392FE039B17CB78F5BC2565310C6"
     },
     {
       "path": "MischWerk/www/js/studio/markup.js",
-      "bytes": 8334,
-      "sha256": "28E16D400A59E4C23890F390911B56C69813DC29311FEAE3AD447276EBA4B5D2"
+      "bytes": 8367,
+      "sha256": "527E17BF59B3C7253B9EAE11D024DB24FCAC3957BB24BC2251F745E18F81B264"
     },
     {
       "path": "MischWerk/www/js/team/markup.js",
@@ -79,8 +84,8 @@
     },
     {
       "path": "MischWerk/www/js/studio/ticker.js",
-      "bytes": 7447,
-      "sha256": "8BE3EB5F68CB8541A1A747EA91C45EB651171A7C9A7CDF847077EA5507777965"
+      "bytes": 7463,
+      "sha256": "8E3B81ABB22DF7AFB3D47ECC4112444CBA002A3E05CF527F9B8FEC8E3C74F4FE"
     },
     {
       "path": "MischWerk/www/js/studio/handover.js",

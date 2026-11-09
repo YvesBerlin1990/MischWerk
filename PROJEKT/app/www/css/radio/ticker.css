@@ -1,4 +1,5 @@
 /* Schmale Senderzeile direkt unter der bestehenden Appleiste; keine Audiobindung. */
+@font-face { font-family:Rajdhani; font-style:normal; font-weight:500; font-display:swap; src:url(../../fonts/rajdhani-medium-latin.woff2) format("woff2"); }
 .radio-deck { position:relative; isolation:isolate; display:flow-root; flex-shrink:0; --deck-top:18px; --deck-x:20px; --deck-radius:24px; --deck-tail:calc(16px + var(--deck-top)); }
 .radio-has-ticker .radio-deck::before { content:""; position:absolute; inset:var(--deck-top) var(--deck-x) var(--deck-tail); z-index:-1; border:1px solid #3a3a3a; border-radius:var(--deck-radius); background:var(--bg); pointer-events:none; }
 .radio-has-ticker .radio-deck::after { content:""; position:absolute; inset:auto 0 0; height:16px; z-index:2; pointer-events:none; background:linear-gradient(to bottom,transparent,var(--canvas) calc(100% - 1px)); }
@@ -11,8 +12,11 @@
 .radio-has-ticker .radio-ticker { width:calc(100% - 2 * var(--deck-x)); margin-inline:var(--deck-x); margin-top:calc(-1 * var(--deck-top)); margin-bottom:var(--deck-tail); border-radius:0 0 var(--deck-radius) var(--deck-radius); background:var(--bg); }
 .radio-ticker { position:relative; display:flex; flex-shrink:0; align-items:center; gap:12px; width:100%; min-height:44px; margin:0 0 16px; padding:0 12px; box-shadow:inset 0 1px var(--line); background:var(--bg); color:var(--text); font-size:20px; line-height:1.3; }
 .radio-ticker-label { flex:none; color:#e6c77b; font-size:16px; font-weight:700; letter-spacing:1.4px; }
-.radio-ticker-window { flex:1; min-width:0; overflow:hidden; }
-.radio-ticker-track { display:flex; width:max-content; animation:radio-ticker-scroll var(--ticker-duration,20s) linear infinite; }
+.radio-ticker-window { position:relative; flex:1; min-width:0; overflow:hidden; padding-inline:12px; border-inline:1px solid #555; }
+.radio-ticker-window::before,.radio-ticker-window::after { content:""; position:absolute; top:0; bottom:0; width:16px; z-index:1; pointer-events:none; }
+.radio-ticker-window::before { left:0; background:linear-gradient(to right,var(--bg),transparent); }
+.radio-ticker-window::after { right:0; background:linear-gradient(to left,var(--bg),transparent); }
+.radio-ticker-track { display:flex; width:max-content; font-family:Rajdhani,Outfit,"Segoe UI",sans-serif; font-weight:500; animation:radio-ticker-scroll var(--ticker-duration,20s) linear infinite; }
 .radio-ticker-track > span { flex:none; padding-right:64px; white-space:pre; }
 .radio-ticker-pause { flex:none; display:grid; place-items:center; width:44px; height:44px; padding:0; border:0; border-radius:6px; background:transparent; color:#e6c77b; font-size:16px; }
 .radio-ticker-pause:hover { background:#ffffff0a; }
@@ -33,6 +37,8 @@
 }
 @media (prefers-reduced-motion:reduce) {
   .radio-ticker { padding-block:8px; }
+  .radio-ticker-window { padding-inline:8px; }
+  .radio-ticker-window::before,.radio-ticker-window::after { display:none; }
   .radio-ticker-track { animation:none; width:100%; }
   .radio-ticker-track > span { flex:1 1 100%; width:100%; min-width:0!important; padding:0; white-space:normal; overflow-wrap:anywhere; }
   .radio-ticker-track > span + span,.radio-ticker-pause { display:none; }

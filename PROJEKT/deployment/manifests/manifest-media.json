@@ -1,6 +1,6 @@
 {
-  "version": "0.1.305",
-  "buildNumber": 305,
+  "version": "0.1.311",
+  "buildNumber": 311,
   "files": [
     {
       "path": "MischWerk/www/img/mischwerk-logo.png",
@@ -51,6 +51,16 @@
       "path": "MischWerk/www/fonts/fraunces-OFL.txt",
       "bytes": 4391,
       "sha256": "BDF4C22802EAF804F998195871C6B8938AAC2AC14B2D78A8BD66A6F1ECED833B"
+    },
+    {
+      "path": "MischWerk/www/fonts/rajdhani-medium-latin.woff2",
+      "bytes": 15084,
+      "sha256": "23AFDB9B5B89B878FAB04D80CC30BF41BB4F3F7E8BE88E5F16A7CC7671CDB2DC"
+    },
+    {
+      "path": "MischWerk/www/fonts/rajdhani-OFL.txt",
+      "bytes": 4373,
+      "sha256": "F62EF357D3A1C3D27EDD35A6E1BA350E8A8D13499797964EEADEFBF0B3B15D1F"
     }
   ]
 }

@@ -27,7 +27,7 @@ MischWerkUI.define('studioMarkup',function(dependencies){
         </form>
       </section>
       <section class="studio-part wishes-control-card" aria-labelledby="studio-wish-state">
-        <div><h3>Wunschbox</h3><span id="studio-wish-state" class="eyebrow">Musikwünsche zulassen</span></div>
+        <div><h3>Wunschbox</h3><span id="studio-wish-state" class="eyebrow" role="status" aria-live="polite">Musikwünsche zulassen</span></div>
         <button id="toggle-wishes" type="button" class="switch-button" role="switch" aria-label="Musikwünsche zulassen" aria-checked="false"><span class="switch-track" aria-hidden="true"><i></i></span><span id="toggle-label">Aus</span></button>
       </section>
       <section id="studio-handover-card" class="studio-part" data-unavailable hidden>

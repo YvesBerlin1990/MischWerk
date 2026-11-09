@@ -33,15 +33,17 @@ MischWerkUI.define('radioTicker', function (dependencies) {
   }
   function render() {
     var state = model.current(), value = state && state.ticker;
-    var show = !!(value && value.enabled === true && typeof value.text === 'string' && value.text.trim());
-    var key = JSON.stringify(show ? [value.text, value.speed, value.direction] : null);
+    var text = value && typeof value.text === 'string' ? value.text.trim()
+      .replace(/^(?:\+{3,}\s*)+/, '').replace(/(?:\s*\+{3,})+$/, '').trim() : '';
+    var show = !!(value && value.enabled === true && text);
+    var key = JSON.stringify(show ? [text, value.speed, value.direction] : null);
     if (signature === key) { return; }
     signature = key; line.hidden = !show;
     document.documentElement.classList.toggle('radio-has-ticker', show);
     if (show) {
-      Array.from(copies).forEach(function (copy) { copy.textContent = value.text; });
-      dom.setText('radio-ticker-readable', value.text);
-      line.title = value.text;
+      Array.from(copies).forEach(function (copy) { copy.textContent = '+++ ' + text + ' +++'; });
+      dom.setText('radio-ticker-readable', text);
+      line.title = text;
       speed = [32, 48, 72].indexOf(value.speed) !== -1 ? value.speed : 48;
       track.style.animationDirection = value.direction === 'right' ? 'reverse' : 'normal';
       measure();
@@ -57,7 +59,9 @@ MischWerkUI.define('radioTicker', function (dependencies) {
     document.addEventListener('visibilitychange', movement);
     window.addEventListener('resize', measure);
     if (motion.addEventListener) { motion.addEventListener('change', measure); }
-    if (typeof ResizeObserver === 'function') { new ResizeObserver(measure).observe(line); }
+    if (typeof ResizeObserver === 'function') {
+      var observer = new ResizeObserver(measure); observer.observe(line); observer.observe(copies[0]);
+    }
     if (document.fonts && document.fonts.ready) { document.fonts.ready.then(measure); }
     window.addEventListener('pagehide', function () { disposed = true; movement(); });
     window.addEventListener('pageshow', function () { disposed = false; movement(); measure(); });

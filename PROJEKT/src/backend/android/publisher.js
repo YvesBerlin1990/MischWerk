@@ -45,7 +45,7 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
                 relayResults = runtime.pendingRelayResults();
                 Object.keys(relayResults).forEach(function (field) { body[field] = relayResults[field]; });
             }
-        } catch (error) { healthy = false; runtime.warn('ANDROID_PUBLISH_PREPARE'); return; }
+        } catch (error) { healthy = false; runtime.recordAndroidFailure('prepare', null); runtime.warn('ANDROID_PUBLISH_PREPARE'); return; }
         dirty = false;
         var token = ++requestToken, epoch = generation;
         active = { token: token, at: startedAt, cancel: null };
@@ -66,7 +66,7 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
                         wishesReceived: reply.wishes.length }; }
                     processingReply = true;
                     runtime.confirmAndroidUpdates(updates);
-                    if (relayProjection) { runtime.confirmRelayProjection(relayProjection); runtime.confirmRelayResults(relayResults); }
+                    if (relayProjection) { runtime.confirmRelayResults(relayResults); }
                     confirmedUpdates += updates.length;
                     healthy = true; confirmedAt = now;
                     runtime.acceptAndroidResponseWishes(reply.wishes);
@@ -76,10 +76,21 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
                     var hasCommands = (Array.isArray(reply.scheduleCommands) && reply.scheduleCommands.length > 0) ||
                         (Array.isArray(reply.moderatorCommands) && reply.moderatorCommands.length > 0);
                     if (!reply.wishes.length && !hasCommands) { publish(false); }
-                } catch (error) { processingReply = false; healthy = false; dirty = true; runtime.warn('ANDROID_PUBLISH_RESPONSE'); }
+                } catch (error) {
+                    processingReply = false; healthy = false; dirty = true;
+                    if (!result || !result.failureStage) {
+                        runtime.recordAndroidFailure(runtime.now() - startedAt > 10000 ? 'timeout' :
+                            result && result.status !== 200 ? 'http_response' : 'response_contract', result && result.status);
+                    }
+                    runtime.warn('ANDROID_PUBLISH_RESPONSE');
+                }
             });
             if (active && active.token === token) { active.cancel = cancel; }
-        } catch (error) { cancelActive(); healthy = false; dirty = true; runtime.warn('ANDROID_PUBLISH_SEND'); }
+        } catch (error) {
+            cancelActive(); healthy = false; dirty = true;
+            if (!error.androidBusy) { runtime.recordAndroidFailure('send', null); }
+            runtime.warn('ANDROID_PUBLISH_SEND');
+        }
     }
     function arm() {
         if (!running || runtime.shuttingDown) { return; }
@@ -87,7 +98,7 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
         timer = setTimeout(function () {
             timer = null;
             if (!running || epoch !== generation || runtime.shuttingDown) { return; }
-            if (active && runtime.now() - active.at >= 10000) { cancelActive(); healthy = false; }
+            if (active && runtime.now() - active.at >= 10000) { cancelActive(); healthy = false; runtime.recordAndroidFailure('timeout', null); }
             publish(true); arm();
         }, 20000);
     }
@@ -95,7 +106,6 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
         if (running) { return; }
         if (!connection || typeof connection.sendJson !== 'function') { throw new Error('ANDROID_TRANSPORT_UNVERIFIED'); }
         wire = connection;
-        if (typeof runtime.resetRelayProjection === 'function') { runtime.resetRelayProjection(); }
         settings = configuration; running = true; generation += 1; dirty = true; lastPost = null; firstAcceptedPost = null;
         publish(true); arm();
     };
@@ -105,7 +115,7 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
             wishesReceived: firstAcceptedPost.wishesReceived } : null,
             lastPost: lastPost ? { at: lastPost.at, status: lastPost.status, accepted: lastPost.accepted,
                 wishesReceived: lastPost.wishesReceived === undefined ? null : lastPost.wishesReceived } : null,
-            statusUpdatesConfirmed: confirmedUpdates };
+            statusUpdatesConfirmed: confirmedUpdates, lastFailure: runtime.androidLastFailure() };
     };
     runtime.androidRelayHealthy = function () {
         return running && healthy && !runtime.shuttingDown && runtime.now() >= lastClock && runtime.now() - confirmedAt < 45000 &&

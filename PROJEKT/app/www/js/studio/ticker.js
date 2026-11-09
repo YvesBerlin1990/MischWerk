@@ -10,7 +10,7 @@ MischWerkUI.define('studioTicker', function (dependencies) {
         <section class="studio-part ticker-copy">
         <div class="ticker-heading"><label id="ticker-heading" for="ticker-text">Text für alle Hörer</label><span id="ticker-count">0 / 300</span></div>
         <textarea id="ticker-text" rows="2" maxlength="300" aria-describedby="ticker-help ticker-feedback"></textarea>
-        <p id="ticker-help" class="form-hint">Wird unter der Appleiste angezeigt.</p>
+        <p id="ticker-help" class="form-hint">+++ am Anfang und Ende werden automatisch ergänzt.</p>
         </section>
         <section class="studio-part">
         <div class="ticker-options">

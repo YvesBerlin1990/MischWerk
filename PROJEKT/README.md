@@ -1,6 +1,12 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.305 · Build 305 · Website 0.2.5**, Stand 08.11.2026.
+**App 0.1.311 · Build 311 · Website 0.2.5**, Dokumentation und Bilder vom 09.11.2026.
+
+Build 311 enthält die abgestimmten Informationsgruppen mit Outfit, kompaktere Goldtasten und den feineren Lautstärkeregler. Für den Lauftext wird lokal Rajdhani Medium ausgeliefert; Anfang und Ende erscheinen automatisch als `+++ Text +++`, vorhandene Randmarker werden nicht verdoppelt.
+
+Beim Ein- und Ausschalten der Wunschbox bestätigt die vorhandene Statuszeile den tatsächlichen Zustand. Eine zusätzliche Erfolgsbox teilt die Radioregie nicht mehr unnötig in zwei Seiten; Fehlermeldungen bleiben erhalten.
+
+Der Homepage-/Radioteamvertrag ist mit dauerhafter eindeutiger Firebase-ID-Zuordnung, atomaren Löschmarkern und Quittungen, echten Revisionsmetadaten sowie privater Fehlerdiagnose umgesetzt. Die gemeinsame native Abnahme folgt nach Installation. [Vertrag und offene Nachweise](docs/api/HOMEPAGE-SENDEPLAN-RUECKANTWORT.md).
 
 [Projekt und Bilder](../.github/README.md) · [Verbindliche Regeln](AGENTS.md) · [Installation und Betrieb](docs/betrieb/INBETRIEBNAHME.md)
 
@@ -8,9 +14,9 @@ Die GitHub-Übersicht liegt in [.github/README.md](../.github/README.md). Fachli
 
 Die App- und Website-Badges in der GitHub-Übersicht lesen die jeweilige `package.json` auf `main`; der Commit-Badge zeigt die letzte Änderung dieses Branches. Die Versionsanzeigen aktualisieren sich dadurch nach einem Push automatisch. Die Node.js-Voraussetzung ist separat verlinkt.
 
-![Aktuelle Appleiste mit unveränderter Playtaste und daran angeglichenen Aktionen](docs/pruefung/oberflaeche/radio/vinyl-glow-desktop.png)
+![Harmonisierte Informationsgruppen, dezente Lautstärke und kompakte Radioaktionen](docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
 
-[Mobilansicht](docs/pruefung/oberflaeche/radio/vinyl-glow-mobil.png) · [Aktionsbuttons im Detail](docs/pruefung/oberflaeche/radio/radio-buttons.png) · [Kompakte Aktionsbuttons](docs/pruefung/oberflaeche/radio/radio-buttons-schmal.png) · [Hörer-Sendeplan](docs/pruefung/oberflaeche/sendeplan/sendeplan-hoerer-720.png). Alle Bilder zeigen lokale Vorschauen mit Beispieldaten.
+[Mittlere Breite](docs/pruefung/oberflaeche/radio/radio-harmonie-mittel.png) · [Mobilansicht](docs/pruefung/oberflaeche/radio/radio-harmonie-schmal.png) · [Lauftext](docs/pruefung/oberflaeche/radio/lauftext-1280.png) · [Aktionsbuttons](docs/pruefung/oberflaeche/radio/radio-buttons.png) · [Kompakte Aktionsbuttons](docs/pruefung/oberflaeche/radio/radio-buttons-schmal.png) · [Hörer-Sendeplan](docs/pruefung/oberflaeche/sendeplan/sendeplan-hoerer-720.png). Alle Bilder zeigen lokale Vorschauen mit Beispieldaten am fertigen Build 311.
 
 Neue Channelbeitritte erhalten einheitlich „Willkommen bei Radio MischWerk, {Nick}. Viel Spaß beim Zuhören.“ mit vorhandenem kleinen Profilfoto am Ende. Der größere fette erste Satz verwendet Appleisten-Gold #e6c77b, danach folgt der zweite Satz in normaler Channelschrift ohne festen Zeilenumbruch. Nick und Foto sind native Profillinks. Die bisherigen 30 Vorlagen und die Zufallsauswahl sind entfernt. Der Appstart begrüßt bereits Anwesende nicht nachträglich. [API-Nachweis](docs/api/API-NACHWEIS.md#öffentliche-userbegrüßung) · [Prüfbericht](docs/pruefung/PRUEFBERICHT.md).
 
@@ -22,7 +28,9 @@ Alle Menüs bleiben kompakte Overlays: Radioregie bis 640 × 580 px, Sendeplan 7
 
 Der Sendeplan-Button in der Appleiste ist vorerst für andere Nutzer deaktiviert und zeigt darunter „In Kürze“. Otterchen als anwesender Channelinhaber kann ihn zum Weiterarbeiten öffnen.
 
-Sendeplan, Wunschbox und Radioregie verwenden große, stark gerundete Tasten mit umlaufendem warmem Goldrand und derselben dunklen Materialwirkung wie die Playtaste. In breiten Fenstern stehen Symbol und Beschriftung nebeneinander; mittlere und sehr schmale Flächen ordnen sie untereinander an. Auch kompakt bleiben alle Bezeichnungen vollständig sichtbar. Die Playtaste selbst bleibt unverändert.
+Sendeplan, Wunschbox und Radioregie behalten ihr dunkles Goldmaterial in kompakteren Tasten. Die gewonnene Breite kommt den drei Informationsgruppen zugute. Playtaste, Rollen, Beschriftungen und vorhandene Menüwege bleiben erhalten.
+
+Musik, Thema und eigener Wunsch verwenden gemeinsam Outfit mit klarer Abstufung zwischen Hauptinformation und Zusatztext. Die Lautstärke ist kürzer und feiner gezeichnet, bleibt aber auf 44 px Höhe bedienbar. Kurze Textgruppen stehen ausgewogen, lange Angaben nutzen weiterhin ihre bisherigen Umbruch- und Leseflächen. [Gestaltung und Ansichten](docs/architektur/DESIGN.md).
 
 Beim Öffnen beginnt die Sendeplanübersicht heute und enthält die nächsten 14 Tage einschließlich heute. „Weiter“ führt durch alle Vorschautage; „Ab heute“ kehrt zum Anfang zurück. Termine werden aus bis zu drei gespeicherten Wochen zusammengeführt. Die gesonderte Wochenwahl bleibt dem Inhaber für die Verwaltung und langfristige Planung erhalten.
 
@@ -34,7 +42,7 @@ Der Kopf trennt Zeitraum und Navigation von den Aktionen darunter. „Ab heute�
 
 Automatische Studioeinträge zeigen volle Anfangsstunden und erscheinen für Hörer ab fünf Minuten Dauer. Kürzere Anmeldungen bleiben für den Inhaber sichtbar. Normale und abgeschlossene automatische Einträge lassen sich direkt mit „Entfernen“ und anschließender Bestätigung löschen. [Sendeplan bedienen](docs/betrieb/SENDEPLAN.md).
 
-Der senderweite Lauftext lässt sich in **Radioregie → Lauftext** einstellen. Nur Radiomoderation einschließlich des automatisch berechtigten Inhabers kann Text, Tempo, Richtung und Ein/Aus speichern. Die feste Kennzeichnung lautet „Information:“. [Bedienung](docs/betrieb/INBETRIEBNAHME.md#lauftext-unter-der-appleiste).
+Der senderweite Lauftext lässt sich in **Radioregie → Lauftext** einstellen. Nur Radiomoderation einschließlich des automatisch berechtigten Inhabers kann Text, Tempo, Richtung und Ein/Aus speichern. Zwischen „Information:“ und Pause-Taste begrenzen zwei dezente Linien den Textbereich; an beiden Rändern läuft der Text weich ein und aus. Bei reduzierter Bewegung bleibt der statische Text ohne Randverläufe vollständig lesbar. [Bedienung](docs/betrieb/INBETRIEBNAHME.md#lauftext-unter-der-appleiste).
 
 Der Android-Publisher überträgt Senderdaten und den bestätigten Lauftext einschließlich ausgeschaltetem Zustand im signierten Status-POST. Android-Musikwünsche werden aus dessen frischen bestätigten Antworten in dieselbe dauerhafte Wunschqueue übernommen und mit tatsächlichem Status und Platz quittiert. Die Einrichtung benötigt nur den privaten Sync-Schlüssel; Android-WebHook, Hook-URL und zusätzlicher Relay-Schlüssel entfallen. [Einrichtung und Abnahme](docs/betrieb/INBETRIEBNAHME.md#regulärer-rückkanal-ab-build-289) · [Anbindungsvertrag](docs/api/ANDROID-RELAY-HANDOFF.json).
 
@@ -106,6 +114,8 @@ Aus `website/` startet `pnpm start` den regulären Webserver, `pnpm test` die ei
 
 ## Bereitstellung und Nachweise
 
-`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Die Browserrunde läuft separat. Der App-Arbeitsbestand behält alle 149 Dateien. Das aktuelle UPLOAD-Paket umfasst 131 Dateien, darunter 124 Texte; 18 vollständig gebündelte Einzeldateien werden dort nicht zusätzlich kopiert. Der Paketbau entfernt ihre alten UPLOAD-Kopien automatisch. Die fachlichen Ordner, alle 62 Backendmodule und die unveränderten übrigen Ladepfade bleiben erhalten. Fünf Manifeste dokumentieren die tatsächlichen Auslieferungsbytes. Alle Laufzeittexte und Manifeste bleiben unter 9500 Zeichen. Der Paketbau veröffentlicht nichts und startet keine echte App neu.
+`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Die Browserrunde läuft separat. Der App-Arbeitsbestand behält alle 153 Dateien. Das aktuelle UPLOAD-Paket umfasst 135 Dateien, darunter 127 Texte; 18 vollständig gebündelte Einzeldateien werden dort nicht zusätzlich kopiert. Der Paketbau entfernt ihre alten UPLOAD-Kopien automatisch. Die fachlichen Ordner, alle 64 Backendmodule und die unveränderten übrigen Ladepfade bleiben erhalten. Fünf Manifeste dokumentieren die tatsächlichen Auslieferungsbytes. Alle Laufzeittexte und Manifeste bleiben unter 9500 Zeichen. Der Paketbau veröffentlicht nichts und startet keine echte App neu.
+
+Build 311 besteht mit 475 Nodefällen sowie jeweils 1160 Prüfungen in Rhino 1.7.7.2 und 1.9.1. Die Layout-/Audioabnahme deckt 320–3840 px, Rollen, Pixeldichten und K3-/STAPP-Modelle ab. Aktuelle Bildaufnahmen und die Prüfung des fertigen Pakets sind im [App-Prüfbericht](docs/pruefung/PRUEFBERICHT.md) dokumentiert.
 
 [App-Prüfbericht](docs/pruefung/PRUEFBERICHT.md) · [Website-Prüfbericht](website/docs/PRUEFUNG.md) · [API-Nachweis](docs/api/API-NACHWEIS.md) · [Architektur](docs/architektur/ARCHITEKTUR.md) · [Frontend](docs/architektur/ARCHITEKTUR-FRONTEND.md) · [Design](docs/architektur/DESIGN.md) · [LIVE-Abnahme](docs/betrieb/LIVE-ABNAHME.md)

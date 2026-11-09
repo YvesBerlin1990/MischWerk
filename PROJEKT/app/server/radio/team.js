@@ -8,7 +8,28 @@ MischWerkModules.attachRadioTeam = function (runtime, config) {
         }
         return change(user, type, data, null);
     };
-    runtime.changeRadioModeratorFromRelay = function (type, data, commandId) { return change(null, type, data, commandId); };
+    runtime.changeRadioModeratorFromRelay = function (type, data, commandId) {
+        var nick, userId, access = KnuddelsServer.getUserAccess();
+        try {
+            nick = runtime.text(data.nick, 50, true);
+            if (!access.exists(nick)) { throw runtime.relayFailure('validation'); }
+            userId = runtime.numericUserId(access.getUserId(nick));
+        } catch (inputError) {
+            if (inputError.publicMessage) { throw runtime.relayFailure('validation'); }
+            throw inputError;
+        }
+        var present = runtime.state.radioModeratorUserIds.indexOf(userId) >= 0;
+        if ((type === 'mw:addRadioModerator' && present) || (type === 'mw:removeRadioModerator' && !present)) {
+            runtime.recordModeratorRelayResult({ commandId: commandId, state: 'applied', revision: runtime.state.radioModeratorRevision });
+            return false;
+        }
+        data.userId = userId;
+        try { change(null, type, data, commandId); return true; }
+        catch (ruleError) {
+            if (ruleError.publicMessage && !ruleError.relayTechnical) { throw runtime.relayFailure('business_rule'); }
+            throw ruleError;
+        }
+    };
     runtime.recordModeratorRelayResult = function (result) {
         var next = runtime.copy(runtime.state);
         runtime.addRelayResult(next, 'moderatorRelayResults', result);

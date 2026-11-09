@@ -9,13 +9,17 @@
 
 Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderation, Sendeplan und eigener Homepage.
 
-**App 0.1.305 · Build 305 · Website 0.2.5** — Stand: 8. November 2026.
+**App 0.1.311 · Build 311 · Website 0.2.5** — Dokumentation und Bilder: 9. November 2026.
 
-![Aktuelle Appleiste: unveränderte runde Playtaste, große gerundete Aktionen und aktives Wiedergabelicht](../PROJEKT/docs/pruefung/oberflaeche/radio/vinyl-glow-desktop.png)
+Musik, Sendungsthema und eigener Wunsch verwenden eine gemeinsame Schriftabstufung mit Outfit. Kompaktere Goldtasten schaffen rund 110 px mehr Platz für die Informationen; die Lautstärkeregelung ist kürzer und feiner gezeichnet. Die Playtaste und die vorhandenen Bedienwege bleiben erhalten.
 
-- **Bedienung:** Große, gut lesbare Tasten für Sendeplan, Wunschbox und Radioregie. Gerundete Konturen, warme Goldränder und dunkle Materialfarben passen zur unveränderten Playtaste; schmale Fenster ordnen die Inhalte passend an.
+Der Lauftext verwendet lokal Rajdhani Medium und ergänzt automatisch `+++ Text +++`. Der Wunschboxschalter bestätigt Änderungen direkt im bestehenden Status, ohne eine zusätzliche Radioregie-Seite zu erzeugen. Für die Synchronisierung von Sendeplan und Radioteam sind dauerhafte Firebase-ID-Zuordnungen, atomare Quittungen und private Fehlerdiagnose umgesetzt; die gemeinsame native Abnahme folgt nach Installation.
+
+![Aktuelle Appleiste mit abgestimmten Informationsgruppen, feinem Lautstärkeregler und kompakten Goldtasten](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
+
+- **Bedienung:** Kompakte, gut lesbare Tasten für Sendeplan, Wunschbox und Radioregie. Gerundete Konturen, warme Goldränder und dunkle Materialfarben passen zur unveränderten Playtaste; schmale Fenster ordnen die Inhalte passend an.
 - **Begrüßung:** Einheitlich „Willkommen bei Radio MischWerk, {Nick}. Viel Spaß beim Zuhören.“ für alle User; größere fette Begrüßungszeile in Gold, Nick und Foto als Profillinks, Foto weiterhin am Ende.
-- **Lauftext:** Frei einstellbarer Hinweis unter der Appleiste; Text, Tempo, Richtung und Ein/Aus in der Radioregie. Die feste Beschriftung lautet „Information:“.
+- **Lauftext:** Frei einstellbarer Hinweis unter der Appleiste; Text, Tempo, Richtung und Ein/Aus in der Radioregie. Klar begrenzter Textbereich mit weichem Ein- und Auslauf zwischen „Information:“ und der Pause-Taste.
 - **Radio:** HTTPS-Livestream, Play/Stop, Lautstärke und aktuelle Titel. Neue Titel erscheinen unabhängig von der AutoDJ-/Live-Abfrage.
 - **Wunschbox:** Musikwünsche senden und den eigenen Platz privat verfolgen. Bestätigte offene Wünsche bleiben bei Updates und Neustarts mit Reihenfolge und Bearbeitungsstatus gespeichert.
 - **Moderation:** Anmelden und Abmelden ohne Zeitlimit, Sendungsthema, Wunschregie und bestätigte Übergabe. Keine Verlängerung oder automatische Sechs-Stunden-Abmeldung.
@@ -29,7 +33,11 @@ Der öffentliche **Sendeplan-Button bleibt bewusst auf „In Kürze“**. Otterc
 
 | Appleiste mobil | Aktionsbuttons im Detail |
 | --- | --- |
-| <img src="../PROJEKT/docs/pruefung/oberflaeche/radio/vinyl-glow-mobil.png" alt="Mobile Appleiste mit unveränderter Playtaste und vollständig sichtbaren Aktionen" width="320"> | ![Große gerundete Tasten für Sendeplan, Wunschbox und Radioregie; Wunschbox hier deaktiviert](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-buttons.png) |
+| <img src="../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-schmal.png" alt="Mobile Appleiste mit drei Informationsgruppen und kompakten Aktionen" width="320"> | ![Kompakte gerundete Tasten für Sendeplan, Wunschbox und Radioregie; Wunschbox hier deaktiviert](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-buttons.png) |
+
+[Mittlere Fensterbreite](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-mittel.png) · [Radio im festen mobilen Header](../PROJEKT/docs/pruefung/oberflaeche/radio/vinyl-glow-mobil.png)
+
+![Lauftext mit lokaler Rajdhani Medium und automatisch ergänzten Pluszeichen unter der aktuellen Appleiste](../PROJEKT/docs/pruefung/oberflaeche/radio/lauftext-1280.png)
 
 | Radioregie | Hörer-Sendeplan |
 | --- | --- |
@@ -50,7 +58,7 @@ Die GitHub-Übersicht liegt unter `.github/README.md`. Der technische Einstieg s
 | `docs/` · `docs/pruefung/oberflaeche/` | Dokumentation und Prüfbilder nach Themen |
 | `deployment/` | Zielkonfiguration und fünf Auslieferungsmanifeste |
 
-Das Knuddels-Paket wird lokal im festen Desktop-UPLOAD vorbereitet: 131 Auslieferungsdateien statt 149 Dateien im App-Arbeitsbestand. Vollständig gebündelte Einzeldateien werden nicht doppelt hochgeladen; die Quellmodule und fachlichen Ordner bleiben erhalten. Das Paket gehört nicht ins Repository; ebenso bleiben private Konfigurationen und installierte Abhängigkeiten außerhalb des Gitbestands.
+Das Knuddels-Paket wird lokal im festen Desktop-UPLOAD vorbereitet: 135 Auslieferungsdateien statt 153 Dateien im App-Arbeitsbestand. Vollständig gebündelte Einzeldateien werden nicht doppelt hochgeladen; die Quellmodule und fachlichen Ordner bleiben erhalten. Das Paket gehört nicht ins Repository; ebenso bleiben private Konfigurationen und installierte Abhängigkeiten außerhalb des Gitbestands.
 
 ## Lokal starten
 

@@ -1,7 +1,7 @@
 /* Vinyl Deck in tatsächlichen schmalen Rahmen; die native Höhensteuerung bleibt erhalten. */
 @media (min-width:1200px) and (max-width:1499px) {
-  .radio-bar { --radio-action-gap:8px; grid-template-columns:170px 120px minmax(300px,1fr) 228px 110px; gap:0 8px; }
-  .wish-button { --action-font:17px; --action-icon:28px; min-height:100px; flex-direction:column; padding:10px 2px; gap:6px; border-radius:28px; }
+  .radio-bar { --radio-action-gap:8px; grid-template-columns:170px 120px minmax(300px,1fr) 196px 94px; gap:0 8px; }
+  .wish-button { --action-font:14px; --action-icon:24px; min-height:76px; flex-direction:column; padding:6px 2px; gap:4px; border-radius:22px; }
   .wish-button-copy { text-align:center; }
 }
 @media (max-width:1199px) {
@@ -12,8 +12,8 @@
   .radio-program-face::before { width:160px; height:160px; left:-24px; top:62px; }
   .radio-metadata { max-height:none; grid-column:3; gap:0 14px; grid-template-columns:minmax(0,1fr) minmax(130px,160px); }
   .radio-metadata:has(.own-wish-position:not([hidden])) { grid-template-columns:minmax(0,1fr) minmax(120px,150px) minmax(105px,120px); }
-  .radio-actions-panel { grid-column:2 / 5; grid-row:2; min-height:80px; }
-  .wish-button { --action-font:16px; --action-icon:28px; padding:10px 6px; gap:8px; }
+  .radio-actions-panel { grid-column:2 / 5; grid-row:2; min-height:64px; }
+  .wish-button { --action-font:15px; --action-icon:24px; padding:8px 6px; gap:8px; }
   .radio-bar:has(.bar-utility-links:not([hidden])) .radio-actions-panel { padding-right:calc((100% + var(--radio-action-gap)) / 3); }
   .bar-utility-links { grid-column:2 / 5; grid-row:2; justify-self:end; width:calc((100% - 2 * var(--radio-action-gap)) / 3); max-width:none; }
   .radio-listener-brand { display:none; }
@@ -34,9 +34,10 @@
   .transport { grid-column:1; justify-self:center; margin:32px 0 0; }
   .radio-program-face::before { width:96px; height:96px; left:-8px; }
   .radio-metadata { grid-column:2; }
-  #track-title { font-size:22px; }
+  #track-title { font-size:20px; }
   #track-artist { font-size:14px; }
-  #show-topic { font-size:17px; }
+  #show-topic { font-size:18px; }
+  .radio-context .presenter { font-size:14px; }
   .own-wish-rank { font-size:18px; }
   .radio-actions-panel { grid-column:1 / 3; grid-row:2; }
   .bar-utility-links { grid-column:1 / 3; grid-row:2; }
@@ -58,17 +59,18 @@
   .radio-constrained .track-copy { gap:0; }
   .radio-constrained .artist-copy { margin-top:1px; }
   .radio-constrained .track-eyebrow { font-size:11px; }
-  .radio-constrained #track-title { line-height:22px; font-size:19px; white-space:normal; overflow-wrap:anywhere; }
+  .radio-constrained #track-title { line-height:21px; font-size:18px; white-space:normal; overflow-wrap:anywhere; }
   .radio-constrained #track-artist { font-size:14px; line-height:16px; }
   .radio-constrained .radio-metadata .volume-control { order:1; margin:0; width:100%; gap:4px; }
   .radio-constrained .radio-context { order:2; display:flex; flex-direction:column; gap:4px; min-height:0; margin-top:8px; padding:0; border:0; }
   .radio-constrained .own-wish-position { order:3; min-height:0; margin:0; padding:0; border:0; }
   .radio-constrained .radio-status-row { padding-top:10px; }
-  .radio-constrained #show-topic,.radio-constrained .own-wish-rank { font-size:16px; }
-  .radio-constrained .presenter { font-size:15px; }
+  .radio-constrained #show-topic { font-size:18px; }
+  .radio-constrained .own-wish-rank { font-size:16px; }
+  .radio-constrained .presenter { font-size:14px; line-height:20px; }
   .radio-constrained .radio-actions-panel { grid-column:2; grid-row:2; min-height:44px; padding:0; }
   .radio-constrained .radio-bar:has(.bar-utility-links:not([hidden])) .radio-actions-panel { grid-column:2 / 4; padding-right:calc((100% + var(--radio-action-gap)) / 3); }
-  .radio-constrained .wish-button { --action-font:16px; --action-icon:20px; min-height:44px; flex-direction:row; padding:3px 4px; gap:6px; border-radius:12px; }
+  .radio-constrained .wish-button { --action-font:14px; --action-icon:20px; min-height:44px; flex-direction:row; padding:3px 4px; gap:6px; border-radius:12px; }
   .radio-constrained .bar-utility-links { grid-column:2 / 4; grid-row:2; width:calc((100% - 2 * var(--radio-action-gap)) / 3); max-width:none; gap:0; }
   .radio-constrained .radio-bar .studio-link { justify-content:center; min-height:44px; width:100%; padding:0; }
   .radio-constrained .bar-utility-links .action-label { display:block; }
@@ -83,10 +85,10 @@
   .radio-constrained .radio-actions-panel { grid-column:1; }
   .radio-constrained .bar-utility-links { position:relative; grid-column:1; grid-row:2; align-self:end; z-index:2; }
   .radio-constrained .radio-bar:has(.bar-utility-links:not([hidden])) .radio-actions-panel { grid-column:1; }
-  .radio-constrained .radio-bar:has(.bar-utility-links:not([hidden])) .wish-button { --action-font:clamp(12px,3.6vw,16px); gap:4px; padding-inline:1px; }
+  .radio-constrained .radio-bar:has(.bar-utility-links:not([hidden])) .wish-button { --action-font:clamp(12px,3.3vw,14px); gap:4px; padding-inline:1px; }
 }
 @media (max-width:499px) {
-  .wish-button { min-height:96px; flex-direction:column; padding:8px 2px; gap:6px; border-radius:24px; }
+  .wish-button { min-height:76px; flex-direction:column; padding:6px 2px; gap:4px; border-radius:22px; }
   .wish-button-copy { text-align:center; }
   .radio-constrained .wish-button-copy { text-align:left; }
 }

@@ -1,21 +1,21 @@
 {
-  "version": "0.1.305",
-  "buildNumber": 305,
+  "version": "0.1.311",
+  "buildNumber": 311,
   "files": [
     {
       "path": "MischWerk/main.js",
       "bytes": 175,
-      "sha256": "D64E25D9024E9A9F36B5B8EC0C88AD410D152ABA83C3099BD39CAFDECE161B4D"
+      "sha256": "79A2B4F456CE28D61E6056BF7A8B477D608343B4AE57FC355692DDE64B1D7A95"
     },
     {
       "path": "MischWerk/app.config",
       "bytes": 545,
-      "sha256": "E360652F16DD16ED92FBDF4D23E6B2ED9AD0E6E138AA5143566999DC009AD3B1"
+      "sha256": "6D67064C4B60921DFBC9037F362D927E325D28B8E032D2FDAA585FDCD0078AFF"
     },
     {
       "path": "MischWerk/server/config.js",
       "bytes": 1556,
-      "sha256": "8BEE5E2F626ADC439DC599476CD9362E1179D49B6DE1F6927276DB1101DFD961"
+      "sha256": "D34BD4BEBFD22BF90D5E0A0D403252511E09A3131A238C9B12A3CA8EFD295136"
     },
     {
       "path": "MischWerk/server/core/runtime.js",
@@ -34,8 +34,8 @@
     },
     {
       "path": "MischWerk/server/core/relay-results.js",
-      "bytes": 1039,
-      "sha256": "222EFC34A9B6D9A822E72E7FB7145F4ABCB6AFF1D5C295AF4A7ED23313DB48FF"
+      "bytes": 1406,
+      "sha256": "8C8CA61D725F3D2ABD7EF2306E00EEE9D9FFC47259F7448F754F4F6EA933BCF2"
     },
     {
       "path": "MischWerk/server/users/identity.js",
@@ -49,8 +49,8 @@
     },
     {
       "path": "MischWerk/server/state/persistence.js",
-      "bytes": 5310,
-      "sha256": "36BC75056CC1358358769CBE2E803703651DD6A77F61952D069E392DE77F3848"
+      "bytes": 5411,
+      "sha256": "586598DF28F013D0C9C7E2D131F333AE04ECCC6B084020F44E5D5FFE9450B40D"
     },
     {
       "path": "MischWerk/server/radio/station.js",
@@ -59,8 +59,8 @@
     },
     {
       "path": "MischWerk/server/radio/team.js",
-      "bytes": 4405,
-      "sha256": "A907F0F8421BB5F419511231B2C8DD7138F02128253CCA34A3C94C3AB3941B61"
+      "bytes": 5461,
+      "sha256": "0316C71F39136BDCD202EBDD5B7F278842DC180D1E1CE963A429B24EDE128617"
     },
     {
       "path": "MischWerk/server/radio/moderation.js",
@@ -139,8 +139,8 @@
     },
     {
       "path": "MischWerk/server/schedule/storage.js",
-      "bytes": 3498,
-      "sha256": "3DE86ABD838076FE01057FA2EADB5AE8048D061420AD8608F6215D622FED20D6"
+      "bytes": 3603,
+      "sha256": "93403165F7A1971D1C7541E1357EEB33188FE6DF372649E1BA06D494BF0BB581"
     },
     {
       "path": "MischWerk/server/schedule/programme.js",
@@ -149,8 +149,13 @@
     },
     {
       "path": "MischWerk/server/schedule/commands.js",
-      "bytes": 6164,
-      "sha256": "679F18612A51F86F0412C3DC594FBD333C9BA8697AF7DE0BCB3D75B12D79B824"
+      "bytes": 6267,
+      "sha256": "8FE5F21DA4C62B2EE20D2F144CD0E32AD4B23054F88ABB15CC92F39BF95AEDE1"
+    },
+    {
+      "path": "MischWerk/server/schedule/relay.js",
+      "bytes": 5446,
+      "sha256": "B777BECB24E45F3BBE9452BC391CF8F82515ED6B36773EB75812B176B2FAF5C7"
     },
     {
       "path": "MischWerk/server/schedule/overview.js",
@@ -259,8 +264,8 @@
     },
     {
       "path": "MischWerk/server/app.js",
-      "bytes": 7361,
-      "sha256": "B887114750B53D7225FB8F9D41392ACDBD1ED434F4039DCE93B733979C4DDD7E"
+      "bytes": 7571,
+      "sha256": "76C4CB9D926AF70C96F3EFC51F9EBD3B8486EC9A3B86923D54E95471BE375249"
     }
   ]
 }

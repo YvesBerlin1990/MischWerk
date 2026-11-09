@@ -10,7 +10,8 @@ const styles = [...read('index.html').match(/var styles = \[([\s\S]*?)\];/)[1].m
 assert.equal(scripts.length, 50, 'Frontend-Ladeplan unvollständig');
 assert.equal(styles.length, 20, 'CSS-Ladeplan unvollständig');
 const vinylFonts = ['fonts/outfit-latin.woff2','fonts/fraunces-latin.woff2','fonts/outfit-OFL.txt','fonts/fraunces-OFL.txt'];
-const frontendFiles = ['index.html', 'js/start.js', 'js/ui/composition.js', ...scripts, ...styles, 'img/mischwerk-logo.png', 'img/mischwerk-radio.png', 'img/curtain-velvet.png', 'audio/werbung.mp3', 'fonts/inter-latin.woff2', 'fonts/OFL.txt', ...vinylFonts];
+const tickerFonts = ['fonts/rajdhani-medium-latin.woff2','fonts/rajdhani-OFL.txt'];
+const frontendFiles = ['index.html', 'js/start.js', 'js/ui/composition.js', ...scripts, ...styles, 'img/mischwerk-logo.png', 'img/mischwerk-radio.png', 'img/curtain-velvet.png', 'audio/werbung.mp3', 'fonts/inter-latin.woff2', 'fonts/OFL.txt', ...vinylFonts, ...tickerFonts];
 assert.equal(frontendFiles.length, new Set(frontendFiles).size, 'Doppelte Frontend-Datei');
 function frontendFilesForView(view) {
   const selectedScripts = [], selectedStyles = [];
@@ -18,7 +19,7 @@ function frontendFilesForView(view) {
   const Client = { pageData: { view }, includeJS: file => { if(file !== 'js/start.js'){selectedScripts.push(file);} }, includeCSS: file => selectedStyles.push(file) };
   vm.runInNewContext(read('index.html').match(/<script>([\s\S]*?)<\/script>/)[1], { Client, document, setTimeout() {} });
   vm.runInNewContext(read('js/start.js'), { Client, document, window: {} });
-  return ['index.html', 'js/start.js', ...selectedScripts, ...selectedStyles, ...vinylFonts, 'img/mischwerk-logo.png', ...(view === 'radio' ? ['img/mischwerk-radio.png', 'img/curtain-velvet.png', 'audio/werbung.mp3', 'fonts/inter-latin.woff2', 'fonts/OFL.txt'] : [])];
+  return ['index.html', 'js/start.js', ...selectedScripts, ...selectedStyles, ...vinylFonts, 'img/mischwerk-logo.png', ...(view === 'radio' ? ['img/mischwerk-radio.png', 'img/curtain-velvet.png', 'audio/werbung.mp3', 'fonts/inter-latin.woff2', 'fonts/OFL.txt', ...tickerFonts] : [])];
 }
 const operatorFiles = ['relay-settings.html', 'js/operator/relay-settings.js'];
 module.exports = { frontendFiles, frontendFilesForView, operatorFiles };

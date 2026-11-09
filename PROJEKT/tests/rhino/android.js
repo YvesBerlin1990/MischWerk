@@ -23,7 +23,7 @@
         MischWerkModules.attachChanges(runtime); MischWerkModules.attachValidation(runtime);
         MischWerkModules.attachTicker(runtime);
         MischWerkModules.attachWishStorage(runtime); MischWerkModules.attachWishQueue(runtime);
-        MischWerkModules.attachAndroidSigning(runtime); MischWerkModules.attachAndroidConnection(runtime);
+        MischWerkModules.attachAndroidFailures(runtime); MischWerkModules.attachAndroidSigning(runtime); MischWerkModules.attachAndroidConnection(runtime);
         MischWerkModules.attachAndroidReceipts(runtime); MischWerkModules.attachAndroidIncoming(runtime);
         MischWerkModules.attachAndroidPublisher(runtime); MischWerkModules.attachAndroidRelay(runtime);
         function answer(rows, status) {

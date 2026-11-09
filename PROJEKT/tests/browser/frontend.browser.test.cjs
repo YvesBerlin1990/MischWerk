@@ -12,6 +12,104 @@ const {inspectLayout}=require('../support/layout-browser.cjs');
 const root = path.resolve(__dirname, '../..');
 const browserSource=process.env.MISCHWERK_TEST_UPLOAD?path.resolve(process.env.MISCHWERK_TEST_UPLOAD,'www'):path.join(root,'app/www');
 let browser;
+
+for(const k3 of [true,false])test('Radio harmonisiert drei Anzeigen, Lautstärke und kompakte Aktionen in '+(k3?'K3':'STAPP'),async t=>{
+  const {page,state,errors}=await setup(t,{station:true,k3,viewport:{width:2290,height:160}});
+  await page.route('https://stats.example.com/widget/radio/test-radio/track/current',r=>r.fulfill({json:{title:'Rock DJ',artist:'Robbie Williams'}}));
+  await page.reload();await page.waitForFunction(()=>document.getElementById('track-title').textContent==='Rock DJ');
+  const wish={id:1,text:'Wunschsongsehrlang – Wunschinterpretsehrlang',position:1,stage:'queued'};
+  await page.evaluate(({s,wish})=>__emit('mw:state',{...s,revision:2,topic:'',wishPositions:{generation:'harmony',revision:1,available:true,total:1,page:0,pages:1,nextPosition:1,items:[wish],nextItem:wish}}),{s:state,wish});
+  await page.locator('#play-button').click();
+  await page.locator('#radio-audio').evaluate(n=>n.dispatchEvent(new Event('playing')));
+  await page.evaluate(()=>document.fonts.ready);
+  await page.waitForFunction(()=>{const img=document.querySelector('.bar-logo');return img.complete&&img.naturalWidth>0;});
+  const picture=path.join(require('node:os').tmpdir(),'MischWerk-Pruefbilder','radio');fs.mkdirSync(picture,{recursive:true});
+  await page.screenshot({path:path.join(picture,'Harmonie-'+(k3?'k3':'stapp')+'.png')});
+  const style=await page.evaluate(()=>({
+    text:['track-title','show-topic','own-wish-rank'].map(id=>{const s=getComputedStyle(document.getElementById(id));return {font:s.fontFamily,weight:s.fontWeight,size:parseFloat(s.fontSize)};}),
+    volume:document.querySelector('.volume-control').getBoundingClientRect().width,
+    track:getComputedStyle(document.getElementById('volume')).backgroundSize,
+    buttons:['open-schedule','open-wishes','studio-tab'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.width,r.height];})
+  }));
+  assert.ok(style.text.every(s=>s.font.includes('Outfit')&&s.weight==='600'&&s.size<=20),'Eine ruhige gemeinsame Schrift: '+JSON.stringify(style));
+  assert.ok(style.volume<=240,'Kürzere Lautstärkeregelung: '+JSON.stringify(style));assert.match(style.track,/4px/);
+  assert.ok(style.buttons.every(([w,h])=>Math.abs(w-156)<1&&h===64),'Kompakte gleichmäßige Tasten schaffen Textbreite: '+JSON.stringify(style));
+  assert.equal(await page.locator('#mute-button').evaluate(n=>n.getBoundingClientRect().height),44);
+  assert.equal(await page.locator('#volume').evaluate(n=>n.getBoundingClientRect().height),44);
+  await publicActionContentsFit(page);await muteButtonFits(page);
+  for(const [width,height] of [[1500,160],[1280,160],[390,600]]){
+    await resizeViewport(page,{width,height});await page.evaluate(()=>document.fonts.ready);
+    await publicActionContentsFit(page);await muteButtonFits(page);
+    const clip=height>160?await page.evaluate(()=>({x:0,y:0,width:innerWidth,height:Math.min(innerHeight,Math.ceil(document.getElementById('radio-deck').getBoundingClientRect().bottom)+16)})):undefined;
+    await page.screenshot({path:path.join(picture,'Harmonie-'+(k3?'k3':'stapp')+'-'+width+'.png'),clip});
+  }
+  assert.deepEqual(errors,[]);
+});
+
+for(const k3 of [true,false])test('Lauftext rahmt automatisch mit Pluszeichen und erhält Inhalt in '+(k3?'K3':'STAPP'),async t=>{
+  const {page,state,errors}=await setup(t,{station:true,k3,viewport:{width:1280,height:230}});
+  const examples=[['Grüße für alle','+++ Grüße für alle +++'],['+++ Grüße für alle +++','+++ Grüße für alle +++'],
+    ['++++++  Grüße +++ an alle  ++++++','+++ Grüße +++ an alle +++'],['C++ + Musik','+++ C++ + Musik +++'],
+    ['<b>Grüße</b>','+++ <b>Grüße</b> +++'],['Ä'.repeat(300),'+++ '+'Ä'.repeat(300)+' +++']];
+  let revision=state.revision;
+  for(const [text,expected] of examples){
+    await page.evaluate(({s,text,revision})=>__emit('mw:state',{...s,revision,ticker:{text,enabled:true,speed:48,direction:'left',revision}}),{s:state,text,revision:++revision});
+    assert.equal(await page.locator('#radio-ticker-track > span').first().textContent(),expected);
+    assert.equal(await page.locator('#radio-ticker-track > span').nth(1).textContent(),expected);
+    assert.equal(await page.locator('#radio-ticker-readable').textContent(),expected.slice(4,-4));
+    assert.equal(await page.locator('#radio-ticker').getAttribute('title'),expected.slice(4,-4));
+  }
+  await page.evaluate(s=>__emit('mw:state',{...s,revision:100,ticker:{text:'+++ +++',enabled:true,speed:48,direction:'left',revision:100}}),state);
+  assert.equal(await page.locator('#radio-ticker').isVisible(),false,'Reine alte Plus-Dekoration erzeugt keinen leeren Lauftext');
+  assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:setTicker')),false,'Darstellung schreibt keine gespeicherten Texte um');
+  assert.equal(await page.locator('#radio-ticker-track b').count(),0,'Auch mit Randmarkern bleibt Inhalt reiner Text');
+  assert.deepEqual(errors,[]);
+});
+
+for(const fail of [false,true])test('Lauftext misst nach '+(fail?'fehlgeschlagener':'verzögerter')+' Rajdhani-Schrift und bleibt lesbar',async t=>{
+  const {page,state,errors}=await setup(t,{station:true,viewport:{width:1280,height:230}});
+  let release;const fontGate=new Promise(resolve=>{release=resolve;});
+  await page.route('**/fonts/rajdhani-medium-latin.woff2*',async r=>{await fontGate;if(fail)await r.abort();else await r.fallback();});
+  try{
+    const text='+++ Grüße aus der Regie – Musik für alle! +++';
+    await page.evaluate(({s,text})=>__emit('mw:state',{...s,revision:2,ticker:{text,enabled:true,speed:48,direction:'left',revision:1}}),{s:state,text});
+    assert.equal(await page.locator('#radio-ticker').isVisible(),true);
+    release();await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(100);
+    const font=await page.locator('#radio-ticker-track > span').first().evaluate(n=>({
+      family:getComputedStyle(n).fontFamily,weight:getComputedStyle(n).fontWeight,
+      fonts:[...document.fonts].filter(f=>f.family==='Rajdhani').map(f=>f.status),
+      width:n.getBoundingClientRect().width,duration:parseFloat(getComputedStyle(n.parentElement).animationDuration),
+      text:n.textContent,innerHeight
+    }));
+    assert.match(font.family,/Rajdhani/);assert.equal(font.weight,'500');
+    assert.ok(font.fonts.includes(fail?'error':'loaded'),JSON.stringify(font));
+    assert.ok(Math.abs(font.width/font.duration-48)<0.1,'Laufdauer folgt der tatsächlich geladenen Schrift: '+JSON.stringify(font));
+    assert.equal(font.text,text);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  }finally{release();}
+  assert.deepEqual(errors,[]);
+});
+
+test('Wunschboxschalter meldet Fehler weiterhin und entfernt sie nach bestätigter Korrektur',async t=>{
+  const {page,state,errors}=await setup(t,{view:'studio',viewport:{width:640,height:580}});
+  await revealStudio(page,'#toggle-wishes');await page.locator('#toggle-wishes').click();
+  const failed=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:setRequests'));
+  await page.evaluate(s=>__emit('mw:result',{ok:false,action:s.type,requestId:s.data.requestId,message:'Speichern fehlgeschlagen.'}),failed);
+  await revealStudio(page,'#notice');
+  assert.equal(await page.locator('#notice.error').isVisible(),true);
+  assert.match(await page.locator('#notice').textContent(),/fehlgeschlagen/);
+  assert.equal(await page.locator('#toggle-wishes').getAttribute('aria-checked'),'true','Fehler ändert die bestätigte Freigabe nicht');
+  await revealStudio(page,'#toggle-wishes');await page.locator('#toggle-wishes').click();
+  const retry=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:setRequests'));
+  await page.evaluate(({s,r})=>{
+    __emit('mw:state',{...s,revision:s.revision+1,requestsEnabled:false});
+    __emit('mw:result',{ok:true,action:r.type,requestId:r.data.requestId,message:'Wunschbox deaktiviert.'});
+  },{s:state,r:retry});
+  await studioSettle(page);
+  assert.equal(await page.locator('#notice').isVisible(),false);
+  assert.match(await page.locator('#studio-wish-state').textContent(),/geschlossen/);
+  assert.equal(await page.locator('#toggle-wishes').getAttribute('aria-checked'),'false');
+  assert.deepEqual(errors,[]);
+});
 // Tatsächlichen lokalen Ladeplan prüfen, einschließlich reproduzierbarer Uploadbündel.
 function selectedFiles(view){
  const vm=require('node:vm'),files=[],document={readyState:'loading',addEventListener(){},documentElement:{getAttribute:()=>view,setAttribute(){}}};
@@ -89,7 +187,7 @@ test('Vinyl Deck bleibt über alle Leistenbreiten, Rollen und Pixeldichten errei
     assert.ok(row.faceWidth>0&&row.faceHeight>0,detail);assert.equal(row.horizontalOverflow,false,detail);
     if(width>=1200){assert.ok(row.musicShare<=.6&&row.topicShare>=.35,'Musik und Thema teilen die Breite ausgewogen: '+detail);}
     assert.deepEqual(row.canvases,Array(3).fill('rgb(0, 0, 0)'),'Äußerer Untergrund entspricht dem schwarzen Werkshallen-Channelbild: '+detail);
-    assert.equal(row.background,'rgb(20, 20, 20)');assert.match(row.vinyl,/repeating-radial-gradient/);assert.match(row.titleFont,/Fraunces/);assert.match(row.uiFont,/Outfit/);
+    assert.equal(row.background,'rgb(20, 20, 20)');assert.match(row.vinyl,/repeating-radial-gradient/);assert.match(row.titleFont,/Outfit/);assert.match(row.uiFont,/Outfit/);
     assert.equal(row.controls.length,role==='owner'||role==='radioModerator'?4:3,detail);
     if(role!=='listener') { assert.ok(row.studioDisc,'Moderation hat dieselbe runde Symbolfläche: '+detail);assert.deepEqual(row.studioDisc,row.publicDisc,'Gleiche Vinylfläche für Moderation und aktive Wunschbox: '+detail); }
     for(const c of row.controls){assert.ok(c.width>=44&&c.height>=44,detail);assert.ok(c.x>=0&&c.x+c.width<=width+.5,detail);if(height===160)assert.ok(c.y>=0&&c.y+c.height<=160.5,detail);}
@@ -3155,16 +3253,16 @@ test('Breite Radioleiste nutzt die Mittelbreite und erhält Tastaturbedienung',a
   const boxes=await Promise.all(ids.map(id=>page.locator('#'+id).boundingBox()));
   assert.equal((await page.locator('#radio-panel').boundingBox()).width,2290);
   assert.equal((await page.locator('#play-button').boundingBox()).width,60);
-  assert.ok(boxes.every(box=>Math.abs(box.width-190)<1&&box.height===80),'Alle drei Aktionen nutzen große gleichmäßige rechteckige Flächen: '+JSON.stringify(boxes));
+  assert.ok(boxes.every(box=>Math.abs(box.width-156)<1&&box.height===64),'Alle drei Aktionen nutzen kompakte gleichmäßige Flächen: '+JSON.stringify(boxes));
   assert.ok(Math.abs(boxes[0].y-boxes[1].y)<1);
   const logo=await page.locator('.bar-logo').boundingBox(),play=await page.locator('#play-button').boundingBox(),music=await page.locator('.radio-program-face').boundingBox();
   assert.ok(play.x+play.width<=logo.x&&play.x>=music.x&&boxes[1].x+boxes[1].width<=music.x+music.width);
   assert.equal(await page.locator('.bar-logo').getAttribute('src'),'img/mischwerk-logo.png');
-  assert.deepEqual(await page.locator('#studio-tab .action-label strong').evaluate(n=>{const s=getComputedStyle(n);return [s.fontSize,s.fontWeight];}),['18px','500']);
+  assert.deepEqual(await page.locator('#studio-tab .action-label strong').evaluate(n=>{const s=getComputedStyle(n);return [s.fontSize,s.fontWeight];}),['15px','500']);
   for(const id of ids){
     const size=await page.locator('#'+id).evaluate(node=>({disc:node.querySelector('.public-action-icon').getBoundingClientRect().width,
       icon:node.querySelector('.public-action-icon svg').getBoundingClientRect().width}));
-    assert.deepEqual(size,{disc:32,icon:32});
+    assert.deepEqual(size,{disc:24,icon:24});
   }
   await publicActionContentsFit(page);
   for(const [index,id] of ids.entries()){
@@ -3421,7 +3519,10 @@ for(const k3 of [true,false])test('HTML-Vorlagenraster erhält in '+(k3?'K3':'ST
    const music=await page.locator('.now-playing').boundingBox(),topic=await page.locator('.radio-context').boundingBox(),wish=await page.locator('#own-wish-position').boundingBox();
    assert.ok(wish.x>=topic.x+topic.width-1,'Eigener Wunsch steht neben dem Thema');
    if(width>850)assert.ok(topic.x>=music.x+music.width-1,'Musik steht links von den Sendungsinformationen');
-   assert.deepEqual(await page.locator('#show-topic').evaluate(n=>{const s=getComputedStyle(n);return[s.fontSize,s.fontWeight,s.color];}),[width<=700?'17px':'18px','700','rgb(245, 245, 242)']);
+   const typography=await page.locator('#show-topic').evaluate(n=>{const s=getComputedStyle(n);return {size:parseFloat(s.fontSize),weight:s.fontWeight,color:s.color,presenter:parseFloat(getComputedStyle(document.querySelector('.radio-context .presenter')).fontSize)};});
+   assert.equal(typography.weight,'600');assert.equal(typography.color,'rgb(245, 245, 242)');
+   if(width>=1200)assert.ok(typography.size===20&&typography.presenter===14,'Ruhige gemeinsame Schrift berücksichtigt den benachbarten Wunschbereich: '+JSON.stringify({width,...typography}));
+   else assert.equal(typography.size,width<=700?18:20);
    assert.equal(await page.locator('#own-wish-rank').evaluate(n=>getComputedStyle(n).color),'rgb(245, 245, 242)');
    if(width<=900)assert.ok(await page.locator('.track-eyebrow').evaluate(n=>n.getBoundingClientRect().top-document.getElementById('radio-metadata').getBoundingClientRect().top>=10),'Natürliche schmale Ansicht hat Luft über Jetzt läuft bei '+width);
    if(width>=1200){
@@ -3431,9 +3532,9 @@ for(const k3 of [true,false])test('HTML-Vorlagenraster erhält in '+(k3?'K3':'ST
      return {musicInset:music.top-m.top,musicBottom:music.bottom,volumeTop:v.top,topicCenter:(topic.top+status.bottom-m.top-m.bottom)/2,wishCenter:(wish.top+stage.bottom-m.top-m.bottom)/2,topicGap:value.top-topic.bottom,wishGap:rank.top-wish.bottom,scroll:m.height<document.getElementById('radio-metadata').scrollHeight-1};
     });
     const detail=JSON.stringify({width,k3,...spacing});
-    assert.ok(spacing.musicInset>=14&&spacing.musicBottom<=spacing.volumeTop+1,'Musik tiefer und ohne Überlappung zum Regler: '+detail);
+    assert.ok(spacing.musicInset>=8&&spacing.musicBottom<=spacing.volumeTop+1,'Musik ruhig verteilt und ohne Überlappung zum Regler: '+detail);
     assert.ok(Math.abs(spacing.topicCenter)<1&&Math.abs(spacing.wishCenter)<1,'Thema und Wunsch ausgewogen in der Höhe: '+detail);
-    assert.ok(spacing.topicGap>=6&&spacing.wishGap>=5,'Mehr Luft zwischen Beschriftung und Inhalt: '+detail);
+    assert.ok(spacing.topicGap>=4&&spacing.wishGap>=4,'Mehr Luft zwischen Beschriftung und Inhalt: '+detail);
     assert.equal(spacing.scroll,false,'Kurze vollständige Angaben passen ohne Informationsscrollen: '+detail);
    }
   }else{
@@ -3442,6 +3543,29 @@ for(const k3 of [true,false])test('HTML-Vorlagenraster erhält in '+(k3?'K3':'ST
   assert.equal(await page.evaluate(()=>document.getElementById('radio-audio')===window.__orderedAudio),true);
  }
  assert.equal(await page.locator('#show-topic').textContent(),'Testmusik!');assert.match(await page.locator('#own-wish-position').textContent(),/Platz 1/);assert.deepEqual(errors,[]);
+ let previewRevision=20;
+ const previewMode='https://stats.example.com/topic-preview-mode';
+ await page.route(previewMode,r=>r.fulfill({contentType:'text/plain',body:'autodj'}));
+ const previewStation={...state.station,modeUrl:previewMode,fields:{...state.station.fields,live:''}};
+ for(const [width,withWish,name]of [[2290,false,'Thema-ohne-Wunsch'],[2290,true,'Thema-und-Wunsch-Breit'],[1500,true,'Thema-und-Wunsch-1500'],[1280,true,'Thema-und-Wunsch-Mittel']]){
+  const wish={id:1,text:'Queen – We Will Rock You',position:1,stage:'queued'};
+  await page.evaluate(({state,station,revision,withWish,wish})=>window.__emit('mw:state',{...state,station,revision,topic:'',moderator:null,wishPositions:{generation:'radio-info',revision,available:true,total:withWish?1:0,page:0,pages:1,nextPosition:withWish?1:null,items:withWish?[wish]:[],nextItem:withWish?wish:null}}),{state,station:previewStation,revision:previewRevision++,withWish,wish});
+  await page.locator('#on-air-sign').filter({hasText:'MischWerk am Pult'}).waitFor();
+  await resizeViewport(page,{width,height:160});await page.evaluate(()=>document.fonts.ready);
+  const fitting=await page.evaluate(()=>{
+   const metadata=document.getElementById('radio-metadata'),m=metadata.getBoundingClientRect(),topic=document.querySelector('.radio-context').getBoundingClientRect(),wish=document.getElementById('own-wish-position');
+   const nodes=[document.querySelector('.topic-label'),document.getElementById('show-topic'),document.querySelector('.radio-context .presenter'),...wish.hidden?[]:[wish]];
+   return {font:parseFloat(getComputedStyle(document.getElementById('show-topic')).fontSize),horizontal:metadata.scrollWidth<=metadata.clientWidth+1,vertical:metadata.scrollHeight<=metadata.clientHeight+1,inside:nodes.every(n=>{const r=n.getBoundingClientRect();return r.left>=m.left-.5&&r.right<=m.right+.5&&r.top>=m.top-.5&&r.bottom<=m.bottom+.5;}),separate:wish.hidden||wish.getBoundingClientRect().left>=topic.right-.5};
+  });
+  assert.ok(fitting.horizontal&&fitting.vertical&&fitting.inside&&fitting.separate,'Vollständiges Standardthema und Wunschbereich passen gleichzeitig: '+JSON.stringify({width,withWish,k3,...fitting}));
+  if(width===2290)assert.equal(fitting.font,20,'Gemeinsame Hauptschrift bleibt mit und ohne Wunsch ruhig');
+  if(process.env.MISCHWERK_DESIGN_CAPTURE&&k3){
+   const folder=path.join(require('node:os').tmpdir(),'MischWerk-Pruefbilder','radio');fs.mkdirSync(folder,{recursive:true});
+   const clip=await page.locator('.radio-context,#own-wish-position').evaluateAll(nodes=>{const r=nodes.filter(n=>n.getClientRects().length).map(n=>n.getBoundingClientRect()),left=Math.min(...r.map(b=>b.left)),top=Math.min(...r.map(b=>b.top));return{x:Math.floor(left-6),y:Math.floor(top-6),width:Math.ceil(Math.max(...r.map(b=>b.right))-left+12),height:Math.ceil(Math.max(...r.map(b=>b.bottom))-top+12)};});
+   await page.screenshot({path:path.join(folder,name+'.png'),clip});
+  }
+ }
+ assert.deepEqual(errors,[]);
 });
 
 

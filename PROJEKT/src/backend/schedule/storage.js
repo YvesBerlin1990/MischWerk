@@ -47,6 +47,7 @@ MischWerkModules.attachScheduleStorage = function (runtime) {
         return saved;
     }
     runtime.writeScheduleWeek = function (week, next) { return write(week, next, true); };
+    runtime.commitScheduleRelay = function (week, next, advance) { return write(week, next, advance); };
     runtime.recordScheduleRelayResult = function (week, result) {
         var saved = runtime.readScheduleWeek(week);
         runtime.addRelayResult(saved, 'relayResults', result);

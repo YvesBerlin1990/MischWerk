@@ -3,7 +3,7 @@ MischWerkUI.define('layout', function (dependencies) {
   'use strict';
   var model = dependencies.model, dom = dependencies.dom, signals = dependencies.signals;
   var viewport = dependencies.viewport;
-  var noticeTimer, layoutReady = false;
+  var noticeTimer, noticeAction, layoutReady = false;
   function fitContent() {
     if (model.view === 'schedule') { signals.emit('schedule-layout', true); return; }
     if (model.view !== 'studio') { return; }
@@ -16,6 +16,12 @@ MischWerkUI.define('layout', function (dependencies) {
   }
   function notify(message, error, action) {
     var box = dom.el('notice');
+    // Der bestätigte Schalter und seine Statuszeile melden den Erfolg bereits ohne zusätzliche Höhe.
+    if (model.view === 'studio' && action === 'mw:setRequests' && !error) {
+      if (noticeAction === action) { box.hidden = true; clearTimeout(noticeTimer); resizeDialog(); }
+      return;
+    }
+    noticeAction = action;
     if (model.view !== 'radio') {
       var targets = { 'mw:onAir':'studio-controls', 'mw:offAir':'studio-controls', 'mw:setRequests':'studio-controls',
         'mw:setWishStage':'queue-notice', 'mw:resolveRequest':'queue-notice',
