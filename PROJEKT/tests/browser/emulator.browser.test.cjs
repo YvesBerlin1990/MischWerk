@@ -8,13 +8,13 @@ const { createEmulator } = require('../../tools/emulator/server.cjs');
 const {reveal:revealStudio}=require('../support/studio-browser.cjs');
 let browser;
 
-for(const client of ['k3','stapp'])test('Historientitel im nativen '+client+'-Player sind für Hörer sichtbar und erhalten echtes Audio',async t=>{
+for(const client of ['k3','stapp'])test('Direkte Songtitel im nativen '+client+'-Modell sind für Hörer sichtbar und erhalten echtes Audio',async t=>{
   const lab=await setup(t,{provider:'online'},true);
   const config=lab.hub.providerConfig();
-  lab.hub.providerConfig=()=>({...config,metadata:{url:config.historyUrl,format:'spcast-history',titleField:'metadata.song',artistField:'',liveField:''}});
+  lab.hub.providerConfig=()=>({...config,metadata:{url:'https://emulator.mischwerk.invalid/fixture/current-song',format:'spcast-current-song',titleField:'',artistField:'',liveField:''}});
   lab.hub.restart(false);
-  const now=Math.floor(lab.hub.runtime.clock.now()/1000);let title='a-ha - Take On Me';
-  await lab.context.route('**/fixture/history',r=>r.fulfill({json:[{timestamp:now-5,metadata:{song:title}},{timestamp:now-60,metadata:{song:'Älter'}}]}));
+  let title='a-ha - Take On Me';
+  await lab.context.route('**/fixture/current-song?*',r=>r.fulfill({body:title,contentType:'text/plain',headers:{'Cache-Control':'max-age=300'}}));
   const {page,radio}=await lab.join('Polaroid',client,390,false);
   // Der Hörer erhält den öffentlichen Titel, während die private Regie weiterhin verborgen bleibt.
   assert.equal(await radio.locator('#studio-tab').isVisible(),false);

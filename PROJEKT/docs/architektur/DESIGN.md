@@ -1,4 +1,4 @@
-# MischWerk – Design 0.1.322 · Build 322
+# MischWerk – Design 0.1.324 · Build 324
 
 Aktuelle Gestaltung am 09.11.2026. Die Bilder zeigen lokal gerenderten Appcode mit Beispieldaten. Verbindliche Projektvorgaben stehen in [AGENTS.md](../../AGENTS.md).
 

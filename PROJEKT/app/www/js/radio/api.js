@@ -1,7 +1,8 @@
-/* Öffentliche HTTPS-Audio-/JSON-Anschlüsse; Feldzuordnung erst aus bestätigten Produktdaten. */
-MischWerkUI.define('radioApi', function () {
+/* Öffentliche HTTPS-Audio-/Datenanschlüsse mit bestätigter Produktzuordnung. */
+MischWerkUI.define('radioApi', function (dependencies) {
   'use strict';
   var pending = {};
+  var metadata = dependencies.metadata;
   function publicUrl(value, hosts, history) {
     if (typeof value !== 'string' || value.length > 2000 || !Array.isArray(hosts)) { return false; }
     try {
@@ -30,28 +31,32 @@ MischWerkUI.define('radioApi', function () {
     if (station.statusFormat && (station.statusFormat !== 'spcast-statistics' ||
         !Number.isSafeInteger(station.streamId) || station.streamId < 1 || !station.streamPath || !station.fields.statusIdentity || !station.stationId)) { return null; }
     return { stream: station.streamUrl,
-      metadata: station.metadataUrl && (station.fields.title || station.fields.artist) ? station.metadataUrl : '',
+      metadata: station.metadataUrl && (station.metadataFormat === 'spcast-current-song' || station.fields.title || station.fields.artist) ? station.metadataUrl : '',
       mode: station.modeUrl || '',
       status: station.statusUrl && station.fields.status && station.statusValues.online !== null &&
         station.statusValues.offline !== null && station.statusValues.online !== station.statusValues.offline ? station.statusUrl : '' };
   }
-  function getResponse(url, fresh) {
+  function getResponse(url, fresh, plain) {
     if (pending[url]) { return pending[url]; }
+    // currentSong.txt wird vom Anbieter mit max-age=300 ausgeliefert, auch im XHR-Weg umgehen.
+    var requestUrl = plain ? url + (url.indexOf('?') === -1 ? '?' : '&') + '_mw=' + Date.now() : url;
     var task;
     if (fresh && typeof window.fetch === 'function' && typeof window.AbortController === 'function') {
       var controller = new AbortController();
       var timer = setTimeout(function () { controller.abort(); }, 10000);
-      task = fetch(url, { cache: 'no-store', credentials: 'omit', signal: controller.signal }).then(function (response) {
+      task = fetch(requestUrl, { cache: 'no-store', credentials: 'omit', signal: controller.signal }).then(function (response) {
         if (!response.ok) { throw new Error('http'); }
+        if (plain && !/^text\/plain(?:\s*;|$)/i.test(response.headers.get('content-type') || '')) { throw new Error('song content type'); }
         return response.text();
       }).then(function (text) { clearTimeout(timer); return text; }, function () {
         clearTimeout(timer); throw new Error('network');
       });
     } else {
       task = new Promise(function (resolve, reject) {
-        var request = new XMLHttpRequest(); request.open('GET', url, true); request.timeout = 10000;
+        var request = new XMLHttpRequest(); request.open('GET', requestUrl, true); request.timeout = 10000;
         request.onload = function () {
           if (request.status < 200 || request.status >= 300) { reject(new Error('http')); return; }
+          if (plain && !/^text\/plain(?:\s*;|$)/i.test(request.getResponseHeader('content-type') || '')) { reject(new Error('song content type')); return; }
           resolve(request.responseText);
         };
         request.onerror = request.ontimeout = function () { reject(new Error('network')); };
@@ -118,23 +123,9 @@ MischWerkUI.define('radioApi', function () {
   function fetchMetadata(station) {
     var urls = streamUrls(station);
     if (!urls || !urls.metadata) { return Promise.reject(new Error('metadata unavailable')); }
-    return getResponse(urls.metadata, true).then(function (text) {
-      if (station.metadataFormat === 'spcast-history') {
-        if (text.length > 2000000) { throw new Error('history too large'); }
-        var rows = JSON.parse(text), latest = null, now = Date.now();
-        if (!Array.isArray(rows) || rows.length > 10000) { throw new Error('invalid history'); }
-        rows.forEach(function (row) {
-          var stamp = row && row.timestamp, song = row && row.metadata && row.metadata.song;
-          if (Number.isSafeInteger(stamp) && stamp > 0 && stamp * 1000 <= now &&
-              typeof song === 'string' && song.trim() && song.trim().toLowerCase() !== 'unknown' && song.length <= 2000 &&
-              (!latest || stamp > latest.timestamp)) { latest = row; }
-        });
-        if (!latest) { throw new Error('history has no valid title'); }
-        var combined = latest.metadata.song.trim(), divider = combined.indexOf(' - ');
-        var performer = divider > 0 ? combined.slice(0, divider).trim() : '';
-        var track = performer ? combined.slice(divider + 3).trim() : '';
-        return { title:track || combined, artist:{name:track ? performer : ''}, isLive:null, timestamp:latest.timestamp };
-      }
+    return getResponse(urls.metadata, true, station.metadataFormat === 'spcast-current-song').then(function (text) {
+      if (station.metadataFormat === 'spcast-current-song') { return metadata.current(text); }
+      if (station.metadataFormat === 'spcast-history') { return metadata.history(text); }
       if (JSON.parse(text) === null) { return { title: '', artist: { name: '' }, isLive: null }; }
       var data = object(text), title = readField(data, station.fields.title), artist = readField(data, station.fields.artist);
       if (title === undefined && artist === undefined) { throw new Error('metadata fields unavailable'); }

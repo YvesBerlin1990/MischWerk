@@ -48,12 +48,15 @@ async function main() {
       message: 'STREAMPANEL-Produktanschlüsse stehen aus. Keine echte Senderprüfung erfolgt.' }, null, 2));
     return;
   }
-  let factory;
-  vm.runInNewContext(fs.readFileSync('app/www/js/radio/api.js', 'utf8'), {
+  const factories = {};
+  const scope = {
     URL, AbortController, fetch, setTimeout, clearTimeout,
-    window: { fetch, AbortController }, MischWerkUI: { define(name, value) { factory = value; } }
-  });
-  const api = factory(), urls = api.streamUrls(station);
+    window: { fetch, AbortController }, MischWerkUI: { define(name, value) { factories[name] = value; } }
+  };
+  for (const file of ['metadata.js', 'api.js']) {
+    vm.runInNewContext(fs.readFileSync('app/www/js/radio/' + file, 'utf8'), scope);
+  }
+  const api = factories.radioApi({ metadata: factories.songMetadata() }), urls = api.streamUrls(station);
   if (!urls) { throw new Error('Öffentliche Konfiguration ungültig.'); }
   const report = { status: 'checked', version: h.config.version, checkedAt: new Date().toISOString(),
     scope: 'HTTP-Anschlussprüfung; kein Hörtest und keine K3-/Browser-CORS-Abnahme.', stream: {}, data: {} };

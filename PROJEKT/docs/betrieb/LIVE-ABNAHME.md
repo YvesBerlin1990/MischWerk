@@ -1,6 +1,6 @@
-# MischWerk – LIVE-Abnahme: lokal 0.1.322 / Build 322
+# MischWerk – LIVE-Abnahme: lokal 0.1.324 / Build 324
 
-Stand 09.11.2026. Build 322 mit Streamhistorie als aktueller Titelquelle ist lokal vorbereitet; native Installation und Playerabnahme dieses Pakets sowie die Langzeitabnahme der enthaltenen Aktivitätskorrekturen bleiben separat. Der Live-Encoder-Metadatenweg zur Historie ist bereits bestätigt. Ein GitHub-Push überträgt keine Appdateien nach Knuddels.
+Stand 09.11.2026. Build 324 mit direktem `/currentSong.txt`-Abruf als aktueller Titelquelle ist lokal vorbereitet; native Installation und Playerabnahme dieses Pakets sowie die Langzeitabnahme der enthaltenen Aktivitätskorrekturen bleiben separat. Der Live-Encoder-Metadatenweg zur Historie ist bereits bestätigt. Ein GitHub-Push überträgt keine Appdateien nach Knuddels.
 
 ## Tatsächlich beobachtet
 
@@ -14,9 +14,10 @@ Frühere Nutzerbeobachtungen zum weißen Erstöffnungsblitz belegen eine Verkür
 
 ## Nach vollständiger Installation prüfen
 
-1. **Dateistand:** Startlog 0.1.322 / Build 322 und tatsächlich geladene Frontenddateien. Alle 108 Dateien einschließlich 37 Serverdateien, Unterordner und fünf Manifeste zusammengehörig. server/app.js und die Serverbündel stets gemeinsam übernehmen; Quellen unter src/backend bleiben separat erhalten. HTTP 200 allein belegt keine richtigen Bytes.
+1. **Dateistand:** Startlog 0.1.324 / Build 324 und tatsächlich geladene Frontenddateien. Alle 109 Dateien einschließlich 37 Serverdateien, Unterordner und fünf Manifeste zusammengehörig. server/app.js und die Serverbündel stets gemeinsam übernehmen; Quellen unter src/backend bleiben separat erhalten. HTTP 200 allein belegt keine richtigen Bytes.
 2. **Längeres Hören:** Windows-App im Vorder-/Hintergrund; gleiche Headerbar und fortschreitende Medienzeit. Aktivitätsbestätigung bei gültiger Channelverbindung bleibt trotz kurzer Engpässe und tatsächlich fortschreitendem Audio mit knappem Puffer regelmäßig. Native Abnahme der Korrektur und ein erneuter allgemeiner Socket-Lese-Timeout getrennt protokollieren; `/confirm` nicht für einen weiteren Test aussetzen.
 3. **Audioerholung:** Kurze Engpässe behalten Quelle/Puffer; echte Fehler/Ende führen bei bestehendem Hörwunsch zu Erholung. Lautstärke/Mute erhalten. Status-/Titelantworten stoppen kein Audio. Stop, Quellenwechsel und Seitenende beenden weitere Versuche.
+   **Titelquelle:** Mindestens zwei reale Titelwechsel im direkten `/currentSong.txt`-Abruf beobachten; Titel oben und Interpret darunter, automatische Übernahme im Fünfsekundentakt. Tatsächlichen Zeitversatz zur Audiowiedergabe protokollieren. Die Textdatei gehört auf `mischwerk.spcast.eu`; der 404 desselben Dateipfads auf dem Hörerhost ist kein Audiofehler. Letzte gültige Anzeige bei Abruffehlern erhalten.
 4. **Menüs:** Alle vier Overlays öffnen, wechseln, mit X/Escape schließen. Radio bleibt hörbar. Breite/schmale Rahmen, Erst- und Wiederöffnung bei langsamen Ressourcen, ruhige Schrift-/Kopfgeometrie, vollständigen Wunschboxtitel, Abstand zwischen Textseiten und Absender sowie Fokus, Goldlicht, Lautstärketaste und lange Texte beobachten.
 5. **Wünsche/Rollen:** Quittung, eigener Song/Platz/Status in der Appleiste, weitere Eingabe und Entwurfserhalt. Fremde Wünsche nur für Moderation. Rechteentzug und Wunschboxsperre greifen serverseitig. Ab Build 268 müssen bestätigte offene Wünsche Update/Neustart mit Reihenfolge und Regiestatus überstehen; erledigte/verworfene Wünsche bleiben entfernt. Speicherfehler dürfen keine erfolgreiche Annahme melden. Vor dem ersten Wechsel von einem älteren flüchtigen Build dessen offene Wünsche abarbeiten.
 6. **Studio:** Anmeldung ohne Zeitlimit und ohne automatische Sechs-Stunden-Abmeldung; auch nach langer Laufzeit keine Verlängerung nötig. Keine Endzeit-, Restzeit- oder Studiozeit-Anzeige. Abmeldung, Verlassen und Rechteverlust prüfen. Bestätigte Übergabe und private Notizen.

@@ -1,4 +1,4 @@
-# MischWerk – Prüfbericht 0.1.322 / Build 322
+# MischWerk – Prüfbericht 0.1.324 / Build 324
 
 Stand: **09.11.2026**. Geprüft wird das fertige Paket unter **C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/**. Die App ist lokal vorbereitet; GitHub-Veröffentlichung und native Knuddels-Installation sind getrennte Vorgänge.
 
@@ -6,20 +6,26 @@ Stand: **09.11.2026**. Geprüft wird das fertige Paket unter **C:/Users/Yves/Des
 
 | Prüfung | Ergebnis |
 | --- | --- |
-| Vollständige Node-Suite am fertigen UPLOAD | **487/487 bestanden**, Testdateien nacheinander ausgeführt |
+| Vollständige Node-Suite beim Paketbau 324 | **490/490 bestanden**; vorherige Prüfung am fertigen UPLOAD 323 ebenfalls 490/490 |
 | Struktur, Syntax, API-Signaturen, Quellen-/Laufzeitgleichheit und Textgrenzen | Bestanden |
 | Rhino 1.7.7.2 und 1.9.1 am fertigen UPLOAD | **Je 1160 Prüfungen bestanden**, JAR-Hashes verifiziert |
-| Vollständige Edge-/K3-/STAPP-Browserrunde am UPLOAD | **355 Fälle: 351 bestanden, vier Abweichungen**, keine übersprungenen Fälle; 616,2 Sekunden |
-| Paket und fünf Auslieferungsmanifeste | **108 Dateien, 100 Texte, maximal 9485 UTF-16-Zeichen**, konsistent |
-| Eigenständige Websiteprüfung | **22/22 bestanden**, aktuelle Historienquelle in vorhandener Testfixture ergänzt |
+| Betroffene Edge-/K3-/STAPP-Prüfungen am UPLOAD 323 | **42 Fälle: 41 bestanden, ein bereits bekannter schmaler Lautstärke-Layoutbefund**; alle vier neuen Fetch-/XHR-Direktabruf- und beide Emulatorfälle bestanden |
+| Vorheriger vollständiger Browserlauf, Build 322 | **355 Fälle: 351 bestanden, vier Abweichungen**, keine übersprungenen Fälle; 616,2 Sekunden; nicht als vollständiger Lauf für Build 323 ausgegeben |
+| Paket und fünf Auslieferungsmanifeste | **109 Dateien, 101 Texte, maximal 9485 UTF-16-Zeichen**, konsistent; Arbeitsbestand 154 Dateien |
+| Eigenständige Websiteprüfung | **22/22 bestanden**, direkter Titelpfad in vorhandenen Anbieterfixtures ergänzt |
+| Öffentlicher Titelabruf im echten Edge-Browser | CORS erfolgreich vom Loopback-Ursprung; 09.11.2026, 16:41:21 Europe/Berlin: Titel „Cruel Summer“, Interpret „Taylor Swift“ über den neuen Appadapter gelesen |
 
-Der erste parallel gestartete Node-Lauf scheiterte in einem Emulatorstart am bestehenden 1500-ms-VM-Zeitlimit. Die anschließende vollständige Ausführung mit nacheinander gestarteten Testdateien besteht ohne Codeänderung, ausgelassene Fälle oder geänderte Zeitgrenzen. Laufprotokolle liegen ausschließlich im System-Tempordner.
+Version 0.1.324 / Build 324 aktualisiert ausschließlich die Releasekennung. Ein Hashvergleich bestätigt unveränderte Laufzeitbytes bis auf `app.config`, `main.js` und `server/config.js`; sämtliche Radio- und übrigen Fachmodule bleiben gegenüber Build 323 bytegleich. Beim Paketbau 324 bestehen 490 Node-Prüfungen sowie beide Rhino-Engines für Arbeitsbestand und fertige Bündel. Die erneuerten fünf Manifeste und der feste Desktop-UPLOAD sind konsistent. Browser-, Website- und Bildnachweise behalten ihren tatsächlichen geprüften Stand 323 bzw. 322; eine erneute Browserrunde wurde für die reine Kennungsänderung nicht durchgeführt. Laufprotokolle und zusätzliche Direktabruf-Prüfbilder liegen ausschließlich im System-Tempordner (`MischWerk-323-*.log`, `MischWerk-324-upload.log`, `MischWerk-Pruefbilder/radio/Direktabruf-*.png`).
+
+Der neue Direktabruf liest die bestätigte Streamserverdatei `https://mischwerk.spcast.eu/currentSong.txt` statt der Historienliste. Gegenprobe mit dem unveränderten vorherigen API-Code: Textabruf nicht unterstützt. Neue Prüfungen decken Fünfsekundentakt, Cacheparameter trotz `max-age=300`, Fetch und XHR, getrennte Titel-/Interpretanzeige, fehlende Interpreten, unveränderte Bindestriche und Titelzusätze, optionale Pipe-Zusätze, gleichzeitige Leser, falsche Antworttypen, Fehlererholung, textContent und erhaltenen Audioknoten samt Lautstärke ab. Die private Tageshistorie sowie das explizite bisherige Historienformat bleiben geprüft.
+
+Die 404-Untersuchung trennt die Dateiabfrage auf dem Hörerhost vom funktionierenden Audiostream: `/currentSong.txt` und `/scripts/currentSong.php` auf `mischwerk.sp.radio.fm` liefern LiteSpeed-HTML mit 404. `/stream` liefert dagegen 302 auf den eigenen Streamserver, anschließend 200 mit `audio/mpeg` und empfangenen MP3-Bytes. Direkt auf `mischwerk.spcast.eu` liefert die Titeldatei 200 und `text/plain`; CORS wurde zusätzlich im echten Edge geprüft. Der Befund spricht für eine fehlende Auslieferungsroute dieses Dateipfads auf dem Hörerhost. Die interne Anbieter-Konfiguration ist nicht einsehbar. [Quellen und Einzelbefunde](../api/API-NACHWEIS.md#direkter-spcast-titelabruf-und-404-untersuchung--09112026).
 
 Die vorhandenen Prüfungen decken Radio und Wiederverbindung, Aktivitätsbestätigung, Lautstärke/Mute, Vorhang/Werbung, dauerhafte Wünsche, Moderation und Übergaben, Lauftext, private Historie, Sendeplan, Team, Bot-Texte und Android-Einrichtung ab. Browser- und Emulatormodelle verwenden lokale Anbieterantworten und echtes lokales HTML-Audio. Native Ausführung und gemeinsame Firebase-/Android-Abnahme bleiben eigenständige Nachweise.
 
 ## Aktuelle Oberfläche und Bilder
 
-README und technische Übersicht beschreiben den aktuellen Funktionsstand ohne fortlaufende Buildchronik. Die Appbilder werden direkt aus dem gebündelten **Build 322** im vorhandenen Testlabor aufgenommen. Beispieldaten sind lokale Testdaten. Frühere, durch diese Aufnahmen ersetzte Zwischenstände werden über Git aufbewahrt; Originalmedien und erforderliche API-Nachweise bleiben erhalten.
+README und technische Übersicht beschreiben den aktuellen Funktionsstand ohne fortlaufende Buildchronik. Die vorhandenen Appbilder stammen aus dem gebündelten **Build 322** im Testlabor. Build 323 ändert weder Radio-Markup noch Styles; zusätzlich wurden die neuen Direktabrufbilder aus dem tatsächlichen UPLOAD 323 im System-Tempordner visuell geprüft: Titel größer oben, Interpret darunter. Beispieldaten sind lokale Testdaten. Originalmedien und erforderliche API-Nachweise bleiben erhalten.
 
 | Bereich | Ansichten aus Build 322 |
 | --- | --- |
@@ -40,7 +46,7 @@ Die zusätzlichen Radioaufnahmen verwenden denselben unveränderten Paketsnapsho
 - **Website 0.2.5:** Drei reproduzierte P2-Befunde bleiben offen: UTF-8-Dekodierung an HTTP-Blockgrenzen, übernommene Löschbestätigung beim Eintragswechsel und fehlende Mailadapter-Verdrahtung im regulären Server. Fundstellen und Gegenfälle stehen im [Websitebericht](../../website/docs/PRUEFUNG.md). Der GitHub-Abschluss verändert den Websitecode nicht.
 - **Minimaler Glow-Rundungsrand im lokalen STAPP-Modell:** Bei 390 px und Pixeldichte 2 ließ die Ganzzahlrundung der Fensterhöhe zuvor 0,984375 CSS-Pixel unter dem 16-px-Fade frei; die letzten zwei physischen Bildzeilen wurden mit RGB 5/19/11 gemessen. Eine vorübergehende lokale 17-px-Diagnose bestätigte die Rundungsursache und wurde entfernt. Kein allgemeiner Funktionsverlust und keine entsprechende native Knuddels-Auffälligkeit nachgewiesen. Pixelgrenzen und gewünschter Glow werden nicht für den GitHub-Abschluss verändert.
 - **Zurückgenommener Rechtebefund:** Der frühere Modellfall änderte nur den Nick eines weiterhin simulierten Channelinhabers. Die offizielle API bezieht isChannelOwner auf den Appchannel; damit wurde kein fremder Channelinhaber und keine bestätigte Zugriffslücke nachgewiesen. [API-Abgleich](../api/API-NACHWEIS.md#channelinhaberprüfung-ist-auf-den-appchannel-bezogen--09112026).
-- **Native Abnahme:** Installation von Build 322, längeres Hören in echten Clients, erste/erneute Overlayöffnung, native Begrüßungs-/Themenbuttons und gemeinsame Firebase-/Android-Ende-zu-Ende-Abnahme separat durchführen. Der eingerichtete Live-Encoder-Metadatenweg zur Historie ist bereits vom Auftraggeber bestätigt. [LIVE-Abnahme](../betrieb/LIVE-ABNAHME.md).
+- **Native Abnahme:** Installation von Build 324, neue Titelquelle in echten Clients, längeres Hören, erste/erneute Overlayöffnung, native Begrüßungs-/Themenbuttons und gemeinsame Firebase-/Android-Ende-zu-Ende-Abnahme separat durchführen. Der eingerichtete Live-Encoder-Metadatenweg zur Historie ist bereits vom Auftraggeber bestätigt; die sekundengenaue Übereinstimmung von Audio und Text ist nicht zugesichert. [LIVE-Abnahme](../betrieb/LIVE-ABNAHME.md).
 
 ## Nativer Socket-Timeout und Aktivitätskorrektur
 

@@ -18,6 +18,7 @@
     ['channelTextsLayout', 'team/layout.js', 'team'],
     ['layout', 'ui/layout.js'],
     ['commands', 'transport/commands.js'],
+    ['songMetadata', 'radio/metadata.js', 'radio'],
     ['radioApi', 'radio/api.js', 'radio'],
     ['presentation', 'radio/presentation.js', 'radio'],
     ['provider', 'radio/provider.js', 'radio'],

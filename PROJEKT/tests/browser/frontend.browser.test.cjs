@@ -52,6 +52,43 @@ for(const k3 of [true,false])test('Radio harmonisiert drei Anzeigen, Lautstärke
   assert.deepEqual(errors,[]);
 });
 
+for(const k3 of [true,false])for(const xhr of [false,true])test('SPCast-Direktabruf aktualisiert Titel über Interpret in '+(k3?'K3':'STAPP')+' mit '+(xhr?'XHR':'fetch')+' ohne Audioänderung',async t=>{
+  const {page,state,errors,requests}=await setup(t,{station:true,clock:true,activityAudio:true,k3,role:'listener'});
+  const source='https://mischwerk.spcast.eu/currentSong.txt';let count=0,body='a-ha - Take On Me - Remix',type='text/plain';
+  await page.route(source+'?*',r=>{count++;return r.fulfill({body,contentType:type,headers:{'Cache-Control':'max-age=300'}});});
+  await page.locator('#play-button').click();
+  await page.evaluate(()=>{window.__directAudio=document.getElementById('radio-audio');__directAudio.volume=.38;});
+  await page.clock.pauseAt(await page.evaluate(()=>Date.now()+50));
+  if(xhr)await page.evaluate(()=>{window.fetch=undefined;});
+  await page.evaluate(({s,source})=>__emit('mw:state',{...s,revision:2,station:{...s.station,metadataUrl:source,metadataFormat:'spcast-current-song',
+    allowedHosts:[...s.station.allowedHosts,'mischwerk.spcast.eu'],fields:{...s.station.fields,title:'',artist:'',live:''}}}),{s:state,source});
+  await page.locator('#track-title').filter({hasText:'Take On Me - Remix'}).waitFor();
+  assert.equal(await page.locator('#track-artist').textContent(),'a-ha');
+  assert.equal(await page.evaluate(()=>document.getElementById('track-title').getBoundingClientRect().bottom<=document.getElementById('track-artist').getBoundingClientRect().top),true);
+  if(!xhr){
+    const picture=path.join(require('node:os').tmpdir(),'MischWerk-Pruefbilder','radio');fs.mkdirSync(picture,{recursive:true});
+    await page.locator('#radio-deck').screenshot({path:path.join(picture,'Direktabruf-'+(k3?'k3':'stapp')+'.png')});
+  }
+  await page.clock.runFor(4999);assert.equal(count,1);
+  body='Neue Band - Neuer Titel | Senderhinweis';await page.clock.runFor(1);
+  await page.locator('#track-title').filter({hasText:'Neuer Titel'}).waitFor();
+  assert.equal(await page.locator('#track-artist').textContent(),'Neue Band');
+  type='text/html';body='<html>404 - Not Found</html>';await page.clock.runFor(5000);
+  await page.locator('#metadata-status').filter({hasText:'letzte Titelanzeige'}).waitFor();
+  assert.equal(await page.locator('#track-title').textContent(),'Neuer Titel');
+  const failed=count;await page.clock.runFor(29999);assert.equal(count,failed);
+  type='text/plain';body='<b>Band</b> - Wieder da';await page.clock.runFor(1);
+  await page.locator('#track-title').filter({hasText:'Wieder da'}).waitFor();
+  assert.equal(await page.locator('#track-artist').textContent(),'<b>Band</b>');assert.equal(await page.locator('#radio-metadata b').count(),0);
+  body='Nur ein Titel';await page.clock.runFor(5000);await page.locator('#track-title').filter({hasText:'Nur ein Titel'}).waitFor();
+  assert.equal(await page.locator('.artist-copy').isVisible(),false);
+  const actual=requests.filter(u=>u.startsWith(source));assert.equal(actual.length,count);
+  assert.ok(actual.every(u=>/^\d+$/.test(new URL(u).searchParams.get('_mw'))));assert.equal(new Set(actual).size,count);
+  assert.equal(requests.some(u=>u.includes('/sp/cache/history/')),false,'Öffentlicher Player liest keine Historienliste');
+  assert.equal(await page.locator('#radio-audio').evaluate(n=>n===window.__directAudio&&!n.paused&&n.volume===.38),true);
+  assert.equal(await page.locator('#studio-tab').isVisible(),false);assert.deepEqual(errors,[]);
+});
+
 for(const k3 of [true,false])test('SPCast-Historie aktualisiert den Playertitel in '+(k3?'K3':'STAPP')+' alle fünf Sekunden und erhält Audio bei alten Antworten und Fehlern',async t=>{
   const {page,state,errors,requests}=await setup(t,{station:true,clock:true,activityAudio:true,k3,role:'listener'});
   const source='https://mischwerk.spcast.eu:9000/sp/cache/history/history.json';

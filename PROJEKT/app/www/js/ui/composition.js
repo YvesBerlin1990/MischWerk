@@ -21,8 +21,10 @@ MischWerkUI.setComposer(function (factories) {
     if (factories.viewport) { viewport = factories.viewport({ bridge: bridge, model: model, dom: dom, signals: signals }); }
     var layout = factories.layout({ model: model, dom: dom, signals: signals, viewport: viewport });
     var commands = factories.commands({ bridge: bridge, model: model, layout: layout, signals: signals });
+    var metadata = null;
+    if (factories.songMetadata) { metadata = factories.songMetadata({}); }
     var api = null;
-    if (factories.radioApi) { api = factories.radioApi({}); }
+    if (factories.radioApi) { api = factories.radioApi({ metadata: metadata }); }
     var presentation = null;
     if (factories.presentation) { presentation = factories.presentation({ model: model, dom: dom, signals: signals }); }
     var provider = null;

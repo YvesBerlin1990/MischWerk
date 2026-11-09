@@ -1,6 +1,6 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.322 · Build 322 · Website 0.2.5** · Stand: 09.11.2026.
+**App 0.1.324 · Build 324 · Website 0.2.5** · Stand: 09.11.2026.
 
 MischWerk verbindet Radio, dauerhafte Musikwünsche, Moderation, Lauftext und Sendeplan in einer Knuddels-UserApp. Die eigenständige Website und der Android-Rückkanal verwenden vorbereitete Appverträge. Funktionen und aktuelle Bilder stehen in der [GitHub-Übersicht](../.github/README.md); fachliche Regeln und Prüfvorgaben zentral in [AGENTS.md](AGENTS.md).
 
@@ -71,7 +71,7 @@ Der signierte Android-Statusweg überträgt Senderdaten und Lauftext und überni
 
 ## Bereitstellung und Nachweise
 
-`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Beide Rhino-Engines prüfen auch das fertige Paket; die Browserrunde läuft separat. Der App-Arbeitsbestand umfasst **153 Dateien und 64 Backendmodule**, das aktuelle Paket **108 Dateien mit 100 Texten und 37 Serverdateien**. Ganze benachbarte Module werden reproduzierbar gebündelt; Quellen bleiben lesbar erhalten. Fünf Manifeste belegen die tatsächlichen Auslieferungsbytes. Alle Laufzeittexte und Manifeste bleiben strikt unter 9500 UTF-16-Zeichen.
+`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Beide Rhino-Engines prüfen auch das fertige Paket; die Browserrunde läuft separat. Der App-Arbeitsbestand umfasst **154 Dateien und 64 Backendmodule**, das aktuelle Paket **109 Dateien mit 101 Texten und 37 Serverdateien**. Ganze benachbarte Module werden reproduzierbar gebündelt; Quellen bleiben lesbar erhalten. Fünf Manifeste belegen die tatsächlichen Auslieferungsbytes. Alle Laufzeittexte und Manifeste bleiben strikt unter 9500 UTF-16-Zeichen.
 
 Die einzige fertige Auslieferung liegt unter **C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/** und bleibt außerhalb des Gitbestands. Paketbau und GitHub-Push installieren die App nicht auf Knuddels. Den Ablauf beschreibt die [Uploadanleitung](docs/betrieb/INBETRIEBNAHME.md#installation-und-upload).
 

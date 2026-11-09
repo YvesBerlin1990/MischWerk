@@ -11,11 +11,11 @@
 
 Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderation, Sendeplan und eigener Homepage.
 
-**App 0.1.322 · Build 322 · Website 0.2.5** · Stand: 9. November 2026.
+**App 0.1.324 · Build 324 · Website 0.2.5** · Stand: 9. November 2026.
 
 ![Aktuelle Radioleiste mit großer Playtaste, getrenntem Titel und Interpret, Lautstärke und goldenen Aktionstasten](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
 
-- **Radio:** HTTPS-Stream mit Play/Stop und Lautstärke. Titel und Interpret werden alle fünf Sekunden aus der SPCast-Historie aktualisiert. Während der Wiedergabe leuchten Playtaste und farbiger Außenrand.
+- **Radio:** HTTPS-Stream mit Play/Stop und Lautstärke. Titel und Interpret werden alle fünf Sekunden direkt vom SPCast-Streamserver abgefragt, mit Titel oben und Interpret darunter. Während der Wiedergabe leuchten Playtaste und farbiger Außenrand.
 - **Wunschbox:** Ein freies Textfeld für Musikwünsche und eine private Anzeige des eigenen Platzes. Bestätigte offene Wünsche bleiben bei Appupdates und Neustarts gespeichert.
 - **Moderation:** Anmelden und Abmelden ohne Zeitlimit, Sendungsthema, Wunschregie, „Heute gespielt“, Lauftext und bestätigte Übergabe an andere Moderatoren.
 - **Sendeplan:** Programm für 14 Tage ab heute mit Sendungstiteln, Zeiten und Moderation. Der öffentliche Button zeigt vorerst **„In Kürze“**; der anwesende Channelinhaber kann die Ansicht bereits öffnen.

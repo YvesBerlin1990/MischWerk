@@ -1,6 +1,6 @@
 {
-  "version": "0.1.322",
-  "buildNumber": 322,
+  "version": "0.1.324",
+  "buildNumber": 324,
   "files": [
     {
       "path": "MischWerk/www/index.html",
@@ -9,13 +9,13 @@
     },
     {
       "path": "MischWerk/www/js/start.js",
-      "bytes": 5331,
-      "sha256": "5B1A4884CFF4E2E9CE760682F8F6A61944DE052C01AE03CA36B77202B7065153"
+      "bytes": 5383,
+      "sha256": "FD750CE5823325243B495FF2B7A5927C2C92AF59367FDDFE38493A860DCFC1F1"
     },
     {
       "path": "MischWerk/www/js/ui/composition.js",
-      "bytes": 9149,
-      "sha256": "92B80D136435B869457C18CF4796EB46197C819B1FFD5EC2BB47BEC23ECDEEBF"
+      "bytes": 9269,
+      "sha256": "358EBEA057EDBBDCD2EEBB1A5EB0935A513E1A098C0756F89D23D32C97CC94EC"
     },
     {
       "path": "MischWerk/www/js/core/model.js",
@@ -48,9 +48,14 @@
       "sha256": "D1044B2A999EF3E9F0380F0E936741BFA6E0E5BED81832010CE2876AADB33A8E"
     },
     {
+      "path": "MischWerk/www/js/radio/metadata.js",
+      "bytes": 1845,
+      "sha256": "14E6079ECF1EC03630A4CD46185D04AC9E7722ECF3423CDF7EE8B5F7C5271AB0"
+    },
+    {
       "path": "MischWerk/www/js/radio/api.js",
-      "bytes": 9422,
-      "sha256": "0FC17E2E94253C90467E14C618DAEE01B6B032CD4264D9C61B4057D3AEA6BFEF"
+      "bytes": 9101,
+      "sha256": "CBAED59A01E26BEF19ADD7FA187C9F179D0463FE758F4A1BF2304DE8F8257B8F"
     },
     {
       "path": "MischWerk/www/js/radio/presentation.js",

@@ -38,8 +38,8 @@ test('Lokaler Vorschau-Server', async t => {
     assert.equal(demo.publicRadio, false); assert.equal(demo.pageData.station.configured, false);
     assert.equal(radio.publicRadio, true); assert.equal(radio.pageData.station.provider, 'streampanel');
     assert.equal(radio.pageData.station.streamUrl, 'https://mischwerk.sp.radio.fm/stream');
-    assert.equal(radio.pageData.station.metadataUrl, 'https://mischwerk.spcast.eu:9000/sp/cache/history/history.json');
-    assert.equal(radio.pageData.station.metadataFormat, 'spcast-history');
+    assert.equal(radio.pageData.station.metadataUrl, 'https://mischwerk.spcast.eu/currentSong.txt');
+    assert.equal(radio.pageData.station.metadataFormat, 'spcast-current-song');
     assert.equal(radio.pageData.station.statusUrl, 'https://mischwerk.sp.radio.fm/statistics?json=1');
     assert.equal(radio.pageData.station.modeUrl, 'https://mischwerk.sp.radio.fm/scripts/whoIsLive.php');
     assert.equal(radio.pageData.user.canModerate, false); assert.equal(radio.pageData.user.canManageRadioModerators, false);

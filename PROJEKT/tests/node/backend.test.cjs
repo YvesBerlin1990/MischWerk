@@ -305,7 +305,7 @@ test('main.js bleibt ein kurzer Einstieg und lädt die Serverdateien des gewähl
 test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
   const result = require('../../tools/checks/architecture.cjs').checkArchitecture();
   assert.equal(result.backendModules, 64);
-  assert.equal(result.frontendComponents, 50);
+  assert.equal(result.frontendComponents, 51);
 });
 
 test('Laufzeitprüfung verweigert fremde und fehlende Dateien vor der Paketfreigabe', t => {
@@ -842,9 +842,9 @@ test('STREAMPANEL verwendet die bestätigten öffentlichen MischWerk-SPCast-Ansc
   const {h,owner,os}=fixture(),station=h.state(owner,os).station;
   assert.equal(station.provider,'streampanel');assert.equal(station.configured,true);
   assert.equal(station.streamUrl,'https://mischwerk.sp.radio.fm/stream');
-  assert.equal(station.metadataUrl,'https://mischwerk.spcast.eu:9000/sp/cache/history/history.json');
-  assert.equal(station.metadataFormat,'spcast-history');
-  assert.equal(station.fields.title,'metadata.song');assert.equal(station.fields.artist,'');
+  assert.equal(station.metadataUrl,'https://mischwerk.spcast.eu/currentSong.txt');
+  assert.equal(station.metadataFormat,'spcast-current-song');
+  assert.equal(station.fields.title,'');assert.equal(station.fields.artist,'');
   assert.equal(station.fields.live,'');
   assert.deepEqual(station.allowedHosts,['mischwerk.sp.radio.fm','mischwerk.spcast.eu','scripts.streampanel.net']);
   assert.equal(station.statusUrl,'https://mischwerk.sp.radio.fm/statistics?json=1');

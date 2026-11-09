@@ -161,12 +161,18 @@ test('Fehlende oder werfende Slash-API beeinflusst weder Ton noch Oberfläche',(
  const q=playbackHarness();q.throwSlash(true);q.play();q.advance(182000);assert.equal(q.slashes.length,0);assert.equal(q.audio.paused,false);assert.deepEqual(q.errors,[]);
 });
 function station(){const h=createHarness();configureStream(h.config);const user=h.user(1,'Otterchen','owner');return h.state(user,h.open(user)).station;}
-function client(respond){
- const requests=[];let factory;
- const fetch=async(url,options)=>{requests.push({url,options});return {ok:true,text:async()=>{const body=await respond(url);return typeof body==='string'?body:JSON.stringify(body);}};};
- vm.runInNewContext(fs.readFileSync('app/www/js/radio/api.js','utf8'),{URL,AbortController,setTimeout,clearTimeout,fetch,window:{fetch,AbortController},
-  MischWerkUI:{define(name,value){factory=value;}}});
- return {api:factory(),requests};
+function client(respond,{xhr=false,contentType='text/plain; charset=utf-8'}={}){
+ const requests=[],factories={};
+ const text=async url=>{const body=await respond(url);return typeof body==='string'?body:JSON.stringify(body);};
+ const fetch=async(url,options)=>{requests.push({url,options});return {ok:true,headers:{get:()=>contentType},text:()=>text(url)};};
+ class XMLHttpRequest{
+  open(method,url){this.url=url;}getResponseHeader(){return contentType;}
+  send(){requests.push({url:this.url});text(this.url).then(body=>{this.status=200;this.responseText=body;this.onload();},()=>this.onerror());}
+ }
+ const scope={URL,AbortController,setTimeout,clearTimeout,fetch,XMLHttpRequest,window:xhr?{}:{fetch,AbortController},
+  MischWerkUI:{define(name,value){factories[name]=value;}}};
+ for(const file of ['metadata.js','api.js'])vm.runInNewContext(fs.readFileSync('app/www/js/radio/'+file,'utf8'),scope);
+ return {api:factories.radioApi({metadata:factories.songMetadata()}),requests};
 }
 test('Konfigurierbare verschachtelte JSON-Felder liefern getrennte Titel und Status',async()=>{
  const s=station();s.fields={title:'song.title',artist:'song.artist',live:'mode.live',status:'broadcast.online',statusIdentity:'station.id'};
@@ -190,10 +196,38 @@ test('Gleiche öffentliche JSON-Quelle wird bei parallelen Lesern nur einmal ang
  const results=await Promise.all(all);assert.equal(results[0].title,'Ein Song');assert.equal(results[1],'started');
 });
 function productStation(){const h=createHarness(),u=h.user(1,'Otterchen','owner');return h.state(u,h.open(u)).station;}
+function historyStation(){return {...productStation(),metadataUrl:'https://mischwerk.spcast.eu:9000/sp/cache/history/history.json',
+ metadataFormat:'spcast-history',fields:{...productStation().fields,title:'metadata.song'}};}
 function historyRows(song, timestamp=Math.floor(Date.now()/1000)-1){return [{timestamp,metadata:{song}}];}
 
+for(const xhr of [false,true])test('Direkter SPCast-Songabruf umgeht fünf Minuten Cache auch mit '+(xhr?'XHR':'fetch')+' und trennt Titel und Interpret',async()=>{
+ const s=productStation();let body='  a-ha - Take On Me - Live | Radio MischWerk\r\n';
+ const {api,requests}=client(()=>body,{xhr});
+ const first=await api.fetchMetadata(s);assert.equal(first.title,'Take On Me - Live');assert.equal(first.artist.name,'a-ha');
+ assert.equal(first.isLive,null);assert.equal(Object.hasOwn(first,'timestamp'),false,'Keine erfundene Anbieterzeit');
+ const url=new URL(requests[0].url);assert.equal(url.origin+url.pathname,s.metadataUrl);assert.match(url.searchParams.get('_mw'),/^\d+$/);
+ body='Neue Band - Neuer Titel';const second=await api.fetchMetadata(s);assert.equal(second.title,'Neuer Titel');assert.equal(second.artist.name,'Neue Band');
+ for(const [source,title,artist] of [['Nur ein Titel','Nur ein Titel',''],['Band -','Band -',''],['- Titel','- Titel',''],
+  ['Jean-Michel Jarre','Jean-Michel Jarre',''],['AC/DC - Rock - Remix','Rock - Remix','AC/DC'],
+  ['<b>Band</b> - Grüße','Grüße','<b>Band</b>']]){
+  body=source;const song=await api.fetchMetadata(s);assert.equal(song.title,title);assert.equal(song.artist.name,artist);
+ }
+ for(body of ['', 'Unknown', ' unknown | Zusatz ', ' | Nur Zusatz', 'Mehrere\nZeilen', 'x'.repeat(2001)])await assert.rejects(api.fetchMetadata(s));
+ if(!xhr)assert.ok(requests.every(r=>r.options.cache==='no-store'&&r.options.credentials==='omit'));
+ for(const contentType of ['text/html','application/json','']){
+  const invalid=client(()=>'<html>404 - Not Found</html>',{xhr,contentType});await assert.rejects(invalid.api.fetchMetadata(s));
+ }
+});
+
+test('Gleichzeitige direkte Songleser teilen eine Anfrage trotz Cacheparameter',async()=>{
+ const s=productStation();let release;const gate=new Promise(resolve=>{release=resolve;});
+ const {api,requests}=client(async()=>{await gate;return 'Band - Titel';});
+ const all=[api.fetchMetadata(s),api.fetchMetadata(s)];assert.equal(requests.length,1);release();
+ for(const song of await Promise.all(all))assert.equal(song.title,'Titel');
+});
+
 test('Player liest den neuesten gültigen Historieneintrag unabhängig von Arrayfolge, Tagesgrenze und Bindestrichen',async()=>{
- const s=productStation(),now=Math.floor(Date.now()/1000),title='Band - Titel - Live - Remix';
+ const s=historyStation(),now=Math.floor(Date.now()/1000),title='Band - Titel - Live - Remix';
  const rows=[...historyRows('Älter',now-20),null,...historyRows(title,now-2),...historyRows('Zukunft',now+60),
   ...historyRows('Unknown',now-1),...historyRows('  ',now-1),{timestamp:String(now-1),metadata:{song:'Ungültig'}},
   ...historyRows('x'.repeat(2001),now-1)];
@@ -212,24 +246,24 @@ test('Player liest den neuesten gültigen Historieneintrag unabhängig von Array
  }
 });
 
-test('Historie als Titelquelle ist für Hörer freigegeben; private Regie-Historienrechte bleiben getrennt',()=>{
+test('Direkte Titelquelle ist für Hörer freigegeben; private Regie-Historienrechte bleiben getrennt',()=>{
  const h=createHarness();
  for(const [id,role] of [[1,'owner'],[2,'listener'],[3,'moderator'],[4,'manager']]){
   const u=h.user(id,id===1?'Otterchen':'Rolle '+id,role),s=h.state(u,h.open(u)).station;
-  assert.equal(s.metadataFormat,'spcast-history');
-  assert.equal(s.metadataUrl,'https://mischwerk.spcast.eu:9000/sp/cache/history/history.json');
+  assert.equal(s.metadataFormat,'spcast-current-song');
+  assert.equal(s.metadataUrl,'https://mischwerk.spcast.eu/currentSong.txt');
   assert.equal(Object.hasOwn(s,'historyUrl'),id===1);
  }
 });
 
 test('Leere, übergroße und fehlerhafte Historienantworten werden nicht als aktuelle Titel akzeptiert',async()=>{
- const s=productStation();let body;
+ const s=historyStation();let body;
  const {api}=client(()=>body);
  for(body of [[],{},null,'not JSON',new Array(10001).fill(null),historyRows('Unknown'),' '.repeat(2000001)])await assert.rejects(api.fetchMetadata(s));
 });
 
 test('Port 9000 bleibt ausschließlich für die bestätigte Historie als Metadatenquelle freigegeben',()=>{
- const s=productStation(),{api}=client(()=>[]);
+ const s=historyStation(),{api}=client(()=>[]);
  assert.equal(api.streamUrls(s).metadata,s.metadataUrl);
  for(const metadataUrl of ['https://mischwerk.spcast.eu:9000/other.json','https://mischwerk.spcast.eu:9001/sp/cache/history/history.json',
   'https://mischwerk.spcast.eu:9000/sp/cache/history/history.json?token=secret','https://user:pass@mischwerk.spcast.eu:9000/sp/cache/history/history.json']){
@@ -241,7 +275,7 @@ test('Port 9000 bleibt ausschließlich für die bestätigte Historie als Metadat
 test('Getrennte Titel- und Modusabrufe warten nicht aufeinander und deduplizieren den Modus',async()=>{
  const s=productStation();let releaseMode;
  const gate=new Promise(resolve=>{releaseMode=resolve;});
- const {api,requests}=client(async url=>url===s.modeUrl?(await gate,'autodj'):historyRows('Band - Neuer Titel'));
+ const {api,requests}=client(async url=>url===s.modeUrl?(await gate,'autodj'):'Band - Neuer Titel');
  assert.equal(typeof api.fetchBroadcastMode,'function');
  const first=api.fetchBroadcastMode(s),second=api.fetchBroadcastMode(s);
  try{
@@ -251,7 +285,7 @@ test('Getrennte Titel- und Modusabrufe warten nicht aufeinander und dedupliziere
  assert.deepEqual(await Promise.all([first,second]),[false,false]);
 });
 test('SPCast-Produktquelle liefert zugeordneten Übertragungsstatus und AutoDJ ohne Audioprobe',async()=>{
- const s=productStation(),{api,requests}=client(url=>url===s.statusUrl?spcastStatistics():url===s.modeUrl?'autodj':historyRows('Band - Titel'));
+ const s=productStation(),{api,requests}=client(url=>url===s.statusUrl?spcastStatistics():url===s.modeUrl?'autodj':'Band - Titel');
  assert.equal(await api.fetchProviderStatus(s),'started');
  assert.equal((await api.fetchMetadata(s)).isLive,null);assert.equal(await api.fetchBroadcastMode(s),false);
  assert.ok(requests.every(r=>r.url!==s.streamUrl));
@@ -278,7 +312,7 @@ test('Fremde, doppelte und widersprüchliche SPCast-Statistiken erzeugen keinen 
  }
 });
 test('Öffentlicher Modusdienst akzeptiert nur bestätigte Werte; Fehler bleiben von Titeln getrennt',async()=>{
- const s=productStation();let mode;const {api}=client(url=>{if(url===s.modeUrl){if(mode instanceof Error)throw mode;return mode;}return historyRows('Song');});
+ const s=productStation();let mode;const {api}=client(url=>{if(url===s.modeUrl){if(mode instanceof Error)throw mode;return mode;}return 'Song';});
  for(const [value,expected] of [['autodj',false],['live',true],['autodj_live',null],['relay',null],['',null],['<html>offline</html>',null]]){
   mode=value;assert.equal(await api.fetchBroadcastMode(s),expected);
   const song=await api.fetchMetadata(s);assert.equal(song.isLive,null);assert.equal(song.title,'Song');
