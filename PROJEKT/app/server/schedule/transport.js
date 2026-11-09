@@ -1,15 +1,6 @@
 /* Eigenständiges, paginiertes Sendeplan-Protokoll; Radiozustand bleibt klein. */
 MischWerkModules.attachScheduleTransport = function (runtime) {
     'use strict';
-    runtime.notifySchedule = function () {
-        runtime.getViews().forEach(function (view) {
-            if (view.kind !== 'schedule') { return; }
-            try {
-                view.content.getSessions().forEach(function (session) { runtime.send(session, 'mw:schedule.changed', {}); });
-            } catch (error) { runtime.warn('SCHEDULE_NOTIFY', error); }
-        });
-    };
-    runtime.observeChanges(function (kind) { if (kind === 'schedule') { runtime.notifySchedule(); } });
     runtime.handleScheduleEvent = function (user, type, data, session) {
         var requestId = null;
         try {

@@ -212,10 +212,9 @@ KnuddelsServer.getUserAccess = function () { return {
     getNick: function (id) { return id === 2 ? 'Otterchen' : 'Musikfreund'; }
 }; };
 App.onEventReceived(owner, 'mw:openSchedule', {}, ownerSession);
-App.onEventReceived(owner, 'mw:overlay.ready', { token: latest(studio, 'mw:overlay.prepare').token, state: {}, revision: 1 }, studio);
-var scheduleSession = owner.sessions[owner.sessions.length - 1];
-check(scheduleSession !== studio && scheduleSession.getAppContent().html.data.view === 'schedule', 'Sendeplan in eigener nativer Sitzung');
-check(scheduleSession.getAppContent().loading.enabled === true, 'Native dunkle Abdeckung aktiv');
+check(!latest(ownerSession, 'mw:result').ok, 'Alter Sendeplan-Aufruf bleibt nach dem Reset gesperrt');
+check(owner.sessions.indexOf(studio) !== -1, 'Reset-Aufruf erhält das offene Studio');
+var scheduleSession = ownerSession;
 App.onEventReceived(owner, 'mw:schedule.get', { requestId: 'schedule-read', week: '2026-10-26' }, scheduleSession);
 var programme = latest(scheduleSession, 'mw:schedule.data');
 check(programme && programme.days.length === 7 && programme.days[6] === '2026-11-01', 'Sieben Kalenderdaten in Rhino');
@@ -304,7 +303,7 @@ App.onEventReceived(owner, 'mw:addRadioModerator', { nick:'Otterchen' }, ownerSe
 check(latest(listenerSession, 'mw:state').handover.candidates.indexOf('Otterchen') !== -1, 'Eingetragener Inhaber kann wieder eine Uebergabe annehmen');
 App.onEventReceived(owner, 'mw:removeRadioModerator', { userId:2 }, ownerSession);
 App.onEventReceived(owner, 'mw:openWishes', { requestId: 'rhino-wishes' }, ownerSession);
-App.onEventReceived(owner, 'mw:overlay.ready', { token: latest(scheduleSession, 'mw:overlay.prepare').token, state: {}, revision: 1, view: 'schedule', viewRevision: 2 }, scheduleSession);
+App.onEventReceived(owner, 'mw:overlay.ready', { token: latest(studio, 'mw:overlay.prepare').token, state: {}, revision: 1, view: 'studio', viewRevision: 2 }, studio);
 check(latest(ownerSession, 'mw:result').ok, 'Natives Wunschoverlay in Rhino geoeffnet');
 var surfaceSession = owner.sessions.filter(function (active) { return active.getAppContent().html.data.wishSurface; })[0];
 check(!!surfaceSession, 'Wunschoberflaeche getrennt von Radio');

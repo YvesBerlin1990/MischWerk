@@ -53,7 +53,8 @@ const server = http.createServer(async (req, res) => {
       respond(res, 200, 'application/json', JSON.stringify(drain(connection.session))); return;
     }
     if (url.pathname === '/preview') {
-      const view = ['wishes', 'studio', 'team', 'schedule'].includes(url.searchParams.get('view')) ? url.searchParams.get('view') : 'radio';
+      if (url.searchParams.get('view') === 'schedule') { respond(res, 410, 'text/plain; charset=utf-8', 'Der Sendeplan wird neu gestaltet.'); return; }
+      const view = ['wishes', 'studio', 'team'].includes(url.searchParams.get('view')) ? url.searchParams.get('view') : 'radio';
       const sourceId = url.searchParams.get('sourceSession');
       const source = sourceId && sessions.get(sourceId);
       if (sourceId && (!source || source.session.removed)) { respond(res, 404, 'text/plain', 'Demo-Sitzung abgelaufen'); return; }
@@ -68,7 +69,7 @@ const server = http.createServer(async (req, res) => {
       if (view !== 'radio' && (view !== 'wishes' || source)) {
         let surface = user.sessions.find(item => item.content.viewMode === 'Overlay' && item.activeView === view);
         if (!surface) {
-          const events = h.event(user, session, view === 'studio' ? 'mw:openStudio' : view === 'team' ? 'mw:openRadioTeam' : view === 'schedule' ? 'mw:openSchedule' : 'mw:openWishes');
+          const events = h.event(user, session, view === 'studio' ? 'mw:openStudio' : view === 'team' ? 'mw:openRadioTeam' : 'mw:openWishes');
           const result = events.find(event => event.type === 'mw:result');
           surface = user.sessions.find(item => item.content.viewMode === 'Overlay' && item.activeView === view);
           if (!surface) { respond(res, 403, 'text/plain', result ? result.data.message : 'Ansicht nicht verfügbar'); return; }

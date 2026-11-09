@@ -24,8 +24,7 @@ function fixture() {
 }
 test('WebHook veröffentlicht denselben Sendeplan ohne interne Identitäten oder Schreibrechte', () => {
   const f = fixture();
-  f.h.event(f.owner, f.radio, 'mw:openSchedule');
-  const session = f.owner.sessions.find(s => s.activeView === 'schedule');
+  const session = f.radio;
   const result = f.h.event(f.owner, session, 'mw:schedule.save', { requestId: 'website-plan', week: '2026-11-02', expectedRevision: 0,
     date: '2026-11-03', start: '20:00', end: '22:00', nick: 'Otterchen', topic: 'Ein Abend mit Musik' });
   assert.equal(result.find(e => e.type === 'mw:schedule.result').data.ok, true);

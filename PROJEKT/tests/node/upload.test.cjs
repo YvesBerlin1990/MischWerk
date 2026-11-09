@@ -69,7 +69,7 @@ test('Auslieferungsbündel erhalten alle vollständigen Module und ihre Reihenfo
   const delivered = file => (delivery.get('www/'+file) || Buffer.from(read(file))).toString('utf8');
   const required = new Set(runtimeFiles.filter(file => file.startsWith('www/') && !/^www\/(?:js|css)\//.test(file)));
   required.add('www/js/start.js'); required.add('www/js/operator/relay-settings.js');
-  for (const view of ['radio','wishes','studio','team','schedule']) {
+  for (const view of ['radio','wishes','studio','team']) {
     const scripts = [], styles = [];
     const scope = { document:{readyState:'loading',addEventListener(){},documentElement:{getAttribute:() => view,setAttribute(){}}},
       Client:{pageData:{view},includeJS:file => scripts.push(file),includeCSS:file => styles.push(file)},setTimeout(){} };

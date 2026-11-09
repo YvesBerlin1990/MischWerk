@@ -20,13 +20,16 @@
 .public-action-icon { display:grid; place-items:center; flex:none; width:var(--action-icon); height:var(--action-icon); color:#e6c77b; background:none; box-shadow:none; }
 .wish-button:hover:enabled .public-action-icon { color:#ffe2a1; }
 .wish-button:disabled .public-action-icon { color:#969696; }
-.wish-button-copy { display:flex; flex-direction:column; justify-content:center; min-width:0; min-height:calc(var(--action-font) * 1.25 + 16px); text-align:center; }
+.wish-button-copy { display:flex; flex-direction:column; justify-content:flex-start; min-width:0; min-height:calc(var(--action-font) * 1.25 + 16px); text-align:center; }
 .wish-button-copy strong { display:block; font-size:var(--action-font); font-weight:500; letter-spacing:0; line-height:1.25; white-space:nowrap; }
 #wish-button-caption,#schedule-button-caption { display:none; font-size:13px; line-height:16px; }
 #schedule-button-caption { display:block; }
+/* Die Hinweiszeile reserviert Höhe und Statusbreite auch ohne sichtbaren Text. */
+#wish-button-caption { display:block; visibility:hidden; align-self:center; width:5em; max-width:100%; height:16px; flex-shrink:0; overflow:hidden; white-space:nowrap; }
 .public-action-icon svg { width:var(--action-icon); height:var(--action-icon); }
 .wish-button-icon .wish-icon-lock,.wishes-closed .wish-icon-music { display:none; }
 .wishes-closed .wish-icon-lock,.wishes-closed #wish-button-caption { display:block; }
+.wishes-closed #wish-button-caption { visibility:visible; overflow:visible; }
 .bar-utility-links { grid-column:5; grid-row:1; display:flex; flex-direction:column; justify-self:center; width:100%; max-width:156px; min-width:0; }
 .radio-listener-brand { position:relative; grid-column:5; grid-row:1; justify-self:center; width:100px; aspect-ratio:1; }
 .radio-listener-logo { display:block; width:100%; height:auto; object-fit:contain; background:transparent; mix-blend-mode:lighten; }

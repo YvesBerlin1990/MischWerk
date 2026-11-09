@@ -5,7 +5,6 @@ MischWerkUI.define('layout', function (dependencies) {
   var viewport = dependencies.viewport;
   var noticeTimer, noticeAction, layoutReady = false;
   function fitContent() {
-    if (model.view === 'schedule') { signals.emit('schedule-layout', true); return; }
     if (model.view !== 'studio') { return; }
     signals.emit('studio-fit');
   }
@@ -50,7 +49,7 @@ MischWerkUI.define('layout', function (dependencies) {
       var slot = dom.el('dialog-notice-slot');
       slot.parentNode.insertBefore(slot, document.querySelector('.dialog-content'));
       dom.el('dialog-notice-slot').appendChild(dom.el('notice'));
-      dom.setText('dialog-title', model.view === 'wishes' ? 'Wunschbox' : model.view === 'team' ? 'Verwaltung' : model.view === 'schedule' ? 'Sendeplan' : 'Moderation');
+      dom.setText('dialog-title', model.view === 'wishes' ? 'Wunschbox' : model.view === 'team' ? 'Verwaltung' : 'Moderation');
       dom.el('studio-connection').hidden = true;
     }
     layoutReady = true;

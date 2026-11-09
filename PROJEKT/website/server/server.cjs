@@ -8,7 +8,7 @@ const root=path.resolve(__dirname,'../..'),assets=path.resolve(__dirname,'../pub
 function createSiteServer({env=process.env,bridge=createSiteBridge(env),clock=Date.now}={}){
  let workspace,siteApi,origin;const player=createPublicPlayer(root,bridge);
  const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.woff2':'font/woff2','.txt':'text/plain; charset=utf-8','.mp3':'audio/mpeg'};
- const files={'/':'index.html','/arbeitsbereich':'workspace.html','/preview.css':'css/preview.css','/sections.css':'css/sections.css','/sections.js':'js/site/sections.js','/site-components.js':'js/site/site-components.js','/site-navigation.js':'js/site/site-navigation.js','/channel.js':'js/site/public-home.js','/radio-site.css':'css/radio-site.css','/public-player.js':'js/site/public-player.js'};
+ const files={'/':'index.html','/arbeitsbereich':'workspace.html','/preview.css':'css/preview.css','/sections.css':'css/sections.css','/sections.js':'js/site/sections.js','/site-components.js':'js/site/site-components.js','/calendar.js':'js/site/calendar.js','/site-navigation.js':'js/site/site-navigation.js','/channel.js':'js/site/public-home.js','/radio-site.css':'css/radio-site.css','/public-player.js':'js/site/public-player.js'};
  for(const name of ['workspace.css','workspace.js','workspace-studio.js','workspace-team.js','workspace-schedule.js','workspace-history.js'])files['/'+name]=name.endsWith('.css')?'css/'+name:'js/workspace/'+name;
  const pages={'/':'radio','/sendeplan':'schedule','/team':'team','/mitmachen':'applications','/wunschbox':'wishes'};
  for(const route of Object.keys(pages))files[route]='index.html';

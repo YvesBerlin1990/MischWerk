@@ -23,7 +23,7 @@ test('Ladeeigenschaften bleiben einzeln optional, auch bei Fehlern oder fehlende
 });
 
 test('Aktive leere dunkle Ladeabdeckung steht vor Fähigkeitsprüfung und Versand fest', () => {
-  for (const action of ['mw:openWishes', 'mw:openStudio', 'mw:openRadioTeam', 'mw:openSchedule']) {
+  for (const action of ['mw:openWishes', 'mw:openStudio', 'mw:openRadioTeam']) {
     const { h, owner, os } = fixture();
     assert.deepEqual(os.content.loading, { background:'#0F1114', foreground:'#0F1114', text:'', enabled:false });
     const checked = [];
@@ -42,7 +42,7 @@ test('Aktive leere dunkle Ladeabdeckung steht vor Fähigkeitsprüfung und Versan
 });
 
 test('Native Ersetzung beendet den Fensterablauf ohne nachträglichen Zugriff auf die alte Sitzung', () => {
-  for (const action of ['mw:openWishes','mw:openStudio','mw:openRadioTeam','mw:openSchedule']) {
+  for (const action of ['mw:openWishes','mw:openStudio','mw:openRadioTeam']) {
     const {h,owner,os}=fixture();h.event(owner,os,'mw:openStudio');
     const old=owner.sessions.find(session=>session.content.viewMode==='Overlay');
     let returned=false, staleReads=0, replacing;
@@ -82,7 +82,7 @@ test('Overlayöffnung lässt verspätete Wiederholungen abgeschlossener Aufträg
 });
 
 test('Jeder bewusste native Aufruf erzeugt genau einen geprüften Inhalt, einschließlich Wiederöffnung desselben Bereichs',()=>{
- for(const action of ['mw:openStudio','mw:openRadioTeam','mw:openSchedule','mw:openWishes']){const {h,owner,os}=fixture(),count=h.contents.length;h.event(owner,os,action,{requestId:'first'});const old=owner.sessions.find(s=>s.content.viewMode==='Overlay');assert.equal(h.contents.length,count+1);h.event(owner,os,action,{requestId:'second'});h.finishOverlay(owner,old);assert.equal(h.contents.length,count+2);assert.equal(old.removed,true);assert.equal(owner.sessions.length,2);}
+ for(const action of ['mw:openStudio','mw:openRadioTeam','mw:openWishes']){const {h,owner,os}=fixture(),count=h.contents.length;h.event(owner,os,action,{requestId:'first'});const old=owner.sessions.find(s=>s.content.viewMode==='Overlay');assert.equal(h.contents.length,count+1);h.event(owner,os,action,{requestId:'second'});h.finishOverlay(owner,old);assert.equal(h.contents.length,count+2);assert.equal(old.removed,true);assert.equal(owner.sessions.length,2);}
 });
 
 test('Overlayöffnung bleibt erfolgreich, wenn allein die nachgelagerte Öffnungsmitteilung fehlschlägt',()=>{
@@ -112,8 +112,9 @@ test('Overlayöffnung behält Rechte, Sitzungszuordnung und erneute Versuche nac
   owner.role='listener';assert.equal(lastResult(h.event(owner,os,'mw:openStudio',{requestId:'retry'})).ok,false);
   owner.role='owner';assert.equal(lastResult(h.event(owner,os,'mw:openRadioTeam',{requestId:'retry'})).ok,false);
   assert.equal(studio.removed,false);
-  h.event(listener,ls,'mw:openSchedule',{requestId:'retry'});
-  assert.equal(listener.sessions.some(s=>s.content.htmlFile.pageData.view==='schedule'),true);
+  h.app.chatCommands.vorhang(owner,'öffnen');
+  h.event(listener,ls,'mw:openWishes',{requestId:'retry'});
+  assert.equal(listener.sessions.some(s=>s.content.htmlFile.pageData.view==='wishes'),true);
   assert.equal(JSON.stringify(h.state(listener,ls)).includes('overlayRequests'),false);
   assert.equal(Object.keys(h.store.data).some(key=>/overlay/i.test(key)),false);
 });
@@ -137,14 +138,14 @@ test('Authentifizierte Sitzungsprüfung erhält den bewährten Uservergleich auc
   content.getSessions=getSessions;
 });
 
-test('Alle vier Bereiche öffnen nativ mit eigenen Anfangsmaßen und privaten Entwürfen',()=>{
+test('Die drei verbleibenden Bereiche öffnen nativ mit eigenen Anfangsmaßen und privaten Entwürfen',()=>{
  const {h,owner,os,listener,ls}=fixture();let previous;const count=h.contents.length;
- for(const [action,kind,width,height] of [['mw:openStudio','studio',640,580],['mw:openRadioTeam','team',500,560],['mw:openSchedule','schedule',720,600],['mw:openWishes','wishes',480,340]]){
+ for(const [action,kind,width,height] of [['mw:openStudio','studio',640,580],['mw:openRadioTeam','team',500,560],['mw:openWishes','wishes',480,340]]){
   h.event(owner,os,action);if(previous)h.finishOverlay(owner,previous,{draft:previous.activeView});const current=owner.sessions.find(s=>s.content.viewMode==='Overlay');
   assert.equal(current.activeView,kind);assert.deepEqual([current.content.width,current.content.height],[width,height]);assert.equal(current.content.loading.enabled,true);assert.equal(current.content.responsive,true);assert.equal(current.content.allowJFXBrowser,false);assert.equal('sharedViews' in current.content.htmlFile.pageData,false);
   if(previous){assert.equal(previous.removed,true);assert.notEqual(current,previous);}assert.equal(owner.sessions.length,2);previous=current;
  }
- assert.equal(h.contents.length,count+4);h.event(owner,os,'mw:openStudio');h.finishOverlay(owner,previous);const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');assert.equal(h.state(owner,studio).overlayState.draft,'studio');assert.equal(JSON.stringify(h.state(listener,ls)).includes('draft'),false);assert.equal(os.removed,false);
+ assert.equal(h.contents.length,count+3);h.event(owner,os,'mw:openStudio');h.finishOverlay(owner,previous);const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');assert.equal(h.state(owner,studio).overlayState.draft,'studio');assert.equal(JSON.stringify(h.state(listener,ls)).includes('draft'),false);assert.equal(os.removed,false);
 });
 
 test('Bereichswechsel prüft Token, Sitzungsbesitz, Revision und Fehler vor der Navigation',()=>{
@@ -173,11 +174,11 @@ test('Bereichswechsel prüft Token, Sitzungsbesitz, Revision und Fehler vor der 
 test('Overlayfehler, entzogene Rechte und fehlende Fähigkeiten erhalten den bisherigen Inhalt',()=>{
   const {h,owner,os}=fixture();h.event(owner,os,'mw:openStudio');
   const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
-  owner.canSendAppContent=()=>false;h.event(owner,os,'mw:openSchedule');h.finishOverlay(owner,studio);assert.equal(lastResult(os.events).ok,false);
+  owner.canSendAppContent=()=>false;h.event(owner,os,'mw:openWishes');h.finishOverlay(owner,studio);assert.equal(lastResult(os.events).ok,false);
   assert.equal(studio.removed,false);owner.canSendAppContent=()=>true;
   h.event(owner,os,'mw:openRadioTeam',{requestId:'revoked'});owner.role='listener';h.finishOverlay(owner,studio);
   assert.equal(studio.removed,false);assert.equal(lastResult(os.events).ok,false);owner.role='owner';
-  h.event(owner,os,'mw:openSchedule',{requestId:'lost-capability'});
+  h.event(owner,os,'mw:openWishes',{requestId:'lost-capability'});
   owner.canSendAppContent=()=>false;h.finishOverlay(owner,studio);owner.canSendAppContent=()=>true;
   assert.equal(studio.removed,false);assert.equal(lastResult(os.events).ok,false);assert.equal(os.removed,false);
   h.app.onUserLeft(owner);assert.equal(owner.sessions.length,0);
@@ -305,7 +306,7 @@ test('main.js bleibt ein kurzer Einstieg und lädt die Serverdateien des gewähl
 test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
   const result = require('../../tools/checks/architecture.cjs').checkArchitecture();
   assert.equal(result.backendModules, 64);
-  assert.equal(result.frontendComponents, 51);
+  assert.equal(result.frontendComponents, 44);
 });
 
 test('Laufzeitprüfung verweigert fremde und fehlende Dateien vor der Paketfreigabe', t => {
@@ -1155,13 +1156,13 @@ test('Geschlossene native Sitzungen können neue Overlays weder schließen noch 
  const {h,owner,os}=fixture();h.event(owner,os,'mw:openStudio');const old=owner.sessions.find(s=>s.content.viewMode==='Overlay');h.event(owner,os,'mw:openRadioTeam');h.finishOverlay(owner,old,{studio:{topic:'Aktuell'}},false,4);const team=owner.sessions.find(s=>s.content.viewMode==='Overlay');
  for(const type of ['mw:overlay.draft','mw:overlay.dismiss','mw:overlay.ready'])h.event(owner,old,type,{state:{studio:{topic:'Veraltet'}},revision:999,token:1});assert.equal(team.removed,false);
  h.event(owner,os,'mw:openStudio');h.finishOverlay(owner,team);const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');assert.notEqual(studio,old);assert.equal(h.state(owner,studio).overlayState.studio.topic,'Aktuell');
- const send=owner.sendAppContent;owner.sendAppContent=()=>{throw Error('Testfehler');};h.event(owner,os,'mw:openSchedule');h.finishOverlay(owner,studio);assert.equal(studio.removed,false);assert.equal(lastResult(os.events).ok,false);owner.sendAppContent=send;
+ const send=owner.sendAppContent;owner.sendAppContent=()=>{throw Error('Testfehler');};h.event(owner,os,'mw:openWishes');h.finishOverlay(owner,studio);assert.equal(studio.removed,false);assert.equal(lastResult(os.events).ok,false);owner.sendAppContent=send;
 });
 
 test('Rechteverlust leert private Entwürfe auch nach mehreren nativen Overlayöffnungen',()=>{
  const {h,owner,os}=fixture();h.event(owner,os,'mw:openStudio');let current=owner.sessions.find(s=>s.content.viewMode==='Overlay');
- for(const [action,state] of [['mw:openRadioTeam',{studio:{topic:'Privat'}}],['mw:openSchedule',{team:{nick:'Privat'}}],['mw:openWishes',{scheduleEditor:{fields:{'schedule-topic':'Privat'}}}]]){h.event(owner,os,action);h.finishOverlay(owner,current,state);current=owner.sessions.find(s=>s.content.viewMode==='Overlay');}
- owner.role='listener';h.state(owner,current);owner.role='owner';for(const [action,field] of [['mw:openSchedule','scheduleEditor'],['mw:openStudio','studio'],['mw:openRadioTeam','team']]){h.event(owner,os,action);h.finishOverlay(owner,current);current=owner.sessions.find(s=>s.content.viewMode==='Overlay');assert.equal(h.state(owner,current).overlayState?.[field],undefined);}
+ for(const [action,state] of [['mw:openRadioTeam',{studio:{topic:'Privat'}}],['mw:openWishes',{team:{nick:'Privat'}}]]){h.event(owner,os,action);h.finishOverlay(owner,current,state);current=owner.sessions.find(s=>s.content.viewMode==='Overlay');}
+ owner.role='listener';h.state(owner,current);owner.role='owner';for(const [action,field] of [['mw:openStudio','studio'],['mw:openRadioTeam','team']]){h.event(owner,os,action);h.finishOverlay(owner,current);current=owner.sessions.find(s=>s.content.viewMode==='Overlay');assert.equal(h.state(owner,current).overlayState?.[field],undefined);}
 });
 
 test('Eine native Overlayseite nimmt keine Daten eines anderen Bereichs an',()=>{
@@ -1182,8 +1183,8 @@ test('Neue native Sitzung beginnt auch über Moderation mit einer frischen Wunsc
   assert.equal(surface.events.findLast(e=>e.type==='mw:wishes.presentation').data.state.text,'Neu bearbeitet');
 });
 
-test('Alle sechzehn nativen Bereichsübergänge erzeugen eigene Sitzungen und erhalten die Radioleiste',()=>{
- const actions=['mw:openWishes','mw:openStudio','mw:openRadioTeam','mw:openSchedule'];for(const first of actions)for(const target of actions){const {h,owner,os}=fixture();h.event(owner,os,first);const old=owner.sessions.find(s=>s.content.viewMode==='Overlay');h.event(owner,os,target);h.finishOverlay(owner,old);const next=owner.sessions.find(s=>s.content.viewMode==='Overlay');assert.notEqual(next,old);assert.equal(old.removed,true);assert.equal(owner.sessions.length,2);assert.equal(os.removed,false);assert.equal(next.events.some(e=>e.type==='mw:view'),false);h.event(owner,next,'mw:overlay.dismiss',{state:{},revision:1});assert.equal(next.removed,true);}
+test('Alle neun verbleibenden nativen Bereichsübergänge erzeugen eigene Sitzungen und erhalten die Radioleiste',()=>{
+ const actions=['mw:openWishes','mw:openStudio','mw:openRadioTeam'];for(const first of actions)for(const target of actions){const {h,owner,os}=fixture();h.event(owner,os,first);const old=owner.sessions.find(s=>s.content.viewMode==='Overlay');h.event(owner,os,target);h.finishOverlay(owner,old);const next=owner.sessions.find(s=>s.content.viewMode==='Overlay');assert.notEqual(next,old);assert.equal(old.removed,true);assert.equal(owner.sessions.length,2);assert.equal(os.removed,false);assert.equal(next.events.some(e=>e.type==='mw:view'),false);h.event(owner,next,'mw:overlay.dismiss',{state:{},revision:1});assert.equal(next.removed,true);}
 });
 
 test('Gemeinsames Schließen der Wunschansicht wartet auch serverseitig auf die letzte Eingabeübernahme',()=>{

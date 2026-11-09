@@ -2,7 +2,7 @@
 MischWerkModules.attachOverlays = function (runtime) {
     'use strict';
     var sequence = 0;
-    var actions = { 'mw:openWishes':'wishes', 'mw:openStudio':'studio', 'mw:openRadioTeam':'team', 'mw:openSchedule':'schedule' };
+    var actions = { 'mw:openWishes':'wishes', 'mw:openStudio':'studio', 'mw:openRadioTeam':'team' };
     function find(user, session) {
         return runtime.getViews().filter(function (view) {
             return view.userId === runtime.userId(user) && view.content === session.getAppContent();

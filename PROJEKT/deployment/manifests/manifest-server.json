@@ -1,21 +1,21 @@
 {
-  "version": "0.1.324",
-  "buildNumber": 324,
+  "version": "0.1.330",
+  "buildNumber": 330,
   "files": [
     {
       "path": "MischWerk/main.js",
       "bytes": 175,
-      "sha256": "F5935C4F9E089949F52D679C6302251DF86194387FB0FB64DDBAEF487B3A7B05"
+      "sha256": "E51E49CF02ACB5BB4973BCA6E2CFC87C3EC9EA3D7FB7D8FE8E055FB9B1F24D6B"
     },
     {
       "path": "MischWerk/app.config",
       "bytes": 545,
-      "sha256": "9D6DAD62130FF9B1EC0E70BDE8196855AECF56D52B3FBA68298D194DBA0F3340"
+      "sha256": "DCE40CDB6407BABBEF649E4F7C343E29AE276948C638ADEB74C740251F7B04E0"
     },
     {
       "path": "MischWerk/server/config.js",
       "bytes": 1474,
-      "sha256": "DC7AB5ABA08A801599F9C3DD42194F5F1E9DAEA0541374CE1EDC6334C9EADDD5"
+      "sha256": "6053EC7ABF8059137FBB4586F0A48F499E591F319B594E6FE2A7C32ABD83E5B0"
     },
     {
       "path": "MischWerk/server/core/runtime.js",
@@ -84,8 +84,8 @@
     },
     {
       "path": "MischWerk/server/schedule/broadcasts.js",
-      "bytes": 7576,
-      "sha256": "F67F22600838B6CFBD5918622467F2CFDE238EB8E121518E3BDFDB2A7437EA21"
+      "bytes": 7087,
+      "sha256": "A82F05E907C0F8DADC92C3D9456609762ACF527095AF751B02946D29928121D0"
     },
     {
       "path": "MischWerk/server/ui/snapshot.js",
@@ -94,13 +94,13 @@
     },
     {
       "path": "MischWerk/server/ui/content.js",
-      "bytes": 1510,
-      "sha256": "F0B97278DAF0A05BF76008CC3B042453283C0D10E7030AFEFDF93C0F1FA27B31"
+      "bytes": 1454,
+      "sha256": "4F08628051C12095042C95C77CD48A488A0BCC90E6EF70B390F809B0189CF124"
     },
     {
       "path": "MischWerk/server/ui/sessions.js",
-      "bytes": 8316,
-      "sha256": "28748338CDA8FC9C6E85C82D2DC15AFA38E2539C558B2755C0D8A1D6544B723F"
+      "bytes": 8173,
+      "sha256": "8F985391F7383EB061251E2C39014E131A61755D2F324A8549C6CACB04E1262A"
     },
     {
       "path": "MischWerk/server/ui/wish-surface.js",
@@ -109,8 +109,8 @@
     },
     {
       "path": "MischWerk/server/ui/overlays.js",
-      "bytes": 8635,
-      "sha256": "92A754DC3EB43D40C795EDCB51C600C2CDECCE8AA7984C9205DE0B072BBB29E0"
+      "bytes": 8605,
+      "sha256": "1E64CE5513D542F7308464FE3069C9024DB7774F3384C299494FE57F8FDE3F61"
     },
     {
       "path": "MischWerk/server/ui/administration.js",
@@ -139,8 +139,8 @@
     },
     {
       "path": "MischWerk/server/transport/events.js",
-      "bytes": 7615,
-      "sha256": "DFA6FBACB88A15EB8304079B7AA3E33A174D8D6F352FF02C9EA052A74C7E9B4C"
+      "bytes": 7726,
+      "sha256": "6EE31A9F6F70342EC0AE3E8095ADD0289B8BB74FFBBA2C76D037C5476C4FA29A"
     },
     {
       "path": "MischWerk/server/app.js",

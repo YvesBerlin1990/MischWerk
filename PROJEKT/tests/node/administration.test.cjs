@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { createHarness } = require('../support/knuddels.cjs');
 function overlay(user) { return user.sessions.find(session => session.content.viewMode === 'Overlay'); }
 test('Kompakte Overlays verdecken weniger Chat und behalten getrennte native Radio-Sitzungen', () => {
-  for(const [action,width,height] of [['mw:openWishes',480,340],['mw:openStudio',640,580],['mw:openRadioTeam',500,560],['mw:openSchedule',720,600]]) {
+  for(const [action,width,height] of [['mw:openWishes',480,340],['mw:openStudio',640,580],['mw:openRadioTeam',500,560]]) {
     const h=createHarness(),owner=h.user(1,'Otterchen','owner'),radio=h.open(owner);
     h.event(owner,radio,action);
     const current=overlay(owner);assert.ok(current,action);

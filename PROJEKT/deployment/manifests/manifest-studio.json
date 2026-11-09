@@ -1,6 +1,6 @@
 {
-  "version": "0.1.324",
-  "buildNumber": 324,
+  "version": "0.1.330",
+  "buildNumber": 330,
   "files": [
     {
       "path": "MischWerk/server/android/signing.js",

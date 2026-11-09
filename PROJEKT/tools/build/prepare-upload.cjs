@@ -44,7 +44,7 @@ function createDelivery(project = root) {
     (line, file) => omitted.has('server/' + file) ? '' : line)));
   const read = file => fs.readFileSync(path.join(project, 'app/www', file), 'utf8');
   const plans = {};
-  for (const view of ['radio','wishes','studio','team','schedule']) {
+  for (const view of ['radio','wishes','studio','team']) {
     const scripts = [], styles = [];
     const document = { readyState:'loading', addEventListener() {}, documentElement:{ getAttribute:() => view, setAttribute() {} } };
     const scope = { document, window:{}, setTimeout() {}, Client:{ pageData:{view},
@@ -146,8 +146,10 @@ function build() {
     fs.writeFileSync(output, delivery.get(file));
     assert.ok(fs.readFileSync(output).equals(delivery.get(file)));
   }
-  // Nur bekannte, bereits vollständig gebündelte Laufzeitdateien aus älteren Paketen entfernen.
-  for (const file of runtimeFiles.filter(file => !delivery.has(file))) {
+  // Nur bekannte gebündelte oder ausdrücklich entfernte Sendeplandateien aus älteren Paketen bereinigen.
+  const retiredSchedule = ['calendar','markup','controller','editor','view','pages','window'].map(name => 'www/js/schedule/' + name + '.js')
+    .concat(['www/css/schedule/schedule.css','www/css/schedule/schedule-options.css']);
+  for (const file of [...runtimeFiles.filter(file => !delivery.has(file)), ...retiredSchedule]) {
     const target = path.resolve(upload, file);
     assert.ok(target.startsWith(path.resolve(upload) + path.sep), 'Bündelbestandteil außerhalb des Uploadziels');
     if (fs.existsSync(target)) { fs.unlinkSync(target); }

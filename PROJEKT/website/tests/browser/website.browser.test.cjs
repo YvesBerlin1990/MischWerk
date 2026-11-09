@@ -55,6 +55,8 @@ test('Startseite: direkter Player, vollständige Bedienung und ruhende Audioquel
       const box = await control.boundingBox();
       assert.ok(box.width >= 44 && box.height >= 44, id + ' bleibt bedienbar bei ' + width);
     }
+    assert.equal(await radio.locator('#volume').evaluate(n=>getComputedStyle(n).writingMode),'horizontal-tb','Homepage behält ihren waagerechten Regler bei '+width);
+    assert.equal(await radio.locator('#volume').evaluate(n=>n.getBoundingClientRect().height),44);
     assert.equal(await radio.locator('#radio-audio').getAttribute('src'), null);
     assert.equal(await radio.locator('#open-wishes').isVisible(), false);
     assert.equal(await radio.locator('#open-schedule').isVisible(), false);
@@ -103,7 +105,7 @@ test('Testansichten: neutrale Rollen und Beschriftungen auch in Wunschbox, Sende
     await cleanText(page);
     if (role === 'moderator') {
       await previewCurtain(radio);
-      for (const [id,view] of [['open-wishes','wishes'],['open-schedule','schedule'],['studio-tab','studio'],['team-tab','team']]) {
+      for (const [id,view] of [['open-wishes','wishes'],['studio-tab','studio'],['team-tab','team']]) {
         if (view === 'team') {
           assert.equal(await radio.locator('#team-tab').count(),0);
           await radio.locator('html').evaluate(() => window.MischWerkPreviewCommand('/MW Verwaltung'));

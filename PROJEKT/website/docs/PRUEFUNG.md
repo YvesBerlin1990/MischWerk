@@ -1,12 +1,14 @@
-# MischWerk – Websiteprüfung 0.2.5
+# MischWerk – Websiteprüfung 0.2.7
 
-Stand: **09.11.2026**, mit App **0.1.322 / Build 322** lokal geprüft.
+Stand: **09.11.2026**, mit App **0.1.330 / Build 330** lokal geprüft.
 
 ## Aktuelle Prüfungen und Bilder
 
-**22/22 eigene Node-/Browserfälle bestanden**, keine übersprungenen Fälle, 7,7 Sekunden. Geprüft sind öffentlicher Player und Navigation, mobile Bedienung, Formulare, geschützter Arbeitsbereich, Channelbestätigung, Sitzungen/CSRF, Rechteentzug, Entwürfe und Antwortverlust. Lokale HTTP-/Knuddels-Modelle und synthetische Anbieterantworten; keine echte Mail oder Channelaktion.
+**22/22 eigene Node-/Browserfälle bestanden**, keine übersprungenen Fälle, 10,5 Sekunden. Geprüft sind öffentlicher Player und Navigation, mobile Bedienung, Formulare, geschützter Arbeitsbereich, Channelbestätigung, Sitzungen/CSRF, Rechteentzug, Entwürfe und Antwortverlust. Lokale HTTP-/Knuddels-Modelle und synthetische Anbieterantworten; keine echte Mail oder Channelaktion.
 
-Die bestehende Browser-Testfixture wurde um die seit App Build 313 verwendete SPCast-Historienquelle ergänzt. Zuvor beantwortete sie nur den früheren Titelendpunkt; drei Prüfungen warteten deshalb erfolglos auf ihren Testtitel. Alle bisherigen Funktions-/Audioassertionen bleiben erhalten. Der anschließende vollständige Website-Lauf besteht ohne Änderung des Website- oder Appcodes.
+Die bestehenden Anbieterfixtures enthalten den direkten SPCast-Titelpfad aus App Build 323. Website 0.2.7 erhält den waagerechten Homepage-Regler trotz der neuen senkrechten Gestaltung in App Build 326 durch gezielte CSS-Rücksetzungen. Der vorhandene Browserfall prüft Schreibrichtung und 44-px-Reglerhöhe von 1440 bis 320 px ausdrücklich. Gemeinsames Player-DOM und bestehende Website-Ladewege bleiben erhalten. Die erneute vollständige Websiteprüfung mit der größeren Themenschrift aus App 328 besteht ebenfalls. Historische Aufnahmen bleiben ihrem tatsächlichen Stand 322 zugeordnet.
+
+Website 0.2.7 erhält den Homepage-Sendeplan unabhängig vom entfernten nativen App-Overlay. Der unveränderte Kalenderhelfer wurde nach public/js/site/calendar.js verschoben und wird im regulären Server sowie der Diagnose über /calendar.js geladen. Alle 22 Tests bestehen mit App Build 330, einschließlich Kalender, Arbeitsbereich und Radio. Die alten nativen Kalenderdiagnosen sind entfernt; öffentliche Website und Datenverträge bleiben geprüft.
 
 Die drei Aufnahmen wurden am **09.11.2026** aus dem regulären lokalen Websiteserver mit Appkomponenten aus Build 322 erneuert und visuell geprüft:
 

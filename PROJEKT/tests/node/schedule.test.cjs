@@ -223,8 +223,7 @@ function fixture() {
   const owner = h.user(1, 'Otterchen', 'owner');
   const listener = h.user(2, 'Musikfreund');
   const radio = h.open(owner), listenerRadio = h.open(listener);
-  h.event(owner, radio, 'mw:openSchedule');
-  const session = owner.sessions.find(item => item.content.htmlFile.pageData.view === 'schedule');
+  const session = radio;
   return { h, owner, listener, radio, listenerRadio, session };
 }
 function event(f, type, values = {}, person = f.owner, session = f.session) {
@@ -313,18 +312,14 @@ test('Alte Einträge bleiben Live mit fester Zeit; AutoDJ-Löschung betrifft kei
   f.h.app.onUserDeleted(f.owner.id);
   assert.equal(read(f).total, 1); assert.equal(read(f).entries[0].kind, 'autodj');
 });
-test('Sendeplan öffnet für Hörer trotz deaktivierter Wunschbox als eigenes Overlay und erhält die Radioleiste', () => {
-  const f = fixture();
-  f.h.event(f.owner, f.session, 'mw:setRequests', { enabled: false });
-  const result = f.h.event(f.listener, f.listenerRadio, 'mw:openSchedule');
-  assert.equal(result.find(item => item.type === 'mw:result').data.ok, true);
-  assert.equal(f.listenerRadio.removed, false);
-  const popup = f.listener.sessions.find(item => item.content.htmlFile.pageData.view === 'schedule');
-  assert.equal(popup.content.width, 720); assert.equal(popup.content.height, 600);
-  assert.equal(popup.content.allowJFXBrowser, false);
-  const data = read(f, week, 0, f.listener, popup);
-  assert.equal(data.canManage, false);
-  assert.deepEqual(data.days, ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01']);
+test('Entfernter Sendeplan öffnet für keinen Nutzer ein Overlay und erhält die Radioleiste sowie gespeicherte Daten',()=>{
+ const f=fixture();f.h.event(f.owner,f.radio,'mw:setRequests',{enabled:false});const before=JSON.stringify(f.h.store.data);
+ for(const [person,session]of [[f.owner,f.radio],[f.listener,f.listenerRadio]]){
+  const events=f.h.event(person,session,'mw:openSchedule',{requestId:'removed-plan'});
+  assert.equal(events.find(e=>e.type==='mw:result').data.ok,false);
+  assert.equal(person.sessions.some(s=>s.content.viewMode==='Overlay'),false);assert.equal(session.removed,false);
+ }
+ assert.equal(JSON.stringify(f.h.store.data),before);
 });
 test('Nur der echte Channelinhaber bearbeitet den Plan; Radiomoderatoren, CM und Appmanager lesen nur', () => {
   const f = fixture();
@@ -409,30 +404,13 @@ test('Sendungen bis exakt Mitternacht erzeugen keine leere Fortsetzung in der Fo
   assert.equal(read(f, '2026-11-02').total, 1);
 });
 
-test('Defektes Sendeplanfenster erzeugt nach erfolgreichem Speichern keine zweite Fehlerquittung', () => {
-  const f = fixture();
-  f.h.event(f.listener, f.listenerRadio, 'mw:openSchedule');
-  const broken = f.listener.sessions.find(item => item.content.viewMode === 'Overlay').content;
-  broken.getSessions = () => { throw new Error('Private Sitzungsdetails'); };
-  const observer = f.h.user(3, 'Weitere Hörerin');
-  const observerRadio = f.h.open(observer);
-  f.h.event(observer, observerRadio, 'mw:openSchedule');
-  const observerPopup = observer.sessions.find(item => item.content.viewMode === 'Overlay');
-  observerPopup.events = [];
-  const moderator=f.h.user(4,'Studiobeobachtung');
-  f.h.event(f.owner,f.radio,'mw:addRadioModerator',{nick:moderator.nick});
-  const moderatorRadio=f.h.open(moderator);f.h.event(moderator,moderatorRadio,'mw:openStudio');
-  const studio=moderator.sessions.find(item=>item.content.htmlFile.pageData.view==='studio');studio.events=[];
-  const events = event(f, 'mw:schedule.save', { week, expectedRevision: 0,
-    date: week, start: '19:00', end: '21:00', nick: f.owner.nick, topic: 'Gespeicherte Sendung' });
-  const receipts = events.filter(item => item.type === 'mw:schedule.result');
-  assert.equal(receipts.length, 1);
-  assert.equal(receipts[0].data.ok, true);
-  assert.equal(read(f).entries[0].topic, 'Gespeicherte Sendung');
-  assert.equal(observerPopup.events.some(item => item.type === 'mw:schedule.changed'), true);
-  assert.equal(studio.events.some(item=>item.type==='mw:schedule.changed'),false,'Keine ungenutzten Kalenderhinweise mehr an Moderation');
-  assert.equal(f.h.logs.some(item => item.message.includes('[SCHEDULE_NOTIFY]')), true);
-  assert.doesNotMatch(JSON.stringify(f.h.logs), /Private Sitzungsdetails/);
+test('Planänderungen werden gespeichert und quittiert, ohne entfernte Overlay-Abfragen oder Benachrichtigungen',()=>{
+ const f=fixture(),observer=f.h.user(3,'Beobachtung'),session=f.h.open(observer);
+ const events=event(f,'mw:schedule.save',{week,expectedRevision:0,date:week,start:'19:00',end:'21:00',nick:f.owner.nick,topic:'Gespeicherte Sendung'});
+ const receipts=events.filter(e=>e.type==='mw:schedule.result');assert.equal(receipts.length,1);assert.equal(receipts[0].data.ok,true);
+ assert.equal(read(f).entries[0].topic,'Gespeicherte Sendung');
+ assert.equal(session.events.some(e=>e.type==='mw:schedule.changed'),false);
+ assert.equal(f.h.logs.some(e=>e.message.includes('[SCHEDULE_NOTIFY]')),false);
 });
 test('Persistente Wochenpläne überleben Neustarts und bleiben vollständig von Zustand und Wünschen getrennt', () => {
   const f = fixture();

@@ -244,12 +244,12 @@ test('03:10: Stabile Firebase-ID wird zusammen mit nativer Änderung dauerhaft g
   assert.equal(f.saved().entries.length, 1);
   assert.deepEqual(f.saved().relayBindings, [{ firebaseId: 'firebase-plan', nativeId: 1, deleted: false }]);
 });
-test('Native Planänderung quittiert zuerst den Erfolg und sendet danach genau eine Änderungsnachricht', () => {
+test('Planänderung erhält die Erfolgsquittung ohne ungenutzte Overlay-Änderungsnachricht', () => {
   const f = fixture(); f.reply(); const owner = f.h.user(1, 'Otterchen');
-  const radio = owner.sessions.find(s => s.content.viewMode === 'Headerbar'); f.h.event(owner, radio, 'mw:openSchedule');
-  const session = owner.sessions.find(s => s.content.htmlFile.pageData.view === 'schedule'), row = command(f);
+  const radio = owner.sessions.find(s => s.content.viewMode === 'Headerbar');
+  const session = radio, row = command(f);
   const events = f.h.event(owner, session, 'mw:schedule.save', { ...row.entry, week: row.week, expectedRevision: 0, requestId: 'native-plan' });
-  assert.deepEqual(events.map(e => e.type), ['mw:schedule.result', 'mw:schedule.changed']);
+  assert.deepEqual(events.map(e => e.type), ['mw:schedule.result']);
   assert.equal(events[0].data.ok, true); assert.equal(f.body().scheduleUpdates, undefined); assert.equal(f.body().scheduleRevisions.find(r => r.week === row.week).revision, 1);
 });
 test('Vorgeprüfter Relayauftrag ohne Rollenfelder speichert ohne anwesenden Inhaber; Wiederholung und Neustart wenden ihn nur einmal an', () => {
@@ -264,8 +264,7 @@ test('Vorgeprüfter Relayauftrag ohne Rollenfelder speichert ohne anwesenden Inh
 test('Behauptete Firebase-Rollen in nativen Clientdaten verleihen keine Sendeplan- oder Teamrechte', () => {
   const f = fixture(), person = f.h.user(2, 'DJ Test'), radio = person.sessions.find(s => s.content.viewMode === 'Headerbar');
   const claims = { source: 'firebase', role: 'admin', verified: true, authorization: { source: 'firebase', role: 'admin', verified: true } };
-  f.h.event(person, radio, 'mw:openSchedule');
-  const session = person.sessions.find(s => s.content.htmlFile.pageData.view === 'schedule'), row = command(f);
+  const session = radio, row = command(f);
   const events = f.h.event(person, session, 'mw:schedule.save', { ...row.entry, week: row.week, expectedRevision: 0, requestId: 'forged-claims', ...claims });
   assert.equal(events.find(e => e.type === 'mw:schedule.result').data.ok, false);
   f.h.event(person, radio, 'mw:addRadioModerator', { nick: 'DJ Test', expectedRadioModeratorRevision: 0, ...claims });

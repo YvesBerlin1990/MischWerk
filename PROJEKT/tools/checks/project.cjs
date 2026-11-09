@@ -71,6 +71,6 @@ console.log('Backend-Module, API-Signaturen, UI-IDs, Laufzeitgrenzen und Trennun
 const lengths = checkRuntime(path.join(root, 'app'));
 console.log(lengths.length + ' Textdateien im App-Arbeitsbestand: jeweils strikt unter 9.500 Zeichen.');
 assert.ok(backend.includes('AppContent.headerbarContent'), 'Radio benötigt die Channelleiste.');
-assert.ok(backend.includes('AppContent.overlayContent') && !backend.includes('AppContent.popupContent'), 'Alle vier Channelansichten benötigen echte Overlays.');
+assert.ok(backend.includes('AppContent.overlayContent') && !backend.includes('AppContent.popupContent'), 'Die verbleibenden Channelansichten benötigen echte Overlays.');
 assert.ok(frontendApi.includes('Client.HostFrame.prototype.setSize'), 'Headerbar-Höhenanpassung fehlt in Referenz.');
 console.log('Produktnachweise: docs/pruefung/PRUEFBERICHT.md. Echte Knuddels-/K3-Abnahme: docs/betrieb/LIVE-ABNAHME.md.');

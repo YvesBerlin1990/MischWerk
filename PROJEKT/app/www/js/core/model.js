@@ -7,7 +7,7 @@ MischWerkUI.define('model', function (dependencies) {
   var lastStateAt = 0;
   var retiredWishGenerations = [];
   var initialView = bridge && bridge.pageData && bridge.pageData.view;
-  var view = initialView === 'wishes' || initialView === 'studio' || initialView === 'team' || initialView === 'schedule' ? initialView : 'radio';
+  var view = initialView === 'wishes' || initialView === 'studio' || initialView === 'team' ? initialView : 'radio';
   document.documentElement.setAttribute('data-view', view);
   function connected() { return !!state && Date.now() - lastStateAt < 65000 && !state.shuttingDown; }
   

@@ -26,9 +26,6 @@ MischWerkModules.attachSessions = function (runtime, config) {
         if (!radio || !radio.overlayDrafts) { return null; }
         var drafts = radio.overlayDrafts;
         if (!runtime.isModerator(user)) { delete drafts.studio; }
-        if (!runtime.isChannelOwner(user)) {
-            if (drafts.schedule) { delete drafts.schedule.scheduleEditor; }
-        }
         if (!runtime.canAdminister(user)) { delete drafts.team; }
         return drafts[kind] || null;
     };
@@ -37,7 +34,7 @@ MischWerkModules.attachSessions = function (runtime, config) {
         return radio && radio.overlaySelections && radio.overlaySelections[kind] || {};
     }
     function prepareView(user, kind, opening) {
-        if (['radio', 'wishes', 'studio', 'team', 'schedule'].indexOf(kind) === -1) { throw runtime.failure('Diese Ansicht ist nicht verfügbar.'); }
+        if (['radio', 'wishes', 'studio', 'team'].indexOf(kind) === -1) { throw runtime.failure('Diese Ansicht ist nicht verfügbar.'); }
         if (!runtime.online(user)) { throw runtime.failure('Bitte öffne MischWerk im MyChannel.'); }
         if (kind !== 'radio' && (!opening || !opening.radioContent || !views.some(function (view) {
             return view.kind === 'radio' && view.userId === runtime.userId(user) && view.content === opening.radioContent && view.content.getSessions().length;

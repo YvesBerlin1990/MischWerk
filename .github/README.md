@@ -11,14 +11,14 @@
 
 Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderation, Sendeplan und eigener Homepage.
 
-**App 0.1.324 · Build 324 · Website 0.2.5** · Stand: 9. November 2026.
+**App 0.1.330 · Build 330 · Website 0.2.7** · Stand: 9. November 2026.
 
 ![Aktuelle Radioleiste mit großer Playtaste, getrenntem Titel und Interpret, Lautstärke und goldenen Aktionstasten](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
 
-- **Radio:** HTTPS-Stream mit Play/Stop und Lautstärke. Titel und Interpret werden alle fünf Sekunden direkt vom SPCast-Streamserver abgefragt, mit Titel oben und Interpret darunter. Während der Wiedergabe leuchten Playtaste und farbiger Außenrand.
+- **Radio:** HTTPS-Stream mit Play/Stop und Lautstärke. Titel und Interpret werden alle fünf Sekunden direkt vom SPCast-Streamserver abgefragt. Die mittige Musikfläche hat Vorrang; der Lautstärkeregler steht breit senkrecht rechts neben dem Thema und schmal waagerecht darunter. Ein eigener Wunsch erscheint nur bei Bedarf und gibt sonst seine Fläche frei. Während der Wiedergabe leuchten Playtaste und farbiger Außenrand.
 - **Wunschbox:** Ein freies Textfeld für Musikwünsche und eine private Anzeige des eigenen Platzes. Bestätigte offene Wünsche bleiben bei Appupdates und Neustarts gespeichert.
 - **Moderation:** Anmelden und Abmelden ohne Zeitlimit, Sendungsthema, Wunschregie, „Heute gespielt“, Lauftext und bestätigte Übergabe an andere Moderatoren.
-- **Sendeplan:** Programm für 14 Tage ab heute mit Sendungstiteln, Zeiten und Moderation. Der öffentliche Button zeigt vorerst **„In Kürze“**; der anwesende Channelinhaber kann die Ansicht bereits öffnen.
+- **Sendeplan:** Das native Overlay ist vollständig zurückgesetzt. Der erhaltene Button bleibt für alle Nutzer einschließlich Inhaber deaktiviert mit **„In Kürze“**. Gespeicherte Wochen und der eigenständige Homepage-Sendeplan bleiben erhalten.
 - **Verwaltung:** Radio-Team und Bot-Texte für den Channelinhaber, erreichbar über `/MW Verwaltung`.
 - **Homepage und Android:** Eigene Website mit geschütztem Arbeitsbereich sowie signierte Senderdaten und Musikwünsche über den bestehenden Android-Rückkanal. Einrichtung und Produktionsabnahme sind separat dokumentiert.
 
@@ -30,11 +30,9 @@ Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderati
 
 ![Radio mit angeschlossenem Lauftext und lokaler Pause-Taste](../PROJEKT/docs/pruefung/oberflaeche/radio/lauftext-1280.png)
 
-| Moderation | Hörer-Sendeplan |
-| --- | --- |
-| ![Moderation mit Sendungsthema und An-/Abmeldung](../PROJEKT/docs/pruefung/oberflaeche/moderation/moderation-780.png) | ![Programm mit Sendungstiteln, Uhrzeiten und Moderation](../PROJEKT/docs/pruefung/oberflaeche/sendeplan/sendeplan-hoerer-720.png) |
+![Moderation mit Sendungsthema und An-/Abmeldung](../PROJEKT/docs/pruefung/oberflaeche/moderation/moderation-780.png)
 
-Alle Appbilder zeigen lokale Vorschauen von **Build 322** mit Beispieldaten. Der Hörer-Sendeplan ist eine lokale Vorschau der vorbereiteten Ansicht. Weitere Bilder und Prüfergebnisse stehen im [App-Prüfbericht](../PROJEKT/docs/pruefung/PRUEFBERICHT.md).
+Die Radioübersichten einschließlich Lauftext zeigen den fertigen lokalen **Build 330** mit Beispieldaten; Detail- und Menübilder behalten ihren dokumentierten Stand **Build 322**. Das native Sendeplan-Overlay ist entfernt; die erhaltene Taste bleibt für alle Nutzer deaktiviert mit „In Kürze“. Gespeicherte Wochen und Homepage-Sendeplan bleiben erhalten. Weitere Bilder und Prüfergebnisse stehen im [App-Prüfbericht](../PROJEKT/docs/pruefung/PRUEFBERICHT.md).
 
 ## Lokal starten
 

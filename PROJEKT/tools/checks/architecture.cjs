@@ -76,7 +76,7 @@ function checkArchitecture() {
   const studioWindow=read('app/www/js/studio/window.js');
   assert.doesNotMatch(studioWindow,/setMinSize|setMaxSize|setResizable|setTimeout|setInterval/,'Studiohöhe ohne parallele Fenster-/Wiederholungsmechanik');
   assert.equal((studioWindow.match(/\.setSize\(/g)||[]).length,1,'Ein dokumentierter Größenpfad für die ausdrücklich gewünschte kompakte Moderation');
-  for (const view of ['radio','wishes','studio','team','schedule']) {
+  for (const view of ['radio','wishes','studio','team']) {
     assert.equal(frontendFilesForView(view).includes('js/wishes/window.js'), view === 'wishes', 'Native Wunschhöhe nur im Wunsch-Ladeplan');
   }
   assert.doesNotMatch(frontend, /(?:bridge|Client)\.close\s*\(|window\.open\s*\(|location\.(?:assign|replace)\s*\(/, 'Fensteraktionen müssen den gemeinsamen Ereignisweg verwenden');
@@ -99,7 +99,7 @@ function checkArchitecture() {
   }
   assert.deepEqual([...composed].sort(), Object.keys(factories).sort(), 'Unverdrahtete Frontendkomponenten');
   const used = new Set();
-  for (const view of ['radio', 'wishes', 'studio', 'team', 'schedule']) {
+  for (const view of ['radio', 'wishes', 'studio', 'team']) {
     const loaded = [], built = [], scope = { window: {}, document: {
       documentElement: { getAttribute: () => view }
     }, Client: { pageData: { view }, includeJS: file => loaded.push(file) } };

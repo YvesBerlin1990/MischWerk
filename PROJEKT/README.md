@@ -1,12 +1,12 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.324 · Build 324 · Website 0.2.5** · Stand: 09.11.2026.
+**App 0.1.330 · Build 330 · Website 0.2.7** · Stand: 09.11.2026.
 
 MischWerk verbindet Radio, dauerhafte Musikwünsche, Moderation, Lauftext und Sendeplan in einer Knuddels-UserApp. Die eigenständige Website und der Android-Rückkanal verwenden vorbereitete Appverträge. Funktionen und aktuelle Bilder stehen in der [GitHub-Übersicht](../.github/README.md); fachliche Regeln und Prüfvorgaben zentral in [AGENTS.md](AGENTS.md).
 
-![Radioleiste aus Build 322 mit großer goldener Playtaste, Titel über Interpret und kompakten Aktionen](docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
+![Radioleiste aus Build 330 mit großer goldener Playtaste, Titel über Interpret und kompakten Aktionen](docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
 
-[Mittlere Breite](docs/pruefung/oberflaeche/radio/radio-harmonie-mittel.png) · [Mobilansicht](docs/pruefung/oberflaeche/radio/radio-harmonie-schmal.png) · [Lauftext](docs/pruefung/oberflaeche/radio/lauftext-1280.png) · [Moderation](docs/pruefung/oberflaeche/moderation/moderation-780.png) · [Hörer-Sendeplan](docs/pruefung/oberflaeche/sendeplan/sendeplan-hoerer-720.png). Die Bilder stammen aus dem lokalen Build 322 mit Beispieldaten.
+[Mittlere Breite](docs/pruefung/oberflaeche/radio/radio-harmonie-mittel.png) · [Mobilansicht](docs/pruefung/oberflaeche/radio/radio-harmonie-schmal.png) · [Lauftext](docs/pruefung/oberflaeche/radio/lauftext-1280.png) · [Moderation](docs/pruefung/oberflaeche/moderation/moderation-780.png). Die drei Radioübersichten und der Lauftext stammen aus dem fertigen lokalen Build 330 mit Beispieldaten; Menübilder behalten ihren dokumentierten Stand 322. Das native Sendeplan-Overlay ist vollständig zurückgesetzt; seine erhaltene Taste bleibt für alle Nutzer auf „In Kürze“ gesperrt. Homepage-Sendeplan und gespeicherte Wochen bleiben erhalten.
 
 ## Zuständigkeiten der Ordner
 

@@ -1,11 +1,13 @@
 # MischWerk – Homepage und Arbeitsbereich
 
-Lokaler Stand **Website 0.2.5**, mit Knuddels-App **0.1.322 / Build 322** lokal geprüft. Stand: **09.11.2026**. Die Homepage verwendet das Vinyl-Design mit goldenen Radiotasten, lokalen Outfit-/Fraunces-Schriften und unveränderten Originalmedien. Bekannte offene Websitebefunde stehen im [Prüfbericht](docs/PRUEFUNG.md).
+Lokaler Stand **Website 0.2.7**, mit Knuddels-App **0.1.330 / Build 330** lokal geprüft. Stand: **09.11.2026**. Die Homepage verwendet das Vinyl-Design mit goldenen Radiotasten, lokalen Outfit-/Fraunces-Schriften und unveränderten Originalmedien. Bekannte offene Websitebefunde stehen im [Prüfbericht](docs/PRUEFUNG.md).
 
-Der öffentliche Teil enthält Radio, Sendeplan, Teamvorstellungen und Musikwünsche. Der eigene Arbeitsbereich unter **/arbeitsbereich** bietet Anmelden und Abmelden ohne Zeitlimit, Thema, Wunschregie, privater Übergabe und Tageshistorie, außerdem Besitzerverwaltung, Bot-Texte und Sendeplanung. Die bestehenden App-Menüs bleiben bis zur erfolgreichen echten Verbindungsabnahme erhalten.
+Der öffentliche Teil enthält Radio, Sendeplan, Teamvorstellungen und Musikwünsche. Der eigene Arbeitsbereich unter **/arbeitsbereich** bietet Anmelden und Abmelden ohne Zeitlimit, Thema, Wunschregie, privater Übergabe und Tageshistorie, außerdem Besitzerverwaltung, Bot-Texte und Sendeplanung. Wunschbox, Moderation und Verwaltung der App bleiben erhalten; das native Sendeplan-Overlay ist zurückgesetzt.
 
 
 Die öffentliche Homepage ist aufgeteilt: Start/Radio, Sendeplan, Team, Mitmachen und Wunschbox haben eigene Adressen und einzeln sichtbare Inhalte. Desktopreiter und ein Hamburger-Menü bis 850 px führen durch die Bereiche. Die Startseite zeigt nur Einstieg und Radio. Direktaufruf, Neuladen und Browser-Zurück/Vor funktionieren; laufendes Radio und ungesendete Eingaben bleiben beim öffentlichen Bereichswechsel erhalten. Der geschützte Arbeitsbereich hat eigene Reiter für Moderation, Sendeplan und Verwaltung.
+
+Der Homepage-Sendeplan verwendet seinen eigenen Kalenderhelfer unter public/js/site/calendar.js. Der native Sendeplan-Reset der App deaktiviert ausschließlich deren Overlay.
 
 ## Lokal starten
 

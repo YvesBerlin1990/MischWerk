@@ -3,8 +3,8 @@
   "appId": "knuddelsDEV.30807196.MischWerk",
   "installId": "30807196.MischWerk",
   "channel": "MischWerk",
-  "version": "0.1.324",
-  "buildNumber": 324,
+  "version": "0.1.330",
+  "buildNumber": 330,
   "remotePath": "/ftp/MischWerk",
   "stationConfigured": true,
   "ftpHost": "appupload.knuddels.de",
@@ -12,31 +12,31 @@
   "delivery": "upload-directory",
   "bundled": true,
   "localUploadRoot": "C:\\Users\\Yves\\Desktop\\MischWerk\\UPLOAD",
-  "fileCount": 109,
+  "fileCount": 102,
   "fileManifests": [
     {
       "path": "manifest-server.json",
       "fileCount": 29,
       "bytes": 4934,
-      "sha256": "000544844CEA677C3B7EF8CDBD9B57BF5ACA1C886AA5ABCAFECFC7250870C8FC"
+      "sha256": "F7A0E796F69188F331745227E6F1AB8DB9FEA5ED62B676A42995962E93476C33"
     },
     {
       "path": "manifest-www.json",
-      "fileCount": 42,
-      "bytes": 7210,
-      "sha256": "659E0C3230EFA53888928CB8819500549DFD01B813C082B1F91864B3391BBDAC"
+      "fileCount": 35,
+      "bytes": 6001,
+      "sha256": "C04B8E7C31D2D39A57BD9453418495748125DB5E5513EC35E3BE0FF59ADB24F2"
     },
     {
       "path": "manifest-studio.json",
       "fileCount": 26,
       "bytes": 4505,
-      "sha256": "7B609E9B4E8918A053326C63B0D30B41A3A6A85C683A31FE5B5BE30EAD706019"
+      "sha256": "17224F66302F2CCFFD241A9B8EBD7E97B3251E2E9283D8E6BE57E5A723830547"
     },
     {
       "path": "manifest-media.json",
       "fileCount": 12,
       "bytes": 2135,
-      "sha256": "ACE3AFDE4C0F2A93B01F174880852DA8B4F6583F0F547943F7E8983496841FE7"
+      "sha256": "CDEC94C5AA4F056E07601BE5C751A7ECA91D7FB54B6EE834C46D3B0910EDB1A3"
     }
   ]
 }

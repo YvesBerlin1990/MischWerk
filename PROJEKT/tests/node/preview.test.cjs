@@ -46,7 +46,7 @@ test('Lokaler Vorschau-Server', async t => {
     assert.equal(radio.pageData.moderator, null); assert.equal(radio.pageData.curtain.closed, false);
     assert.equal(radio.pageData.station.historyUrl, undefined);
     assert.equal((await fetch(base + '/preview?view=studio&sourceSession=' + radio.sessionId)).status, 403);
-    assert.equal((await fetch(base + '/preview?view=schedule&sourceSession=' + radio.sessionId)).status, 403);
+    assert.equal((await fetch(base + '/preview?view=schedule&sourceSession=' + radio.sessionId)).status, 410);
     assert.equal((await fetch(base + '/api/event', { method:'POST', body:JSON.stringify({ sessionId:radio.sessionId, type:'mw:wish.submit', data:{text:'Test',submissionId:'public-denied'} }) })).status, 403);
     assert.equal(demo.pageData.user.nick, 'Testleitung');
     assert.doesNotMatch(JSON.stringify(demo), /Otterchen|Polaroid|Musikfreund|Mixfreund|Klangwelle/i);

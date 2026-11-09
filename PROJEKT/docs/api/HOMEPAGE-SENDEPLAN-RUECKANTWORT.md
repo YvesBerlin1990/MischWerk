@@ -1,6 +1,6 @@
 # Rückantwort: Homepage-Sendeplan und Radioteam · Build 308
 
-Aktueller lokaler Paketstand: **Build 324** verwendet den direkten SPCast-Abruf `/currentSong.txt` als aktuelle Player-Titelquelle und enthält die Radio-Aktivitätskorrekturen aus Build 312. Er enthält die Wunschboxkorrektur aus 309, Lauftextschrift und Randmarker aus 310 sowie harmonisierte Radioanzeigen, kompaktere Lautstärke und kleinere Aktionen. Titelkonfiguration und Browserauswertung sind angepasst. Der hier nachgewiesene Vertrag aus Build 308 bleibt unverändert enthalten. Nach Installation Build 324 im privaten Status prüfen.
+Aktueller lokaler Paketstand: **Build 330** verwendet den direkten SPCast-Abruf `/currentSong.txt` als aktuelle Player-Titelquelle und enthält die Radio-Aktivitätskorrekturen aus Build 312. Er enthält die Wunschboxkorrektur aus 309, Lauftextschrift und Randmarker aus 310 sowie harmonisierte Radioanzeigen, kompaktere Lautstärke und kleinere Aktionen. Titelkonfiguration und Browserauswertung sind angepasst. Der hier nachgewiesene Vertrag aus Build 308 bleibt unverändert enthalten. Nach Installation Build 330 im privaten Status prüfen.
 
 Stand: 08.11.2026. Die vom Betreiber ausdrücklich freigegebene Anforderungsfassung vom **03:10:26 Uhr Europe/Berlin** ist vollständig in **0.1.308 / Build 308** umgesetzt. Genau ein lokales Funktionspaket wurde erstellt; seine native Installation und gemeinsame Abnahme stehen aus.
 
@@ -46,7 +46,7 @@ Die Anforderungen zu Reihenfolge, Konfliktzähler, Wochenwechsel, ID-Lebenszyklu
 
 Nach Installation dieses Pakets gemeinsam den echten Datenfluss prüfen:
 
-1. Privater Knuddels-Status nennt Build 324, aktiven Publisher und reguläre HTTP-200-/accepted-Annahme. Bestehende Schlüssel und Aktivierung nicht unnötig erneut speichern.
+1. Privater Knuddels-Status nennt Build 330, aktiven Publisher und reguläre HTTP-200-/accepted-Annahme. Bestehende Schlüssel und Aktivierung nicht unnötig erneut speichern.
 2. Tatsächliche native Revisionen kommen bei Firebase an. Eine beabsichtigte Homepageänderung liefert genau einen Auftrag und wird genau einmal nativ angewandt oder mit tatsächlichem Grund abgelehnt.
 3. Passende Ergebnisquittung erreicht Firebase im nächsten regulären POST; ein offener Auftrag wird erst damit abgeschlossen. Eine erneute Zustellung erzeugt weder Dublette noch zusätzliche Fachrevision.
 4. Homepage und Android zeigen den von Firebase geführten öffentlichen Zustand. Eine native Fachablehnung bleibt dort erkennbar und wird nicht allein wegen HTTP 200 als erfolgreiche Übernahme dargestellt.

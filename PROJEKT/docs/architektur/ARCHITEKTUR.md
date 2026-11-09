@@ -1,4 +1,4 @@
-# MischWerk – Architektur 0.1.324 · Build 324
+# MischWerk – Architektur 0.1.330 · Build 330
 
 Stand 09.11.2026. Diese Übersicht beschreibt den aktuellen Aufbau; verbindliche Fach- und Entwicklungsregeln stehen ausschließlich in [AGENTS.md](../../AGENTS.md).
 
@@ -8,7 +8,7 @@ Stand 09.11.2026. Diese Übersicht beschreibt den aktuellen Aufbau; verbindliche
 
 `index.html` fordert CSS und `js/start.js` während des Parsens über `Client.includeCSS/includeJS` an. Das berücksichtigt die `document.write`-Implementierung des SDK. `ui/composition` verdrahtet die benötigten Komponenten einmalig. Vollständiges Markup, registrierte Module und geladenes CSS geben das Anfangslayout frei. Ein langsames Logo blockiert die Radioleiste nicht; fehlende Pflichtressourcen erzeugen einen sichtbaren Fehler. Der einmalige 15-Sekunden-Wächter erkennt einen still fehlgeschlagenen Start.
 
-50 Frontendkomponenten und 20 Stylesheets sind in ansichtsabhängigen Ladeplänen registriert. Dazu kommen zwei getrennt inventarisierte Betreiberdateien `relay-settings.html` und `js/operator/relay-settings.js`. Die 85 Browser-/Mediendateien, zwei Betreiberdateien, 64 Backenddateien und zwei Einstieg-/Konfigurationsdateien ergeben 153 Dateien im App-Arbeitsbestand. Im UPLOAD entfallen 27 vollständig gebündelte Backenddateien, 16 Browser-JS-Einzeldateien und zwei CSS-Einzeldateien; das eigenständig geprüfte Auslieferungsinventar enthält damit 108 Dateien. Die 64 Backendmodule liegen dort in 37 Serverdateien. Benachbarte Module behalten ihre vollständigen Quelltexte und execute-Reihenfolge; der erste Modulpfad dient als Bündelpfad. Nur der ausgelieferte server/app.js-Ladeplan lässt enthaltene Einzelmodule aus. Konfiguration und Komposition bleiben separat, private Android-Module behalten ihre Manifestzuordnung. Die bestehenden Browser-Ladepläne, Medien und Ansichtszuordnungen bleiben erhalten. Private Betreiberdateien stehen im bestehenden Manifest der privaten Arbeitsflächen; sie werden nicht in öffentliche Ladepläne aufgenommen. [Frontendarchitektur](ARCHITEKTUR-FRONTEND.md).
+44 Frontendkomponenten und 18 Stylesheets sind in ansichtsabhängigen Ladeplänen registriert. Dazu kommen zwei getrennt inventarisierte Betreiberdateien. 77 Browser-/Mediendateien, zwei Betreiberdateien, 64 Backenddateien sowie Einstieg und Konfiguration ergeben 145 Dateien im App-Arbeitsbestand. Das reproduzierbare Auslieferungsinventar bündelt vollständige benachbarte Module unter der Zeichengrenze; Quellen und Reihenfolge bleiben erhalten. [Frontendarchitektur](ARCHITEKTUR-FRONTEND.md).
 
 `users/greetings` enthält den einheitlichen Begrüßungstext für alle Menschen, die flüchtige Beitritts-Deduplizierung und die sichere Profilfoto-Einbettung am Nachrichtenende. Der erste Satz wird mit KCode 16, Fettschrift und Appleisten-Gold #e6c77b hervorgehoben; nach einem Leerzeichen folgt der zweite Satz in normaler Channelschrift ohne festen Zeilenumbruch. User.getProfileLink verlinkt den maskierten Nick und das weiterhin am Ende stehende Foto mit dem authentifizierten Profil. Die Profilfunktion erhält für das Foto ausschließlich Text; ihr natives Ziel wird mit der authentifizierten Foto-Adresse in einem eigenen Bildtag verknüpft. Fehlerhafte Links fallen auf lesbaren Nick bzw. unverlinkten Bildtag zurück. Der frühere Katalog mit 30 Texten, seine Registrierung und die rollenabhängige Zufallsauswahl sind entfernt. `lifecycle` ruft die Komponente beim Start, Beitritt, Verlassen, Löschen und Shutdown auf. Es entstehen keine Browsermodule, Timer, Besucherhistorie oder Speicheradapter; Studioansagen bleiben in `radio/announcements`.
 
@@ -82,7 +82,7 @@ Stop, Quellenwechsel, Werbung starten und Seitenende löschen den Hörwunsch. Ve
 | schedule/commands.js | Gemeinsame Inhaber-/Relay-Fachaktionen, Revisions-/Zeitprüfung und Schutz vor Wiederanlage nach Löschung |
 | schedule/overview.js | Rollende 14-Tage-Vorschau aus bestehenden Wochen, deduplizierte Fortsetzungen und gemeinsame Paketgrenzen |
 | schedule/broadcasts.js | Dauerhaften Studiowechselauftrag vorbereiten und idempotent über den Wochenadapter abgleichen |
-| schedule/transport.js | Sitzungsgeprüftes mw:schedule-Protokoll und Änderungsbenachrichtigung |
+| schedule/transport.js | Sitzungsgeprüftes mw:schedule-Datenprotokoll ohne native Overlaybenachrichtigungen |
 | maintenance.js | Appmanager-/update mit FTP-Dateiprüfung und eigener Auftragssperre |
 | lifecycle.js | Appstart, Beitritt, Verlassen, Nutzerlöschung und Shutdown |
 | app.js | Ausschließlich Komponenten laden, erzeugen und verdrahten |
@@ -114,7 +114,7 @@ android/connection erzeugt den nativen HTTPS-Port nur nach privater Freigabe und
 
 `ui/administration` registriert den über `App.chatCommands.mw` verdrahteten Chat-Einstieg. `users/identity.canAdminister` prüft tatsächliches Inhaberrecht, Anwesenheit und den authentifizierten Nick Otterchen. Der Befehl verwendet `ui/overlays`; `ui/sessions` prüft vor der verzögerten Öffnung erneut. Der runde Moderationsbutton benötigt die serverseitigen booleschen Freigaben `showModerationButton` und `canModerate` aus demselben bestätigten Zustand. Der echte Inhaber Otterchen erhält beide automatisch; andere Nutzer benötigen ihren gespeicherten Radio-Team-Eintrag.
 
-`ui/content` ist alleiniger Ort für HTMLFile, AppContent und Versand; `ui/sessions` ordnet Sitzungen zu und schließt sie. Radio ist eine Headerbar; Wunschbox, Moderation, Verwaltung und Sendeplan sind getrennte native Overlays. `sendAppContent` übernimmt die native Ersetzung. Wiederholte Aufträge mit gleicher Anfrage-ID werden dedupliziert. Die bestehende Headerbar bleibt bei Menüwechseln erhalten.
+`ui/content` ist alleiniger Ort für HTMLFile, AppContent und Versand; `ui/sessions` ordnet Sitzungen zu und schließt sie. Radio ist eine Headerbar; Wunschbox, Moderation und Verwaltung sind getrennte native Overlays. Der Sendeplan ist pausiert und besitzt kein Overlay. `sendAppContent` übernimmt die native Ersetzung. Wiederholte Aufträge mit gleicher Anfrage-ID werden dedupliziert. Die bestehende Headerbar bleibt bei Menüwechseln erhalten.
 
 | Ansicht | Anfangsmaß | Inhaltsanpassung |
 | --- | --- | --- |
@@ -122,13 +122,8 @@ android/connection erzeugt den nativen HTTPS-Port nur nach privater Freigabe und
 | Wunschbox | 480 × 340 px | `wishes/window` passt die benötigte Inhaltshöhe an |
 | Moderation | 640 × 580 px | `studio/window`, Gruppen-/Textseiten; stabile Geometrie während Themenbearbeitung |
 | Verwaltung | 500 × 560 px | Fester Rahmen, Radio-Team-Pagination und ein Inhalts-Scrollbereich für Bot-Texte |
-| Sendeplan | 720 × 600 px | Fester Rahmen, Kalenderpagination und natürlich erreichbare Inhalte |
 
-Im Sendeplan besitzt `schedule/view` Darstellung und DOM-Verfügbarkeit, der bestehende Controller Protokoll- und Berechtigungszustand. `schedule/pages` hält den gelesenen Eintrag mit zugehörigem Datum über eine neue Seitenaufteilung hinweg. Eine geschrumpfte Paketfolge beginnt von vorn; Rechteverlust verwirft private Daten und die Verwaltungswoche zugunsten der öffentlichen Vorschau.
-
-Die Höreransicht priorisiert Sendungstitel, Uhrzeit und nachgeordneten Namen. `schedule/pages` verwaltet die Seiten und deren Anker; der Zeitraum wird ausschließlich im Kopf ausgegeben. „Musikmix von MischWerk“ und „Ende offen“ sind ausschließlich lesefreundliche Beschriftungen; gespeicherte Sendearten, Intervalle, Studioabgleich und Rechte bleiben unverändert.
-
-Gefüllte Tage verwenden einen gemeinsamen Datumskopf über ausgerichteten Musik- und Sendungszeilen. Private Aktionen folgen unter den Sendungsdetails. Zeitbeschriftungen einschließlich gerundeter Musikgrenzen liegen im bestehenden `schedule/calendar`; `schedule/view` erzeugt deren DOM-Spalten. Die mobilen Regeln stapeln dieselben Inhalte ohne zusätzliche Steuerelemente.
+Der native Sendeplan ist zurückgesetzt: keine Ansicht, Frontendmodule oder Styles. Die erhaltene Taste bleibt für alle Nutzer auf „In Kürze“ gesperrt. Backendwochen, automatische Studioeinträge und Homepage-/Android-Datenwege bleiben erhalten. Alte Öffnungsaufrufe werden abgewiesen. Der Kalenderhelfer ist unabhängig unter website/public/js/site/calendar.js erhalten. Appleisten- und Moderationsprovider werden durch den Reset nicht verändert.
 
 Native Overlays erhalten eine aktive leere Ladeabdeckung in #0f1114. Früher HTML-Untergrund passt dazu. Die SDK-Readiness bleibt unverändert; ein verbleibender nativer Erstöffnungsblitz ist nicht als vollständig behoben abgenommen.
 

@@ -83,7 +83,7 @@ MischWerkUI.define('commands', function (dependencies) {
       else { layout.notify('Verbindung unterbrochen. Bitte erneut öffnen.', true, type); }
     }
   }
-  
+
   function result(response) {
     response = response || {};
     if (manualRefresh && response.action === 'mw:refresh' && response.requestId === manualRefresh.requestId && response.ok === false) {
@@ -116,7 +116,7 @@ MischWerkUI.define('commands', function (dependencies) {
       if (manualRefresh) { finishRefresh('Bitte aktualisieren', false); }
     });
     if (model.view !== 'radio') { return; }
-    [['open-wishes','mw:openWishes'], ['open-schedule','mw:openSchedule'],
+    [['open-wishes','mw:openWishes'],
       ['studio-tab','mw:openStudio']].forEach(function (action) {
       document.getElementById(action[0]).addEventListener('click', function () {
         if (!this.disabled && !this.hidden && model.connected()) { send(action[1], {}, true); }

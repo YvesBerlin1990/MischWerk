@@ -4,9 +4,9 @@ html:not([data-view=radio]) button { transition:background-color .15s,border-col
 html:not([data-view=radio]) .icon-button { width:44px; height:44px; border-radius:13px; border-color:#47494b; color:#e9eaec; background:#1f1f1f; }
 html:not([data-view=radio]) .icon-button:hover:enabled { border-color:#6d7175; background:#292929; }
 html:not([data-view=radio]) .icon-button:active:enabled { background:#141414; }
-html:not([data-view=radio]) :is(#off-air,[data-confirm-removal],[data-outcome=discarded],#schedule-delete) { border-color:#71423e; background:#2a1613; color:#ff9a8f; }
-html:not([data-view=radio]) :is(#off-air,[data-confirm-removal],[data-outcome=discarded],#schedule-delete):hover:enabled { background:#42221d; }
-html:not([data-view=radio]) :is(#off-air,[data-confirm-removal],[data-outcome=discarded],#schedule-delete):active:enabled { background:#241310; }
+html:not([data-view=radio]) :is(#off-air,[data-confirm-removal],[data-outcome=discarded]) { border-color:#71423e; background:#2a1613; color:#ff9a8f; }
+html:not([data-view=radio]) :is(#off-air,[data-confirm-removal],[data-outcome=discarded]):hover:enabled { background:#42221d; }
+html:not([data-view=radio]) :is(#off-air,[data-confirm-removal],[data-outcome=discarded]):active:enabled { background:#241310; }
 .overlay-close { flex:none; align-self:center; }
 summary { border-radius:8px; scroll-margin-block:8px; }
 summary:hover { background:#ffffff06; }

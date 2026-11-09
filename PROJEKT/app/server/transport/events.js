@@ -75,7 +75,8 @@ MischWerkModules.attachEvents = function (runtime, config) {
             if (runtime.shuttingDown) {
                 throw runtime.failure('MischWerk wird gerade neu gestartet. Bitte öffne die App gleich erneut.');
             }
-            if (type === 'mw:openWishes' || type === 'mw:openStudio' || type === 'mw:openRadioTeam' || type === 'mw:openSchedule') {
+            if (type === 'mw:openSchedule') { throw runtime.failure('Der Sendeplan wird neu gestaltet und ist derzeit nicht verfügbar.'); }
+            if (type === 'mw:openWishes' || type === 'mw:openStudio' || type === 'mw:openRadioTeam') {
                 operation = 'OPEN_OVERLAY';
                 runtime.openOverlay(user, session, type, requestId); return;
             }

@@ -7,7 +7,7 @@ MischWerkUI.define('overlays', function (dependencies) {
   var enabled = bridge && bridge.pageData && (bridge.pageData.overlay || bridge.pageData.wishSurface);
   var revision = 0, restored = false, restoring = false, timer, saveTimer, closeTimer;
   var lockedToken = null, lastToken = 0, lockedFocus = null;
-  var entries = { wishes:'open-wishes', studio:'studio-tab', team:'open-schedule', schedule:'open-schedule' };
+  var entries = { wishes:'open-wishes', studio:'studio-tab', team:'studio-tab' };
   function capture() {
     var state = {};
     signals.emit('overlay-capture', state);
@@ -66,8 +66,8 @@ MischWerkUI.define('overlays', function (dependencies) {
     if (model.view === 'radio') {
       function restoreEntry(data) {
         var curtain = model.current() && model.current().curtain;
-        var target = dom.el(curtain && curtain.closed && !curtain.exempt ? 'curtain-ad' : entries[data.kind] || 'open-schedule');
-        if (data.kind === 'wishes' && target.disabled) { target = dom.el('open-schedule'); }
+        var target = dom.el(curtain && curtain.closed && !curtain.exempt ? 'curtain-ad' : entries[data.kind] || 'mute-button');
+        if (data.kind === 'wishes' && target.disabled) { target = dom.el('mute-button'); }
         if (target.disabled || !target.getClientRects().length) { target = dom.el('mute-button'); }
         target.focus({ preventScroll:true });
         if (target.id === 'mute-button') { target.scrollIntoView({ block:'nearest', inline:'nearest' }); }

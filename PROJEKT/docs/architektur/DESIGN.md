@@ -1,32 +1,34 @@
-# MischWerk – Design 0.1.324 · Build 324
+# MischWerk – Design 0.1.330 · Build 330
 
 Aktuelle Gestaltung am 09.11.2026. Die Bilder zeigen lokal gerenderten Appcode mit Beispieldaten. Verbindliche Projektvorgaben stehen in [AGENTS.md](../../AGENTS.md).
 
 ## Appleiste
 
-Die Radio-Außenfläche bleibt reines Schwarz #000000, die Deckfläche #141414 mit ihren vorhandenen Vinylrillen und Goldakzenten. Die drei Informationsgruppen werden typografisch zusammengeführt; die Lautstärkeregelung und die drei Aktionen treten etwas zurück. Original-Logo, Playtaste, Glow und die Bedienabläufe bilden weiter denselben Rahmen.
+Die Radio-Außenfläche bleibt reines Schwarz #000000, die Deckfläche #141414 mit ihren vorhandenen Vinylrillen und Goldakzenten. Die bestätigte Aufteilung „Musik im Fokus“ zentriert die Texte innerhalb der drei Bereiche und gibt der Musik die größte Fläche. Ab 1200 px steht der vorhandene Lautstärkeknoten als schmaler senkrechter Regler rechts neben Thema und Moderation. Beide nutzen die volle Informationshöhe; die Musikfläche bleibt gleich groß. Original-Logo, Playtaste, Aktionen, Glow und Bedienabläufe bilden weiter denselben Rahmen. Der bestehende Lauftext bleibt direkt unter der Appleiste; eine zusätzliche Bedienzeile entfällt.
 
 ### Gemeinsame Hierarchie
 
 | Bereich | Hauptinformation | Ergänzung |
 | --- | --- | --- |
-| Jetzt läuft | Outfit, 20 px, Gewicht 600 | Interpret 16 px, Gewicht 400 |
-| Thema | Outfit, 20 px, Gewicht 600 | Moderation 14 px, Gewicht 500 |
-| Dein Wunsch | Platz 18 px, Gewicht 600 | Wunschtext 14 px, Gewicht 500; Status 12 px |
+| Jetzt läuft | Outfit, 26 px, Gewicht 600 | Interpret 17 px, Gewicht 400, 8 px Abstand |
+| Thema | Outfit, 20 px, Gewicht 500 | Moderation 15 px, Lautstärke rechts daneben |
+| Dein Wunsch | Platz 16 px, Gewicht 500 | Wunschtext 14 px, Gewicht 400; Status 12 px |
 
-Der aktuelle Musiktitel steht oben größer und fett, der Interpret darunter mit mehr Abstand und etwas größerer Schrift: regulär 16 px und 6 px Abstand zum Titel, im kompakten festen Rahmen 15 px mit 20 px Zeilenhöhe und 5 px Abstand. Der Titel bleibt bei 20 px beziehungsweise kompakt 18 px. Ab 1200 px erhält die Musikgruppe 8 px oberen Innenabstand. Die kombinierte SPCast-Historienzeile wird dafür am ersten ` - ` aufgeteilt: „a-ha - Take on Me“ erscheint als „Take on Me“ über „a-ha“. Weitere Bindestriche im Namen oder Titel bleiben erhalten. Ohne vollständige Trennung bleibt die gesamte Zeile als Titel sichtbar.
+Der aktuelle Musiktitel steht oben größer und fett, der Interpret darunter. In natürlichen schmalen Ansichten beträgt die Titelgröße 24 px; feste kompakte Rahmen nutzen 20/23 px und einen Interpreten mit 15/20 px sowie 5 px Abstand. Texte werden unabhängig von ihrer Länge nicht automatisch verkleinert. Die kombinierte direkte SPCast-Songzeile wird weiterhin am ersten ` - ` aufgeteilt: „a-ha - Take on Me“ erscheint als „Take on Me“ über „a-ha“. Weitere Bindestriche im Namen oder Titel bleiben erhalten. Ohne vollständige Trennung bleibt die gesamte Zeile als Titel sichtbar.
 
-Die kleinen goldenen Beschriftungen bilden mit 11 px und ruhigerem Abstand die gemeinsame Orientierung. Fraunces gehört weiterhin zu den Menüüberschriften; Rajdhani Medium bleibt dem bewegten Lauftext vorbehalten. Es kommt keine weitere Schrift hinzu. Ohne eigenen Wunsch entfällt die dritte Spalte. Kurze Thema-/Wunschgruppen sind innerhalb der vorhandenen Höhe zentriert; bei mehrzeiligen Inhalten schrumpfen die automatischen Abstände, sodass oben nichts verloren geht. Die zusätzliche Textbreite ist eine Reserve für längere Angaben.
+Die goldene Beschriftung „Thema:“ verwendet 12 px; die übrigen kleinen goldenen Beschriftungen bleiben bei 11 px. In festen kompakten Rahmen verwendet das Thema 18/22 px und die Moderation 14/18 px, ohne Verkleinerung nach Textlänge. Fraunces gehört weiterhin zu den Menüüberschriften; Rajdhani Medium bleibt dem bewegten Lauftext vorbehalten. Breite Ansichten verteilen die Informationsfläche ungefähr 55/25/20 auf Musik, Thema mit Regler und Wunsch. Ohne eigenen Wunsch entfällt dessen Spalte vollständig und die Musik wächst auf ungefähr 70 Prozent; notwendige Mindestbreiten für Regler und Wunschplatz haben Vorrang. Natürliche schmale Ansichten stapeln die Gruppen. Die vorhandene Informationsscrollfläche erhält in festen K3-/begrenzten STAPP-Rahmen alle Angaben und Bedienungen, ohne neue Fenstersteuerung oder Platz unter dem Lauftext.
 
 ### Zurückhaltende Lautstärke
 
-Die Gruppe ist höchstens 240 px breit, die sichtbare Spur 4 px und der Griff 14 px groß. Die kleine goldene Lautsprecherscheibe bleibt 28 px sichtbar; Taste und Regler haben weiterhin 44 px Bedienhöhe. Das 52-px-Prozentfeld hält auch 100 % und den vorhandenen Warnhinweis vollständig. Die rote Zone oberhalb 60 %, Tastatur und Stummschaltung verwenden denselben Audioweg.
+Ab 1200 px sitzt der Regler senkrecht rechts im Themenbereich. Die Gruppe ist 52 px breit und 112 px hoch, in der 124-px-Informationsfläche vertikal zentriert. Oben und unten bleiben jeweils 6 px Abstand zur sichtbaren Leistenkante: Prozentanzeige oben, 44 × 52 px große Reglerfläche mittig und die bestehende 44-px-Stummtaste unten. Die Spur bleibt 4 px, der Griff 14 px und die sichtbare Lautsprecherscheibe 28 px groß. Lauter liegt oben, leiser unten. Thema und Moderation nutzen daneben die volle Höhe und sind innerhalb ihrer Textfläche mittig. Unter 1200 px bleibt die bisherige waagerechte Gruppe unter dem Thema, damit schmale Texte genug Breite erhalten. Das Prozentfeld zeigt auch 100 % samt Warnhinweis vollständig. Rote Zone über 60 %, Tastatur, Mute und Audioweg bleiben erhalten. Die gemeinsame DOM-Struktur bleibt gleich; die Homepage hält durch ihre eigenen Styles weiterhin die waagerechte Anordnung. Die senkrechte Richtung verwendet den [dokumentierten CSS-Weg für Range-Eingaben](https://developer.chrome.com/blog/vertical-form-controls) mit writing-mode und direction; die tatsächliche Knuddels-Darstellung bleibt separat abzunehmen.
 
 ### Kompaktere Aktionen
 
 Die warmgoldenen Materialtasten bleiben erkennbar. Breit messen Sendeplan, Wunschbox und Moderation jeweils 156 × 64 px mit 24-px-Symbol und 14-px-Schrift statt zuvor 190 × 80 px. Gleichmäßige 10-px-Abstände und die angepassten Rasterspalten gewinnen zusammen 112 px für die Anzeigen. Zwischen 1200 und 1499 px stehen 24-px-Symbole über 13-px-Text auf 94 × 76 px. Natürliche schmale Ansichten und begrenzte Header behalten ihre vorhandenen Umbruchwege; im festen Header bleiben alle Tasten mindestens 44 px hoch. Beschriftungen, Sperren und Fokuswege bleiben vollständig.
 
-Einzeilige Beschriftungen stehen mittig in der reservierten Textfläche. Bei sichtbarer Zusatzzeile wird die gesamte Textgruppe zentriert. Kompakte feste Rahmen verwenden 12–13 px für die Hauptbeschriftung; Zusatzzeilen bleiben 13/16 px. Die bisherigen SVG-Symbole bleiben vollständig erhalten. Button, Tooltip, zugängliche Beschriftung sowie Lade- und Fenstertitel heißen einheitlich „Moderation“.
+Der Sendeplan bleibt für alle Rollen einschließlich Inhaber deaktiviert mit „In Kürze“.
+
+Alle drei Aktionstasten besitzen dieselbe mittig angeordnete Textfläche: Hauptbeschriftung oben und 16 px reservierte Hinweisfläche darunter. Die Hauptzeilen stehen dadurch auch ohne sichtbaren Hinweis untereinander auf derselben Höhe. Kompakte feste Rahmen verwenden 12–13 px für die Hauptbeschriftung; Zusatzzeilen bleiben 13/16 px. Die Wunschbox reserviert ihre Hinweisfläche dauerhaft mit 16 px Höhe und 5 em Breite bei 13-px-Schrift. Bei Freigabe bleibt sie unsichtbar, bei Sperre zeigt sie weiterhin „Deaktiviert“. Das hält Hauptbeschriftung und Symbol an derselben Position; die unsichtbare längere Standardbeschriftung erweitert die Taste nicht. Die bisherigen SVG-Symbole bleiben vollständig erhalten. Button, Tooltip, zugängliche Beschriftung sowie Lade- und Fenstertitel heißen einheitlich „Moderation“.
 
 [Sendeplan](../pruefung/oberflaeche/radio/button-sendeplan.png) · [Moderation](../pruefung/oberflaeche/radio/button-moderation.png).
 
@@ -48,12 +50,12 @@ Aktuelle lokale Ansichten: [Lauftext unter der Appleiste](../pruefung/oberflaech
 
 ## Menüs
 
-Alle vier nativen Overlays haben mittige Titel, das Original-Logo links und eine frei erreichbare Schließen-Taste rechts. Die Köpfe bleiben vom ersten HTML-Anstrich bis zur fertigen Ansicht 76 px hoch, mit 64-px-Logo und 24-px-Titel. Die dekorative Zusatzzeile entfällt; Reiterwechsel verändern den Kopf nicht. Außenflächen und leere native Ladeabdeckung entsprechen #0f1114. Eingaben haben 16-px-Text; Aktionen bleiben mindestens 44 px groß.
+Alle drei nativen Overlays haben mittige Titel, das Original-Logo links und eine frei erreichbare Schließen-Taste rechts. Die Köpfe bleiben vom ersten HTML-Anstrich bis zur fertigen Ansicht 76 px hoch, mit 64-px-Logo und 24-px-Titel. Die dekorative Zusatzzeile entfällt; Reiterwechsel verändern den Kopf nicht. Außenflächen und leere native Ladeabdeckung entsprechen #0f1114. Eingaben haben 16-px-Text; Aktionen bleiben mindestens 44 px groß.
 
 - **Wunschbox:** flaches Formular mit einem Textfeld und Zeichenzähler; nach Abgabe kurze Quittung und Weiteren Wunsch eingeben. Eigener Song, Platz und Status stehen in der Appleiste. [Ansicht](../pruefung/oberflaeche/wunschbox/wunschbox-flach-560.png).
 - **Moderation:** Deine Sendung, Musikwünsche, Heute gespielt und Lauftext. Goldene aktive Reiter und Hauptaktionen auf einer durchgehenden anthrazitfarbenen Fläche; An-/Abmeldung ohne Zeitlimit und private Übergabe; keine Restzeit- oder Studiozeitanzeige. Vollständige Texte bleiben über Inhaltsseiten erreichbar. Der Lauftexteditor passt mit kompakter Beschriftung, Textfeld, Optionen und Aktionen ohne äußere Scrollleiste; niedrige Rahmen verwenden Bereichsseiten. [Breit](../pruefung/oberflaeche/moderation/moderation-780.png) · [Schmal](../pruefung/oberflaeche/moderation/moderation-320.png).
 - **Verwaltung:** Radio-Team und Bot-Texte. Bei Bot-Texten bleiben Kopf, Reiter und Aktionen fest; eine Inhaltsfläche scrollt, Textfelder wachsen ohne eigene Scrollleiste. [Bot-Texte](../pruefung/oberflaeche/verwaltung/verwaltung-bottexte-560.png).
-- **Sendeplan:** Flache Wochenagenda mit Tag, Zeit, Moderation und Thema. Tatsächliche An-/Abmeldung ist von geplanten Zeiten getrennt. Freie Zeit erscheint als AutoDJ. Live/AutoDJ sowie Feste Zeit/Ganztags/Open End im bestehenden Formular. [Woche](../pruefung/oberflaeche/sendeplan/sendeplan-820.png) · [Editor](../pruefung/oberflaeche/sendeplan/sendeplan-editor-820.png).
+- **Sendeplan:** Das bisherige Overlay samt Gestaltung und Layout ist entfernt. Die Taste in der Appleiste bleibt für alle Nutzer deaktiviert und zeigt „In Kürze“. Für den späteren Neuaufbau gibt es aktuell keine native Kalendergestaltung.
 
 ## Theatervorhang
 

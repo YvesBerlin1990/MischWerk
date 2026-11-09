@@ -100,7 +100,7 @@ MischWerkUI.define('lifecycle', function (dependencies) {
       try {
         var frame = bridge.getHostFrame();
         frame.setTitle(model.view === 'wishes' ? 'MischWerk · Wunschbox' : model.view === 'studio' ?
-          'MischWerk · Moderation' : model.view === 'team' ? 'MischWerk · Verwaltung' : model.view === 'schedule' ? 'MischWerk · Sendeplan' : 'MischWerk · Radio');
+          'MischWerk · Moderation' : model.view === 'team' ? 'MischWerk · Verwaltung' : 'MischWerk · Radio');
       } catch (error) { /* Optionale Beschriftung darf den Player nicht blockieren. */ }
       layout.resizeBar();
       commands.send('mw:ready');

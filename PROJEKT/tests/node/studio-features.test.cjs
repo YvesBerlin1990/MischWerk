@@ -59,8 +59,7 @@ test('Anmelden und Abmelden bleiben atomar; veraltete Anmeldung und Speicherfehl
 function schedule(f, date, start, end, nick, topic = 'Geplantes Thema') {
   const day = new Date(date+'T12:00:00Z'); day.setUTCDate(day.getUTCDate()-(day.getUTCDay()+6)%7);
   const week = day.toISOString().slice(0,10);
-  f.h.event(f.owner,f.os,'mw:openSchedule');
-  const session = f.owner.sessions.find(s=>s.content.htmlFile.pageData.view==='schedule');
+  const session = f.os;
   const read=f.h.event(f.owner,session,'mw:schedule.get',{week,requestId:'read-plan'}).find(e=>e.type==='mw:schedule.data').data;
   const saved=f.h.event(f.owner,session,'mw:schedule.save',{week,date,start,end,nick,topic,expectedRevision:read.revision,requestId:'save-plan'}).find(e=>e.type==='mw:schedule.result').data;
   assert.equal(saved.ok,true,saved.message);

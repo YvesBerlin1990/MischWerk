@@ -1,4 +1,8 @@
-# MischWerk – API-Nachweis 0.1.324 · Build 324
+# MischWerk – API-Nachweis 0.1.330 · Build 330
+
+## Reset der nativen Sendeplanoberfläche · 09.11.2026
+
+Build 329 entfernt ausschließlich die native Kalenderoberfläche samt ihren Frontendmodulen, Styles, Öffnungsbindung und Overlaybenachrichtigungen. Der erhaltene Button bleibt für alle Rollen auf „In Kürze“ deaktiviert. Alte mw:openSchedule-Aufrufe erhalten eine negative Quittung, ohne ein anderes Fenster zu ersetzen. Für eine direkt alte schedule-Seite startet kein Provider-/Radiocontroller. Es wird keine neue Plattformsignatur eingeführt. Gespeicherte Wochen, automatische Studioeinträge, vorhandenes Datenprotokoll und Homepage-/Android-Verträge bleiben erhalten; der Datumshelfer ist in die unabhängige Website verschoben. Die folgenden älteren API-Nachweise dokumentieren ihre damaligen Builds, keine heute aktive native Sendeplanoberfläche.
 
 ## Direkter SPCast-Titelabruf und 404-Untersuchung · 09.11.2026
 
