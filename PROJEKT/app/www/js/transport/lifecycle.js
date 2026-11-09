@@ -30,10 +30,12 @@ MischWerkUI.define('lifecycle', function (dependencies) {
     return !disposed && player && navigator.onLine !== false ? player.playbackPosition() : null;
   }
   function samplePlaybackActivity() {
-    var position = playbackPosition(), now = Date.now();
+    var position = playbackPosition();
     if (position === null || !model.connected() || !bridge || typeof bridge.executeSlashCommand !== 'function') {
       resetPlaybackActivity(); return;
     }
+    // Dieselbe monotone Medienuhr wie die Audioverbindung; Systemzeitkorrekturen ändern keine Frist.
+    var now = player.playbackNow();
     var elapsed = (now - activitySampleAt) / 1000, advanced = false;
     if (activityPosition === null || elapsed <= 0 || elapsed > 15 || position < activityPosition ||
         position - activityPosition > elapsed * 2 + 1) {
@@ -61,9 +63,9 @@ MischWerkUI.define('lifecycle', function (dependencies) {
   }
   function confirmPlaybackActivity(change) {
     if (!activityRequest || activityRequest.confirmed || change.refreshRequestId !== activityRequest.id) { return; }
-    var position = playbackPosition();
-    if (Date.now() > activityRequest.expiresAt || position === null || !model.connected() ||
-        !activityProgressAt || Date.now() - activityProgressAt > 5000) { activityRequest = null; return; }
+    var position = playbackPosition(), now = player.playbackNow();
+    if (now > activityRequest.expiresAt || position === null || !model.connected() ||
+        !activityProgressAt || now - activityProgressAt > 5000) { activityRequest = null; return; }
     activityRequest.position = position;
     activityRequest.confirmed = true;
   }
@@ -98,7 +100,7 @@ MischWerkUI.define('lifecycle', function (dependencies) {
       try {
         var frame = bridge.getHostFrame();
         frame.setTitle(model.view === 'wishes' ? 'MischWerk · Wunschbox' : model.view === 'studio' ?
-          'MischWerk · Radioregie' : model.view === 'team' ? 'MischWerk · Verwaltung' : model.view === 'schedule' ? 'MischWerk · Sendeplan' : 'MischWerk · Radio');
+          'MischWerk · Moderation' : model.view === 'team' ? 'MischWerk · Verwaltung' : model.view === 'schedule' ? 'MischWerk · Sendeplan' : 'MischWerk · Radio');
       } catch (error) { /* Optionale Beschriftung darf den Player nicht blockieren. */ }
       layout.resizeBar();
       commands.send('mw:ready');

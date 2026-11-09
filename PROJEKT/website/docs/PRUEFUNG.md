@@ -1,43 +1,37 @@
-# MischWerk – aktuelle Websiteprüfung 0.2.5
+# MischWerk – Websiteprüfung 0.2.5
 
-## Eigenständige Programmvorschau entfernt · 07.11.2026
+Stand: **09.11.2026**, mit App **0.1.322 / Build 322** lokal geprüft.
 
-Die auf Nutzerauftrag angelegte eigenständige Programmvorschau ist vollständig entfernt: HTML, eigenes CSS/JavaScript, Browserprüfungen und Prüfbild gelöscht; beide Serveradressen, Ressourcenrouten und die Ausnahme für das externe Anbieterskript ausgebaut. Zugehörige Regel- und README-Einträge sowie die überholten Prüfabschnitte entfernt. Die bestehende Homepage, ihr Sendeplan, der geschützte Arbeitsbereich und die App bleiben erhalten.
+## Aktuelle Prüfungen und Bilder
 
-**22/22 bestehende Websiteprüfungen erfolgreich.** Zusätzlich geprüft: entfernte Vorschau-/Ressourcenadressen antworten HTTP 404, Startseite, Sendeplan und Arbeitsbereich weiterhin HTTP 200; keine verbleibende Ausnahme für das externe Skript. Entfernte Dateien fehlen auch im Dateisystem. Git-Diffprüfung fehlerfrei. Websiteversion 0.2.5, mit aktuellem Appbestand Build 297 geprüft; keine Veröffentlichung oder Anbieteränderung.
+**22/22 eigene Node-/Browserfälle bestanden**, keine übersprungenen Fälle, 7,7 Sekunden. Geprüft sind öffentlicher Player und Navigation, mobile Bedienung, Formulare, geschützter Arbeitsbereich, Channelbestätigung, Sitzungen/CSRF, Rechteentzug, Entwürfe und Antwortverlust. Lokale HTTP-/Knuddels-Modelle und synthetische Anbieterantworten; keine echte Mail oder Channelaktion.
 
-## Studio ohne Verlängerung · App Build 269 · 06.11.2026
+Die bestehende Browser-Testfixture wurde um die seit App Build 313 verwendete SPCast-Historienquelle ergänzt. Zuvor beantwortete sie nur den früheren Titelendpunkt; drei Prüfungen warteten deshalb erfolglos auf ihren Testtitel. Alle bisherigen Funktions-/Audioassertionen bleiben erhalten. Der anschließende vollständige Website-Lauf besteht ohne Änderung des Website- oder Appcodes.
 
-Der authentifizierte Arbeitsbereich enthält nur Anmelden, Abmelden und die bestehende bestätigte Übergabe. Endzeit-/Open-End-Editor, Restzeitausgabe und deren Clientlogik sind entfernt; der private Bereinigungsweg referenziert keine entfernten DOM-Knoten mehr. Derselbe Appserver hält die Anmeldung ohne Zeitlimit. Wiederholung verändert weder Beginn noch Schlüssel; Rollen, Abmeldung, Übergabe, Sitzungssicherheit und Wunschpersistenz bleiben erhalten. Alle 22 regulären Node-/Browserfälle bestehen in 6,8 Sekunden einschließlich Anmeldung ohne Zeitfelder, Themenentwurf bei Antwortverlust und Ansichtswechsel, vollständiger Wunschregie, Rechteentzug und privater Bereinigung. Vorhandene gesperrte Mailkonfiguration und Appanschlüsse bleiben unverändert. Abhängigkeiten mit eingefrorenem Lockfile lokal ergänzt; keine echten Mails, Installation oder Veröffentlichung.
+Die drei Aufnahmen wurden am **09.11.2026** aus dem regulären lokalen Websiteserver mit Appkomponenten aus Build 322 erneuert und visuell geprüft:
 
-## Ordnergruppierung · 06.11.2026
+- [Desktop-Startseite](website-startseite.jpg)
+- [Mobile Startseite](website-mobil.jpg)
+- [Geschützter Arbeitsbereich](arbeitsbereich.jpg)
 
-Browserdateien liegen jetzt unter public/ mit css/, js/site/ und js/workspace/. Die acht regulären Servermodule liegen gemeinsam unter server/; tools/preview/ enthält nur den testgebundenen Diagnoseserver, dessen Bridge und die beiden Testchannel-Dateien. Imports, Startbefehle und ausdrücklich zugeordnete Ressourcenpfade sind angepasst; öffentliche URLs und die 16 Browserdateien selbst bleiben unverändert. App-Stylesheets werden über die neuen Fachordner geladen.
+Der Arbeitsbereich wird ausschließlich über den vorhandenen lokalen Testadapter angemeldet. Bilder zeigen Beispieldaten; daraus folgt keine produktive Appverbindung oder Veröffentlichung.
 
-Alle 22 Websitefälle bestehen am endgültigen geordneten Appstand in 7,4 Sekunden. Der bisher veraltete Vorschautest für den entfernten Verwaltungsbutton verwendet den vorhandenen authentifizierten Chatbefehl über den lokalen Diagnoseadapter. Player, öffentliche Bereiche, Arbeitsbereich, Appcallback, Sitzungen und der Ausschluss von Server-/Konfigurationsdateien bleiben geprüft. Keine Versionsänderung oder Veröffentlichung. Die nachfolgenden Gestaltungs- und Anschlussnachweise vom 05.11.2026 gelten weiter.
+## Weiterhin offene Befunde
 
-Stand 05.11.2026, Appanschluss passend zu 0.1.223 / Build 223. Öffentliche Homepage im aktuellen Vinyl-Design überarbeitet; geschützter Arbeitsbereich und dokumentierter Appadapter lokal umgesetzt. Keine echte Mail, Channelaktion, Übertragung, Veröffentlichung oder Hostingänderung ausgeführt.
+Die folgenden drei Gegenfälle wurden am 09.11.2026 unabhängig von der regulären Suite reproduziert. Sie sind nicht durch deren grüne Ergebnisse behoben:
 
-Die öffentliche Homepage ist aufgeteilt: Start/Radio, Sendeplan, Team, Mitmachen und Wunschbox haben eigene Adressen und einzeln sichtbare Inhalte. Desktopreiter und ein Hamburger-Menü bis 850 px führen durch die Bereiche. Die Startseite zeigt nur Einstieg und Radio. Direktaufruf, Neuladen, Sprunglink, Escape und Browser-Zurück/Vor funktionieren; laufendes Radio und ungesendete Eingaben bleiben beim öffentlichen Bereichswechsel erhalten. Der geschützte Arbeitsbereich hat eigene Reiter für Moderation, Sendeplan und Verwaltung.
+| Priorität | Fundstelle | Nachgewiesener Fehler und erforderliche Korrektur |
+| --- | --- | --- |
+| P2 | `server/site-api.cjs:41–45`, `server/workspace-api.cjs:17` | `raw += part` dekodiert jeden Netzwerkblock separat. Wird ü zwischen seinen beiden UTF-8-Bytes geteilt, bestätigt der öffentliche Wunschweg HTTP 200 und übermittelt „Gr��ße für dich 🎵“. Der authentifizierte Themenauftrag speichert entsprechend „Gr��ße aus der Regie“ und bestätigt Erfolg. Buffer bis zur vollständigen Dekodierung sammeln oder einen zustandsbehafteten UTF-8-Decoder verwenden; das Byte-Limit am tatsächlichen Eingang erhalten. |
+| P2 | `public/js/workspace/workspace-schedule.js:5–7,26` | `data-confirm=yes` am Löschbutton ist nicht an die ausgewählte Sendung gebunden und wird beim Editorwechsel nicht gelöscht. Edge-Gegenfall: zwei Sendungen A/B anlegen, A bearbeiten und Löschen einmal anklicken, dann B bearbeiten. B übernimmt „Löschen bestätigen“ und wird mit einem Klick entfernt; A bleibt. Bestätigung an Identität und Revision binden und beim Eintragswechsel, Zurücksetzen, Wochenwechsel sowie Abmelden verwerfen. |
+| P2 | `server/server.cjs:21` | Der Produktiveinstieg übergibt `mail:{configured:false}` an `createSiteApi`. Selbst bei `MISCHWERK_APPLICATIONS_ENABLED=true` und vollständig synthetisch befüllter SMTP-Konfiguration meldet `/api/site/content` weiterhin `applicationsAvailable:false`; der Stub besitzt außerdem keine send-Methode. Der separat mit Transportattrappe geprüfte `createApplicationMail` meldet mit derselben Konfiguration true. Den echten Adapter nach vorhandener Konfiguration verdrahten und den deaktivierten Standard erhalten. Keine SMTP-Verbindung und kein Versand im Gegenfall. |
 
-## Ergebnis und Gestaltung
+Die bestehende Website-Testhilfe injiziert für Mailtests den Adapter direkt in die Formular-API. Der reguläre Serverpfad, geteilte UTF-8-Zeichen und übernommene Löschbestätigung werden von den vorhandenen Standardfällen noch nicht abgesichert. Gegenfälle verwendeten synthetische Konfiguration; keine SMTP-Verbindung und kein Mailversand.
 
-Dunkler Grund #0f1114, goldene Radiotasten und silberne Menüaktionen, lokale Outfit-/Fraunces-Schriften und Original-Logo. Der öffentliche Player verwendet unveränderte Appcontroller für Audio, Provider, Mute, Lautstärke und Glow. Websiteanordnung korrigiert: Play im Mittelpunkt der Vinylrillen, Titel getrennt daneben, mobile Lautstärke und Thema darunter. Der sichtbare Fehlstand wurde korrigiert und als Positionsprüfung für 1440/1024/768/390/320 px abgesichert. Der Kopf des Arbeitsbereichs bricht bei 320 px am Wortbestandteil um; die schmale Wochensteuerung reserviert eigene Spalten für Pfeile und Bereich sowie eine eigene Zeile für Diese Woche.
+Der zuvor im Appbericht erwähnte P2-Rechtebefund wurde nach Abgleich der offiziellen, auf den Appchannel bezogenen isChannelOwner-API zurückgenommen. [Einordnung](../../docs/pruefung/PRUEFBERICHT.md#bekannte-befunde-und-offene-abnahme).
 
-Der Produktiveinstieg server/server.cjs verwendet keine simulierten Nutzer oder Test-App. Der alte Diagnoseserver bleibt testgebunden. Öffentlicher Kalender verwendet die gemeinsame reine App-Kalenderdarstellung einschließlich AutoDJ-Lücken, Ganztags/Open End und Nachtfortsetzungen. Die veraltete Statuszentralen-Prüfung ist auf die vorhandenen Bot-Texte umgestellt; öffentliche Testnamen sind wieder neutral.
+## Betrieb und ausstehende Abnahme
 
-Arbeitsbereich: Datum/Uhrzeit und Open End mit bestätigter Endzeit, Thema, Wunschbox, einzelner sichtbarer Wunsch samt Empfang und Status, private Übergabe, Heute gespielt, Teamverwaltung, sechs Bot-Texte mit 20/30/40/50 Minuten und Wochenplan mit tatsächlichen Revisionen. Eingaben bleiben bei Fehler, Antwortverlust und Bereichswechsel erhalten. Keine zweite Datenbank oder Clientrolle.
+Der reguläre Server verwendet keine Testrollen; Diagnoseadapter bleiben auf MISCHWERK_WEBSITE_TEST=1 beschränkt. Öffentliche Bereiche sind Radio, Sendeplan, Team, Mitmachen und Wunschbox mit eigenen Adressen und mobilem Menü. Appadapter und Mailversand sind standardmäßig ausgeschaltet. Der geschützte Arbeitsbereich bietet Moderation ohne Zeitlimit, Wunschregie, Übergabe, Historie, Sendeplan und Inhaberverwaltung.
 
-## Funktions- und Sicherheitsnachweise
-
-- **22/22 eigenständige Websitefälle grün**: sechs bestehende Nodefälle, sechs HTTP-/Sitzungsfälle, fünf bestehende Browserfälle und fünf vollständige Browserabläufe gegen Produktivserver und echten Appcallback im lokalen API-Modell. Vollständiger Abschlusslauf am 05.11.2026 mit Appkomponenten aus Build 223: rund 13,9 Sekunden.
-- Zusätzlich **elf App-Backendfälle** für standardmäßig abgeschalteten Anschluss, Besitzerfreigabe, Einmalcode, gefälschte Rollen, Ablauf/Logout/Verlassen/Rechteentzug, doppelte Aufträge, Persistenzfehler, feste Endzeit/Open End, private Wunschregie, Besitzerverwaltung, gemeinsame Bot-/Planrevisionen und öffentliche Datenprojektion.
-- HttpOnly-/SameSite-/Secure-Cookies, Kennungsrotation, Origin/CSRF einschließlich ungültiger Zeichen, keine privaten Appzugriffstoken in Browserantworten, keine erreichbaren .env-/Server-/Testrollenpfade. Rechteverlust leert private DOM-Inhalte und Historiencache. Bestätigte Websiteaktionen erscheinen im nativen Appzustand und umgekehrt.
-- Browser prüft America/Los_Angeles als abweichende Zeitzone, Desktop/320 px, mindestens 44-px-Aktionen, vollständige Überschriften ohne Überschneidung, Entwurf über Bereichswechsel, verlorene Erfolgsantwort mit Wiederholung, Bot-Speicherung, AutoDJ/Ganztags, private Wunschquittung, chronologische Historienseiten und Rechteentzug.
-- Apppaket mit **283 Nodefällen** und **je 906 Prüfungen** in beiden echten Rhino-Engines grün. Rhino führt auch WebHookregistrierung, Kopplung, Fachaktionen, Wiederholung, Open End und Abmeldung als ES5 aus.
-
-[Desktop](website-startseite.jpg), [Smartphone](website-mobil.jpg) und [Arbeitsbereich](arbeitsbereich.jpg) am 05.11.2026 für den GitHub-Abgleich aus dem aktuellen Produktivserver mit ausdrücklich lokalen Testdaten neu aufgenommen. Schmale Arbeitsbereichsbilder wurden nur temporär zur Sichtprüfung verwendet. Kein echter Live-Sendeplan und keine Veröffentlichung daraus ableiten.
-
-## Grenzen und nächster Abnahmeschritt
-
-STREAMPANEL / DataDachs ist geplant. Dessen öffentlich gelesene Tarifseite nennt Node.js 6–12; der Websiteserver benötigt eine unterstützte Node-LTS-Version ab 22. Konkrete Hostinglaufzeit, Domain, TLS-Proxy, Serverumgebung und native Beta-WebHook-Verfügbarkeit sind noch offen. Bisherige App-Menüs bleiben erhalten. Bewerbungsversand bleibt ausgeschaltet. Einrichtung und Abnahme: [ANBINDUNG.md](ANBINDUNG.md). Der Appgesamtbericht liegt unter [PROJEKT/docs/pruefung](../../docs/pruefung/PRUEFBERICHT.md).
+Vor Veröffentlichung die tatsächliche Hostinglaufzeit **Node.js ab 22**, Domain, HTTPS-Proxy, private Serverumgebung und native App-/WebHook-Anbindung prüfen. Channelrollen, Anwesenheit, Ende-zu-Ende-Verbindung und Mailversand benötigen eigene Abnahme. [Anbindung](ANBINDUNG.md) · [App-Prüfbericht](../../docs/pruefung/PRUEFBERICHT.md) · [Native Abnahme](../../docs/betrieb/LIVE-ABNAHME.md).

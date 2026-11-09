@@ -27,15 +27,19 @@ for(const k3 of [true,false])test('Radio harmonisiert drei Anzeigen, Lautstärke
   await page.screenshot({path:path.join(picture,'Harmonie-'+(k3?'k3':'stapp')+'.png')});
   const style=await page.evaluate(()=>({
     text:['track-title','show-topic','own-wish-rank'].map(id=>{const s=getComputedStyle(document.getElementById(id));return {font:s.fontFamily,weight:s.fontWeight,size:parseFloat(s.fontSize)};}),
+    artist:{size:parseFloat(getComputedStyle(document.getElementById('track-artist')).fontSize),gap:document.getElementById('track-artist').getBoundingClientRect().top-document.getElementById('track-title').getBoundingClientRect().bottom},
     volume:document.querySelector('.volume-control').getBoundingClientRect().width,
     track:getComputedStyle(document.getElementById('volume')).backgroundSize,
     buttons:['open-schedule','open-wishes','studio-tab'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.width,r.height];})
   }));
   assert.ok(style.text.every(s=>s.font.includes('Outfit')&&s.weight==='600'&&s.size<=20),'Eine ruhige gemeinsame Schrift: '+JSON.stringify(style));
+  assert.equal(style.artist.size,16);assert.ok(style.artist.gap>=6,'Mehr Abstand zwischen Titel und Interpret: '+JSON.stringify(style.artist));
   assert.ok(style.volume<=240,'Kürzere Lautstärkeregelung: '+JSON.stringify(style));assert.match(style.track,/4px/);
   assert.ok(style.buttons.every(([w,h])=>Math.abs(w-156)<1&&h===64),'Kompakte gleichmäßige Tasten schaffen Textbreite: '+JSON.stringify(style));
   assert.equal(await page.locator('#mute-button').evaluate(n=>n.getBoundingClientRect().height),44);
   assert.equal(await page.locator('#volume').evaluate(n=>n.getBoundingClientRect().height),44);
+  assert.equal(await page.locator('#play-button').evaluate(n=>n.getBoundingClientRect().width),80);
+  assert.notEqual(await page.locator('#play-button').evaluate(n=>getComputedStyle(n,'::after').boxShadow),'none','Goldschein bei aktiver Wiedergabe');
   await publicActionContentsFit(page);await muteButtonFits(page);
   for(const [width,height] of [[1500,160],[1280,160],[390,600]]){
     await resizeViewport(page,{width,height});await page.evaluate(()=>document.fonts.ready);
@@ -43,6 +47,47 @@ for(const k3 of [true,false])test('Radio harmonisiert drei Anzeigen, Lautstärke
     const clip=height>160?await page.evaluate(()=>({x:0,y:0,width:innerWidth,height:Math.min(innerHeight,Math.ceil(document.getElementById('radio-deck').getBoundingClientRect().bottom)+16)})):undefined;
     await page.screenshot({path:path.join(picture,'Harmonie-'+(k3?'k3':'stapp')+'-'+width+'.png'),clip});
   }
+  await page.locator('#play-button').click();
+  assert.equal(await page.locator('#play-button').evaluate(n=>getComputedStyle(n,'::after').boxShadow),'none','Goldschein endet beim Stoppen');
+  assert.deepEqual(errors,[]);
+});
+
+for(const k3 of [true,false])test('SPCast-Historie aktualisiert den Playertitel in '+(k3?'K3':'STAPP')+' alle fünf Sekunden und erhält Audio bei alten Antworten und Fehlern',async t=>{
+  const {page,state,errors,requests}=await setup(t,{station:true,clock:true,activityAudio:true,k3,role:'listener'});
+  const source='https://mischwerk.spcast.eu:9000/sp/cache/history/history.json';
+  const now=await page.evaluate(()=>Math.floor(Date.now()/1000));let count=0,fail=false;
+  const row=(timestamp,song)=>({timestamp,metadata:{song}});
+  let rows=[row(now-30,'Alt'),row(now-10,'a-ha - Take On Me - Remix'),row(now+3600,'Zukunft')];
+  await page.route(source,r=>{count++;return r.fulfill(fail?{status:503}:{json:rows});});
+  await page.locator('#play-button').click();
+  await page.evaluate(()=>{window.__historyAudio=document.getElementById('radio-audio');__historyAudio.volume=.38;});
+  await page.clock.pauseAt(await page.evaluate(()=>Date.now()+50));
+  await page.evaluate(({s,source})=>__emit('mw:state',{...s,revision:2,station:{...s.station,metadataUrl:source,metadataFormat:'spcast-history',
+    allowedHosts:[...s.station.allowedHosts,'mischwerk.spcast.eu'],fields:{...s.station.fields,title:'metadata.song',artist:'',live:''}}}),{s:state,source});
+  await page.locator('#track-title').filter({hasText:'Take On Me - Remix'}).waitFor();
+  assert.equal(await page.locator('.artist-copy').isVisible(),true);
+  assert.equal(await page.locator('#track-artist').textContent(),'a-ha');
+  assert.equal(await page.evaluate(()=>document.getElementById('track-title').getBoundingClientRect().bottom<=document.getElementById('track-artist').getBoundingClientRect().top),true,'Titel steht über dem Interpreten');
+  const oldRequests=requests.filter(u=>u.includes('/track/current')).length;
+  await page.clock.runFor(4999);assert.equal(count,1);
+  rows=[row(now-20,'Veralteter Stand')];const staleResponse=page.waitForResponse(source);await page.clock.runFor(1);await (await staleResponse).finished();
+  await page.waitForTimeout(20);assert.equal(count,2);assert.equal(await page.locator('#track-title').textContent(),'Take On Me - Remix');
+  rows=[row(now-5,'Neue Band - Neuer Titel')];await page.clock.runFor(5000);
+  await page.locator('#track-title').filter({hasText:'Neuer Titel'}).waitFor();
+  fail=true;await page.clock.runFor(5000);await page.locator('#metadata-status').filter({hasText:'letzte Titelanzeige'}).waitFor();
+  assert.equal(await page.locator('#track-title').textContent(),'Neuer Titel');
+  const failedCount=count;await page.clock.runFor(29999);assert.equal(count,failedCount);
+  fail=false;rows=[row(now-1,'<b>Band</b> - Wieder da')];await page.clock.runFor(1);
+  await page.locator('#track-title').filter({hasText:'Wieder da'}).waitFor();
+  assert.equal(await page.locator('#track-artist').textContent(),'<b>Band</b>');assert.equal(await page.locator('#radio-metadata b').count(),0);
+  assert.equal(await page.locator('#track-title').getAttribute('title'),'Aktueller Titel');
+  assert.equal(await page.locator('#track-artist').getAttribute('title'),'Interpret');
+  rows=[row(now,'Nur ein Titel')];await page.clock.runFor(5000);
+  await page.locator('#track-title').filter({hasText:'Nur ein Titel'}).waitFor();
+  assert.equal(await page.locator('.artist-copy').isVisible(),false,'Ohne Trenner bleibt die vollständige Titelzeile erhalten');
+  assert.equal(requests.filter(u=>u.includes('/track/current')).length,oldRequests,'Separater alter Titelendpunkt bleibt unbenutzt');
+  assert.equal(await page.locator('#radio-audio').evaluate(n=>n===window.__historyAudio&&!n.paused&&n.volume===.38),true);
+  assert.equal(await page.locator('#studio-tab').isVisible(),false,'Öffentlicher Titelabruf verleiht keine Regierechte');
   assert.deepEqual(errors,[]);
 });
 
@@ -57,7 +102,7 @@ for(const k3 of [true,false])test('Lauftext rahmt automatisch mit Pluszeichen un
     assert.equal(await page.locator('#radio-ticker-track > span').first().textContent(),expected);
     assert.equal(await page.locator('#radio-ticker-track > span').nth(1).textContent(),expected);
     assert.equal(await page.locator('#radio-ticker-readable').textContent(),expected.slice(4,-4));
-    assert.equal(await page.locator('#radio-ticker').getAttribute('title'),expected.slice(4,-4));
+    assert.equal(await page.locator('#radio-ticker').getAttribute('title'),'Informationen von Radio MischWerk');
   }
   await page.evaluate(s=>__emit('mw:state',{...s,revision:100,ticker:{text:'+++ +++',enabled:true,speed:48,direction:'left',revision:100}}),state);
   assert.equal(await page.locator('#radio-ticker').isVisible(),false,'Reine alte Plus-Dekoration erzeugt keinen leeren Lauftext');
@@ -162,6 +207,24 @@ for(const k3 of [true,false])test('Wiedergabe-Heartbeat in '+(k3?'K3':'STAPP')+'
  assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);assert.deepEqual(errors,[]);
 });
 
+for(const k3 of [true,false])test('Heartbeat bei knappem Puffer und Uhrkorrektur in '+(k3?'K3':'STAPP'),async t=>{
+ const {page,state,errors}=await setup(t,{station:true,clock:true,activityAudio:true,k3});
+ await page.evaluate(state=>{
+  let revision=state.revision;const send=Client.sendEvent;
+  Client.sendEvent=function(type,data){send.call(this,type,data);if(type==='mw:refresh')__emit('mw:state',{...state,revision:++revision,refreshRequestId:data.requestId});};
+ },state);
+ await page.locator('#play-button').click();await page.clock.runFor(5000);
+ await page.locator('#radio-audio').evaluate(a=>Object.defineProperty(a,'readyState',{configurable:true,value:2}));
+ await page.clock.setSystemTime(await page.evaluate(()=>Date.now()-3600000));await page.clock.runFor(178000);
+ assert.equal(await page.evaluate(()=>__slashCommands.length),1);
+ await page.clock.setSystemTime(await page.evaluate(()=>Date.now()+7200000));await page.clock.runFor(181000);
+ assert.equal(await page.evaluate(()=>__slashCommands.length),2);assert.equal(await page.locator('#stream-label').textContent(),'LIVE');
+ await page.locator('#radio-audio').evaluate(a=>Object.defineProperty(a,'currentTime',{configurable:true,value:a.currentTime}));
+ await page.clock.runFor(10000);assert.equal(await page.evaluate(()=>__slashCommands.length),2);
+ await page.locator('#play-button').click();await page.clock.runFor(190000);assert.equal(await page.evaluate(()=>__slashCommands.length),2);
+ assert.deepEqual(errors,[]);
+});
+
 test('Vinyl Deck bleibt über alle Leistenbreiten, Rollen und Pixeldichten erreichbar',async t=>{
  const rows=[],widths=[320,360,374,375,390,499,500,560,561,640,641,699,700,701,850,899,900,901,1024,1100,1199,1200,1201,1280,1350,1351,1359,1360,1490,1499,1500,1600,1920,2290,2560,3440,3840];
  try{
@@ -174,17 +237,21 @@ test('Vinyl Deck bleibt über alle Leistenbreiten, Rollen und Pixeldichten errei
      const m=document.getElementById('radio-metadata'),face=document.querySelector('.radio-program-face'),f=face.getBoundingClientRect();
      const controls=['play-button','open-schedule','open-wishes','studio-tab','team-tab'].map(id=>document.getElementById(id)).filter(n=>n?.getClientRects().length).map(n=>({id:n.id,...n.getBoundingClientRect().toJSON()}));
      const music=document.querySelector('.now-playing').getBoundingClientRect(),topic=document.querySelector('.radio-context').getBoundingClientRect();
+     const p=document.getElementById('play-button').getBoundingClientRect(),disc=getComputedStyle(face,'::before');
+     const playDisc={width:p.width,height:p.height,dx:p.x+p.width/2-f.x-face.clientLeft-parseFloat(disc.left)-parseFloat(disc.width)/2,dy:p.y+p.height/2-f.y-face.clientTop-parseFloat(disc.top)};
      const studio=document.querySelector('#studio-tab:not([hidden])');
      function discStyle(node) { if(!node)return null;const s=getComputedStyle(node),r=node.getBoundingClientRect();return [r.width,r.height,s.borderRadius,s.borderColor,s.backgroundImage,s.color]; }
      const studioDisc=studio?discStyle(studio.querySelector('.public-action-icon')):null,publicDisc=discStyle(document.querySelector('#open-wishes .public-action-icon'));
      const stableGeometry=['radio-panel','radio-metadata','play-button','mute-button','volume','volume-value','open-schedule','open-wishes','studio-tab'].map(id=>document.getElementById(id)).filter(n=>n?.getClientRects().length).map(n=>({id:n.id,...n.getBoundingClientRect().toJSON()}));
      const actionLabel=document.querySelector('#open-schedule strong');
-     return {stableGeometry,actionFont:getComputedStyle(actionLabel).fontSize,canvases:[document.documentElement,document.body,document.getElementById('radio-panel')].map(n=>getComputedStyle(n).backgroundColor),musicShare:music.width/m.clientWidth,topicShare:topic.width/m.clientWidth,faceWidth:f.width,faceHeight:f.height,horizontalOverflow:document.documentElement.scrollWidth>innerWidth||m.scrollWidth>m.clientWidth,controls,studioDisc,publicDisc,
+     return {playDisc,stableGeometry,actionFont:getComputedStyle(actionLabel).fontSize,canvases:[document.documentElement,document.body,document.getElementById('radio-panel')].map(n=>getComputedStyle(n).backgroundColor),musicShare:music.width/m.clientWidth,topicShare:topic.width/m.clientWidth,faceWidth:f.width,faceHeight:f.height,horizontalOverflow:document.documentElement.scrollWidth>innerWidth||m.scrollWidth>m.clientWidth,controls,studioDisc,publicDisc,
       background:getComputedStyle(face).backgroundColor,vinyl:getComputedStyle(face,'::before').backgroundImage,titleFont:getComputedStyle(document.getElementById('track-title')).fontFamily,uiFont:getComputedStyle(document.body).fontFamily};
     });
     rows.push({width,height,role,deviceScaleFactor,...row});
     const detail=JSON.stringify({width,height,role,deviceScaleFactor,...row});
     assert.ok(row.faceWidth>0&&row.faceHeight>0,detail);assert.equal(row.horizontalOverflow,false,detail);
+    assert.ok([72,80].includes(row.playDisc.width)&&row.playDisc.width===row.playDisc.height,'Größere runde Playtaste: '+detail);
+    assert.ok(Math.abs(row.playDisc.dx)<=2&&Math.abs(row.playDisc.dy)<=2,'Playtaste bleibt in der Vinyl-Einfassung zentriert: '+detail);
     if(width>=1200){assert.ok(row.musicShare<=.6&&row.topicShare>=.35,'Musik und Thema teilen die Breite ausgewogen: '+detail);}
     assert.deepEqual(row.canvases,Array(3).fill('rgb(0, 0, 0)'),'Äußerer Untergrund entspricht dem schwarzen Werkshallen-Channelbild: '+detail);
     assert.equal(row.background,'rgb(20, 20, 20)');assert.match(row.vinyl,/repeating-radial-gradient/);assert.match(row.titleFont,/Outfit/);assert.match(row.uiFont,/Outfit/);
@@ -203,7 +270,8 @@ test('Vinyl Deck bleibt über alle Leistenbreiten, Rollen und Pixeldichten errei
     for(const id of ['show-topic','host-name','own-wish-rank','own-wish-title','mute-button'])await page.locator('#'+id).scrollIntoViewIfNeeded();
     await muteButtonFits(page);
     assert.equal(await page.locator('#radio-metadata').evaluate(n=>n.scrollWidth>n.clientWidth),false,'Lange Inhalte bei '+width);
-    assert.equal(await page.locator('#own-wish-title').getAttribute('title'),text);
+    assert.equal(await page.locator('#own-wish-title').getAttribute('title'),'Dein Musikwunsch');
+    assert.equal(await page.locator('#own-wish-title').textContent(),text);
     if(width>=1200){const portions=await page.evaluate(()=>{const m=document.getElementById('radio-metadata');return ['.now-playing','.radio-context','#own-wish-position'].map(s=>document.querySelector(s).getBoundingClientRect().width/m.clientWidth);});assert.ok(Math.max(...portions)<=.45&&Math.min(...portions)>=.23,'Mit Wunsch teilen alle drei Bereiche die Breite: '+JSON.stringify({width,role,portions}));}
     if(width>=1200)assert.ok(await page.locator('#radio-metadata').evaluate(m=>{m.scrollTop=0;return ['.track-eyebrow','.topic-label','.own-wish-label'].every(s=>document.querySelector(s).getBoundingClientRect().top>=m.getBoundingClientRect().top-.5);}),'Auch lange Textgruppen bleiben oben vollständig erreichbar: '+JSON.stringify({width,role,deviceScaleFactor}));
    }
@@ -369,13 +437,13 @@ async function setup(t, { nativeSizing = false, hostSteps = false, screenHeight,
     window.AudioContext=window.webkitAudioContext=function(){window.__contexts.push('unexpected');throw new Error('Keine Audioanalyse vorgesehen');};
     if(realAudio){return;}
     if(activityAudio){
-      const states=new WeakMap();function media(node){if(!states.has(node))states.set(node,{paused:true,began:Date.now()});return states.get(node);}
-      Object.defineProperty(HTMLMediaElement.prototype,'currentTime',{configurable:true,get(){const s=media(this);return s.paused?0:(Date.now()-s.began)/1000;}});
+      const states=new WeakMap();function media(node){if(!states.has(node))states.set(node,{paused:true,began:performance.now()});return states.get(node);}
+      Object.defineProperty(HTMLMediaElement.prototype,'currentTime',{configurable:true,get(){const s=media(this);return s.paused?0:(performance.now()-s.began)/1000;}});
       Object.defineProperty(HTMLMediaElement.prototype,'paused',{configurable:true,get(){return media(this).paused;}});
       Object.defineProperty(HTMLMediaElement.prototype,'readyState',{configurable:true,get(){return media(this).paused?0:4;}});
       HTMLMediaElement.prototype.load=function(){};
       HTMLMediaElement.prototype.pause=function(){media(this).paused=true;};
-      HTMLMediaElement.prototype.play=function(){Object.assign(media(this),{paused:false,began:Date.now()});this.dispatchEvent(new Event('playing'));return Promise.resolve();};
+      HTMLMediaElement.prototype.play=function(){Object.assign(media(this),{paused:false,began:performance.now()});this.dispatchEvent(new Event('playing'));return Promise.resolve();};
       return;
     }
     HTMLMediaElement.prototype.load = function () {};
@@ -1097,12 +1165,14 @@ async function publicActionContentsFit(page) {
  const measurements=await page.locator('#open-schedule,#open-wishes,#studio-tab').evaluateAll(buttons=>buttons.filter(b=>b.getClientRects().length).map(button=>{
   const b=button.getBoundingClientRect(),deck=document.querySelector('.radio-panel-face').getBoundingClientRect(),icon=button.querySelector('.public-action-icon').getBoundingClientRect(),copy=button.querySelector('.wish-button-copy'),c=copy.getBoundingClientRect();
   const title=copy.querySelector('strong'),t=title.getBoundingClientRect(),style=getComputedStyle(title),shown=!!copy.getClientRects().length,svg=Array.from(button.querySelectorAll('.public-action-icon svg')).find(n=>n.getClientRects().length).getBoundingClientRect();
-  return {id:button.id,viewport:innerWidth,closed:button.classList.contains('wishes-closed'),left:b.left,right:b.right,width:b.width,height:b.height,iconHeight:icon.height,iconY:icon.top,svgSize:svg.width,titleY:shown?t.top:null,font:shown?[style.fontFamily,style.fontSize,style.fontWeight,style.lineHeight]:null,insideDeck:b.left>=deck.left+3.5&&b.right<=deck.right-3.5&&b.top>=deck.top+3.5&&b.bottom<=deck.bottom-3.5,inside:[icon,...shown?[c]:[]].every(r=>r.left>=b.left-.5&&r.right<=b.right+.5&&r.top>=b.top-.5&&r.bottom<=b.bottom+.5),textFits:!shown||copy.scrollWidth<=copy.clientWidth+1,separate:!shown||icon.right<=c.left+.5||icon.bottom<=c.top+.5};
+  const caption=copy.querySelector('span'),hasCaption=!!caption&&!!caption.getClientRects().length,last=hasCaption?caption.getBoundingClientRect():t;
+  return {id:button.id,viewport:innerWidth,closed:button.classList.contains('wishes-closed'),hasCaption,textCentered:!shown||Math.abs((t.top+last.bottom-c.top-c.bottom)/2)<.6,left:b.left,right:b.right,width:b.width,height:b.height,iconHeight:icon.height,iconY:icon.top,svgSize:svg.width,titleY:shown?t.top:null,font:shown?[style.fontFamily,style.fontSize,style.fontWeight,style.lineHeight]:null,insideDeck:b.left>=deck.left+3.5&&b.right<=deck.right-3.5&&b.top>=deck.top+3.5&&b.bottom<=deck.bottom-3.5,inside:[icon,...shown?[c]:[]].every(r=>r.left>=b.left-.5&&r.right<=b.right+.5&&r.top>=b.top-.5&&r.bottom<=b.bottom+.5),textFits:!shown||copy.scrollWidth<=copy.clientWidth+1,separate:!shown||icon.right<=c.left+.5||icon.bottom<=c.top+.5};
  }));
  for(const row of measurements)assert.ok(row.insideDeck&&row.inside&&row.textFits&&row.separate,'Tasten bleiben mit Abstand im Deck; Symbol und vollständige Beschriftung passen ohne Überlagerung: '+JSON.stringify(row));
+ for(const row of measurements)assert.ok(row.textCentered,'Ein- und zweizeilige Beschriftungen stehen mittig in ihrer Textfläche: '+JSON.stringify(row));
  for(const row of measurements.slice(1)){
   for(const key of ['width','height','iconHeight','iconY','svgSize'])assert.ok(Math.abs(measurements[0][key]-row[key])<.6,'Radiotasten haben gemeinsame Maße und Symbolhöhe ('+key+'): '+JSON.stringify(measurements));
-  if(row.titleY!==null){assert.ok(Math.abs(measurements[0].titleY-row.titleY)<.6,'Alle Hauptbeschriftungen auf derselben Höhe: '+JSON.stringify(measurements));assert.deepEqual(row.font,measurements[0].font,'Gemeinsame Schriftmaße');}
+  if(row.titleY!==null){if(row.hasCaption===measurements[0].hasCaption)assert.ok(Math.abs(measurements[0].titleY-row.titleY)<.6,'Gleichzeilige Beschriftungen auf derselben Höhe: '+JSON.stringify(measurements));assert.deepEqual(row.font,measurements[0].font,'Gemeinsame Schriftmaße');}
  }
  if(measurements.length===3)assert.ok(Math.abs((measurements[1].left-measurements[0].right)-(measurements[2].left-measurements[1].right))<.6,'Gleicher Abstand zwischen allen drei Radiotasten: '+JSON.stringify(measurements));
 }
@@ -1422,98 +1492,6 @@ test('Öffentliche Aktionen und private Zugänge folgen ausschließlich der echt
   }
 });
 
-test('Studioleiste nutzt sehr breite Fenster vollständig und gruppiert auch ohne Thema den Moderationsstatus bei der Musik',async t=>{
-  const {page,state,errors}=await setup(t,{station:true,realAudio:true,viewport:{width:2291,height:160}});
-  await page.route('https://stats.example.com/widget/radio/test-radio/track/current',route=>route.fulfill({json:{title:'Wonders',artist:'Neelix, Ghost Rider & The Gardener and the Tree'}}));
-  await page.reload();await page.waitForFunction(()=>document.getElementById('track-title').textContent==='Wonders');
-  await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,topic:'',moderator:null,requestsEnabled:false}),state);
-  for(const width of [2291,1920,2560]) {
-    await resizeViewport(page,{width,height:160});
-    const bar=await page.locator('#radio-panel').boundingBox(),music=await page.locator('.radio-program-face').boundingBox();
-    const actions=await page.locator('#radio-actions').boundingBox(),status=await page.locator('.presenter').boundingBox();
-    assert.equal(bar.width,width,'Leiste nutzt die gesamte Framebreite');assert.equal(bar.x,0);
-    assert.ok(status.x>=music.x&&status.x+status.width<=music.x+music.width,'Moderationsstatus bleibt innerhalb der Musikgruppe');
-    assert.ok(actions.x-music.x-music.width<=16,'Musik und Bedienung bleiben unmittelbar benachbart');
-    assert.equal(await page.locator('#radio-topic').isVisible(),true);assert.equal(await page.locator('#show-topic').textContent(),'MischWerk Radio Show');
-    assert.equal(await page.locator('#open-wishes').isDisabled(),true);
-    assert.equal(await page.locator('#open-wishes').evaluate(node=>getComputedStyle(node).backgroundColor),'rgba(0, 0, 0, 0)','Gesperrte Wunschbox behält die offene Deckdarstellung und bleibt nativ gesperrt');
-    assert.equal(await page.locator('#on-air-sign').textContent(),'Radio MischWerk');
-    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-    if(width===2291)await captureDesign(page,'Radio-Studio-2291');
-  }
-  await resizeViewport(page,{width:1360,height:160});await captureDesign(page,'Radio-Studio-1360');
-  await page.locator('#play-button').click();await waitRadioPlaying(page);
-  await captureDesign(page,'Radio-Studio-1360-Play');
-  await page.locator('#play-button').click();
-  assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('playing')),false);
-  await captureDesign(page,'Radio-Studio-1360-Pause');
-  assert.deepEqual(errors,[]);
-});
-
-test('Hohe Auflösungen und Bildschirmskalierungen erhalten lesbare Gruppen, direkte Aktionen und weißen Wiedergaberahmen',async t=>{
-  const measurements=[];
-  for(const deviceScaleFactor of [1,1.25,1.5,2])for(const width of [1920,2560,3440,3840])for(const role of ['listener','owner']) {
-    const {page,state,errors}=await setup(t,{role,deviceScaleFactor,station:true,realAudio:true,viewport:{width,height:160}});
-    let song={title:'Wonders',artist:'Neelix, Ghost Rider & The Gardener and the Tree'};
-    await page.route('https://stats.example.com/widget/radio/test-radio/track/current',route=>route.fulfill({json:song}));
-    await page.reload();await page.waitForFunction(()=>document.getElementById('track-title').textContent==='Wonders');
-    await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,topic:'Die größten Hits der 80er und 90er',moderator:{nick:'Otterchen'}}),state);
-    const bounds=await page.locator('#radio-panel').boundingBox();
-    assert.equal(bounds.width,width);assert.equal(bounds.height,160);assert.equal(bounds.x,0);
-    assert.equal(await page.evaluate(()=>devicePixelRatio),deviceScaleFactor);
-    assert.ok(Math.abs(await page.locator('.bar-logo').evaluate(n=>n.getBoundingClientRect().width)-100)<.03);
-    assert.equal(await page.locator('#play-button').evaluate(n=>n.getBoundingClientRect().width),60);
-    assert.equal(await page.locator('#track-title').evaluate(n=>getComputedStyle(n).fontSize),'24px');
-    const actions=['#open-schedule','#open-wishes',...(role==='owner'?['#studio-tab']:[])];
-    async function reachable() {
-      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-      for(const selector of actions)assert.equal(await page.locator(selector).evaluate(n=>{
-        const r=n.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
-        return r.x>=0&&r.y>=0&&r.right<=innerWidth&&r.bottom<=160&&r.width>=44&&r.height>=44&&hit?.closest('button')===n;
-      }),true,selector+' direkt bedienbar bei '+width+' / '+deviceScaleFactor);
-    }
-    await reachable();await page.locator('#play-button').click();await waitRadioPlaying(page);
-    assert.equal(await page.locator('.radio-program-face').evaluate(n=>getComputedStyle(n).animationName),'mw-halo-rgb');
-    assert.equal(await page.locator('#radio-panel').evaluate(n=>getComputedStyle(n,'::after').content),'none','Keine Beleuchtung um die äußere Leiste');
-    const light=await page.locator('.radio-program-face').evaluate(n=>{const r=n.getBoundingClientRect();return {left:r.left,right:innerWidth-r.right,outerWidth:r.width,top:r.top,height:r.height};});
-    const metadata=await page.locator('#radio-metadata').boundingBox();
-    assert.ok(light.left<=metadata.x&&light.left+light.outerWidth>metadata.x+metadata.width,'Weißer Rahmen folgt der Musikkarte einschließlich Player und Hörertasten');
-    assert.ok(light.left>0&&light.right>0&&light.outerWidth<width&&light.top>=0&&light.height<=160);
-    const music=await page.locator('.radio-program-face').boundingBox(),volume=await page.locator('.volume-control').boundingBox();
-    assert.ok(Math.abs(volume.x-(await page.locator('#track-title').boundingBox()).x)<1,'Lautstärke und Musik besitzen dieselbe linke Kante');
-    const roleLabel=role==='owner'?'Inhaber':'Hoerer';
-    if(deviceScaleFactor===1||(deviceScaleFactor===2&&width===3840&&role==='owner'))await captureDesign(page,'Aufloesung-'+roleLabel+'-'+width+'-DPR'+deviceScaleFactor);
-    if(process.env.MISCHWERK_DESIGN_CAPTURE&&deviceScaleFactor===1&&role==='owner'&&(width===1920||width===3840))await page.locator('.radio-program-face').screenshot({path:path.join(require('node:os').tmpdir(), 'MischWerk-Pruefbilder', 'design','Musikkarte-Hintergrund-'+width+'.png')});
-    song={title:'Ein sehr langer Musiktitel mit mehreren zusätzlichen Angaben und einer ausführlichen Version für die Sendung',artist:'Ein sehr langer Interpret zusammen mit vielen weiteren Mitwirkenden und einem zusätzlichen Künstler'};
-    await page.reload();await page.waitForFunction(()=>document.getElementById('track-title').textContent.startsWith('Ein sehr langer'));
-    await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,topic:'S'.repeat(80),moderator:{nick:'EinSehrLangerModeratorNicknameMitWeiteremZusatz'}}),state);
-    for(const selector of ['#track-title','#track-artist','#show-topic','#host-name','#volume']) {
-      await page.locator(selector).scrollIntoViewIfNeeded();
-      assert.equal(await page.locator('#radio-metadata').evaluate(n=>n.scrollWidth>n.clientWidth),false,'Keine horizontale Überbreite bei Langtext');
-    }
-    await page.evaluate(()=>{document.scrollingElement.scrollTop=0;document.body.scrollTop=0;document.getElementById('radio-metadata').scrollTop=0;});
-    assert.ok(await page.locator('#radio-metadata').evaluate(n=>{const r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=160&&n.clientHeight<=144;}),'Lange Musikangaben bleiben in der festen Musikfläche statt über den App-Rand hinauszuwachsen');
-    await page.locator('#radio-metadata').hover();await page.mouse.wheel(0,1000);
-    await page.waitForFunction(()=>{const n=document.getElementById('radio-metadata');return n.scrollHeight<=n.clientHeight||n.scrollTop>0;});
-    const longScroll=await page.locator('#radio-metadata').evaluate(n=>{
-      const m=n.getBoundingClientRect(),v=document.getElementById('volume').getBoundingClientRect();
-      return {metadataTop:m.top,metadataBottom:m.bottom,volumeTop:v.top,volumeBottom:v.bottom,barTop:document.getElementById('radio-panel').getBoundingClientRect().top};
-    });
-    assert.equal(longScroll.barTop,0,'Native Scrollbedienung verschiebt nicht die gesamte Leiste');
-    assert.ok(longScroll.volumeTop>=longScroll.metadataTop&&longScroll.volumeBottom<=longScroll.metadataBottom+1,'Lautstärkeregler bleibt vollständig erreichbar');
-    await reachable();await page.locator('#play-button').click();await waitRadioPlaying(page);
-    if(deviceScaleFactor===1&&width===3840&&role==='owner')await captureDesign(page,'Aufloesung-Inhaber-3840-Langtext');
-    await page.locator('#play-button').click();
-    assert.equal(await page.locator('.radio-program-face').evaluate(n=>getComputedStyle(n).borderTopColor),'rgb(58, 58, 58)');
-    assert.equal(await page.locator('#radio-panel').evaluate(n=>getComputedStyle(n,'::after').content),'none');
-    if(deviceScaleFactor===1&&width===3840&&role==='owner')await captureDesign(page,'Aufloesung-Inhaber-3840-Pause');
-    assert.deepEqual(errors,[]);
-    measurements.push({width,deviceScaleFactor,role,appWidth:bounds.width,appHeight:bounds.height,sideMargin:bounds.x,frame:light,metadataCentered:true,longScroll,shortAndLongTextPassed:true,whiteFrameOnOffPassed:true});
-    await page.context().close();
-  }
-  if(process.env.MISCHWERK_RESOLUTION_RESULTS)fs.writeFileSync(process.env.MISCHWERK_RESOLUTION_RESULTS,JSON.stringify(measurements,null,2)+'\n');
-});
-
 test('Fester schmaler Header bietet Titel, Lautstärke und berechtigte Verwaltungsaktionen direkt ohne Mehr-Menü oder Audiounterbrechung',async t=>{
   const {page,state,errors}=await setup(t,{station:true,realAudio:true,viewport:{width:390,height:160}});
   await page.locator('#play-button').click();await waitRadioPlaying(page);
@@ -1802,7 +1780,7 @@ test('RGB-Lichthof wechselt fließend ohne Farbsprung und folgt nativer Wiederga
     const motion=await page.locator('.radio-program-face').evaluate(node=>{
       const style=getComputedStyle(node);return {duration:style.animationDuration,timing:style.animationTimingFunction,iterations:style.animationIterationCount};
     });
-    assert.deepEqual(motion,{duration:'48s',timing:'linear',iterations:'infinite'});
+    assert.deepEqual(motion,{duration:'42s',timing:'linear',iterations:'infinite'});
     const sample=milliseconds=>page.locator('.radio-program-face').evaluate(async(node,milliseconds)=>{
       const animation=node.getAnimations().find(animation=>animation.animationName==='mw-halo-rgb');
       animation.pause();await animation.ready;animation.currentTime=milliseconds;
@@ -1812,19 +1790,19 @@ test('RGB-Lichthof wechselt fließend ohne Farbsprung und folgt nativer Wiederga
       });
       return {colors,unaffected};
     },milliseconds);
-    const initial=await sample(0),phase=await sample(viewport.width===390?32000:8000);
+    const initial=await sample(0),phase=await sample(viewport.width===390?28000:7000);
     assert.notDeepEqual(phase.colors,initial.colors);assert.deepEqual(phase.unaffected,initial.unaffected,'Nur Lichtfarben wechseln, nicht Inhalt oder Geometrie');
     if(k3&&viewport.width===1440) {
       const phases=[];
-      for(const time of [0,8000,16000,24000,32000,40000])phases.push((await sample(time)).colors[0].slice(0,3).join(','));
+      for(const time of [0,7000,14000,21000,28000,35000])phases.push((await sample(time)).colors[0].slice(0,3).join(','));
       assert.equal(new Set(phases).size,6,'Alle sechs Farbstationen werden erreicht');
-      for(const boundary of [8000,16000,24000,32000,40000,48000]) {
+      for(const boundary of [7000,14000,21000,28000,35000,42000]) {
         const before=await sample(boundary-10),after=await sample(boundary+10);
         assert.deepEqual(after.unaffected,before.unaffected);
         for(let layer=0;layer<before.colors.length;layer++)for(let channel=0;channel<3;channel++)assert.ok(Math.abs(after.colors[layer][channel]-before.colors[layer][channel])<=2,'Kein Farbsprung an '+boundary+' ms in Lichtschicht '+layer);
       }
-      assert.deepEqual((await sample(48000)).colors,initial.colors,'Nahtloser Übergang zum nächsten Zyklus');
-      await sample(8000);
+      assert.deepEqual((await sample(42000)).colors,initial.colors,'Nahtloser Übergang zum nächsten Zyklus');
+      await sample(7000);
     }
     assert.deepEqual(await page.locator('#radio-panel').boundingBox(),bounds);
     assert.deepEqual(await page.locator('.radio-program-face').boundingBox(),cardBounds);
@@ -1884,8 +1862,8 @@ test('Glowauslauf erhält seinen Hintergrund in K3 und STAPP auch bei begrenzter
         const r=node.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')===node;
       }),true,'Auslauf fängt keine Klicks ab');
       assert.equal(await page.locator('#radio-audio').getAttribute('src'),audio);
-      if(width===1920)for(const phase of [0,8000,16000,24000,32000,40000])await assertSoftPixels(phase);
-      if(width===390)await assertSoftPixels(32000);
+      if(width===1920)for(const phase of [0,7000,14000,21000,28000,35000])await assertSoftPixels(phase);
+      if(width===390)await assertSoftPixels(28000);
       if(width===1920||width===390)await captureDesign(page,'RGB-Auslauf-'+width);
     }
     await page.evaluate(state=>window.__emit('mw:state',{...state,revision:state.revision+1,ticker:{revision:1,enabled:true,text:'Radio MischWerk',speed:48,direction:'left'}}),state);
@@ -1898,7 +1876,7 @@ test('Glowauslauf erhält seinen Hintergrund in K3 und STAPP auch bei begrenzter
         ticker:document.getElementById('radio-ticker').getBoundingClientRect().toJSON(),deck:document.getElementById('radio-deck').getBoundingClientRect().toJSON(),
         scrolling:[document.scrollingElement.scrollTop,document.body.scrollTop],classes:document.documentElement.className}));
       assert.ok(Math.abs(tail.space-(width===390&&k3?24:34))<1,'Früherer Haloabstand auch unter der Laufzeile: '+JSON.stringify({k3,width,...tail}));
-      for(const phase of [0,8000,16000,24000,32000,40000])await assertSoftPixels(phase);
+      for(const phase of [0,7000,14000,21000,28000,35000])await assertSoftPixels(phase);
       assert.equal(await page.locator('#radio-audio').getAttribute('src'),audio);
     }
     assert.deepEqual(errors,[]);
@@ -1970,7 +1948,8 @@ test('Bestätigte Moderation ersetzt AutoDJ in der Hauptanzeige; Abmeldung zeigt
   assert.equal(await host.getAttribute('data-prefix'),'');
   assert.equal(await host.isVisible(),true);assert.equal(await host.textContent(),moderator.nick);
   assert.match(await sign.getAttribute('aria-label'),/Es moderiert StudioNick mit vollständigem Namen/);
-  assert.ok((await sign.getAttribute('title')).startsWith(autoTitle),'Der unabhängige Anbieterbefund bleibt im Tooltip erhalten');
+  assert.ok((await sign.getAttribute('aria-label')).startsWith(autoTitle),'Der unabhängige Anbieterbefund bleibt zugänglich');
+  assert.equal(await sign.getAttribute('title'),'Sendung und Moderation');
   assert.doesNotMatch(await page.locator('.presenter').textContent(),/MischWerk am Pult|Im Studio angemeldet/);
   await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator:null});
   assert.equal(await sign.textContent(),'MischWerk am Pult','Abmeldung wechselt ohne Providerwechsel zurück');assert.equal(await host.isVisible(),false);
@@ -1979,7 +1958,7 @@ test('Bestätigte Moderation ersetzt AutoDJ in der Hauptanzeige; Abmeldung zeigt
   async function refresh(label,titlePrefix){
     const response=page.waitForResponse(base);
     await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await(await response).finished();
-    await page.waitForFunction(({label,titlePrefix})=>{const sign=document.getElementById('on-air-sign');return sign.textContent===label&&sign.title.startsWith(titlePrefix);},{label,titlePrefix});
+    await page.waitForFunction(({label,titlePrefix})=>{const sign=document.getElementById('on-air-sign');return sign.textContent===label&&sign.getAttribute('aria-label').startsWith(titlePrefix);},{label,titlePrefix});
   }
   mode='live';await refresh('Es moderiert',liveTitle);
   assert.equal(await host.textContent(),moderator.nick);assert.equal(await host.isVisible(),true);
@@ -2002,7 +1981,7 @@ test('Bestätigte Moderation ersetzt AutoDJ in der Hauptanzeige; Abmeldung zeigt
   assert.equal(await host.isVisible(),false);assert.equal(await page.locator('#play-button').isEnabled(),true);
   await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator});
   assert.equal(await sign.textContent(),'Es moderiert');assert.equal(await host.isVisible(),true);
-  assert.match(await sign.getAttribute('title'),/Sendepause/);assert.equal(await page.locator('#play-button').isEnabled(),true,'Sendestatus sperrt den direkten Höreranschluss nicht');
+  assert.match(await sign.getAttribute('aria-label'),/Sendepause/);assert.equal(await sign.getAttribute('title'),'Sendung und Moderation');assert.equal(await page.locator('#play-button').isEnabled(),true,'Sendestatus sperrt den direkten Höreranschluss nicht');
   await page.evaluate(()=>{window.__disconnectedAt=Date.now();});await page.clock.fastForward(66000);
   assert.equal(await host.isVisible(),false,'Bei verlorener Channelbestätigung wird kein alter Nick als aktuell gezeigt');
   await page.evaluate(s=>window.__emit('mw:state',s),{...selected,revision:revision++,moderator:null});
@@ -2129,7 +2108,7 @@ test('Eigene und lange Themen ersetzen den dauerhaften Standard; leere Angaben s
     await page.evaluate(s=>window.__emit('mw:state',s),{...state,revision:revision++,topic});
     assert.equal(await page.locator('#radio-topic').isVisible(),true);
     assert.equal(await page.locator('#show-topic').textContent(),'MischWerk Radio Show');
-    assert.equal(await page.locator('#show-topic').getAttribute('title'),'MischWerk Radio Show');
+    assert.equal(await page.locator('#show-topic').getAttribute('title'),'Thema der Sendung');
   }
   await page.evaluate(s=>window.__emit('mw:state',s),{...state,revision:revision++,topic:'MischWerk Wunschabend'});
   assert.equal(await page.locator('#show-topic').textContent(),'MischWerk Wunschabend');
@@ -2222,7 +2201,7 @@ test('Studio erhält Themenentwurf bei Fehlern und Statusupdates; nur bestätigt
   assert.deepEqual(errors,[]);
 });
 
-test('Musikfläche bleibt ohne Scrollstapel geordnet; lange Texte bleiben als Volltext im DOM und Titelhinweis erhalten',async t=>{
+test('Musikfläche bleibt ohne Scrollstapel geordnet; lange Texte bleiben im DOM und Tooltips neutral',async t=>{
   const {page,state,errors}=await setup(t,{station:true});
   const song={title:'Ein sehr langer Musiktitel mit zusätzlichen Angaben und einem weiteren Interpreten',artist:'Ein sehr langer Interpret mit vielen Beteiligten'};
   await page.route('https://stats.example.com/widget/radio/test-radio/track/current',route=>route.fulfill({json:song}));
@@ -2231,8 +2210,8 @@ test('Musikfläche bleibt ohne Scrollstapel geordnet; lange Texte bleiben als Vo
   for(const width of [1024,390,320]){
     await resizeViewport(page,{width,height:160});
 
-    for(const selector of ['#track-title','#track-artist','#host-name']){
-      assert.equal(await page.locator(selector).getAttribute('title'),await page.locator(selector).textContent());
+    for(const [selector,hint] of [['#track-title','Aktueller Titel'],['#track-artist','Interpret'],['#host-name','Aktuelle Moderation']]){
+      assert.equal(await page.locator(selector).getAttribute('title'),hint);
       assert.equal(await page.locator(selector).isVisible(),true);
     }
     if(width>1350)assert.equal(await page.locator('#radio-metadata').evaluate(n=>n.scrollHeight>n.clientHeight+1),false);
@@ -3252,13 +3231,13 @@ test('Breite Radioleiste nutzt die Mittelbreite und erhält Tastaturbedienung',a
   const ids=['open-schedule','open-wishes','studio-tab'];
   const boxes=await Promise.all(ids.map(id=>page.locator('#'+id).boundingBox()));
   assert.equal((await page.locator('#radio-panel').boundingBox()).width,2290);
-  assert.equal((await page.locator('#play-button').boundingBox()).width,60);
+  assert.equal((await page.locator('#play-button').boundingBox()).width,80);
   assert.ok(boxes.every(box=>Math.abs(box.width-156)<1&&box.height===64),'Alle drei Aktionen nutzen kompakte gleichmäßige Flächen: '+JSON.stringify(boxes));
   assert.ok(Math.abs(boxes[0].y-boxes[1].y)<1);
   const logo=await page.locator('.bar-logo').boundingBox(),play=await page.locator('#play-button').boundingBox(),music=await page.locator('.radio-program-face').boundingBox();
   assert.ok(play.x+play.width<=logo.x&&play.x>=music.x&&boxes[1].x+boxes[1].width<=music.x+music.width);
   assert.equal(await page.locator('.bar-logo').getAttribute('src'),'img/mischwerk-logo.png');
-  assert.deepEqual(await page.locator('#studio-tab .action-label strong').evaluate(n=>{const s=getComputedStyle(n);return [s.fontSize,s.fontWeight];}),['15px','500']);
+  assert.deepEqual(await page.locator('#studio-tab .action-label strong').evaluate(n=>{const s=getComputedStyle(n);return [s.fontSize,s.fontWeight];}),['14px','500']);
   for(const id of ids){
     const size=await page.locator('#'+id).evaluate(node=>({disc:node.querySelector('.public-action-icon').getBoundingClientRect().width,
       icon:node.querySelector('.public-action-icon svg').getBoundingClientRect().width}));

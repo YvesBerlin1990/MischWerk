@@ -31,8 +31,8 @@ MischWerkUI.define('updates', function (dependencies) {
     else { dom.el('open-schedule').removeAttribute('aria-haspopup'); }
     dom.el('open-wishes').classList.toggle('wishes-closed', !state.requestsEnabled);
     dom.setText('wish-button-caption', !state.requestsEnabled ? 'Deaktiviert' : !live ? 'Verbindung fehlt' : 'Dein Musikwunsch');
-    dom.el('open-wishes').title = !state.requestsEnabled ? 'Die Wunschbox ist deaktiviert.' :
-      !live ? 'Verbindung zum Channel fehlt' : 'Wunschbox öffnen und einen Musikwunsch senden';
+    dom.el('open-wishes').title = !state.requestsEnabled ? 'Wunschbox deaktiviert' :
+      !live ? 'Verbindung zum Channel fehlt' : 'Wunschbox öffnen';
     dom.el('open-wishes').disabled = !live || !state.requestsEnabled || pending;
     dom.el('open-wishes').setAttribute('aria-disabled', String(dom.el('open-wishes').disabled));
     dom.setText('host-name', state.moderator ? state.moderator.nick : 'Radio Mischwerk');

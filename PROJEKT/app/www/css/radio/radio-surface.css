@@ -51,7 +51,7 @@ html[data-view=radio] body::after {
   opacity:.7;
 }
 .radio-program-face { overflow:hidden; border:1px solid #3a3a3a; border-radius:24px; background:#141414; box-shadow:none; }
-.radio-program-face::before { content:""; position:absolute; left:-44px; top:50%; width:200px; height:200px; transform:translateY(-50%); border:2px solid #827354; border-radius:50%; background:radial-gradient(circle,#171817 0 39px,transparent 40px),repeating-radial-gradient(circle,#050505 0 9px,#262626 10px 11px,#050505 12px 20px); }
+.radio-program-face::before { content:""; position:absolute; left:-44px; top:50%; width:200px; height:200px; transform:translateY(-50%); border:2px solid #827354; border-radius:50%; background:radial-gradient(circle,#171817 0 calc(var(--play-size) / 2 + 9px),transparent calc(var(--play-size) / 2 + 10px)),repeating-radial-gradient(circle,#050505 0 9px,#262626 10px 11px,#050505 12px 20px); }
 .radio-program-face::after {
   content:"";
   position:absolute;
@@ -65,7 +65,7 @@ html[data-view=radio] body::after {
    Ohne Übergang erlischt der Halo auch beim Nachladen oder Fehler unmittelbar. */
 .playing .radio-program-face,
 .radio-has-ticker .playing .radio-deck::before {
-  animation:mw-halo-rgb 48s linear infinite;
+  animation:mw-halo-rgb 42s linear infinite;
   border-color:#f0f4fa;
   box-shadow:
     0 0 0 1px rgba(238,244,251,.43),
@@ -140,7 +140,7 @@ html[data-view=radio] body::after {
       inset 0 0 21px rgba(140,224,238,.075);
   }
 }
-/* Goldene Vinyl-Taste: unveränderte 60-px-Bedienfläche, ruhige Materialzustände. */
+/* Größere goldene Vinyl-Taste; vorhandenes Material und ruhige Zustände. */
 .play-button {
   position:relative; border:1px solid #ad9360; color:#e6c77b; background:
     radial-gradient(circle at 38% 25%,#3c3524,transparent 65%),
@@ -158,9 +158,9 @@ html[data-view=radio] body::after {
 .playing .play-button:enabled { border-color:#ffe2a1; color:#ffe2a1; }
 .playing .play-button:enabled::after {
   content:""; position:absolute; inset:-6px; border-radius:50%; pointer-events:none;
-  box-shadow:0 0 12px 2px #e6c77b66,0 0 24px 4px #e6c77b2b;
+  box-shadow:0 0 14px 3px #e6c77bb3,0 0 28px 5px #e6c77b59;
 }
-.playing .play-button:enabled #play-icon { filter:drop-shadow(0 0 4px #e6c77b66); }
+.playing .play-button:enabled #play-icon { filter:drop-shadow(0 0 6px #e6c77b99); }
 #radio-panel svg { stroke-width:1.8; }
 .volume-control.is-high { --volume-thumb:#ff8a7e; }
 /* Kleine sichtbare Scheibe mit Abstand zum Leistenrand; Bedienfläche bleibt 44 px. */

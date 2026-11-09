@@ -35,9 +35,9 @@ MischWerkUI.define('player', function (dependencies) {
     button.setAttribute('aria-pressed', String(state.wanted));
     button.setAttribute('aria-label', state.wanted ? 'Radio stoppen' : 'Radio abspielen');
     button.classList.toggle('is-offline', !state.wanted && provider.status() === 'stopped');
-    button.title = description;
+    button.title = button.getAttribute('aria-label');
     dom.setText('stream-label', label);
-    dom.el('stream-badge').title = description;
+    dom.el('stream-badge').setAttribute('aria-label', description);
     dom.el('stream-badge').classList.toggle('is-idle', label !== 'LIVE');
     document.body.classList.toggle('playing', state.phase === 'playing');
   }
@@ -65,6 +65,6 @@ MischWerkUI.define('player', function (dependencies) {
       volume.preparePlayback(); selectedSource = url; stoppedByUser = false; connection.start(url);
     });
   }
-  return { start: start, stop: stop, renderStatus: renderStatus, playbackPosition: connection.playbackPosition,
+  return { start: start, stop: stop, renderStatus: renderStatus, playbackPosition: connection.playbackPosition, playbackNow: connection.playbackNow,
     isListening: function () { return connection.state().wanted; } };
 });

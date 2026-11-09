@@ -1,10 +1,10 @@
 # MischWerk – Installation, Betrieb und STREAMPANEL
 
-**App 0.1.311 · Build 311**, Stand 08.11.2026. Der Sendeplan öffnet ab heute für genau 14 Tage; der Inhaber behält die separate Wochenverwaltung. Automatische Anmeldungen zeigen volle Stunden und erscheinen für Hörer ab fünf Minuten Dauer. Normale und abgeschlossene automatische Einträge kann der Inhaber direkt mit „Entfernen“ bestätigen und löschen. Build 290 ergänzt lokal den kanonischen Lauftext in der Android-Senderprojektion; Veröffentlichung und native Abnahme dieses Builds sind offen. Das lokale Paket umfasst 135 Auslieferungsdateien und fünf Manifeste; der modulare App-Arbeitsbestand behält alle 153 Dateien. GitHub enthält Quellen und Nachweise; der erzeugte UPLOAD ist ausgeschlossen. Build 270 ist nativ mit HTTP 200/accepted:true und unabhängig exakt passendem Firestore-Zeitstempel bestätigt. Build 289 übernimmt Androidwünsche aus der erfolgreichen Statusantwort in dieselbe Queue und ist ohne WebHook/Relay-Schlüssel aktivierbar. Native Installation und regulärer Betrieb von 289 sind bestätigt: Publisher läuft, beide Flags true; aktuell ein Android-Wunsch empfangen/übernommen und vier technische Statusupdates bestätigt, keine Dubletten/Verwerfungen/ungültigen Einträge. Die Gegenseite hat pending → queued → Platz 1 in der normalen Android-App und Entfernung des pending-Auftrags unabhängig belegt. Nur echtes Vorrücken in einer späteren normalen Queue-Situation mit Vorgänger bleibt offen. Den vorhandenen Wunsch normal bearbeiten; kein neuer Build oder erneutes Speichern/Aktivieren nötig. GitHub-Veröffentlichung und Knuddels-Installation sind getrennt. Build 308 setzt lokal den Plan-/Teamvertrag von 03:10 Uhr um; seine native Installation und gemeinsame Homepage-/Android-Abnahme sind noch offen. Vorhandene Schlüssel und Aktivierung nicht erneut speichern. Nach Installation `/mischwerk-relay status` lesen, Build 311 und reguläre HTTP-Annahme prüfen, anschließend reale Homepageänderung samt genau einmaliger nativer Wirkung und Ergebnisquittung verfolgen. `lastFailure` meldet bei Fehlern nur Stufe, HTTP-Code oder null und UTC. [Übergabe und Prüfschritte](../api/HOMEPAGE-SENDEPLAN-RUECKANTWORT.md).
+**App 0.1.322 · Build 322**, Stand 09.11.2026. Der Sendeplan öffnet ab heute für genau 14 Tage; der Inhaber behält die separate Wochenverwaltung. Automatische Anmeldungen zeigen volle Stunden und erscheinen für Hörer ab fünf Minuten Dauer. Normale und abgeschlossene automatische Einträge kann der Inhaber direkt mit „Entfernen“ bestätigen und löschen. Build 290 ergänzt lokal den kanonischen Lauftext in der Android-Senderprojektion; Veröffentlichung und native Abnahme dieses Builds sind offen. Das lokale Paket umfasst 108 Auslieferungsdateien und fünf Manifeste; der modulare App-Arbeitsbestand behält alle 153 Dateien. GitHub enthält Quellen und Nachweise; der erzeugte UPLOAD ist ausgeschlossen. Build 270 ist nativ mit HTTP 200/accepted:true und unabhängig exakt passendem Firestore-Zeitstempel bestätigt. Build 289 übernimmt Androidwünsche aus der erfolgreichen Statusantwort in dieselbe Queue und ist ohne WebHook/Relay-Schlüssel aktivierbar. Native Installation und regulärer Betrieb von 289 sind bestätigt: Publisher läuft, beide Flags true; aktuell ein Android-Wunsch empfangen/übernommen und vier technische Statusupdates bestätigt, keine Dubletten/Verwerfungen/ungültigen Einträge. Die Gegenseite hat pending → queued → Platz 1 in der normalen Android-App und Entfernung des pending-Auftrags unabhängig belegt. Nur echtes Vorrücken in einer späteren normalen Queue-Situation mit Vorgänger bleibt offen. Den vorhandenen Wunsch normal bearbeiten; kein neuer Build oder erneutes Speichern/Aktivieren nötig. GitHub-Veröffentlichung und Knuddels-Installation sind getrennt. Build 308 setzt lokal den Plan-/Teamvertrag von 03:10 Uhr um; seine native Installation und gemeinsame Homepage-/Android-Abnahme sind noch offen. Vorhandene Schlüssel und Aktivierung nicht erneut speichern. Nach Installation `/mischwerk-relay status` lesen, Build 322 und reguläre HTTP-Annahme prüfen, anschließend reale Homepageänderung samt genau einmaliger nativer Wirkung und Ergebnisquittung verfolgen. `lastFailure` meldet bei Fehlern nur Stufe, HTTP-Code oder null und UTC. [Übergabe und Prüfschritte](../api/HOMEPAGE-SENDEPLAN-RUECKANTWORT.md).
 
 Radio bleibt eine Headerbar. Wunschbox, Moderation, Verwaltung und Sendeplan öffnen als getrennte Channel-Overlays; Menüwechsel ersetzen die Radioleiste nicht. [Aufbau](../architektur/ARCHITEKTUR.md) · [Verbindliche Projektregeln](../../AGENTS.md).
 
-Otterchen kann als anwesender Channelinhaber den Sendeplan über die Taste der Appleiste zum Weiterarbeiten öffnen; der Hinweis „In Kürze“ entfällt dabei. Für andere Nutzer bleibt die Taste deaktiviert mit „In Kürze“. Ohne Verbindung oder während eines laufenden Auftrags ist die Taste auch beim Inhaber gesperrt. Wunschbox und Radioregie bleiben über ihre vorhandenen Aktionen erreichbar.
+Otterchen kann als anwesender Channelinhaber den Sendeplan über die Taste der Appleiste zum Weiterarbeiten öffnen; der Hinweis „In Kürze“ entfällt dabei. Für andere Nutzer bleibt die Taste deaktiviert mit „In Kürze“. Ohne Verbindung oder während eines laufenden Auftrags ist die Taste auch beim Inhaber gesperrt. Wunschbox und Moderation bleiben über ihre vorhandenen Aktionen erreichbar.
 
 ## Begrüßung im MyChannel
 
@@ -36,7 +36,7 @@ Die private Antwort nennt das Rückleseergebnis. „Rücklesen unverändert. But
 
 ## Lauftext unter der Appleiste
 
-Unter **Radioregie → Lauftext** den Reiter öffnen. Nur bestehende Radiomoderation einschließlich des automatisch berechtigten Inhabers darf ändern; normale User, MCM und Appmanager erhalten keinen Zugriff.
+Unter **Moderation → Lauftext** den Reiter öffnen. Nur bestehende Radiomoderation einschließlich des automatisch berechtigten Inhabers darf ändern; normale User, MCM und Appmanager erhalten keinen Zugriff.
 
 Der Editor verwendet kompakte Felder ohne äußere Scrollleiste. Bei niedrigen Fenstern führen **Zurück/Weiter** durch Text, Anzeigeoptionen und Rückmeldung/Aktionen. Verwerfen oder aktuellen Stand laden kehrt zum sichtbaren Textfeld zurück.
 
@@ -49,6 +49,26 @@ Aktuelle lokale Ansichten: [Lauftext unter der Appleiste](../pruefung/oberflaech
 ## Installation und Upload
 
 Ausschließlich **C:/Users/Yves/Desktop/MischWerk/UPLOAD** verwenden. Darunter liegt der vollständige Appordner **MischWerk** mit app.config, main.js, server/ und www/. Die Projektwurzel enthält zusätzlich Quellen, Dokumentation und Git und gehört nicht auf den App-FTP. Keine ZIP erstellen oder entpacken.
+
+Der aktuelle, am 09.11.2026 online abgeglichene Aufbau:
+
+```text
+UPLOAD/
+└── MischWerk/
+    ├── app.config
+    ├── main.js
+    ├── server/             Servermodule nach Fachbereich
+    └── www/
+        ├── index.html
+        ├── relay-settings.html
+        ├── js/             Browsermodule nach Fachbereich
+        ├── css/            Styles nach Fachbereich
+        ├── img/
+        ├── fonts/          Lokale Schriften mit ihren Lizenzen
+        └── audio/
+```
+
+Das offizielle [Knuddels-Wiki zur Projektstruktur](https://github.com/knuddelsgmbh/UserApps/wiki/Projektstruktur) beschreibt main.js und app.config im App-Hauptordner sowie www/ für Clientdateien einschließlich eigener Unterordner. [HTMLFile](https://developer.knuddels.de/docs/classes/HTMLFile.html) bezieht HTML-Pfade auf www/. MischWerks server/ ist die eigene fachliche Ablage für zusätzliche Serverdateien; ihr Laden aus Unterordnern ist durch das Beispiel von [KnuddelsServer.execute](https://developer.knuddels.de/docs/classes/KnuddelsServer.html#method_execute) abgedeckt. Der Appordnername bestimmt den [App-Key](https://developer.knuddels.de/docs/classes/AppInfo.html#method_getAppKey); MischWerk daher als eine zusammengehörige App erhalten. Im Wiki gezeigte require-Aufrufe werden nicht übernommen: Maßgeblich ist die vorhandene, ausdrücklich dokumentierte execute-Methode. Manifeste bleiben unter PROJEKT/deployment/manifests/ außerhalb der Auslieferung.
 
 | Angabe | Bestätigter Wert |
 | --- | --- |
@@ -64,7 +84,7 @@ Ausschließlich **C:/Users/Yves/Desktop/MischWerk/UPLOAD** verwenden. Darunter l
 
 Passwörter ausschließlich im FTP-Programm eingeben. Die Entwickler-ID ersetzt kein Passwort. app.config verwendet den Entwicklernamen Otterchen; das bestätigte knuddelsDEV-Präfix der App-ID darf nicht aus dem LIVE-FTP-Host anders abgeleitet werden. [App-ID-Dokumentation](https://developer.knuddels.de/docs/classes/AppInfo.html).
 
-Aus PROJEKT/ mit **node tools/build/prepare-upload.cjs** die Bereitstellung prüfen und den verbindlichen Desktop-Upload aktualisieren. **node tools/checks/upload.cjs** gleicht alle 127 Auslieferungsdateien einschließlich 58 Backendmodulen, Größen, SHA-256 und Textgrenzen mit den fünf Manifesten ab. Im App-Arbeitsbestand bleiben alle 145 Dateien erhalten. 16 vollständig gebündelte JS-Einzeldateien und zwei CSS-Einzeldateien entfallen ausschließlich im UPLOAD; ihre alten lokalen Kopien werden beim Paketbau gezielt entfernt. Die fachliche Ordnerstruktur bleibt erhalten. Der Build erzeugt keine zweite Uploadkopie und veröffentlicht nichts. main.js allein enthält keine App-Fachlogik. Tests, Referenzstubs, Dokumentation und Zugangsdaten gehören nicht ins FTP-Ziel.
+Aus PROJEKT/ mit **node tools/build/prepare-upload.cjs** die Bereitstellung prüfen und den verbindlichen Desktop-Upload aktualisieren. **node tools/checks/upload.cjs** gleicht alle 108 Auslieferungsdateien einschließlich 37 Serverdateien, Größen, SHA-256 und Textgrenzen mit den fünf Manifesten ab. Im App-Arbeitsbestand bleiben alle 153 Dateien und 64 Backendmodule erhalten. 28 Backend-, 16 Browser-JS- und zwei CSS-Einzeldateien sind vollständig in benachbarten Ladepaketen enthalten; ihre alten lokalen Kopien samt dadurch leeren Ordnern werden beim Paketbau gezielt entfernt. Der ausgelieferte Server-Ladeplan lädt jeden Modultext weiterhin genau einmal in derselben Reihenfolge. Beide echten Rhino-Engines prüfen zusätzlich das fertige Paket. Der Build erzeugt keine zweite Uploadkopie und veröffentlicht nichts. main.js allein enthält keine App-Fachlogik. Tests, Referenzstubs, Dokumentation und Zugangsdaten gehören nicht ins FTP-Ziel.
 
 Nach einem gesonderten Uploadauftrag:
 
@@ -120,7 +140,7 @@ Thema, Wunschboxfreigabe, Radio-Team, datierte Wochenpläne und Bot-Einstellunge
 
 Eine Studio-Anmeldung gilt ohne Zeitlimit. Es gibt keine automatische Sechs-Stunden-Abmeldung, Verlängerung oder Zeitangaben im Moderationsmenü. Solange angemeldet, stehen Abmelden und Sendung übergeben bereit. Wiederholtes Anmelden verändert die Sitzung nicht. Verlassen oder Rechteverlust beendet die Anmeldung weiterhin. Ausdrückliche Abmeldung leert das gespeicherte Thema, automatisches Ende durch Verlassen/Rechteverlust erhält es. Ohne Thema zeigt die Appleiste MischWerk Radio Show als reinen Standardtext.
 
-Die Radioregie startet mit 640 × 580 px und passt ihre Höhe an vollständige Bediengruppen an. Bei Clientgrenzen bleiben Gruppen-/Textseiten erreichbar. Themenbearbeitung erhält eine stabile Geometrie. Studioanmeldung und tatsächliche Anbieterübertragung sind unabhängige Zustände.
+Die Moderation startet mit 640 × 580 px und passt ihre Höhe an vollständige Bediengruppen an. Bei Clientgrenzen bleiben Gruppen-/Textseiten erreichbar. Themenbearbeitung erhält eine stabile Geometrie. Studioanmeldung und tatsächliche Anbieterübertragung sind unabhängige Zustände.
 
 ## Sendung an den nächsten Moderator übergeben
 
@@ -140,7 +160,7 @@ Unter **Bot-Texte** stehen bis zu sechs Texte mit je 300 Zeichen zur Verfügung.
 
 ## Tageshistorie verwenden
 
-**Radioregie → Heute gespielt** ist nur für Channelinhaber und ernannte Radiomoderatoren verfügbar. Titelmeldungen gelten für heute in Europe/Berlin. Beim Öffnen erscheinen die neuesten Titel auf der letzten Seite; Zurück führt zu älteren, Weiter zu neueren Titeln. Lange Texte sind vollständig auf Fortsetzungsseiten lesbar.
+**Moderation → Heute gespielt** ist nur für Channelinhaber und ernannte Radiomoderatoren verfügbar. Titelmeldungen gelten für heute in Europe/Berlin. Beim Öffnen erscheinen die neuesten Titel auf der letzten Seite; Zurück führt zu älteren, Weiter zu neueren Titeln. Lange Texte sind vollständig auf Fortsetzungsseiten lesbar.
 
 Im sichtbaren Reiter wird nach Erfolg alle 15 Sekunden, nach Fehlern nach 60 Sekunden erneut gelesen. Geladene heutige Titel bleiben bei Fehlern erhalten; an Berliner Mitternacht beginnt die Liste neu. Rechteverlust beendet Abrufe und leert den Cache. Bekannte Senderjingles werden per vollständigem Titelvergleich ausgefiltert. Senderzeit und hörbarer Beginn können abweichen; kein vollständiges Tagesarchiv und keine privaten Musikwünsche.
 
@@ -154,11 +174,11 @@ Konfiguration: `src/backend/config.js`, `MischWerkConfig.streampanel`.
 | --- | --- |
 | `streamUrl` | Öffentliche HTTPS-Höreradresse |
 | `allowedHosts` | Exakt erlaubte öffentliche Datenhosts |
-| `metadata` | Getrennte Titel-/Interpretenfelder und ergänzende Modusquelle |
+| `metadata` | SPCast-Historie als aktuelle Titelquelle und ergänzende Modusquelle |
 | `status` | SPCast-Statistik mit Stream-, Pfad- und Stationszuordnung |
 | `historyUrl`, `historyIgnoredTitles` | Öffentliche Titelhistorie und vollständige Jinglefilter |
 
-Statistik: `/statistics?json=1` am eigenen Hörerhost, Stream-ID 1 und `/stream`. Modus: `/scripts/whoIsLive.php`, ausschließlich `autodj`/`live`; andere Werte bleiben unbekannt. Titel/Interpret kommen aus dem tatsächlich eingebundenen öffentlichen SPCast-Playerdienst. Einmal fehlende Titel sind kein dauerhafter Istzustand. [Quellen und Schnittstellennachweise](../api/API-NACHWEIS.md).
+Statistik: `/statistics?json=1` am eigenen Hörerhost, Stream-ID 1 und `/stream`. Modus: `/scripts/whoIsLive.php`, ausschließlich `autodj`/`live`; andere Werte bleiben unbekannt. Der aktuelle Titel kommt aus dem neuesten gültigen Eintrag der öffentlichen SPCast-Historie (`metadata.song` samt Unixzeitstempel). Für die Playeranzeige am ersten ` - ` in Interpret und Titel trennen; Titel oben, Interpret darunter. Normale Namensbindestriche und weitere Titelzusätze bleiben erhalten. Ohne zwei vollständige Teile bleibt die Originalzeile als Titel stehen. „Moderation → Heute gespielt“ nutzt dieselbe Quelle weiterhin mit eigenen Tages-/Jinglefiltern und Moderationsrechten. Der bisherige separate currentSong-/currentArtist-Endpunkt wird vom produktiven Player nicht mehr abgefragt. Einmal fehlende Titel sind kein dauerhafter Istzustand. [Quellen und Schnittstellennachweise](../api/API-NACHWEIS.md).
 
 Status, Modus und Metadaten steuern kein Audio. Keine zusätzlichen Statusabrufe bei Medienereignissen. Sichtbare Titel-/Modusabfragen regulär alle fünf Sekunden nach Abschluss, Status alle 30 Sekunden; Fehler und Sichtbarkeitswechsel werden getrennt behandelt. Eine Studioanmeldung bestätigt keinen Anbieter-LIVE-Modus.
 

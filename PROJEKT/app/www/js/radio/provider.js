@@ -40,6 +40,7 @@ MischWerkUI.define('provider', function (dependencies) {
     function current() { return selected === generation && revision === metadataRevision && providerStatus !== 'stopped'; }
     var pending = api.fetchMetadata(metadataStation).then(function (song) {
       if (!current()) { return; }
+      if (lastSong && typeof song.timestamp === 'number' && typeof lastSong.timestamp === 'number' && song.timestamp < lastSong.timestamp) { return; }
       presentation.renderSong(song); lastSong = song;
       metadataMode = typeof song.isLive === 'boolean' ? song.isLive : null;
       metadataModeAt = metadataMode === null ? 0 : Date.now(); publishBroadcast();

@@ -50,7 +50,7 @@ MischWerkUI.define('layout', function (dependencies) {
       var slot = dom.el('dialog-notice-slot');
       slot.parentNode.insertBefore(slot, document.querySelector('.dialog-content'));
       dom.el('dialog-notice-slot').appendChild(dom.el('notice'));
-      dom.setText('dialog-title', model.view === 'wishes' ? 'Wunschbox' : model.view === 'team' ? 'Verwaltung' : model.view === 'schedule' ? 'Sendeplan' : 'Radioregie');
+      dom.setText('dialog-title', model.view === 'wishes' ? 'Wunschbox' : model.view === 'team' ? 'Verwaltung' : model.view === 'schedule' ? 'Sendeplan' : 'Moderation');
       dom.el('studio-connection').hidden = true;
     }
     layoutReady = true;
@@ -70,7 +70,7 @@ MischWerkUI.define('layout', function (dependencies) {
     dom.el('studio-connection').hidden = live;
     dom.setText('studio-connection', live ? '' : 'Verbindung fehlt');
     dom.el('studio-connection').classList.toggle('connection-lost', !live);
-    dom.el('studio-connection').title = live ? 'Verbindung zum Knuddels-Channel bestätigt' : 'Aktionen gesperrt. Aktualisieren oder das Fenster erneut öffnen.';
+    dom.el('studio-connection').title = live ? 'Channelverbindung bestätigt' : 'Verbindung fehlt – bitte aktualisieren';
   }
   return { start:start, notify:notify, renderView:renderView, availability:availability,
     resizeDialog:resizeDialog, resizeBar:resizeBar };

@@ -1,6 +1,6 @@
 # MischWerk – Homepage und Arbeitsbereich
 
-Lokaler Stand **Website 0.2.5**, mit Knuddels-App **0.1.297 / Build 297** lokal geprüft. Auf Nutzerauftrag vom 05.11.2026 wiederaufgenommen. Die Homepage verwendet das aktuelle Vinyl-Design mit goldenen Radiotasten mit lokalen Outfit-/Fraunces-Schriften und unveränderten Originalmedien.
+Lokaler Stand **Website 0.2.5**, mit Knuddels-App **0.1.322 / Build 322** lokal geprüft. Stand: **09.11.2026**. Die Homepage verwendet das Vinyl-Design mit goldenen Radiotasten, lokalen Outfit-/Fraunces-Schriften und unveränderten Originalmedien. Bekannte offene Websitebefunde stehen im [Prüfbericht](docs/PRUEFUNG.md).
 
 Der öffentliche Teil enthält Radio, Sendeplan, Teamvorstellungen und Musikwünsche. Der eigene Arbeitsbereich unter **/arbeitsbereich** bietet Anmelden und Abmelden ohne Zeitlimit, Thema, Wunschregie, privater Übergabe und Tageshistorie, außerdem Besitzerverwaltung, Bot-Texte und Sendeplanung. Die bestehenden App-Menüs bleiben bis zur erfolgreichen echten Verbindungsabnahme erhalten.
 
@@ -42,7 +42,7 @@ Im Arbeitsbereich „Anmeldung beginnen“ wählen und den dort angezeigten einm
 
 ## Geplantes Hosting: STREAMPANEL / DataDachs
 
-Der Nutzer plant STREAMPANEL. Die am 05.11.2026 gelesene [offizielle DataDachs-Tarifseite](https://www.datadachs.eu/webhosting/) nennt PHP 8.x sowie Node.js 6–12. Ob im gewählten Tarif eine **aktuell unterstützte Node-LTS-Version ab 22** verfügbar ist, ist noch nicht bestätigt. Dieser Websiteserver ist für die dort öffentlich genannten alten Node-Versionen nicht freigegeben. Vor Veröffentlichung genaue Laufzeit, Node-Anwendungsstart, Domain, HTTPS-Proxy und Umgebungsvariablen beim tatsächlichen Tarif prüfen. Ein separater aktueller Node-Dienst oder eine ausdrücklich umgesetzte PHP-Anpassung wären Alternativen, falls der Tarif keine aktuelle Node-Version anbietet. Kein Tarif gebucht, Support kontaktiert oder Hostingzugang geändert.
+Das geplante Hosting benötigt eine **unterstützte Node-LTS-Version ab 22**. Die konkrete Laufzeit des gewählten Tarifs ist noch nicht bestätigt. Vor Veröffentlichung Node-Anwendungsstart, Domain, HTTPS-Proxy und private Umgebungsvariablen beim tatsächlichen Hosting prüfen. [Einrichtung und offene Abnahme](docs/ANBINDUNG.md).
 
 ## Prüfen
 
@@ -52,4 +52,4 @@ pnpm --dir PROJEKT/website test
 
 Die Website besitzt eigene Node-/Browserprüfungen mit lokalen HTTP- und Knuddels-Modellen. Der alte Diagnoseserver unter tools/preview/server.cjs bleibt ausschließlich durch MISCHWERK_WEBSITE_TEST=1 für diese getrennten Tests erreichbar; er ist kein Produktiveinstieg. Keine echte Mail oder Channelnachricht in Tests.
 
-[Aktueller Prüfbericht](docs/PRUEFUNG.md) · [Desktop](docs/website-startseite.jpg) · [Smartphone](docs/website-mobil.jpg) · [Arbeitsbereich](docs/arbeitsbereich.jpg).
+[Aktueller Prüfbericht](docs/PRUEFUNG.md) · [Desktop](docs/website-startseite.jpg) · [Smartphone](docs/website-mobil.jpg) · [Arbeitsbereich](docs/arbeitsbereich.jpg). Die Aufnahmen vom 09.11.2026 zeigen den lokalen Websiteserver mit Beispieldaten und Appkomponenten aus Build 322.

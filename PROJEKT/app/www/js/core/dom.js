@@ -7,9 +7,6 @@ MischWerkUI.define('dom', function (dependencies) {
   function setText(id, value) {
     var node = el(id), text = value === null || value === undefined ? '' : String(value);
     if (node.textContent !== text) { node.textContent = text; }
-    if (id === 'track-title' || id === 'track-artist' || id === 'host-name' || id === 'show-topic') {
-      if (node.title !== text) { node.title = text; }
-    }
   }
   
   function element(tag, className, text) {

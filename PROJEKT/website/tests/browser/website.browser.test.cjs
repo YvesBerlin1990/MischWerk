@@ -25,6 +25,7 @@ async function setup(t) {
   await context.route('https://**/*', route => {
     const url = new URL(route.request().url());
     if (url.hostname === 'scripts.streampanel.net') return route.fulfill({json:{currentSong:'Prüftitel mit vollständiger Anzeige',currentArtist:'Testinterpret'}});
+    if (url.hostname === 'mischwerk.spcast.eu' && url.pathname === '/sp/cache/history/history.json') return route.fulfill({json:[{timestamp:Math.floor(Date.now()/1000)-5,metadata:{song:'Testinterpret - Prüftitel mit vollständiger Anzeige'}}]});
     if (url.hostname === 'mischwerk.sp.radio.fm' && url.pathname === '/statistics') return route.fulfill({json:spcastStatistics()});
     if (url.hostname === 'mischwerk.sp.radio.fm' && url.pathname === '/scripts/whoIsLive.php') return route.fulfill({contentType:'text/plain',body:'autodj'});
     if (url.hostname === 'mischwerk.sp.radio.fm' && url.pathname === '/stream') return route.fulfill({contentType:'audio/wav',body:require('../../../tests/fixtures/audio.cjs').audioFixture()});

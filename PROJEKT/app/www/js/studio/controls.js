@@ -26,7 +26,7 @@ MischWerkUI.define('studio', function (dependencies) {
     if (!model.current()) { return; }
     var live = model.connected();
     dom.setText('studio-schedule-note', model.current().scheduleSyncPending ?
-      'Moderation bestätigt. Der Sendeplaneintrag steht noch aus. Bitte die Radioregie erneut öffnen.' :
+      'Moderation bestätigt. Der Sendeplaneintrag steht noch aus. Bitte die Moderation erneut öffnen.' :
       'An- und Abmeldung werden automatisch im Sendeplan vermerkt.');
     dom.el('studio-schedule-note').classList.toggle('error', !!model.current().scheduleSyncPending);
     document.body.classList.toggle('moderator-on-air', live && !!model.current().moderator);
@@ -45,8 +45,8 @@ MischWerkUI.define('studio', function (dependencies) {
     dom.el('on-air').disabled = dom.el('on-air').disabled || !!model.current().moderator;
     dom.setText('on-air', 'Anmelden');
     dom.setText('off-air', model.current().moderator && !model.current().user.isOnAir ? 'Moderation beenden' : 'Abmelden');
-    dom.el('on-air').title = 'Dich als Moderation in der Channel-Leiste anzeigen';
-    dom.el('off-air').title = !model.current().moderator ? 'Niemand ist als Moderation angemeldet' : model.current().user.canEndModeration ? 'Studio-Anmeldung beenden' : 'Nur die aktive Moderation oder der Channel-Besitzer kann abmelden';
+    dom.el('on-air').title = 'Als Moderation anmelden';
+    dom.el('off-air').title = !model.current().moderator ? 'Keine Moderation angemeldet' : model.current().user.canEndModeration ? 'Studio-Anmeldung beenden' : 'Nur aktive Moderation oder Channel-Besitzer dürfen abmelden';
     dom.el('toggle-wishes').setAttribute('aria-checked', String(model.current().requestsEnabled));
     dom.setText('toggle-label', model.current().requestsEnabled ? 'Ein' : 'Aus');
     dom.setText('studio-wish-state', model.current().requestsEnabled ? 'Musikwünsche sind offen' : 'Musikwünsche sind geschlossen');

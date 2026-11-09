@@ -75,8 +75,8 @@ MischWerkUI.define('queue', function (dependencies) {
         var button = dom.element('button', 'secondary-button', nextStage === 'preparing' ? 'Vorbereiten' : nextStage === 'playing' ? 'Läuft gerade' : 'Zurückstellen');
         button.type = 'button'; button.dataset.stage = nextStage;
         button.dataset.firstOnly = nextStage === 'playing' ? 'true' : 'false';
-        button.title = nextStage === 'playing' ? 'Als laufend markieren, sobald du den Wunsch spielst. Nur für Platz 1.' :
-          nextStage === 'preparing' ? 'Diesen Wunsch vorbereiten; die Platznummer bleibt erhalten' : 'Markierung zurücknehmen; die Platznummer bleibt erhalten';
+        button.title = nextStage === 'playing' ? 'Als laufend markieren – nur Platz 1' :
+          nextStage === 'preparing' ? 'Wunsch vorbereiten' : 'Markierung zurücknehmen';
         button.addEventListener('click', function () {
           if (!this.disabled) { commands.send('mw:setWishStage', { id: item.id, stage: nextStage, previousStage: stage }, true); }
         });
@@ -87,7 +87,7 @@ MischWerkUI.define('queue', function (dependencies) {
         var button = dom.element('button', i === 0 ? 'primary-button' : 'secondary-button', label);
         button.type = 'button'; button.dataset.resolve = String(item.id);
         button.dataset.outcome = i === 0 ? 'done' : 'discarded';
-        button.title = i === 0 ? 'Diesen Wunsch als gespielt abschließen und Folgeplätze nachrücken lassen' : 'Diesen Wunsch verwerfen';
+        button.title = i === 0 ? 'Als gespielt abschließen und nachrücken' : 'Wunsch verwerfen';
         button.addEventListener('click', function () { commands.send('mw:resolveRequest', { id: item.id, outcome: button.dataset.outcome }, true); });
         actions.appendChild(button);
       });

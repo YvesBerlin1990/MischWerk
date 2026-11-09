@@ -71,7 +71,7 @@ MischWerkUI.define('team', function (dependencies) {
       var button = dom.element('button', 'secondary-button', 'Entfernen');
       button.type = 'button';
       button.dataset.radioModeratorId = String(item.userId);
-      button.title = item.nick + ' den Studiozugriff entziehen';
+      button.title = 'Studiozugriff entziehen';
       button.setAttribute('aria-label', item.nick + ' entfernen');
       button.setAttribute('aria-expanded', 'false');
       button.addEventListener('click', function () {

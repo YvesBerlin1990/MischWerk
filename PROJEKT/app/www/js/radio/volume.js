@@ -20,10 +20,11 @@ MischWerkUI.define('volume', function (dependencies) {
     document.querySelector('.volume-control').classList.toggle('is-high', high);
     dom.setText('volume-value', percent + ' %');
     dom.el('volume').setAttribute('aria-valuetext', percent + ' Prozent' + (high ? '. Hohe Playerlautstärke. Hörpegel am Gerät prüfen.' : '. Keine Dezibel-Messung.'));
-    dom.el('volume').title = high ? 'Hohe Lautstärke kann das Gehör schädigen. Systemlautstärke und Kopfhörer prüfen; dies ist keine dB-Messung.' : 'Playerlautstärke. Der rote Bereich über 60 % ist ein Vorsichtshinweis, keine gemessene dB-Grenze.';
+    dom.el('volume').title = high ? 'Hohe Lautstärke – Hörpegel am Gerät prüfen' : 'Playerlautstärke einstellen';
     dom.el('volume-value').title = dom.el('volume').title;
     dom.el('mute-button').setAttribute('aria-pressed', String(level === 0));
     dom.el('mute-button').setAttribute('aria-label', level === 0 ? 'Ton einschalten' : 'Ton ausschalten');
+    dom.el('mute-button').title = dom.el('mute-button').getAttribute('aria-label');
     // Beim nächsten Öffnen höchstens mit der leisen Startlautstärke beginnen.
     try { localStorage.setItem('mischwerk.volume.v1', String(Math.min(level, START_VOLUME))); } catch (error) { /* Lokale Speicherung ist optional. */ }
   }

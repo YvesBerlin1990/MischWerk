@@ -27,7 +27,7 @@ function scratch(t) {
 }
 function setup(t) {
   const events = [], faults = { ...defaults };
-  const runtime = new AppRuntime({ appDir: path.join(project, 'app'), dataDir: scratch(t), profiles, faults,
+  const runtime = new AppRuntime({ appDir: process.env.MISCHWERK_TEST_UPLOAD || path.join(project, 'app'), dataDir: scratch(t), profiles, faults,
     emit: (kind, data) => events.push({ kind, ...data }) });
   runtime.start(); t.after(() => runtime.shutdown());
   const join = nick => { runtime.join(nick, nick); return [...runtime.contents.sessions.keys()].find(id => runtime.contents.describe(id).nick === nick); };
@@ -229,7 +229,7 @@ test('Endlosschleifen in App-Hooks werden beendet und als Appfehler erfasst', t 
   assert.ok(runtime.errors.some(error => /timed out/.test(error.message)));
 });
 async function server(t) {
-  const instance = await createEmulator({ port: 0, dataDir: scratch(t) });
+  const instance = await createEmulator({ port: 0, dataDir: scratch(t), appDir: process.env.MISCHWERK_TEST_UPLOAD });
   t.after(() => instance.close()); return instance;
 }
 async function peer(t, instance) {

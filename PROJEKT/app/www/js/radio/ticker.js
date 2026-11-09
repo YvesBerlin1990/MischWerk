@@ -3,7 +3,7 @@ MischWerkUI.define('radioTicker', function (dependencies) {
   'use strict';
   var model = dependencies.model, dom = dependencies.dom, signals = dependencies.signals;
   dom.mount('radio-ticker-placeholder', `
-    <section id="radio-ticker" class="radio-ticker" aria-label="Hinweis von Radio MischWerk" hidden>
+    <section id="radio-ticker" class="radio-ticker" aria-label="Hinweis von Radio MischWerk" title="Informationen von Radio MischWerk" hidden>
       <span class="radio-ticker-label" aria-hidden="true">Information:</span>
       <div id="radio-ticker-window" class="radio-ticker-window" aria-hidden="true"><div id="radio-ticker-track" class="radio-ticker-track"><span></span><span></span></div></div>
       <span id="radio-ticker-readable" class="sr-only" role="status" aria-live="polite"></span>
@@ -43,7 +43,6 @@ MischWerkUI.define('radioTicker', function (dependencies) {
     if (show) {
       Array.from(copies).forEach(function (copy) { copy.textContent = '+++ ' + text + ' +++'; });
       dom.setText('radio-ticker-readable', text);
-      line.title = text;
       speed = [32, 48, 72].indexOf(value.speed) !== -1 ? value.speed : 48;
       track.style.animationDirection = value.direction === 'right' ? 'reverse' : 'normal';
       measure();

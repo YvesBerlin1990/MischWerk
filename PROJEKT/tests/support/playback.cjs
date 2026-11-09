@@ -2,7 +2,7 @@
 const fs=require('node:fs'),vm=require('node:vm');
 const {TestClock}=require('../../tools/emulator/runtime/clock.cjs');
 const {createHarness}=require('./knuddels.cjs');
-function playbackHarness(){
+function playbackHarness({performanceClock=false}={}){
  const errors=[],clock=new TestClock(error=>{throw error;}),factories={},nodes={},listeners={},requests=[],slashes=[],providerPolls=[];
  function target(){const handlers={},attributes={};return {classList:{add(){},toggle(){},remove(){}},hidden:false,disabled:false,
   setAttribute(key,value){attributes[key]=String(value);},getAttribute:key=>attributes[key],removeAttribute(key){delete attributes[key];},
@@ -11,6 +11,7 @@ function playbackHarness(){
  const document=Object.assign(target(),{hidden:false,readyState:'complete',documentElement:target(),body:target(),
   querySelectorAll:()=>[],getElementById:id=>nodes[id]||(nodes[id]=target())});
  const window=target(),navigator={onLine:true};
+ if(performanceClock){const origin=clock.now();window.performance={now:()=>clock.now()-origin};}
  const audio=Object.assign(target(),{paused:true,ended:false,seeking:false,error:null,readyState:0,volume:.1,playCalls:0});
  let base=0,began=clock.now(),frozen=false,revision=1,sequence=0,ack='all',throwSlash=false;
  Object.defineProperty(audio,'currentTime',{get:()=>base+(audio.paused||frozen?0:(clock.now()-began)/1000),set:value=>{base=value;began=clock.now();}});

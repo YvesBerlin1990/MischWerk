@@ -71,7 +71,8 @@ MischWerkUI.define('radioConnection', function (dependencies) {
     hasProgress = true; progressAt = stamp;
     if (!stableSince) { stableSince = stamp; }
     if (stamp - stableSince >= 30000) { failures = 0; }
-    if (audio.readyState >= 3) { publish('playing'); }
+    // Fortschritt belegt Wiedergabe auch bei knappem Puffer (HAVE_CURRENT_DATA).
+    publish('playing');
     return true;
   }
   function tick() {
@@ -122,9 +123,9 @@ MischWerkUI.define('radioConnection', function (dependencies) {
   }
   function playbackPosition() {
     if (!active() || phase !== 'playing' || audio.paused || audio.ended || audio.seeking ||
-        audio.error || audio.readyState < 3 || !isFinite(audio.currentTime)) { return null; }
+        audio.error || audio.readyState < 2 || !isFinite(audio.currentTime)) { return null; }
     return audio.currentTime;
   }
-  return { bind: bind, start: start, stop: stop, playbackPosition: playbackPosition,
+  return { bind: bind, start: start, stop: stop, playbackPosition: playbackPosition, playbackNow: now,
     state: function () { return { phase: phase, wanted: wanted }; } };
 });

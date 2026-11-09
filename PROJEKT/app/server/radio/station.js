@@ -42,7 +42,8 @@ MischWerkModules.attachStation = function (runtime, config) {
         var metadata = settings.metadata || {}, status = settings.status || {};
         return { name: config.stationName, provider: 'streampanel', configured: !!stream,
             streamUrl: stream, stationUrl: stream, allowedHosts: hosts,
-            metadataUrl: endpoint(metadata.url), modeUrl: endpoint(metadata.modeUrl),
+            metadataUrl: metadata.format === 'spcast-history' && metadata.url === history ? history : endpoint(metadata.url),
+            metadataFormat: metadata.format === 'spcast-history' ? metadata.format : '', modeUrl: endpoint(metadata.modeUrl),
             statusUrl: endpoint(status.url),
             historyUrl: history,
             historyIgnoredTitles: Array.isArray(settings.historyIgnoredTitles) ? settings.historyIgnoredTitles.slice(0, 20).filter(function (title) {

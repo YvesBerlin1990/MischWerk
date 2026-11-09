@@ -47,15 +47,18 @@ async function main() {
       assert.equal(crypto.createHash('sha256').update(fs.readFileSync(jar)).digest('hex'), expectedHash, 'Abweichende Rhino-JAR: ' + filename);
       jars.push(jar);
     }
+    const target = process.env.MISCHWERK_TEST_UPLOAD;
+    const appOption = target ? ['-e', 'var mischWerkAppRoot = ' + JSON.stringify(path.resolve(target).replaceAll('\\', '/')) + ';'] : [];
     const result = spawnSync(javaExecutable(), ['-cp', jars.join(path.delimiter),
-      'org.mozilla.javascript.tools.shell.Main', '-version', engine.language, '-encoding', 'UTF-8', '-f', 'tests/rhino/wishes.js'],
+      'org.mozilla.javascript.tools.shell.Main', '-version', engine.language, '-encoding', 'UTF-8',
+      ...appOption, '-f', 'tests/rhino/wishes.js'],
     { cwd: path.resolve(__dirname, '../..'), encoding: 'utf8', windowsHide: true, timeout: 60000 });
     if (result.stdout) { process.stdout.write(result.stdout); }
     if (result.stderr) { process.stderr.write(result.stderr); }
     assert.ifError(result.error);
     assert.equal(result.status, 0, 'Wunschweg in Rhino ' + engine.version + ' fehlgeschlagen; Java 11+ erforderlich.');
     assert.match(result.stdout, /Rhino-Wunschweg OK:/, 'Rhino-Ergebnis fehlt');
-    console.log('Engine: Rhino ' + engine.version + ', Sprachmodus ' + engine.language + ', SHA-256 verifiziert.');
+    console.log('Engine: Rhino ' + engine.version + ', Sprachmodus ' + engine.language + ', SHA-256 verifiziert; App: ' + (target || 'app/'));
   }
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

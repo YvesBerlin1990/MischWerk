@@ -2,7 +2,7 @@
 MischWerkUI.define('studioMarkup',function(dependencies){
   'use strict';
   dependencies.dom.mount('studio-placeholder', `
-<section id="studio-panel" aria-label="Radioregie" hidden>
+<section id="studio-panel" aria-label="Moderation" hidden>
   <nav id="studio-programme-tabs" class="studio-programme-tabs" role="tablist" aria-label="Moderationsbereiche" hidden>
     <button id="studio-programme-tab" type="button" role="tab" aria-selected="true" aria-controls="studio-programme">Deine Sendung</button>
     <button id="studio-queue-tab" type="button" role="tab" aria-selected="false" aria-controls="studio-requests" tabindex="-1">Wünsche</button>

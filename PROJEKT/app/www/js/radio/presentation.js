@@ -61,7 +61,6 @@ MischWerkUI.define('presentation', function (dependencies) {
     document.body.classList.toggle('moderator-on-air', active);
     presenter.setAttribute('data-mode', mode);
     dom.el('on-air-sign').setAttribute('aria-label', description);
-    dom.el('on-air-sign').title = description;
     dom.setText('on-air-sign', label);
     dom.el('host-name').hidden = !showName;
     dom.el('host-name').setAttribute('data-prefix', '');
@@ -87,12 +86,10 @@ MischWerkUI.define('presentation', function (dependencies) {
     dom.setText('own-wish-label', wishLabel); dom.setText('own-wish-rank', wishRank);
     dom.el('own-wish-rank').hidden = !wishRank;
     dom.setText('own-wish-title', text); dom.el('own-wish-title').hidden = !text;
-    dom.el('own-wish-title').title = text;
     dom.setText('own-wish-stage', stage); dom.el('own-wish-stage').hidden = !stage;
     dom.el('own-wish-stage').setAttribute('data-stage', confirmedPosition && next ? next.stage : 'unknown');
     dom.setText('own-wish-more', more ? '+' + more : ''); dom.el('own-wish-more').hidden = !more;
     dom.el('own-wish-more').setAttribute('aria-label', more + (more === 1 ? ' weiterer offener Wunsch' : ' weitere offene Wünsche'));
-    dom.el('own-wish-position').title = [wishLabel, wishRank, text, stage, more ? more + ' weitere offen' : ''].filter(Boolean).join(' · ');
   }
   signals.on('broadcast-status', function (value) { broadcast = value; renderOnAirStatus(); });
   document.addEventListener('visibilitychange', renderOnAirStatus);

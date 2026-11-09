@@ -2,11 +2,12 @@
 MischWerkUI.define('radioApi', function () {
   'use strict';
   var pending = {};
-  function publicUrl(value, hosts) {
+  function publicUrl(value, hosts, history) {
     if (typeof value !== 'string' || value.length > 2000 || !Array.isArray(hosts)) { return false; }
     try {
       var url = new URL(value);
-      if (url.protocol !== 'https:' || url.username || url.password || url.hash || (url.port && url.port !== '443') ||
+      if (url.protocol !== 'https:' || url.username || url.password || url.hash ||
+          (url.port && url.port !== '443' && !(history && url.href === 'https://mischwerk.spcast.eu:9000/sp/cache/history/history.json')) ||
           !/^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,63}$/i.test(url.hostname) ||
           /(?:^|\.)(?:localhost|local|internal|test)$/i.test(url.hostname) || hosts.indexOf(url.hostname.toLowerCase()) === -1) { return false; }
       var secret = false;
@@ -24,7 +25,7 @@ MischWerkUI.define('radioApi', function () {
     if (!station || !station.configured || station.provider !== 'streampanel' ||
         !publicUrl(station.streamUrl, station.allowedHosts) || !station.fields || !station.statusValues) { return null; }
     for (var name of ['metadataUrl', 'modeUrl', 'statusUrl']) {
-      if (station[name] && !publicUrl(station[name], station.allowedHosts)) { return null; }
+      if (station[name] && !publicUrl(station[name], station.allowedHosts, name === 'metadataUrl' && station.metadataFormat === 'spcast-history')) { return null; }
     }
     if (station.statusFormat && (station.statusFormat !== 'spcast-statistics' ||
         !Number.isSafeInteger(station.streamId) || station.streamId < 1 || !station.streamPath || !station.fields.statusIdentity || !station.stationId)) { return null; }
@@ -118,6 +119,22 @@ MischWerkUI.define('radioApi', function () {
     var urls = streamUrls(station);
     if (!urls || !urls.metadata) { return Promise.reject(new Error('metadata unavailable')); }
     return getResponse(urls.metadata, true).then(function (text) {
+      if (station.metadataFormat === 'spcast-history') {
+        if (text.length > 2000000) { throw new Error('history too large'); }
+        var rows = JSON.parse(text), latest = null, now = Date.now();
+        if (!Array.isArray(rows) || rows.length > 10000) { throw new Error('invalid history'); }
+        rows.forEach(function (row) {
+          var stamp = row && row.timestamp, song = row && row.metadata && row.metadata.song;
+          if (Number.isSafeInteger(stamp) && stamp > 0 && stamp * 1000 <= now &&
+              typeof song === 'string' && song.trim() && song.trim().toLowerCase() !== 'unknown' && song.length <= 2000 &&
+              (!latest || stamp > latest.timestamp)) { latest = row; }
+        });
+        if (!latest) { throw new Error('history has no valid title'); }
+        var combined = latest.metadata.song.trim(), divider = combined.indexOf(' - ');
+        var performer = divider > 0 ? combined.slice(0, divider).trim() : '';
+        var track = performer ? combined.slice(divider + 3).trim() : '';
+        return { title:track || combined, artist:{name:track ? performer : ''}, isLive:null, timestamp:latest.timestamp };
+      }
       if (JSON.parse(text) === null) { return { title: '', artist: { name: '' }, isLive: null }; }
       var data = object(text), title = readField(data, station.fields.title), artist = readField(data, station.fields.artist);
       if (title === undefined && artist === undefined) { throw new Error('metadata fields unavailable'); }

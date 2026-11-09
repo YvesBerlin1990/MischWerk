@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
-const { buildBackend } = require('./backend.cjs');
+const { buildBackend, modules } = require('./backend.cjs');
 const { runtimeFiles, isBinary, checkText, checkRuntime } = require('../checks/lengths.cjs');
 const { manifestGroups } = require('../lib/upload-manifests.cjs');
 const { readRelease, checkAppConfig } = require('../lib/release-identity.cjs');
@@ -13,8 +13,35 @@ const root = path.resolve(__dirname, '../..');
 const { frontendFiles } = require('../lib/frontend-files.cjs');
 const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').toUpperCase();
 // Ausschließlich Auslieferung: vollständige Quellmodule in unveränderter Reihenfolge bündeln.
-// Bestehende Bündelnamen und Ladewege erhalten; vollständig enthaltene Einzeldateien nicht zusätzlich ausliefern.
+// Jeweils den ersten Modulpfad weiterverwenden; vollständig enthaltene Einzeldateien nicht zusätzlich ausliefern.
 function createDelivery(project = root) {
+  const delivery = new Map(), omitted = new Set();
+  const backend = file => fs.readFileSync(path.join(project, 'app/server', file), 'utf8');
+  const composition = backend('app.js');
+  const imports = [...composition.matchAll(/^KnuddelsServer\.execute\('server\/([^']+)'\);\r?\n/gm)];
+  assert.deepEqual(imports.map(match => match[1]), modules.filter(file => file !== 'app.js'),
+    'Backend-Ladereihenfolge stimmt nicht mit dem Modulinventar überein');
+  let serverGroup = [];
+  function flushServer() {
+    if (serverGroup.length > 1) {
+      delivery.set('server/' + serverGroup[0], Buffer.from(serverGroup.map(backend).join('\n;\n')));
+      for (const file of serverGroup.slice(1)) omitted.add('server/' + file);
+    }
+    serverGroup = [];
+  }
+  for (const match of imports) {
+    const file = match[1];
+    // Konfiguration separat prüfbar halten; private Android-Dateien behalten ihre Manifestzuordnung.
+    if (file === 'config.js') { flushServer(); continue; }
+    const candidate = [...serverGroup, file].map(backend).join('\n;\n');
+    if (serverGroup.length && (candidate.length >= 9500 ||
+      file.startsWith('android/') !== serverGroup[0].startsWith('android/'))) flushServer();
+    serverGroup.push(file);
+  }
+  flushServer();
+  delivery.set('server/app.js', Buffer.from(composition.replace(
+    /^KnuddelsServer\.execute\('server\/([^']+)'\);\r?\n/gm,
+    (line, file) => omitted.has('server/' + file) ? '' : line)));
   const read = file => fs.readFileSync(path.join(project, 'app/www', file), 'utf8');
   const plans = {};
   for (const view of ['radio','wishes','studio','team','schedule']) {
@@ -26,7 +53,7 @@ function createDelivery(project = root) {
     vm.runInNewContext(read('js/start.js'), scope);
     plans[view] = { scripts, styles };
   }
-  const delivery = new Map(), skipped = { scripts:[], styles:[] };
+  const skipped = { scripts:[], styles:[] };
   for (const [type, extension] of [['scripts','.js'],['styles','.css']]) {
     const files = frontendFiles.filter(file => file.endsWith(extension) && file !== 'js/start.js');
     const membership = file => Object.keys(plans).filter(view => plans[view][type].includes(file)).join(' ');
@@ -60,7 +87,7 @@ function createDelivery(project = root) {
     assert.ok(bytes.toString('utf8').length < 9500, 'Auslieferungsbündel zu groß: ' + file);
     if (file.endsWith('.js')) new vm.Script(bytes.toString('utf8'), { filename:file });
   }
-  const omitted = new Set([...skipped.scripts, ...skipped.styles].map(file => 'www/' + file));
+  for (const file of [...skipped.scripts, ...skipped.styles]) omitted.add('www/' + file);
   return new Map(runtimeFiles.filter(file => !omitted.has(file)).map(file =>
     [file, delivery.get(file) || fs.readFileSync(path.join(project, 'app', file))]));
 }
@@ -124,6 +151,10 @@ function build() {
     const target = path.resolve(upload, file);
     assert.ok(target.startsWith(path.resolve(upload) + path.sep), 'Bündelbestandteil außerhalb des Uploadziels');
     if (fs.existsSync(target)) { fs.unlinkSync(target); }
+    let folder = path.dirname(target);
+    while (folder !== path.resolve(upload) && fs.existsSync(folder) && fs.readdirSync(folder).length === 0) {
+      fs.rmdirSync(folder); folder = path.dirname(folder);
+    }
   }
   checkRuntime(upload, include);
   const { createHarness } = require('../../tests/support/knuddels.cjs');
@@ -155,6 +186,9 @@ function build() {
   }
   const { checkUpload } = require('../checks/upload.cjs');
   for (const folder of manifestFolders) { checkUpload({ manifestFolder: folder }); }
+  const rhino = spawnSync(process.execPath, ['tools/checks/rhino.cjs'], { cwd:root, stdio:'inherit',
+    windowsHide:true, env:{ ...process.env, MISCHWERK_TEST_UPLOAD:upload } });
+  assert.equal(rhino.status, 0, 'Rhino-Prüfung des tatsächlichen Uploadpakets fehlgeschlagen.');
   console.log(JSON.stringify({ version, buildNumber, appId: live.appId, remotePath: manifest.remotePath, uploadRoot,
     upload, fileCount: include.length, stationConfigured: manifest.stationConfigured }, null, 2));
 }

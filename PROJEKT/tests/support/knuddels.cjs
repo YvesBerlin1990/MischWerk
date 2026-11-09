@@ -116,7 +116,7 @@ function createHarness(existingPersistence, options = {}) {
   vm.runInContext('String.prototype.escapeKCode = function () { return escapeKCodeMock(String(this)); };', context);
   const loadedFiles = [];
   function runFile(file) {
-    const appRoot = path.resolve(options.appDir || path.resolve(__dirname, '../../app'));
+    const appRoot = path.resolve(options.appDir || process.env.MISCHWERK_TEST_UPLOAD || path.resolve(__dirname, '../../app'));
     const target = path.resolve(appRoot, file);
     if (!target.startsWith(appRoot + path.sep)) { throw new Error('Loader ausserhalb der App'); }
     loadedFiles.push(file);

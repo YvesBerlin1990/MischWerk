@@ -15,7 +15,7 @@ MischWerkUI.define('commands', function (dependencies) {
     manualRefresh = null;
     refreshBinding.button.removeAttribute('aria-busy');
     refreshBinding.button.setAttribute('aria-disabled', 'false');
-    refreshBinding.button.title = detail || refreshBinding.label;
+    refreshBinding.button.title = refreshBinding.label;
     refreshBinding.feedback.textContent = message;
     refreshBinding.feedback.title = detail || message;
     refreshBinding.feedback.classList.toggle('refresh-error', !!error);

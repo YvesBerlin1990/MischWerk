@@ -8,6 +8,32 @@ const { createEmulator } = require('../../tools/emulator/server.cjs');
 const {reveal:revealStudio}=require('../support/studio-browser.cjs');
 let browser;
 
+for(const client of ['k3','stapp'])test('Historientitel im nativen '+client+'-Player sind für Hörer sichtbar und erhalten echtes Audio',async t=>{
+  const lab=await setup(t,{provider:'online'},true);
+  const config=lab.hub.providerConfig();
+  lab.hub.providerConfig=()=>({...config,metadata:{url:config.historyUrl,format:'spcast-history',titleField:'metadata.song',artistField:'',liveField:''}});
+  lab.hub.restart(false);
+  const now=Math.floor(lab.hub.runtime.clock.now()/1000);let title='a-ha - Take On Me';
+  await lab.context.route('**/fixture/history',r=>r.fulfill({json:[{timestamp:now-5,metadata:{song:title}},{timestamp:now-60,metadata:{song:'Älter'}}]}));
+  const {page,radio}=await lab.join('Polaroid',client,390,false);
+  // Der Hörer erhält den öffentlichen Titel, während die private Regie weiterhin verborgen bleibt.
+  assert.equal(await radio.locator('#studio-tab').isVisible(),false);
+  await radio.locator('#track-title').filter({hasText:'Take On Me'}).waitFor();
+  assert.equal(await radio.locator('.artist-copy').isVisible(),true);
+  assert.equal(await radio.locator('#track-artist').textContent(),'a-ha');
+  assert.equal(await radio.evaluate(()=>document.getElementById('track-title').getBoundingClientRect().bottom<=document.getElementById('track-artist').getBoundingClientRect().top),true,'Titel steht über dem Interpreten');
+  const typography=await radio.evaluate(()=>({size:parseFloat(getComputedStyle(document.getElementById('track-artist')).fontSize),gap:document.getElementById('track-artist').getBoundingClientRect().top-document.getElementById('track-title').getBoundingClientRect().bottom}));
+  assert.ok(typography.size>=15&&typography.gap>=5,'Interpret größer und mit Abstand zum Titel: '+JSON.stringify(typography));
+  await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+  await radio.evaluate(()=>{window.__historyAudio=document.getElementById('radio-audio');window.__historyAudioAt=__historyAudio.currentTime;});
+  title='Neue Band - Neuer Titel';await page.clock.runFor(5000);
+  await radio.locator('#track-title').filter({hasText:'Neuer Titel'}).waitFor();
+  assert.equal(await radio.locator('#track-artist').textContent(),'Neue Band');
+  await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>window.__historyAudioAt);
+  assert.equal(await radio.locator('#radio-audio').evaluate(n=>n===window.__historyAudio&&!n.paused&&!n.error),true);
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
 for(const client of ['k3','stapp'])for(const sizing of ['normal','stepped','ignored'])test('Wunschbox-Feedback erzeugt in '+client+' bei '+sizing+' keine zusätzliche Radioregie-Seite',async t=>{
   const lab=await setup(t,{provider:'online',hostSizing:sizing}),{page,radio}=await lab.join('Otterchen',client,1280,false);
   await radio.locator('#play-button:not([disabled])').click();
@@ -222,6 +248,7 @@ for(const client of ['k3','stapp']) {
     assert.match(face.text,/^\+\+\+ .* \+\+\+$/);
     const glow=await owner.radio.evaluate(()=>({
       combined:document.getElementById('radio-deck')?getComputedStyle(document.getElementById('radio-deck'),'::before').animationName:null,
+      duration:getComputedStyle(document.getElementById('radio-deck'),'::before').animationDuration,
       original:getComputedStyle(document.querySelector('.radio-program-face')).boxShadow,
       faceBackground:getComputedStyle(document.querySelector('.radio-program-face')).backgroundColor,
       faceBorder:getComputedStyle(document.querySelector('.radio-program-face')).borderBottomColor,
@@ -233,6 +260,7 @@ for(const client of ['k3','stapp']) {
       tickerBackground:getComputedStyle(document.getElementById('radio-ticker')).backgroundColor
     }));
     assert.equal(glow.combined,'mw-halo-rgb');assert.equal(glow.original,'none','Kein zweiter Glow zwischen Appleiste und Lauftext');
+    assert.equal(glow.duration,'42s','Lauftext und Appleiste verwenden denselben leicht beschleunigten RGB-Zyklus');
     assert.equal(glow.faceBackground,'rgb(20, 20, 20)','Ursprüngliche Deckfläche bleibt als Mischhintergrund für das Logo erhalten');
     assert.notEqual(glow.faceBorder,'rgba(0, 0, 0, 0)','Unterer Appleistenrahmen bleibt sichtbar');
     assert.deepEqual(glow.lowerCorners,['0px','0px'],'Am Anschluss keine innenliegenden Rundungen oder Eckkeile');
@@ -997,7 +1025,7 @@ for(const client of ['k3','stapp'])test('Erster HTML-Anstrich zeigt in '+client+
  try {
   for(const width of [1280,320]) {
    await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');
-  for(const [button,kind,title] of [['open-wishes','wishes','Wunschbox'],['studio-tab','studio','Radioregie'],['team-tab','team','Verwaltung'],['open-schedule','schedule','Sendeplan']]){
+  for(const [button,kind,title] of [['open-wishes','wishes','Wunschbox'],['studio-tab','studio','Moderation'],['team-tab','team','Verwaltung'],['open-schedule','schedule','Sendeplan']]){
    await network.send('Network.clearBrowserCache');
    await openRadioAction(radio,button);await assertEventually(()=>typeof release==='function');
    const frame=await (await page.waitForSelector('#overlays iframe')).contentFrame();
@@ -1153,7 +1181,8 @@ for(const client of ['k3','stapp'])test('Studioanmeldung zeigt in '+client+' ein
  await radio.locator('#on-air-sign').filter({hasText:'MischWerk am Pult'}).waitFor();
  const neutral='rgb(180, 180, 176)',liveColor='rgb(255, 154, 143)';
  assert.equal(await radio.locator('#on-air-sign').evaluate(n=>getComputedStyle(n).color),neutral);
- assert.ok(await radio.locator('#on-air-sign').evaluate(n=>parseFloat(getComputedStyle(n).fontSize)>=15),'AutoDJ-Anzeige größer und lesbar');
+ // Seit Build 311 gelten 14 px; auch am aktuellen Upload exakt prüfen, bevor der Funktionsablauf beginnt.
+ assert.equal(await radio.locator('#on-air-sign').evaluate(n=>parseFloat(getComputedStyle(n).fontSize)),14,'AutoDJ-Anzeige gemäß aktueller Typografie');
  await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
  await radio.evaluate(()=>{window.__moderatorNameAudio=document.getElementById('radio-audio');window.__moderatorAudioEvents=[];for(const type of ['playing','pause','emptied','error','ended'])window.__moderatorNameAudio.addEventListener(type,()=>window.__moderatorAudioEvents.push(type));});
  await radio.locator('#studio-tab:not([disabled])').click();let studio=await overlayView(page,'studio');
@@ -1180,13 +1209,15 @@ for(const client of ['k3','stapp'])test('Studioanmeldung zeigt in '+client+' ein
   assert.equal(await radio.locator('#on-air-sign').textContent(),'Es moderiert');assert.equal(await radio.locator('.presenter').getAttribute('data-mode'),'live');
   for(const selector of ['#on-air-sign','#host-name']){
    assert.equal(await radio.locator(selector).evaluate(n=>getComputedStyle(n).color),liveColor);
-   assert.ok(await radio.locator(selector).evaluate(n=>parseFloat(getComputedStyle(n).fontSize)>=15),'Lesbare Moderationsanzeige bei '+width);
+   assert.equal(await radio.locator(selector).evaluate(n=>parseFloat(getComputedStyle(n).fontSize)),14,'Aktuelle Moderationsschrift bei '+width);
   }
   assert.ok(await radio.locator('.radio-status-row').evaluate(n=>{
    const row=n.getBoundingClientRect(),text=n.querySelector('.presenter').getBoundingClientRect();
-   return parseFloat(getComputedStyle(n).paddingTop)>=10&&text.top-row.top>=10;
+   const padding=n.closest('.radio-constrained')?10:6;
+   return parseFloat(getComputedStyle(n).paddingTop)===padding&&text.top-row.top>=padding;
   }),'Anzeige gegenüber dem Thema tiefer bei '+width);
-  assert.ok((await radio.locator('#on-air-sign').getAttribute('title')).startsWith('Radio Mischwerk bestätigt eine Live-Sendung.'));
+  assert.ok((await radio.locator('#on-air-sign').getAttribute('aria-label')).startsWith('Radio Mischwerk bestätigt eine Live-Sendung.'));
+  assert.equal(await radio.locator('#on-air-sign').getAttribute('title'),'Sendung und Moderation');
   if(width===1920){const sign=await radio.locator('#on-air-sign').boundingBox(),name=await radio.locator('#host-name').boundingBox();assert.ok(Math.abs(sign.y-name.y)<1&&name.x>=sign.x+sign.width);}
   const audioState=await radio.evaluate(()=>{const audio=window.__moderatorNameAudio;return {same:document.getElementById('radio-audio')===audio,paused:audio.paused,ended:audio.ended,error:audio.error?.code||null,source:audio.getAttribute('src'),events:window.__moderatorAudioEvents};});
   assert.equal(audioState.same&&!audioState.paused,true,JSON.stringify({width,...audioState}));
@@ -1390,7 +1421,7 @@ for (const client of ['k3','stapp']) {
     }
     await radio.locator('#own-wish-more').filter({hasText:'+1'}).waitFor();
     assert.equal(await radio.locator('#own-wish-title').textContent(),song);
-    assert.ok((await radio.locator('#own-wish-position').getAttribute('title')).includes(song));
+    assert.equal(await radio.locator('#own-wish-position').getAttribute('title'),'Dein Musikwunsch');
     assert.equal(await surface.locator('#wish-positions,#refresh-wish-positions,#wish-positions-pages').count(),0);
     assert.doesNotMatch(await surface.locator('#wishes-panel').innerText(),/Deine offenen Wünsche|Platz 1|Mein zweiter Wunsch/);
     await radio.waitForTimeout(600);
@@ -1851,7 +1882,8 @@ for (const scenario of ['stopped', 'http-error', 'invalid']) {
     if (scenario === 'stopped') {
       await radio.locator('#stream-label').filter({ hasText: 'Sendepause' }).waitFor();
       assert.equal(await radio.locator('#play-button').isEnabled(), true);
-      assert.match(await radio.locator('#play-button').getAttribute('title'), /pause|gestoppt/i);
+      assert.equal(await radio.locator('#play-button').getAttribute('title'),'Radio abspielen');
+      assert.match(await radio.locator('#stream-badge').getAttribute('aria-label'),/Sendepause/);
     } else {
       await radio.locator('#play-button:not([disabled])').waitFor();
       assert.equal(await radio.locator('#listener-count').count(), 0);

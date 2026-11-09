@@ -290,12 +290,14 @@ function removeRadioModerator(h, owner, ownerSession, person) {
   }));
   assert.equal(result.ok, true, result.message);
 }
-test('main.js laedt fachlich getrennte Serverdateien statt eines Sammelbundles', () => {
+test('main.js bleibt ein kurzer Einstieg und lädt die Serverdateien des gewählten Appstands', () => {
   const h = createHarness();
   const { modules, checkBackend } = require('../../tools/build/backend.cjs');
   checkBackend();
-  assert.deepEqual(h.loadedFiles, ['main.js', 'server/app.js', ...modules.filter(file => file !== 'app.js').map(file => 'server/' + file)]);
-  const entry = fs.readFileSync(path.join(__dirname, '../../app/main.js'), 'utf8');
+  const delivery = process.env.MISCHWERK_TEST_UPLOAD ? require('../../tools/build/prepare-upload.cjs').createDelivery() : null;
+  assert.deepEqual(h.loadedFiles, ['main.js', 'server/app.js', ...modules.filter(file => file !== 'app.js' &&
+    (!delivery || delivery.has('server/' + file))).map(file => 'server/' + file)]);
+  const entry = fs.readFileSync(path.join(process.env.MISCHWERK_TEST_UPLOAD || path.resolve(__dirname, '../../app'), 'main.js'), 'utf8');
   assert.equal((entry.match(/KnuddelsServer.execute\(/g) || []).length, 1);
   assert.ok(entry.split('\n').length < 6);
   assert.doesNotMatch(entry, /onEventReceived\s*[:=]|\bpersist\s*\(|function\s*\(/);
@@ -840,8 +842,9 @@ test('STREAMPANEL verwendet die bestätigten öffentlichen MischWerk-SPCast-Ansc
   const {h,owner,os}=fixture(),station=h.state(owner,os).station;
   assert.equal(station.provider,'streampanel');assert.equal(station.configured,true);
   assert.equal(station.streamUrl,'https://mischwerk.sp.radio.fm/stream');
-  assert.equal(station.metadataUrl,'https://scripts.streampanel.net/spcast/player/default/api.php?url=mischwerk.spcast.eu&userid=8884&historic=true');
-  assert.equal(station.fields.title,'currentSong');assert.equal(station.fields.artist,'currentArtist');
+  assert.equal(station.metadataUrl,'https://mischwerk.spcast.eu:9000/sp/cache/history/history.json');
+  assert.equal(station.metadataFormat,'spcast-history');
+  assert.equal(station.fields.title,'metadata.song');assert.equal(station.fields.artist,'');
   assert.equal(station.fields.live,'');
   assert.deepEqual(station.allowedHosts,['mischwerk.sp.radio.fm','mischwerk.spcast.eu','scripts.streampanel.net']);
   assert.equal(station.statusUrl,'https://mischwerk.sp.radio.fm/statistics?json=1');

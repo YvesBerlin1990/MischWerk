@@ -12,15 +12,15 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
       </div>
       <section id="radio-metadata" class="radio-metadata" aria-label="Musik, Sendung und Lautstärke" tabindex="0">
       <section class="now-playing" aria-label="Aktuelle Musik">
-        <div class="track-row" hidden><div class="track-copy" aria-live="polite"><span class="track-eyebrow" aria-hidden="true">Jetzt läuft</span><span class="field-label sr-only" id="track-label" hidden>Titel</span><strong id="track-title" hidden></strong><div class="artist-copy" hidden><span class="field-label sr-only artist-label">Interpret</span><span id="track-artist"></span></div></div></div>
+        <div class="track-row" hidden><div class="track-copy" aria-live="polite"><span class="track-eyebrow" aria-hidden="true">Jetzt läuft</span><span class="field-label sr-only" id="track-label" hidden>Titel</span><strong id="track-title" title="Aktueller Titel" hidden></strong><div class="artist-copy" hidden><span class="field-label sr-only artist-label">Interpret</span><span id="track-artist" title="Interpret"></span></div></div></div>
         <p id="metadata-empty" class="empty-copy">Titelinformationen derzeit nicht verfügbar</p>
       </section>
         <div class="radio-context">
-          <div id="radio-topic" class="topic-display" aria-live="polite"><span class="topic-label">Thema:</span><strong id="show-topic" title="MischWerk Radio Show">MischWerk Radio Show</strong></div>
-          <div class="radio-status-row"><section class="presenter" data-mode="unconfirmed" aria-label="Sendung und Moderation"><span id="on-air-sign" class="on-air-sign" role="status">Radio MischWerk</span><strong id="host-name" hidden></strong></section>
+          <div id="radio-topic" class="topic-display" aria-live="polite"><span class="topic-label">Thema:</span><strong id="show-topic" title="Thema der Sendung">MischWerk Radio Show</strong></div>
+          <div class="radio-status-row"><section class="presenter" data-mode="unconfirmed" aria-label="Sendung und Moderation"><span id="on-air-sign" title="Sendung und Moderation" class="on-air-sign" role="status">Radio MischWerk</span><strong id="host-name" title="Aktuelle Moderation" hidden></strong></section>
           </div>
         </div>
-          <section id="own-wish-position" class="own-wish-position" role="status" aria-label="Dein Musikwunsch" hidden><div class="own-wish-heading"><span id="own-wish-label" class="own-wish-label"></span><span id="own-wish-more" class="own-wish-more" hidden></span></div><strong id="own-wish-rank" class="own-wish-rank" hidden></strong><strong id="own-wish-title" class="own-wish-title" hidden></strong><span id="own-wish-stage" class="own-wish-stage" hidden></span></section>
+          <section id="own-wish-position" title="Dein Musikwunsch" class="own-wish-position" role="status" aria-label="Dein Musikwunsch" hidden><div class="own-wish-heading"><span id="own-wish-label" class="own-wish-label"></span><span id="own-wish-more" class="own-wish-more" hidden></span></div><strong id="own-wish-rank" class="own-wish-rank" hidden></strong><strong id="own-wish-title" title="Dein Musikwunsch" class="own-wish-title" hidden></strong><span id="own-wish-stage" class="own-wish-stage" hidden></span></section>
         <div class="volume-control"><label for="volume">Lautstärke</label><button id="mute-button" class="icon-button" type="button" aria-label="Ton ausschalten" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"></path><path class="sound-waves" d="M16 9a5 5 0 0 1 0 6"></path><path class="sound-waves" d="M19.364 18.364a9 9 0 0 0 0-12.728"></path><path class="mute-cross" d="m17 9 5 6m0-6-5 6"/></svg></button><input id="volume" type="range" min="0" max="100" value="10" aria-label="Lautstärke in Prozent" aria-describedby="volume-help"><output for="volume" id="volume-value">10 %</output><span id="volume-help" class="sr-only">Über 60 Prozent ist der Regler rot markiert. Dies ist keine Dezibel-Messung und kein garantierter Schutzbereich: Der Hörpegel hängt von Kopfhörern und Systemlautstärke ab. Auch niedrigere Werte können zu laut sein. Bis 100 Prozent bleibt frei einstellbar.</span></div>
       </section>
       <nav id="radio-actions" class="radio-actions-panel public-only" aria-label="Radio bedienen">
@@ -31,13 +31,13 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
       </nav>
       </section>
         <div id="radio-private-actions" class="bar-utility-links" aria-label="Radio verwalten" hidden>
-          <button id="studio-tab" class="wish-button studio-link" type="button" aria-label="Radioregie" title="Radioregie" aria-haspopup="dialog" hidden><span class="public-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3v8m0 4v6M12 3v2m0 4v12M19 3v10m0 4v4"/><circle cx="5" cy="13" r="2"/><circle cx="12" cy="7" r="2"/><circle cx="19" cy="15" r="2"/></svg></span><span class="wish-button-copy action-label"><strong>Radioregie</strong></span></button>
+          <button id="studio-tab" class="wish-button studio-link" type="button" aria-label="Moderation" title="Moderation" aria-haspopup="dialog" hidden><span class="public-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3v8m0 4v6M12 3v2m0 4v12M19 3v10m0 4v4"/><circle cx="5" cy="13" r="2"/><circle cx="12" cy="7" r="2"/><circle cx="19" cy="15" r="2"/></svg></span><span class="wish-button-copy action-label"><strong>Moderation</strong></span></button>
         </div>
         <div id="radio-listener-brand" class="radio-listener-brand" aria-hidden="true" hidden>
           <span class="radio-listener-emblem"><img class="radio-listener-logo" src="img/mischwerk-radio.png" width="140" height="140" loading="lazy" decoding="async" alt=""></span>
           <span class="radio-listener-wordmark"><img class="radio-listener-logo" src="img/mischwerk-radio.png" width="115" height="115" loading="lazy" decoding="async" alt=""></span>
         </div>
-      <div class="sr-only"><span id="stream-badge" role="status"><span id="stream-label">Verbinde …</span></span><span id="playback-status" role="status"></span><span id="metadata-status" role="status"></span><a id="station-link" tabindex="-1" target="_blank" rel="noopener noreferrer" hidden>Öffentlichen Radiostream öffnen</a></div>
+      <div class="sr-only"><span id="stream-badge" title="Wiedergabestatus" role="status"><span id="stream-label">Verbinde …</span></span><span id="playback-status" role="status"></span><span id="metadata-status" role="status"></span><a id="station-link" tabindex="-1" target="_blank" rel="noopener noreferrer" hidden>Öffentlichen Radiostream öffnen</a></div>
     </main>
     <div id="radio-ticker-placeholder"></div>
     </div>

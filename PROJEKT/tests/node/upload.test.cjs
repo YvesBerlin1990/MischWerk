@@ -6,6 +6,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const vm = require('node:vm');
 const { createDelivery } = require('../../tools/build/prepare-upload.cjs');
+const { modules } = require('../../tools/build/backend.cjs');
 const { frontendFilesForView } = require('../../tools/lib/frontend-files.cjs');
 const { runtimeFiles, isBinary } = require('../../tools/checks/lengths.cjs');
 const { checkUpload } = require('../../tools/checks/upload.cjs');
@@ -66,7 +67,7 @@ test('Auslieferungsbündel erhalten alle vollständigen Module und ihre Reihenfo
   const project = path.resolve(__dirname,'../..'), delivery = createDelivery(project);
   const read = file => fs.readFileSync(path.join(project,'app/www',file),'utf8');
   const delivered = file => (delivery.get('www/'+file) || Buffer.from(read(file))).toString('utf8');
-  const required = new Set(runtimeFiles.filter(file => !/^www\/(?:js|css)\//.test(file)));
+  const required = new Set(runtimeFiles.filter(file => file.startsWith('www/') && !/^www\/(?:js|css)\//.test(file)));
   required.add('www/js/start.js'); required.add('www/js/operator/relay-settings.js');
   for (const view of ['radio','wishes','studio','team','schedule']) {
     const scripts = [], styles = [];
@@ -87,7 +88,35 @@ test('Auslieferungsbündel erhalten alle vollständigen Module und ihre Reihenfo
       assert.ok(delivered(file).length < 9500, file);
     }
   }
-  assert.deepEqual([...delivery.keys()].sort(), [...required].sort(), 'Nur tatsächlich benötigte Auslieferungsdateien, keine zusätzlichen Bündelbestandteile');
+  assert.deepEqual([...delivery.keys()].filter(file => file.startsWith('www/')).sort(), [...required].sort(),
+    'Nur tatsächlich benötigte Browserdateien, keine zusätzlichen Bündelbestandteile');
+});
+
+test('Serverbündel laden jedes vollständige Modul genau einmal in derselben Reihenfolge und erhalten die Verdrahtung', t => {
+  const f = fixture(t, true), delivery = createDelivery(f.project);
+  const read = file => fs.readFileSync(path.join(f.project, 'app/server', file), 'utf8');
+  const original = read('app.js'), bundled = delivery.get('server/app.js').toString('utf8');
+  const pattern = /^KnuddelsServer\.execute\('server\/([^']+)'\);\r?\n/gm;
+  const imports = [...bundled.matchAll(pattern)].map(match => match[1]);
+  assert.equal(bundled.replace(pattern, ''), original.replace(pattern, ''), 'Komposition und Hooks unverändert');
+  assert.equal(imports.map(file => delivery.get('server/' + file).toString('utf8')).join('\n;\n'),
+    modules.filter(file => file !== 'app.js').map(read).join('\n;\n'), 'Vollständige Module in Quellreihenfolge');
+  assert.deepEqual([...delivery.keys()].filter(file => file.startsWith('server/')).sort(),
+    ['server/app.js', ...imports.map(file => 'server/' + file)].sort());
+  assert.ok(imports.length < modules.length - 1, 'Weniger execute-Aufrufe');
+  assert.ok(delivery.get('server/config.js').equals(Buffer.from(read('config.js'))), 'Konfiguration separat erhalten');
+  const { createHarness } = require('../support/knuddels.cjs');
+  const appDir = path.join(f.upload, 'MischWerk'), h = createHarness(undefined, { appDir });
+  assert.deepEqual(h.loadedFiles, ['main.js', 'server/app.js', ...imports.map(file => 'server/' + file)]);
+  const owner = h.user(1, 'Otterchen', 'owner'), listener = h.user(2, 'Hörer');
+  const os = h.open(owner), ls = h.open(listener);
+  const receipt = h.event(listener, ls, 'mw:wish.submit', {text:'Bündelprüfung',submissionId:'bundle-wish'});
+  assert.equal(receipt.find(event => event.type === 'mw:wish.receipt').data.accepted, true);
+  assert.equal(h.state(owner, os).queueTotal, 1);
+  h.app.onPrepareShutdown(); h.app.onShutdown();
+  const reboot = createHarness(h.store, { appDir });
+  const returnedOwner = reboot.user(1, 'Otterchen', 'owner');
+  assert.equal(reboot.state(returnedOwner, reboot.open(returnedOwner)).queue[0].text, 'Bündelprüfung');
 });
 
 test('Uploadprüfung validiert Bündel gegen die Quellmodule und weist nachgehashte Fremdinhalte zurück', t => {
@@ -107,6 +136,19 @@ test('Uploadprüfung validiert Bündel gegen die Quellmodule und weist nachgehas
   updateHashes();assert.equal(checkUpload({project:f.project}).files,delivery.size);
   fs.appendFileSync(path.join(f.upload,'MischWerk/www/js/ui/composition.js'),'\n/* Fremder Inhalt */\n');
   updateHashes();assert.throws(() => checkUpload({project:f.project}),/Upload weicht von den Quellen ab/);
+});
+
+test('Serverbündel werden an der strikten Zeichengrenze wieder in vollständige Einzelmodule getrennt', t => {
+  const f = fixture(t), first = 'core/runtime.js', second = 'core/diagnostics.js';
+  const file = path.join(f.project, 'app/server', first), original = fs.readFileSync(file, 'utf8');
+  const next = fs.readFileSync(path.join(f.project, 'app/server', second), 'utf8');
+  for (const length of [9499, 9500]) {
+    const padding = length - original.length - '\n;\n'.length - next.length;
+    fs.writeFileSync(file, original + '/*' + ' '.repeat(padding - 4) + '*/');
+    const delivery = createDelivery(f.project);
+    assert.equal(delivery.has('server/' + second), length === 9500, 'Bei 9500 Zeichen beginnt ein neues Bündel');
+    assert.ok(delivery.get('server/' + first).toString('utf8').length < 9500);
+  }
 });
 
 test('Kompakter Upload behält Quellmodule und weist zusätzliche Bündelbestandteile sowie fehlende Ladedateien zurück', t => {

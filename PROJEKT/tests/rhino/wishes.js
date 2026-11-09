@@ -1,5 +1,6 @@
 /* Lokaler ES5-Test in einer echten Rhino-Engine. Kein Bestandteil des Uploads. */
 var assertions = 0;
+var mischWerkAppRoot = typeof mischWerkAppRoot === 'string' ? mischWerkAppRoot : 'app';
 function check(condition, message) {
     assertions += 1;
     if (!condition) { throw new Error(message); }
@@ -21,7 +22,7 @@ var store = { data: {},
     setObject: function (key, value) { persistenceWrites += 1; this.data[key] = copy(value); }
 };
 var KnuddelsServer = {
-    execute: function (file) { load('app/' + file); },
+    execute: function (file) { load(mischWerkAppRoot + '/' + file); },
     getPersistence: function () { return store; },
     getDefaultBotUser: function () { return { sendPublicMessage: function (message) { publicMessages.push(message); } }; },
     getDefaultLogger: function () {
@@ -100,7 +101,7 @@ function latest(session, type) {
     }
     return null;
 }
-load('app/main.js');
+load(mischWerkAppRoot + '/main.js');
 App.onAppStart();
 check(cacheInvalidations === 1, 'Oberflaechen-Cache beim Start erneuert');
 var listener = person(1, 'Musikfreund', false);

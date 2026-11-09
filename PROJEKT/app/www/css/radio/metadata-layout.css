@@ -21,9 +21,9 @@
 .own-wish-stage[data-stage=playing],.own-wish-stage[data-stage=preparing] { color:#e9eaec; }
 .radio-metadata:focus-visible { outline:2px solid #cfd2d6; outline-offset:-3px; border-radius:8px; }
 #host-name { display:block; overflow-wrap:anywhere; }
-/* Ruhigere Gewichtung; freie Höhe zentriert kurze Gruppen, lange bleiben oben erreichbar. */
+/* Musik mit oberem Abstand; freie Höhe zentriert Thema und Wunsch. */
 @media (min-width:1200px) {
- .radio-metadata .now-playing { align-self:center; padding:0; }
+ .radio-metadata .now-playing { align-self:start; padding:8px 0 0; }
  .radio-context,.own-wish-position { align-self:stretch; justify-content:flex-start; min-height:124px; padding:10px 0 10px 16px; border-left:1px solid var(--line); }
  .radio-context .topic-label { margin-bottom:4px; }
  .radio-context .topic-display,.own-wish-heading { margin-top:auto; }
