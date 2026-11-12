@@ -18,7 +18,7 @@ function createSiteServer({env=process.env,bridge=createSiteBridge(env),clock=Da
   if(req.url.split('?')[0]==='/arbeitsbereich')res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
   const send=(status,type,body)=>{res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store'});res.end(body);};
   try{
-   if(!origin){origin=env.MISCHWERK_PUBLIC_ORIGIN||'http://127.0.0.1:'+server.address().port;const url=new URL(origin);if(url.origin!==origin||(!origin.startsWith('https:')&&!['127.0.0.1','localhost'].includes(url.hostname)))throw Error('Ungültiger Websiteursprung');workspace=createWorkspaceApi({bridge,origin,clock});siteApi=createSiteApi({env:{...env,MISCHWERK_PUBLIC_ORIGIN:origin},bridge,mail:{configured:false}});}
+   if(!origin){origin=env.MISCHWERK_PUBLIC_ORIGIN||'http://127.0.0.1:'+server.address().port;const url=new URL(origin);if(url.origin!==origin||(!origin.startsWith('https:')&&!['127.0.0.1','localhost'].includes(url.hostname)))throw Error('Ungültiger Websiteursprung');workspace=createWorkspaceApi({bridge,origin,clock});siteApi=createSiteApi({env:{...env,MISCHWERK_PUBLIC_ORIGIN:origin},bridge});}
    const url=new URL(req.url,origin);
    if(await workspace(req,res,url)||await siteApi(req,res,url))return;
    if(req.method!=='GET'){send(405,'text/plain','Nicht verfügbar.');return;}

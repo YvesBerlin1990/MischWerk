@@ -37,7 +37,6 @@
  .studio-queue:not(.studio-sizing) { padding:10px 16px; }
  .studio-queue:not(.studio-sizing) .studio-queue-heading { margin-bottom:6px; }
  .studio-queue:not(.studio-sizing) .studio-queue-heading h2 { font-size:15px; }
- .studio-queue:not(.studio-sizing) #queue-refresh-feedback { display:none; }
- .studio-queue:not(.studio-sizing) .studio-queue-heading:has(+ #queue-body .selected) { display:none; }
+ /* Aktualisieren und seine Statuszeile bleiben auch beim ausgewählten Wunsch erreichbar. */
  .studio-queue:not(.studio-sizing) .queue-copy { height:104px; }
 }

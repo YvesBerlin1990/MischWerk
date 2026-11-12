@@ -38,11 +38,13 @@ function createSiteApi({ env = process.env, mail = createApplicationMail(env), b
     if (req.headers.origin !== (env.MISCHWERK_PUBLIC_ORIGIN || 'http://' + req.headers.host) || !/^application\/json(?:;|$)/i.test(req.headers['content-type'] || '')) {
       respond(res, 403, { message: 'Bitte öffne das Formular auf dieser Website.' }); return true;
     }
-    let raw = '';
+    const parts = []; let size = 0;
     for await (const part of req) {
-      raw += part;
-      if (Buffer.byteLength(raw) > 12000) { respond(res, 413, { message: 'Die Eingabe ist zu lang.' }); return true; }
+      size += part.length;
+      if (size > 12000) { respond(res, 413, { message: 'Die Eingabe ist zu lang.' }); return true; }
+      parts.push(part);
     }
+    const raw = Buffer.concat(parts, size).toString('utf8');
     let data;
     try { data = JSON.parse(raw); if (!data || typeof data !== 'object' || Array.isArray(data) || data.website) throw Error('validation'); }
     catch { respond(res, 400, { message: 'Bitte prüfe deine Eingaben.' }); return true; }

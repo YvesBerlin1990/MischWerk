@@ -1,4 +1,4 @@
-# MischWerk – Design 0.1.382 · Build 382
+# MischWerk – Design 0.1.383 · Build 383
 
 Die öffentliche Textbegrüßung fordert den vollständigen ersten Satz mit dem nativen RobotoBold-Schriftschnitt, Größe 16 und Gold #e6c77b an. Die eigene Unterstrich-Bold-Umschaltung entfällt; nach dem ersten Punkt setzt §°r° die Formatierung für den normalen zweiten Satz zurück. Profil- und Fotolinks bleiben erhalten. Die Darstellung mit eigener Nickmarkierung wird nativ gesondert geprüft.
 

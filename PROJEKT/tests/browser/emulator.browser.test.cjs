@@ -1754,7 +1754,8 @@ for (const client of ['k3','stapp']) {
       await surface.locator('#wish-feedback.success').waitFor();
       await surface.locator('#wish-compose-open').waitFor();
     }
-    await radio.locator('#own-wish-more').filter({hasText:'+1'}).waitFor();
+    await radio.locator('#own-wish-more').filter({hasText:'+1'}).waitFor({state:'attached'});
+    assert.equal(await radio.locator('#own-wish-position').isVisible(),false,'Mobile Leiste reserviert keine private Wunschfläche');
     assert.equal(await radio.locator('#own-wish-title').textContent(),song);
     assert.equal(await radio.locator('#own-wish-position').getAttribute('title'),'Dein Musikwunsch');
     assert.equal(await surface.locator('#wish-positions,#refresh-wish-positions,#wish-positions-pages').count(),0);
@@ -1785,6 +1786,8 @@ for(const client of ['k3','stapp']) {
 for(const client of ['k3','stapp']) {
   test('Aktualisieren in beiden echten Appfenstern: '+client+' bestätigt Antwort, Fehler und Wiederholung',async t=>{
     const lab=await setup(t,{},true),{page,radio}=await lab.join('Otterchen',client);
+    await radio.evaluate(()=>Client.sendEvent('mw:wish.submit',{text:'Ein Wunsch für den Aktualisierungstest',submissionId:'refresh-selected-wish-383'}));
+    await radio.locator('#own-wish-position:not([hidden])').waitFor();
     for(const kind of ['studio','team']) {
       await openRadioAction(radio,kind==='studio'?'studio-tab':'team-tab');
       const frame=await view(page,'Overlay');
@@ -1897,9 +1900,11 @@ test('Verlorene Quittung: Timeout und Wiederholung behalten dieselbe submissionI
 test('320 und 2290 Pixel sind tatsächliche Framebreiten, Overlay verändert den Channelbeginn nicht', async t => {
   const lab = await setup(t);await lab.join('Otterchen');const { page, radio } = await lab.join('Polaroid', 'k3', 320);
   assert.equal(await radio.evaluate(() => innerWidth), 320);
+  await page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
+  const initialHeight=await radio.evaluate(()=>innerHeight);
   await radio.locator('#open-wishes').click(); const surface = await view(page, 'Overlay');
   assert.ok(await surface.locator('#submit-wish').isVisible());
-  assert.equal(await radio.evaluate(() => innerHeight), 176);
+  assert.equal(await radio.evaluate(() => innerHeight),initialHeight,'Overlay erhält die bereits gemessene natürliche Radiohöhe');
   await page.locator('#width').fill('2290'); await page.locator('#width').dispatchEvent('change');
   await radio.waitForFunction(() => innerWidth === 2290);
   assert.equal(await radio.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
@@ -2099,7 +2104,7 @@ test('Native Wunschliste zeigt drei Einträge, erhält die Auswahl über Fenster
 
 for(const client of ['k3','stapp'])test('Alle nativen Öffnungen in '+client+' behalten getrennte native Anfänge und ausschließlich freigegebene Inhaltshöhen',async t=>{
  const lab=await setup(t,{provider:'online',resourceDelayMs:10}),{page,radio}=await lab.join('Otterchen',client,2290);await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);const entries=[['studio-tab','studio',640,580],['team-tab','team',500,560],['open-wishes','wishes',480,340]];
- for(const [from,kind] of entries){const previous=await page.locator('#overlays iframe').count()?await page.locator('#overlays iframe').getAttribute('src'):null;await openRadioAction(radio,from);await page.waitForFunction(previous=>{const n=document.querySelector('#overlays iframe');return n&&n.getAttribute('src')!==previous;},previous);await overlayView(page,kind);for(const [button,target,width,height] of entries){const old=await page.locator('#overlays iframe').getAttribute('src');await openRadioAction(radio,button);await page.waitForFunction(old=>document.querySelector('#overlays iframe')?.getAttribute('src')!==old,old);const frame=await overlayView(page,target);const actual=await frame.evaluate(()=>[innerWidth,innerHeight]);assert.equal(actual[0],width);if(target==='studio')assert.ok(actual[1]>0&&actual[1]<=height);else assert.equal(actual[1],height);assertAllowedOverlaySizes(lab);assert.equal(await frame.locator('#'+target+'-panel').isVisible(),true);}}
+ for(const [from,kind] of entries){const previous=await page.locator('#overlays iframe').count()?await page.locator('#overlays iframe').getAttribute('src'):null;await openRadioAction(radio,from);await page.waitForFunction(previous=>{const n=document.querySelector('#overlays iframe');return n&&n.getAttribute('src')!==previous;},previous);await overlayView(page,kind);for(const [button,target,width,height] of entries){const old=await page.locator('#overlays iframe').getAttribute('src');await openRadioAction(radio,button);await page.waitForFunction(old=>document.querySelector('#overlays iframe')?.getAttribute('src')!==old,old);const frame=await overlayView(page,target);const actual=await frame.evaluate(()=>[innerWidth,innerHeight]);assert.equal(actual[0],width);if(target==='studio'||target==='wishes')assert.ok(actual[1]>0&&actual[1]<=height,'Natürliche Inhaltshöhe bleibt innerhalb der Ausgangsgröße');else assert.equal(actual[1],height);assertAllowedOverlaySizes(lab);assert.equal(await frame.locator('#'+target+'-panel').isVisible(),true);}}
  assert.equal(await radio.evaluate(()=>!document.getElementById('radio-audio').paused),true);assert.equal(lab.hub.trace.some(e=>e.eventType==='mw:view'),false);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 

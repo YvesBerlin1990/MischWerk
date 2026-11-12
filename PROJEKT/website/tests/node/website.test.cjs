@@ -63,6 +63,33 @@ async function start(t, options) {
   return { base, post };
 }
 const application = { name: 'Testperson', email: 'person@example.test', availability: 'Am Wochenende', message: 'Ich möchte bei euch moderieren.', submissionId: 'application-test-12345' };
+
+test('Öffentlicher Wunsch erhält UTF-8 über HTTP-Blockgrenzen und begrenzt die tatsächlichen Bytes',async t=>{
+  const received=[],bridge={configured:true,wish:async data=>received.push(data)};
+  const {base}=await start(t,{bridge,mail:{configured:false}}),{postChunks}=require('../support/site.cjs');
+  const text='Grüße für dich 🎵';
+  const result=await postChunks(base,'/api/site/wishes',{text,submissionId:'utf8-public-wish-123'});
+  assert.equal(result.status,200);assert.equal(received[0].text,text);
+  const oversized=await postChunks(base,'/api/site/wishes',{text:'ü'.repeat(6100),submissionId:'utf8-public-large-123'});
+  assert.equal(oversized.status,413);assert.equal(received.length,1);
+});
+
+test('Regulärer Websiteserver verdrahtet den Mailadapter nur bei ausdrücklicher Aktivierung',async t=>{
+  const sent=[],settings=[],nodemailer=require('nodemailer');
+  t.mock.method(nodemailer,'createTransport',options=>{settings.push(options);return {sendMail:async message=>{sent.push(message);return {accepted:['private@example.test'],rejected:[]};}};});
+  const {createSiteServer}=require('../../server/server.cjs');
+  const smtp={MISCHWERK_APPLICATION_TO:'private@example.test',MISCHWERK_SMTP_HOST:'smtp.example.test',MISCHWERK_SMTP_USER:'sender@example.test',MISCHWERK_SMTP_PASSWORD:'synthetic-test-secret'};
+  for(const enabled of [undefined,'false','true']){
+    const server=createSiteServer({env:{...smtp,MISCHWERK_APPLICATIONS_ENABLED:enabled},bridge:{configured:false}});
+    await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>new Promise(resolve=>{server.closeAllConnections();server.close(resolve);}));
+    const base='http://127.0.0.1:'+server.address().port,content=await(await fetch(base+'/api/site/content')).json();
+    assert.equal(content.applicationsAvailable,enabled==='true');assert.doesNotMatch(JSON.stringify(content),/private@example|sender@example|synthetic-test-secret/);
+    if(enabled==='true'){
+      const response=await fetch(base+'/api/site/applications',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:JSON.stringify(application)});
+      assert.equal(response.status,200);assert.equal(sent.length,1);assert.equal(sent[0].to,'private@example.test');assert.equal(settings[0].host,'smtp.example.test');
+    }else assert.equal(settings.length,0,'Deaktivierter Standard erzeugt keinen SMTP-Transport');
+  }
+});
 test('Bewerbung wird serverseitig zugestellt; Empfänger, Fehlerdetails und Zugangsdaten bleiben privat', async t => {
   const messages = [];
   const mail = createApplicationMail({ MISCHWERK_APPLICATIONS_ENABLED:'true', MISCHWERK_APPLICATION_TO: 'privat@example.test', MISCHWERK_SMTP_USER: 'smtp@example.test' },

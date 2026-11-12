@@ -11,7 +11,7 @@
 
 Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderation, Sendeplan und eigener Homepage.
 
-**App 0.1.382 · Build 382 · Website 0.2.11** · Stand: 12. November 2026.
+**App 0.1.383 · Build 383 · Website 0.2.12** · Stand: 12. November 2026.
 
 ![Aktuelle Radioleiste mit großer Playtaste, getrenntem Titel und Interpret, Lautstärke und goldenen Aktionstasten](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
 
@@ -38,7 +38,9 @@ Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderati
 
 ![Radio mit angeschlossenem Lauftext und lokaler Pause-Taste](../PROJEKT/docs/pruefung/oberflaeche/radio/lauftext-1280.png)
 
-Alle **35 App-Screenshots** und die **drei Websiteaufnahmen** wurden am **12. November 2026** mit **Build 382 / Website 0.2.11** erneuert. Sie zeigen den tatsächlichen lokalen Appcode mit Beispieldaten und ersetzen die früheren Aufnahmen. Native Knuddels-Darstellung, Schrift- und Profilklickwirkung bleiben gesondert abzunehmen. Weitere Bilder und Prüfergebnisse stehen im [App-Prüfbericht](../PROJEKT/docs/pruefung/PRUEFBERICHT.md).
+Die erneute vollständige Prüfung besteht: **404/404 App-Browserfälle**, **620/620 Funktionstests an Quellen und Upload**, beide Rhino-Engines sowie **26/26 Websitefälle**. Die bisherigen Browser- und Websitebefunde sind korrigiert und im [Prüfbericht](../PROJEKT/docs/pruefung/PRUEFBERICHT.md#browser--und-websitekorrekturen--build-383--website-0212) nachvollziehbar dokumentiert.
+
+Alle **35 App-Screenshots** und die **drei Websiteaufnahmen** wurden am **12. November 2026** mit **Build 383 / Website 0.2.12** erneuert. Sie zeigen den tatsächlichen lokalen Appcode mit Beispieldaten und ersetzen die früheren Aufnahmen. Native Knuddels-Darstellung, Schrift- und Profilklickwirkung bleiben gesondert abzunehmen. Weitere Bilder und Prüfergebnisse stehen im [App-Prüfbericht](../PROJEKT/docs/pruefung/PRUEFBERICHT.md).
 
 ![Neuer Tagesplan mit Sendung davor und danach](../PROJEKT/docs/pruefung/oberflaeche/sendeplan/sendeplan-tag-640.png)
 
@@ -57,7 +59,7 @@ pnpm --dir PROJEKT run emulator
 
 Das integrierte Testlabor öffnet unter [127.0.0.1:8776](http://127.0.0.1:8776) den lokalen Appcode mit Testnutzern und getrennten Radio-/Overlayfenstern. Audio beginnt nach Play.
 
-Die eigenständige [Website](../PROJEKT/website/README.md) benötigt Node.js ab 22. Appadapter und Mailversand sind standardmäßig ausgeschaltet. Offene Produktionsfragen und bekannte Websitebefunde stehen im [Website-Prüfbericht](../PROJEKT/website/docs/PRUEFUNG.md).
+Die eigenständige [Website](../PROJEKT/website/README.md) benötigt Node.js ab 22. Appadapter und Mailversand sind standardmäßig ausgeschaltet. Alle 26 Websiteprüfungen bestehen; die bisherigen UTF-8-, Löschbestätigungs- und Mailadapterfehler sind behoben. Ausstehende Produktionsabnahme und Nachweise stehen im [Website-Prüfbericht](../PROJEKT/website/docs/PRUEFUNG.md).
 
 ## Projekt und Dokumentation
 

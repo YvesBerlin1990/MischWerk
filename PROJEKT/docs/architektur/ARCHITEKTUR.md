@@ -1,4 +1,4 @@
-# MischWerk – Architektur 0.1.382 · Build 382
+# MischWerk – Architektur 0.1.383 · Build 383
 
 Stand 11.11.2026. Diese Übersicht beschreibt den aktuellen Aufbau; verbindliche Fach- und Entwicklungsregeln stehen ausschließlich in [AGENTS.md](../../AGENTS.md).
 

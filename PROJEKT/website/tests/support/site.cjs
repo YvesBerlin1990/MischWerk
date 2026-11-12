@@ -24,4 +24,14 @@ async function startSite(t,{origin,enabled=true}={}){
  async function login(person=owner){await api('session');const result=await api('login',{});h.app.chatCommands.mw(person,'homepage ' + result.json.code);await api('login-status');return api('state',{view:'studio'});}
  return{h,owner,dj,listener,radio,base,server,bridge,faults,calls,api,login,get cookie(){return cookie;}};
 }
-module.exports={startSite};
+// Getrennte HTTP-Schreibvorgänge erzwingen einen Schnitt innerhalb eines UTF-8-Zeichens.
+function postChunks(base,route,body,headers={}){
+ const bytes=Buffer.from(JSON.stringify(body)),first=bytes.findIndex(value=>value>=0xc2&&value<=0xf4)+1;
+ return new Promise((resolve,reject)=>{
+  const request=require('node:http').request(base+route,{method:'POST',headers:{Origin:base,'Content-Type':'application/json',...headers}},response=>{
+   const parts=[];response.on('data',part=>parts.push(part));response.on('end',()=>{const text=Buffer.concat(parts).toString('utf8');resolve({status:response.statusCode,json:JSON.parse(text)});});
+  });request.on('error',reject);request.setTimeout(5000,()=>request.destroy(Error('Lokale Testanfrage abgelaufen')));
+  request.write(bytes.subarray(0,first));setTimeout(()=>request.end(bytes.subarray(first)),20);
+ });
+}
+module.exports={startSite,postChunks};

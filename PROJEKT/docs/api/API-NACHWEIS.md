@@ -1,4 +1,4 @@
-# MischWerk – API-Nachweis 0.1.382 · Build 382
+# MischWerk – API-Nachweis 0.1.383 · Build 383
 
 ## RobotoBold in der öffentlichen Begrüßung · 12.11.2026
 

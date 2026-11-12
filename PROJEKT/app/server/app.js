@@ -2,8 +2,8 @@
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
   "schema": 1,
-  "version": "0.1.382",
-  "buildNumber": 382,
+  "version": "0.1.383",
+  "buildNumber": 383,
   "directories": {
     "": [
       "main.js",

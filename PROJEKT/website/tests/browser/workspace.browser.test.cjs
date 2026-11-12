@@ -2,6 +2,28 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 const {startSite}=require('../support/site.cjs');
+
+test('Sendeplan bindet die Löschbestätigung an Eintrag, Editor und Kalenderwoche',async t=>{
+ const f=await setup(t),page=f.page;await f.login();await page.locator('[data-view=schedule]').click();await page.locator('#plan-date').waitFor();
+ for(const [name,start,end] of [['Sendung A','08:00','10:00'],['Sendung B','10:00','12:00']]){
+  await page.locator('#plan-new').click();await page.locator('#plan-start').fill(start);await page.locator('#plan-end').fill(end);await page.locator('#plan-topic').fill(name);await page.locator('#plan-form .submit-button').click();await page.locator('.plan-slot').filter({hasText:name}).waitFor();
+ }
+ const row=name=>page.locator('.plan-slot').filter({hasText:name}),remove=page.locator('#plan-delete');
+ async function edit(name){await row(name).getByRole('button',{name:'Bearbeiten',exact:true}).click();}
+ await edit('Sendung A');await remove.click();assert.equal(await remove.textContent(),'Löschen bestätigen');
+ await edit('Sendung B');assert.equal(await remove.textContent(),'Eintrag löschen');await remove.click();assert.equal(await row('Sendung A').count(),1);assert.equal(await row('Sendung B').count(),1);
+ await page.locator('#plan-new').click();await edit('Sendung B');assert.equal(await remove.textContent(),'Eintrag löschen');await remove.click();
+ const week=await page.locator('#plan-range').textContent();await page.locator('#plan-previous').click();await page.waitForFunction(before=>document.getElementById('plan-range').textContent!==before,week);await page.locator('#plan-next').click();await row('Sendung B').waitFor();
+ await edit('Sendung B');assert.equal(await remove.textContent(),'Eintrag löschen');await remove.click();await page.locator('[data-view=studio]').click();await page.locator('[data-view=schedule]').click();await row('Sendung B').waitFor();
+ await edit('Sendung B');assert.equal(await remove.textContent(),'Eintrag löschen');await remove.click();
+ const changed=await page.evaluate(()=>{const plan=MischWerkWorkspace.state.schedule,entry=plan.entries.find(e=>e.topic==='Sendung A');return {...entry,week:plan.week,expectedRevision:plan.revision,topic:'Sendung A aktualisiert',requestId:'delete-revision-383'};});
+ const saved=f.h.event(f.owner,f.radio,'mw:schedule.save',changed);assert.equal(saved.find(e=>e.type==='mw:schedule.result').data.ok,true);
+ await page.locator('#workspace-refresh').click();await row('Sendung A aktualisiert').waitFor();assert.equal(await remove.textContent(),'Eintrag löschen','Neue Revision verwirft eine alte Bestätigung');
+ await edit('Sendung B');await remove.click();await page.locator('#logout').click();await page.locator('#login-panel').waitFor();assert.equal(await remove.textContent(),'Eintrag löschen','Abmelden verwirft die Bestätigung');
+ await f.login();await page.locator('[data-view=schedule]').click();await row('Sendung B').waitFor();await edit('Sendung B');assert.equal(await remove.textContent(),'Eintrag löschen');
+ await remove.click();assert.equal(await row('Sendung B').count(),1);await remove.click();await row('Sendung B').waitFor({state:'detached'});assert.equal(await row('Sendung A aktualisiert').count(),1);
+ assert.deepEqual(f.errors,[]);assert.deepEqual(f.external,[]);
+});
 let browser;
 test.before(async()=>{browser=await chromium.launch({headless:true,channel:'msedge'});});test.after(async()=>{await browser?.close();});
 async function setup(t,width=1280){const site=await startSite(t),context=await browser.newContext({viewport:{width,height:1000},timezoneId:'America/Los_Angeles'});t.after(()=>context.close());const page=await context.newPage(),errors=[],external=[];page.on('pageerror',error=>errors.push(error.message));

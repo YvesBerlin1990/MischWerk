@@ -90,7 +90,8 @@ test('Wunsch-Overlay bleibt bei 320 und 2290 Pixeln auf seine Fläche begrenzt u
     await surface.locator('#submit-wish').scrollIntoViewIfNeeded();
     assert.equal(await surface.locator('#submit-wish').isVisible(),true);
     await surface.locator('#submit-wish').click();
-    await radio.locator('#own-wish-rank').filter({hasText:'Platz 3'}).waitFor();
+    await radio.locator('#own-wish-rank').filter({hasText:'Platz 3'}).waitFor({state:width<1200?'attached':'visible'});
+    assert.equal(await radio.locator('#own-wish-position').isVisible(),width>=1200);
   assert.equal(await surface.locator('#wish-positions').count(),0);
     await surface.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
 
@@ -102,7 +103,7 @@ test('Wunsch-Overlay bleibt bei 320 und 2290 Pixeln auf seine Fläche begrenzt u
       await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/wunschbox/wunschbox-'+width+'.png')});
     }
     await surface.locator('#close-wishes').click();await page.locator('#overlay-frame').waitFor({state:'hidden'});
-    assert.equal((await page.locator('#radio-frame').boundingBox()).height,160);
+    assert.equal((await page.locator('#radio-frame').boundingBox()).height,radioBox.height,'Wunsch-Overlay erhält die bestehende natürliche Radiohöhe');
     assert.equal(await radio.locator('#open-wishes').evaluate(n=>document.activeElement===n),true);
     assert.deepEqual(errors,[]);
   }
@@ -232,7 +233,7 @@ test('Deaktivierte Annahme und Wiederöffnung erhalten Entwurf und geben den Tas
 });
 
 test('Verzögertes Overlay-CSS erhält den langen Entwurf und misst das Textfeld vor Sichtbarkeit vollständig',async t=>{
-  const {page,radio,open,errors}=await setup(t,{width:320});let surface=await open();
+  const {page,radio,open,errors}=await setup(t,{width:320});let surface=await open();const radioHeight=(await page.locator('#radio-frame').boundingBox()).height;
   const draft='Langer Songtitel mit mehreren Wörtern '.repeat(8).slice(0,300);
   await surface.locator('#wish-text').fill(draft);await surface.locator('#close-wishes').click();
   await page.locator('#overlay-frame').waitFor({state:'hidden'});
@@ -247,7 +248,7 @@ test('Verzögertes Overlay-CSS erhält den langen Entwurf und misst das Textfeld
   assert.equal(await surface.locator('#wish-text').evaluate(n=>document.activeElement===n),true,'Erste bedienbare Ansicht fokussiert die Eingabe');
   assert.equal(await surface.locator('#wish-text').evaluate(n=>n.scrollHeight<=n.clientHeight+1),true);
   await surface.locator('#submit-wish').scrollIntoViewIfNeeded();
-  assert.equal((await page.locator('#radio-frame').boundingBox()).height,160);
+  assert.equal((await page.locator('#radio-frame').boundingBox()).height,radioHeight,'Erneutes Öffnen erhält die natürliche Radiohöhe');
   assert.equal(await radio.locator('#wishes-panel').isVisible(),false);assert.deepEqual(errors,[]);
 });
 

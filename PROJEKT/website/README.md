@@ -1,15 +1,15 @@
 # MischWerk – Homepage und Arbeitsbereich
 
-Lokaler Stand **Website 0.2.11**, mit Knuddels-App **0.1.382 / Build 382** lokal geprüft. Stand: **12.11.2026**. Die Homepage verwendet das Vinyl-Design mit goldenen Radiotasten, lokalen Outfit-/Fraunces-Schriften und unveränderten Originalmedien. Bekannte offene Websitebefunde stehen im [Prüfbericht](docs/PRUEFUNG.md).
+Lokaler Stand **Website 0.2.12**, mit Knuddels-App **0.1.383 / Build 383** lokal geprüft. Stand: **12.11.2026**. Die Homepage verwendet das Vinyl-Design mit goldenen Radiotasten, lokalen Outfit-/Fraunces-Schriften und unveränderten Originalmedien. Die drei bisherigen Websitefehler sind behoben und durch zusätzliche Regressionstests abgesichert; Ergebnisse und ausstehende Produktionsabnahme stehen im [Prüfbericht](docs/PRUEFUNG.md).
 
 Die Homepage zeigt und kopiert `/mw homepage CODE` zur Channelbestätigung. Die App verwendet dazu die gemeinsame `/mw`-Struktur; die alten Langbefehle sind entfernt. App und Homepage werden gemeinsam auf diese Befehlsfassung gebracht.
 
-Der öffentliche Teil enthält Radio, Sendeplan, Teamvorstellungen und Musikwünsche. Der eigene Arbeitsbereich unter **/arbeitsbereich** bietet Anmelden und Abmelden ohne Zeitlimit, Thema, Wunschregie, privater Übergabe und Tageshistorie, außerdem Besitzerverwaltung, Bot-Texte und Sendeplanung. Wunschbox, Moderation und Verwaltung der App bleiben erhalten; das native Sendeplan-Overlay ist zurückgesetzt.
+Der öffentliche Teil enthält Radio, Sendeplan, Teamvorstellungen und Musikwünsche. Der eigene Arbeitsbereich unter **/arbeitsbereich** bietet Anmelden und Abmelden ohne Zeitlimit, Thema, Wunschregie und private Übergabe, außerdem Inhaberverwaltung, Bot-Texte und Sendeplanung. Die Anbieterhistorie ist entfernt. Wunschbox, Moderation und Verwaltung der App bleiben erhalten; das native Sendeplan-Overlay zeigt einen rein lesenden Tagesplan.
 
 
 Die öffentliche Homepage ist aufgeteilt: Start/Radio, Sendeplan, Team, Mitmachen und Wunschbox haben eigene Adressen und einzeln sichtbare Inhalte. Desktopreiter und ein Hamburger-Menü bis 850 px führen durch die Bereiche. Die Startseite zeigt nur Einstieg und Radio. Direktaufruf, Neuladen und Browser-Zurück/Vor funktionieren; laufendes Radio und ungesendete Eingaben bleiben beim öffentlichen Bereichswechsel erhalten. Der geschützte Arbeitsbereich hat eigene Reiter für Moderation, Sendeplan und Verwaltung.
 
-Der Homepage-Sendeplan verwendet seinen eigenen Kalenderhelfer unter public/js/site/calendar.js. Der native Sendeplan-Reset der App deaktiviert ausschließlich deren Overlay.
+Der Node-Website-Sendeplan verwendet seinen eigenen Kalenderhelfer unter public/js/site/calendar.js und den bestehenden Appadapter. Die native Tagesansicht liest unabhängig davon das öffentliche JSON der bestehenden [Firebase-Homepage](https://radio-mischwerk.web.app/); sie benötigt weder Statusfreigabe noch Verbindungsschlüssel. Der bestehende signierte Rückkanal für redaktionelle Schreibaufträge bleibt separat. [Datenweg](../docs/betrieb/SENDEPLAN.md).
 
 ## Lokal starten
 
@@ -56,4 +56,4 @@ pnpm --dir PROJEKT/website test
 
 Die Website besitzt eigene Node-/Browserprüfungen mit lokalen HTTP- und Knuddels-Modellen. Der alte Diagnoseserver unter tools/preview/server.cjs bleibt ausschließlich durch MISCHWERK_WEBSITE_TEST=1 für diese getrennten Tests erreichbar; er ist kein Produktiveinstieg. Keine echte Mail oder Channelnachricht in Tests.
 
-[Aktueller Prüfbericht](docs/PRUEFUNG.md) · [Desktop](docs/website-startseite.jpg) · [Smartphone](docs/website-mobil.jpg) · [Arbeitsbereich](docs/arbeitsbereich.jpg). Alle drei Aufnahmen wurden am 12.11.2026 aus dem lokalen Websiteserver mit Beispieldaten und Appkomponenten aus Build 382 erneuert. Die vollständige Websiteprüfung besteht mit 22 von 22 Fällen; bekannte zusätzliche Befunde bleiben im Prüfbericht dokumentiert.
+[Aktueller Prüfbericht](docs/PRUEFUNG.md) · [Desktop](docs/website-startseite.jpg) · [Smartphone](docs/website-mobil.jpg) · [Arbeitsbereich](docs/arbeitsbereich.jpg). Alle drei Aufnahmen wurden am 12.11.2026 aus dem lokalen Websiteserver mit Beispieldaten und Appkomponenten aus Build 383 erneuert. Die vollständige Websiteprüfung besteht mit **26 von 26 Fällen**, einschließlich geteilter UTF-8-Zeichen, eintragsgebundener Löschbestätigung und Mailadapter im regulären Server mit Transportattrappe.

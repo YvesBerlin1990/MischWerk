@@ -14,7 +14,8 @@ function createWorkspaceApi({bridge,origin,clock=Date.now}){
   const item=sessions.get(req,res);let data={};
   if(req.method==='POST'){
    if(!safe(req.headers['x-csrf-token'],item.csrf)){json(res,403,{message:'Bitte die Anmeldung neu laden.'});return true;}
-   let raw='';for await(const part of req){raw+=part;if(Buffer.byteLength(raw)>8500){json(res,413,{message:'Die Eingabe ist zu lang.'});return true;}}
+   const parts=[];let size=0;for await(const part of req){size+=part.length;if(size>8500){json(res,413,{message:'Die Eingabe ist zu lang.'});return true;}parts.push(part);}
+   const raw=Buffer.concat(parts,size).toString('utf8');
    try{data=JSON.parse(raw);if(!data||typeof data!=='object'||Array.isArray(data))throw Error();}catch{json(res,400,{message:'Ungültige Eingabe.'});return true;}
   }
   try{

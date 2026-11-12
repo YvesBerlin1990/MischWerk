@@ -1,6 +1,6 @@
 {
-  "version": "0.1.382",
-  "buildNumber": 382,
+  "version": "0.1.383",
+  "buildNumber": 383,
   "files": [
     {
       "path": "MischWerk/server/android/signing.js",
@@ -119,8 +119,8 @@
     },
     {
       "path": "MischWerk/www/css/studio/studio-queue.css",
-      "bytes": 5223,
-      "sha256": "6C5A87DE5DE37AF8A8482275EF564A68348A7B8669C62215941AF5B9A8F84924"
+      "bytes": 5136,
+      "sha256": "BA3FACD1F4A335BE2A637F339D19D248B8515D7166CE3AAB80B410CD9E1D8C20"
     },
     {
       "path": "MischWerk/www/css/team/team.css",
