@@ -4,9 +4,11 @@ const assert = require('node:assert/strict');
 const { createHarness } = require('../support/knuddels.cjs');
 const key = 'mischwerk.wishes.v3';
 function setup(store) {
-  const h = createHarness(store, { appDir: process.env.MISCHWERK_WISH_BASELINE });
+  const h = createHarness(store, { appDir: process.env.MISCHWERK_WISH_BASELINE, users:[{id:1,nick:'Otterchen',role:'owner'}] });
   const owner = h.user(1, 'Otterchen', 'owner'), listener = h.user(2, 'Hörer'), other = h.user(3, 'Andere');
-  return { h, owner, listener, other, os: h.open(owner), ls: h.open(listener), xs: h.open(other) };
+  h.state(listener,h.open(listener));
+  const os=h.open(owner);h.event(owner,os,'mw:onAir',{});
+  return { h, owner, listener, other, os, ls: h.open(listener), xs: h.open(other) };
 }
 function submit(f, text, submissionId) {
   return f.h.event(f.listener, f.ls, 'mw:wish.submit', { text, submissionId }).find(e => e.type === 'mw:wish.receipt').data;

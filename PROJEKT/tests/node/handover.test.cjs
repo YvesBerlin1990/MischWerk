@@ -6,7 +6,7 @@ function fixture() {
   const h = createHarness(), owner = h.user(1, 'Otterchen', 'owner'), os = h.open(owner);
   const dj = h.user(2, 'Nächster DJ'), ds = h.open(dj), other = h.user(3, 'Anderer DJ'), ss = h.open(other);
   for (const user of [dj, other]) { h.event(owner, os, 'mw:addRadioModerator', { nick: user.nick }); }
-  h.event(owner, os, 'mw:onAir'); h.event(owner, os, 'mw:setTopic', { topic: 'Alte Sendung' });
+  h.event(owner, os, 'mw:onAir', {}); h.event(owner, os, 'mw:setTopic', { topic: 'Alte Sendung' });
   function request() {
     const key = h.state(owner, os).moderator.sessionKey;
     assert.equal(result(h.event(owner, os, 'mw:handover.request', { nick: dj.nick, expectedModerator: key })).ok, true);
@@ -15,7 +15,7 @@ function fixture() {
   return { h, owner, os, dj, ds, other, ss, request };
 }
 
-test('Übergabe wechselt erst bei Annahme Moderator und Thema gemeinsam; Queue und Wunschbox bleiben erhalten', () => {
+test('Übergabe wechselt erst bei Annahme Moderator und Thema gemeinsam; Queue bleibt erhalten und Wunschbox wird aktiviert', () => {
   const { h, owner, os, dj, ds, other, ss, request } = fixture();
   h.event(other, ss, 'mw:wish.submit', { text: 'Aha – Take on me' });
   h.event(owner, os, 'mw:setRequests', { enabled: false });
@@ -29,7 +29,7 @@ test('Übergabe wechselt erst bei Annahme Moderator und Thema gemeinsam; Queue u
   assert.equal(h.bot.messages.length, 1, 'Anfrage noch nicht öffentlich');
   const writes = h.store.setObject, changes = [];
   h.store.setObject = (key, value) => { changes.push({ key, value:JSON.parse(JSON.stringify(value)) }); writes(key, value); };
-  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', { id, topic: 'Neue Sendung' })).ok, true);
+  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', {id, topic: 'Neue Sendung' })).ok, true);
   const stationChanges=changes.filter(item=>item.key==='mischwerk.state.v1');
   assert.equal(stationChanges.length, 2, 'Atomare Übernahme und anschließende Quittierung des Sendeplanauftrags');
   for(const change of stationChanges){assert.equal(change.value.moderator.nick,dj.nick);assert.equal(change.value.topic,'Neue Sendung');}
@@ -40,12 +40,12 @@ test('Übergabe wechselt erst bei Annahme Moderator und Thema gemeinsam; Queue u
   assert.equal(lastPlan.entries.length,2);assert.ok(lastPlan.entries[0].actualEnd);assert.equal(lastPlan.entries[1].actualEnd,undefined);
   const after = h.state(dj, ds);
   assert.equal(after.user.isOnAir, true); assert.equal(after.topic, 'Neue Sendung');
-  assert.equal(after.requestsEnabled, false); assert.equal(after.queueTotal, 1);
+  assert.equal(after.requestsEnabled, true); assert.equal(after.queueTotal, 1);
   assert.notEqual(after.moderator.sessionKey, before.moderator.sessionKey);
   assert.equal('expiresAt' in after.moderator,false);
   assert.equal(after.handover.incoming, null);
   assert.equal(h.bot.messages[1], '🎙️ Otterchen macht Platz im Studio – Nächster DJ ist jetzt live ON AIR bei Radio MischWerk!');
-  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', { id })).ok, false);
+  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', {id })).ok, false);
   assert.equal(h.bot.messages.length, 2);
   owner.online = false; h.app.onUserLeft(owner);
   assert.equal(h.state(dj, ds).user.isOnAir, true, 'Bisheriger Moderator kann nach der Übergabe den Channel verlassen');
@@ -66,10 +66,10 @@ test('Nur aktive Moderation fragt an; Ziel muss anwesend, ernannt und verschiede
   dj.online = true;
   const id = request();
   for (const [user, session] of [[owner, os], [other, ss], [cm, cs]]) {
-    assert.equal(result(h.event(user, session, 'mw:handover.accept', { id, nick: dj.nick, userId: dj.id })).ok, false);
+    assert.equal(result(h.event(user, session, 'mw:handover.accept', {id, nick: dj.nick, userId: dj.id })).ok, false);
   }
-  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', { id: 'veraltet' })).ok, false);
-  assert.equal(result(h.event(dj, os, 'mw:handover.accept', { id })), undefined);
+  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', {id: 'veraltet' })).ok, false);
+  assert.equal(result(h.event(dj, os, 'mw:handover.accept', {id })), undefined);
   assert.equal(h.state(owner, os).moderator.nick, owner.nick);
 });
 
@@ -82,7 +82,7 @@ test('Direkte Übernahme einer besetzten Moderation bleibt auch mit manipulierte
 });
 
 test('Otterchen als Inhaber empfängt Übergaben ohne Eintrag und behält offene Anfragen beim Entfernen eines optionalen Eintrags',()=>{
-  const {h,owner,os,dj,ds}=fixture();h.event(owner,os,'mw:offAir');h.event(dj,ds,'mw:onAir');
+  const {h,owner,os,dj,ds}=fixture();h.event(owner,os,'mw:offAir');h.event(dj,ds,'mw:onAir', {});
   const send=()=>h.event(dj,ds,'mw:handover.request',{nick:owner.nick,expectedModerator:h.state(dj,ds).moderator.sessionKey});
   assert.equal(h.state(dj,ds).handover.candidates.includes(owner.nick),true);
   assert.equal(result(send()).ok,true);const first=h.state(owner,os).handover.incoming.id;
@@ -102,9 +102,9 @@ test('Privater Annahmebeleg bestätigt die genaue Anfrage auch ohne Notizen und 
  h.store.setObject=write;assert.equal(result(h.event(dj,ds,'mw:handover.accept',{id})).ok,true);
  assert.equal(h.state(dj,ds).handover.acceptedId,id);assert.equal(h.state(dj,ds).handover.receivedNotes,null);
  for(const [user,session] of [[owner,os],[other,ss]])assert.equal(h.state(user,session).handover.acceptedId,null);
- h.event(owner,os,'mw:setTopic',{topic:'Spätere Themenänderung'});h.event(dj,ds,'mw:onAir');assert.equal(h.state(dj,ds).handover.acceptedId,id);
+ h.event(owner,os,'mw:setTopic',{topic:'Spätere Themenänderung'});h.event(dj,ds,'mw:onAir', {});assert.equal(h.state(dj,ds).handover.acceptedId,id);
  h.event(dj,ds,'mw:offAir');assert.equal(h.state(dj,ds).handover.acceptedId,null);
- h.event(dj,ds,'mw:onAir');assert.equal(h.state(dj,ds).handover.acceptedId,null);
+ h.event(dj,ds,'mw:onAir', {});assert.equal(h.state(dj,ds).handover.acceptedId,null);
 });
 
 test('Ablehnen, Abbrechen und doppelte Anfrage lassen die bisherige Sendung unverändert', () => {
@@ -117,19 +117,19 @@ test('Ablehnen, Abbrechen und doppelte Anfrage lassen die bisherige Sendung unve
   assert.equal(h.state(owner, os).topic, 'Alte Sendung');
   const previous = id; id = request(); assert.notEqual(id, previous);
   h.event(owner, os, 'mw:handover.cancel', { id });
-  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', { id })).ok, false);
+  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', {id })).ok, false);
   assert.equal(h.state(owner, os).moderator.nick, owner.nick); assert.equal(h.bot.messages.length, 1);
 });
 
 test('Speicher- und Validierungsfehler bei Annahme erhalten Anfrage, bisherige Moderation und Thema', () => {
   const { h, owner, os, dj, ds, request } = fixture(); const id = request();
-  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', { id, topic: 'x'.repeat(81) })).ok, false);
+  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', {id, topic: 'x'.repeat(81) })).ok, false);
   const save = h.store.setObject; h.store.setObject = () => { throw new Error('private-storage-detail'); };
-  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', { id, topic: 'Entwurf' })).ok, false);
+  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', {id, topic: 'Entwurf' })).ok, false);
   assert.equal(h.state(owner, os).moderator.nick, owner.nick); assert.equal(h.state(owner, os).topic, 'Alte Sendung');
   assert.equal(h.state(dj, ds).handover.incoming.id, id); assert.equal(h.bot.messages.length, 1);
   h.store.setObject = save;
-  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', { id, topic: '' })).ok, true);
+  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', {id, topic: '' })).ok, true);
   assert.equal(h.state(dj, ds).topic, '');
 });
 
@@ -143,7 +143,7 @@ for (const cause of ['Absender verlässt Channel', 'Ziel verlässt Channel', 'Zi
     if (cause === 'Shutdown') { h.app.onPrepareShutdown(); }
     const currentSession = dj.sessions[0] || ds;
     assert.equal(h.state(dj, currentSession).handover.incoming, null);
-    assert.equal(result(h.event(dj, currentSession, 'mw:handover.accept', { id, topic: 'Alt' })).ok, false);
+    assert.equal(result(h.event(dj, currentSession, 'mw:handover.accept', {id, topic: 'Alt' })).ok, false);
   });
 }
 
@@ -159,7 +159,7 @@ test('Anfrage bleibt flüchtig, Privatmeldung ist fehlertolerant und normale Hö
   assert.equal(restarted.state(restarted.user(2), restarted.user(2).sessions[0]).handover.incoming, null);
   assert.deepEqual(restarted.bot.messages, []);
   assert.ok(h.logs.some(log => log.message.includes('HANDOVER_NOTICE')));
-  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', { id, topic: 'Neue Sendung' })).ok, true);
+  assert.equal(result(h.event(dj, ds, 'mw:handover.accept', {id, topic: 'Neue Sendung' })).ok, true);
   for (let index = 0; index < 48; index++) {
     const person = h.user(index + 100, ('DJ-' + index).padEnd(50, 'x'));
     assert.equal(result(h.event(owner, os, 'mw:addRadioModerator', { nick: person.nick })).ok, true);

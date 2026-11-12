@@ -5,7 +5,7 @@ let sequence = 0;
 
 test('Automatische Anmeldungen erscheinen für Hörer erst ab genau fünf Minuten und bleiben für den Inhaber sichtbar', () => {
   const f=fixture();f.h.advance(Date.parse('2026-11-07T15:40:00Z')-f.h.now());
-  const selected=currentWeek(f.h);f.h.event(f.owner,f.radio,'mw:onAir');
+  const selected=currentWeek(f.h);f.h.event(f.owner,f.radio,'mw:onAir', {});
   const own=read(f,selected);assert.equal(own.entries.length,1);assert.equal(own.entries[0].shortBroadcast,true);
   assert.equal(read(f,selected,0,f.listener,f.listenerRadio).total,0);
   f.h.advance(299999);assert.equal(read(f,selected,0,f.listener,f.listenerRadio).total,0);
@@ -16,7 +16,7 @@ test('Automatische Anmeldungen erscheinen für Hörer erst ab genau fünf Minute
 });
 
 test('Kurze abgeschlossene automatische Einträge bleiben privat löschbar; manuelle Kurzsendungen bleiben öffentlich', () => {
-  const f=fixture(),selected=currentWeek(f.h);f.h.event(f.owner,f.radio,'mw:onAir');f.h.advance(1000);f.h.event(f.owner,f.radio,'mw:offAir');
+  const f=fixture(),selected=currentWeek(f.h);f.h.event(f.owner,f.radio,'mw:onAir', {});f.h.advance(1000);f.h.event(f.owner,f.radio,'mw:offAir');
   const own=read(f,selected),entry=own.entries[0];assert.equal(entry.shortBroadcast,true);
   assert.equal(read(f,selected,0,f.listener,f.listenerRadio).total,0);
   const forged=event(f,'mw:schedule.delete',{week:selected,id:entry.id,expectedRevision:own.revision},f.listener,f.listenerRadio);
@@ -32,7 +32,7 @@ test('Kurze abgeschlossene automatische Einträge bleiben privat löschbar; manu
 test('Nachträge dürfen tatsächliche automatische Studiozeiten nicht überdecken; Anschluss nach der Abmeldung ist erlaubt', () => {
   const f=fixture();f.h.advance(Date.parse('2026-11-07T15:00:00Z')-f.h.now());
   const selected=currentWeek(f.h),date='2026-11-07';
-  f.h.event(f.owner,f.radio,'mw:onAir');f.h.advance(10*60000);f.h.event(f.owner,f.radio,'mw:offAir');
+  f.h.event(f.owner,f.radio,'mw:onAir', {});f.h.advance(10*60000);f.h.event(f.owner,f.radio,'mw:offAir');
   for(const timing of ['fixed','openEnd']){
     const result=save(f,{week:selected,date,timing,start:'16:05',end:timing==='fixed'?'16:08':''});
     assert.equal(result.ok,false,'Die tatsächliche Zeit von 16:00 bis 16:10 bleibt belegt');
@@ -68,7 +68,7 @@ test('Ausgeblendete kurze Studioeinträge verdecken keine ältere offene Fortset
 });
 
 test('Löschen wartet auf einen noch unbestätigten Studioabgleich und wird nach dessen Abschluss dauerhaft', () => {
-  const f=fixture(),selected=currentWeek(f.h);f.h.event(f.owner,f.radio,'mw:onAir');f.h.advance(6*60000);
+  const f=fixture(),selected=currentWeek(f.h);f.h.event(f.owner,f.radio,'mw:onAir', {});f.h.advance(6*60000);
   const write=f.h.store.setObject;
   f.h.store.setObject=(key,value)=>{if(key==='mischwerk.state.v1'&&!value.scheduleSync)throw Error('ack');write(key,value);};
   f.h.event(f.owner,f.radio,'mw:offAir');assert.ok(f.h.store.data['mischwerk.state.v1'].scheduleSync);
@@ -91,13 +91,13 @@ function currentWeek(h) {
 
 test('Studio-Anmeldung und Abmeldung werden ohne Dubletten dauerhaft im Sendeplan vermerkt', () => {
   const f = fixture(), selected = currentWeek(f.h);
-  f.h.event(f.owner, f.radio, 'mw:onAir');
+  f.h.event(f.owner, f.radio, 'mw:onAir', {});
   const first = read(f, selected);
   assert.equal(first.total, 1);
   assert.equal(first.entries[0].automatic, true);
   assert.equal(first.entries[0].actualStart, f.h.now());
   assert.equal(first.entries[0].actualEnd, null);
-  f.h.event(f.owner, f.radio, 'mw:onAir');
+  f.h.event(f.owner, f.radio, 'mw:onAir', {});
   assert.equal(read(f, selected).revision, first.revision);
   f.h.advance(90000);
   f.h.event(f.owner, f.radio, 'mw:offAir');
@@ -115,7 +115,7 @@ test('Passende geplante Sendung wird ergänzt und behält ihre geplanten Zeiten'
   f.h.store.setObject('mischwerk.schedule.v1.weeks',[selected]);
   f.h.store.setObject('mischwerk.schedule.v1.'+selected,{version:1,revision:1,nextId:2,entries:[
     {id:1,date,start:'00:00',end:'00:00',timing:'allDay',kind:'live',userId:1,nick:'Otterchen',topic:'Geplante Sendung'}]});
-  f.h.event(f.owner,f.radio,'mw:onAir'); f.h.advance(2000); f.h.event(f.owner,f.radio,'mw:offAir');
+  f.h.event(f.owner,f.radio,'mw:onAir', {}); f.h.advance(2000); f.h.event(f.owner,f.radio,'mw:offAir');
   const data=read(f,selected); assert.equal(data.total,1); assert.equal(data.entries[0].automatic,false);
   assert.equal(data.entries[0].timing,'allDay'); assert.equal(data.entries[0].topic,'Geplante Sendung');
   assert.ok(data.entries[0].actualStart); assert.equal(data.entries[0].actualEnd,f.h.now());
@@ -125,7 +125,7 @@ test('Spontane Moderation belegt keine zukünftigen Tage und erhält Ende über 
   const f=fixture(), selected=currentWeek(f.h);
   const sunday=Date.parse(selected+'T22:59:00Z')+6*86400000;
   f.h.advance(sunday-f.h.now());
-  f.h.event(f.owner,f.radio,'mw:onAir');
+  f.h.event(f.owner,f.radio,'mw:onAir', {});
   const begun=read(f,selected);assert.equal(begun.total,1);
   assert.ok(begun.entries[0].actualUntil-begun.entries[0].actualFrom<1);
   f.h.advance(120000); f.h.event(f.owner,f.radio,'mw:offAir');
@@ -137,7 +137,7 @@ test('Spontane Moderation belegt keine zukünftigen Tage und erhält Ende über 
 test('Nutzerlöschung entfernt auch einen ausstehenden privaten Sendeplanauftrag', () => {
   const f=fixture(),write=f.h.store.setObject;
   f.h.store.setObject=(key,value)=>{if(key.startsWith('mischwerk.schedule.'))throw Error('disk');write(key,value);};
-  f.h.event(f.owner,f.radio,'mw:onAir');assert.ok(f.h.store.data['mischwerk.state.v1'].scheduleSync);
+  f.h.event(f.owner,f.radio,'mw:onAir', {});assert.ok(f.h.store.data['mischwerk.state.v1'].scheduleSync);
   f.h.app.onUserDeleted(f.owner.id);
   assert.equal(f.h.store.data['mischwerk.state.v1'].moderator,null);
   assert.equal(f.h.store.data['mischwerk.state.v1'].scheduleSync,undefined);
@@ -148,7 +148,7 @@ test('Nutzerlöschung entfernt auch einen ausstehenden privaten Sendeplanauftrag
 test('Fehlender Wochencommit wird nach Neustart idempotent nachgeholt', () => {
   const f=fixture(), selected=currentWeek(f.h), write=f.h.store.setObject;
   f.h.store.setObject=(key,value)=>{if(key.startsWith('mischwerk.schedule.v1.'))throw Error('disk');write(key,value);};
-  f.h.event(f.owner,f.radio,'mw:onAir');
+  f.h.event(f.owner,f.radio,'mw:onAir', {});
   assert.ok(f.h.store.data['mischwerk.state.v1'].moderator);
   assert.ok(f.h.store.data['mischwerk.state.v1'].scheduleSync);
   assert.equal(f.h.state(f.owner,f.radio).scheduleSyncPending,true);
@@ -162,8 +162,8 @@ test('Fehlender Wochencommit wird nach Neustart idempotent nachgeholt', () => {
 test('Verlassen beendet den automatischen Eintrag, fehlender Moderationscommit erzeugt keinen Eintrag', () => {
   const f=fixture(), selected=currentWeek(f.h), write=f.h.store.setObject;
   f.h.store.setObject=(key,value)=>{if(key==='mischwerk.state.v1')throw Error('disk');write(key,value);};
-  f.h.event(f.owner,f.radio,'mw:onAir'); assert.equal(read(f,selected).total,0);
-  f.h.store.setObject=write; f.h.event(f.owner,f.radio,'mw:onAir'); f.h.advance(5000);
+  f.h.event(f.owner,f.radio,'mw:onAir', {}); assert.equal(read(f,selected).total,0);
+  f.h.store.setObject=write; f.h.event(f.owner,f.radio,'mw:onAir', {}); f.h.advance(5000);
   f.owner.online=false; f.h.app.onUserLeft(f.owner);
   assert.equal(f.h.store.data['mischwerk.schedule.v1.'+selected].entries[0].actualEnd,f.h.now());
   assert.equal(read(f,selected,0,f.listener,f.listenerRadio).total,0,'Kurze beendete Anmeldung bleibt für Hörer verborgen');
@@ -312,12 +312,12 @@ test('Alte Einträge bleiben Live mit fester Zeit; AutoDJ-Löschung betrifft kei
   f.h.app.onUserDeleted(f.owner.id);
   assert.equal(read(f).total, 1); assert.equal(read(f).entries[0].kind, 'autodj');
 });
-test('Entfernter Sendeplan öffnet für keinen Nutzer ein Overlay und erhält die Radioleiste sowie gespeicherte Daten',()=>{
+test('Tagesplan öffnet für Hörer und Inhaber ohne Wunschfreigabe und erhält Radio sowie gespeicherte Daten',()=>{
  const f=fixture();f.h.event(f.owner,f.radio,'mw:setRequests',{enabled:false});const before=JSON.stringify(f.h.store.data);
  for(const [person,session]of [[f.owner,f.radio],[f.listener,f.listenerRadio]]){
-  const events=f.h.event(person,session,'mw:openSchedule',{requestId:'removed-plan'});
-  assert.equal(events.find(e=>e.type==='mw:result').data.ok,false);
-  assert.equal(person.sessions.some(s=>s.content.viewMode==='Overlay'),false);assert.equal(session.removed,false);
+  const events=f.h.event(person,session,'mw:openSchedule',{requestId:'daily-plan'});
+  assert.equal(events.find(e=>e.type==='mw:result').data.ok,true);
+  assert.equal(person.sessions.some(s=>s.activeView==='schedule'),true);assert.equal(session.removed,false);
  }
  assert.equal(JSON.stringify(f.h.store.data),before);
 });
@@ -446,6 +446,7 @@ test('Speicherfehler erhalten Wochenplan und Wunschannahme', () => {
   const response = save(f, { id: read(f).entries[0].id, topic: 'Nicht gespeichert' });
   assert.equal(response.ok, false); assert.doesNotMatch(response.message, /privater Fehler/);
   assert.equal(read(f).entries[0].topic, '80er und 90er');
+  f.h.event(f.owner,f.radio,'mw:onAir',{});
   assert.equal(f.h.event(f.listener, f.listenerRadio, 'mw:wish.submit', { text: 'Aha – Take On Me' })
     .find(item => item.type === 'mw:wish.receipt').data.accepted, true);
 });

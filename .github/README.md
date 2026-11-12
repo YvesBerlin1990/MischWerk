@@ -11,28 +11,40 @@
 
 Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderation, Sendeplan und eigener Homepage.
 
-**App 0.1.330 · Build 330 · Website 0.2.7** · Stand: 9. November 2026.
+**App 0.1.382 · Build 382 · Website 0.2.11** · Stand: 12. November 2026.
 
 ![Aktuelle Radioleiste mit großer Playtaste, getrenntem Titel und Interpret, Lautstärke und goldenen Aktionstasten](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
 
-- **Radio:** HTTPS-Stream mit Play/Stop und Lautstärke. Titel und Interpret werden alle fünf Sekunden direkt vom SPCast-Streamserver abgefragt. Die mittige Musikfläche hat Vorrang; der Lautstärkeregler steht breit senkrecht rechts neben dem Thema und schmal waagerecht darunter. Ein eigener Wunsch erscheint nur bei Bedarf und gibt sonst seine Fläche frei. Während der Wiedergabe leuchten Playtaste und farbiger Außenrand.
-- **Wunschbox:** Ein freies Textfeld für Musikwünsche und eine private Anzeige des eigenen Platzes. Bestätigte offene Wünsche bleiben bei Appupdates und Neustarts gespeichert.
-- **Moderation:** Anmelden und Abmelden ohne Zeitlimit, Sendungsthema, Wunschregie, „Heute gespielt“, Lauftext und bestätigte Übergabe an andere Moderatoren.
-- **Sendeplan:** Das native Overlay ist vollständig zurückgesetzt. Der erhaltene Button bleibt für alle Nutzer einschließlich Inhaber deaktiviert mit **„In Kürze“**. Gespeicherte Wochen und der eigenständige Homepage-Sendeplan bleiben erhalten.
-- **Verwaltung:** Radio-Team und Bot-Texte für den Channelinhaber, erreichbar über `/MW Verwaltung`.
+- **Radio:** HTTPS-Stream mit Play/Stop und aktuellen Titeln direkt vom SPCast-Streamserver. Der goldene Lautstärkeregler steht auf allen Breiten waagerecht unter Thema und Moderationsname. Vinyl-Player und Original-Logo bleiben erhalten. Ein eigener Wunsch erscheint breit nur bei Bedarf; die übrige Fläche nutzen Musik und Sendungsinfo. Während der Wiedergabe leuchten Playtaste und Außenrand.
+- **Wunschbox erst bei Live-Moderation:** Hörer sehen den Button erst, wenn sich die Moderation anmeldet und die Wunschannahme freigegeben ist. Im AutoDJ, nach Abmeldung und bei gesperrter Wunschannahme ist er ausgeblendet. Das Öffnen des Moderationsmenüs allein startet keine Sendung. Ein freies Textfeld nimmt den Wunsch auf; bestätigte offene Wünsche bleiben bei Appupdates und Neustarts gespeichert.
+- **Moderation:** Native Anmeldung ohne persönliche PIN, Anmelden und Abmelden ohne Zeitlimit, Sendungsthema, private Wunschregie und bestätigte Übergabe an andere Moderatoren. Das Menü bietet die Bereiche Sendung und Wünsche.
+- **Lauftext:** /lauftext TEXT setzt und aktiviert die Laufzeile mit automatisch ergänzten +++; --aus/--an erhält den gespeicherten Text.
+- **Sendeplan aus der Homepage:** Die App liest die öffentliche Tagesübersicht von [radio-mischwerk.web.app](https://radio-mischwerk.web.app/) mit Thema, Moderationsname und Uhrzeit. Davor, aktuelle Sendung und Danach sind zugeordnet. Auch AutoDJ-Zeilen stammen aus den gelieferten Homepage-Daten; leere Tage und Abruffehler werden ausdrücklich angezeigt. Für den Lesezugriff sind weder ein Verbindungsschlüssel noch eine aktivierte Statusübertragung nötig. Die redaktionelle Planung wird auf der Homepage gepflegt.
+- **Verwaltung:** Radio-Team, Bot-Texte und Verbindungseinstellungen auf einer ruhigen flachen Fläche mit kurzen Texten und direkter Textauswahl. Für den Channelinhaber über `/mw admin` erreichbar.
 - **Homepage und Android:** Eigene Website mit geschütztem Arbeitsbereich sowie signierte Senderdaten und Musikwünsche über den bestehenden Android-Rückkanal. Einrichtung und Produktionsabnahme sind separat dokumentiert.
+- **Begrüßung und Nickliste:** Private Willkommensgrafik mit aktivem Website-Button sowie öffentliche Begrüßung mit goldener Hervorhebung und Profilverlinkung. Für den ersten Satz wird RobotoBold angefordert. Die neuen Original-Icons kennzeichnen Radio-Team, laufende Wiedergabe mit Ton und bestätigte Moderation.
 
 ## Einblicke
 
-| Radio mobil | Aktionen im Detail |
+| Radio bei schmalem Fenster | Waagerechte Lautstärke |
 | --- | --- |
-| <img src="../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-schmal.png" alt="Radioleiste bei schmaler Fensterbreite" width="320"> | ![Sendeplan, Wunschbox und Moderation mit zentrierten Beschriftungen](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-buttons.png) |
+| <img src="../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-schmal.png" alt="Aktuelle Radioleiste bei 320 Pixeln" width="320"> | ![Goldener Regler mit Lautsprecher und Prozentanzeige](../PROJEKT/docs/pruefung/oberflaeche/radio/lautstaerke-gruppe.png) |
+
+**Wunschbox für Hörer: im AutoDJ ausgeblendet, nach angemeldeter Live-Moderation und Freigabe sichtbar.**
+
+![AutoDJ ohne Wunschboxbutton](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-wunschbox-autodj.png)
+
+![Live-Moderation mit freigegebener Wunschbox](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-wunschbox-live.png)
 
 ![Radio mit angeschlossenem Lauftext und lokaler Pause-Taste](../PROJEKT/docs/pruefung/oberflaeche/radio/lauftext-1280.png)
 
-![Moderation mit Sendungsthema und An-/Abmeldung](../PROJEKT/docs/pruefung/oberflaeche/moderation/moderation-780.png)
+Alle **35 App-Screenshots** und die **drei Websiteaufnahmen** wurden am **12. November 2026** mit **Build 382 / Website 0.2.11** erneuert. Sie zeigen den tatsächlichen lokalen Appcode mit Beispieldaten und ersetzen die früheren Aufnahmen. Native Knuddels-Darstellung, Schrift- und Profilklickwirkung bleiben gesondert abzunehmen. Weitere Bilder und Prüfergebnisse stehen im [App-Prüfbericht](../PROJEKT/docs/pruefung/PRUEFBERICHT.md).
 
-Die Radioübersichten einschließlich Lauftext zeigen den fertigen lokalen **Build 330** mit Beispieldaten; Detail- und Menübilder behalten ihren dokumentierten Stand **Build 322**. Das native Sendeplan-Overlay ist entfernt; die erhaltene Taste bleibt für alle Nutzer deaktiviert mit „In Kürze“. Gespeicherte Wochen und Homepage-Sendeplan bleiben erhalten. Weitere Bilder und Prüfergebnisse stehen im [App-Prüfbericht](../PROJEKT/docs/pruefung/PRUEFBERICHT.md).
+![Neuer Tagesplan mit Sendung davor und danach](../PROJEKT/docs/pruefung/oberflaeche/sendeplan/sendeplan-tag-640.png)
+
+| Wunschbox | Verwaltung und Verbindung |
+| --- | --- |
+| <img src="../PROJEKT/docs/pruefung/oberflaeche/wunschbox/wunschbox-flach-320.png" alt="Wunschbox mit einem freien Textfeld" width="320"> | <img src="../PROJEKT/docs/pruefung/oberflaeche/verwaltung/verwaltung-verbindung-560.png" alt="Verbindungseinstellungen im Verwaltungsmenü" width="440"> |
 
 ## Lokal starten
 

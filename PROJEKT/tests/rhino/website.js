@@ -16,24 +16,25 @@
         var result;
         observer({ getMethod:function () { return 'POST'; }, getBody:function () { return JSON.stringify(body); }, getRemoteAddress:function () { return 'local'; } },
             { send:function (status, headers, text) { check(text.length < 9500, 'Websitepaket bleibt klein'); result = {status:status, data:JSON.parse(text)}; } });
+        if (result && result.data.pending && body.operation === 'action') { flushPinTimers(); return call(body); }
         return result;
     }
     try {
         var user = person(100, 'WebsiteOwner', true); user.sendPrivateMessage = function (text) { messages.push(text); };
-        var app = MischWerkModules.createApp(MischWerkConfig); app.onAppStart();
+        var cfg=copy(MischWerkConfig);cfg.radioModeratorUserIds=[100];var app = MischWerkModules.createApp(cfg); app.onAppStart();
         check(typeof observer === 'function', 'WebHook in beiden Rhino-Engines registriert');
         var token = new Array(65).join('a'), code = new Array(33).join('b');
         check(call({operation:'login.begin', token:token, code:code}).status === 200, 'Websitekopplung beginnt');
         check(call({operation:'login.status', token:token}).data.pending === true, 'Kopplung ohne Chat bleibt unbestätigt');
-        app.chatCommands['mischwerk-web'](user, code);
+        app.chatCommands.mw(user,'homepage ' + code);
         check(call({operation:'login.status', token:token}).data.pending === false, 'Echte Chatidentität bestätigt');
-        var action = {operation:'action', token:token, type:'mw:onAir', data:{expectedModerator:null}, requestId:'rhino-web-onair-123'};
+        var action = {operation:'action', token:token, type:'mw:onAir', data:{pin:'0123',pinConfirmation:'0123',expectedModerator:null}, requestId:'rhino-web-onair-123'};
         check(call(action).status === 200, 'Website meldet Studio an');
         var state = call({operation:'state', token:token, view:'studio'}).data.state;
         check(state.user.isOnAir && state.moderator.nick === 'WebsiteOwner', 'Website und App teilen tatsächlichen Zustand');
         var before = publicMessages.length;
         check(call(action).status === 200 && publicMessages.length === before, 'Wiederholung ohne doppelte öffentliche Meldung');
-        check(call({operation:'action', token:token, type:'mw:onAir', data:{expectedModerator:state.moderator.sessionKey, endMode:'openEnd'}, requestId:'rhino-web-openend-123'}).status === 200, 'Alte Zeitdaten verändern Anmeldung nicht');
+        check(call({operation:'action', token:token, type:'mw:onAir', data:{pin:'0123',pinConfirmation:'0123',expectedModerator:state.moderator.sessionKey, endMode:'openEnd'}, requestId:'rhino-web-openend-123'}).status === 200, 'Alte Zeitdaten verändern Anmeldung nicht');
         state = call({operation:'state', token:token}).data.state;
         check(!('openEnd' in state.moderator) && !('expiresAt' in state.moderator), 'Anmeldung ohne Zeitfelder');
         app.onUserLeft(user);

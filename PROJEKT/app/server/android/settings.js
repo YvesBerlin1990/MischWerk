@@ -19,14 +19,10 @@ MischWerkModules.attachAndroidSettings = function (runtime, config) {
             operation: typeof runtime.androidOperationState === 'function' ? runtime.androidOperationState() : null };
     }
     function respond(session, type, data) { runtime.send(session, 'mw:androidSettings.' + type, data); }
-    function usable(user, entry, session) {
-        return !runtime.shuttingDown && runtime.isChannelOwner(user) && entry && entry.userId === runtime.userId(user) &&
-            runtime.activeSession(user, session) && session.getAppContent() === entry.content && runtime.now() < entry.expires;
-    }
     runtime.clearAndroidSettings = function (userId) {
         if (typeof runtime.cancelAndroidVerification === 'function') { runtime.cancelAndroidVerification(userId); }
         entries.slice().forEach(function (entry) {
-            if (userId === undefined || entry.userId === userId) { runtime.closeView(entry); entry.finishClose(); }
+            if (userId === undefined || entry.userId === userId) { if (!entry.embedded) { runtime.closeView(entry); } entry.finishClose(); }
         });
     };
     runtime.androidRelayCommand = function (user, params) {
@@ -56,12 +52,26 @@ MischWerkModules.attachAndroidSettings = function (runtime, config) {
         try {
             if (!runtime.activeSession(user, session)) { return; }
             entry = entries.filter(function (item) { return item.content === session.getAppContent(); })[0];
-            if (!usable(user, entry, session)) {
-                if (entry && entry.userId === runtime.userId(user)) { runtime.closeView(entry); }
+            if (type === 'mw:androidSettings.status' && entry && entry.embedded && runtime.now() >= entry.expires) {
+                entry.finishClose(); entry = null;
+            }
+            if (!entry && type === 'mw:androidSettings.status' && entries.length < 4) {
+                entry = runtime.administrationSettingsEntry(user, session);
+                if (entry) {
+                    entry.finishClose = function () { var closed = entry; entries = entries.filter(function (item) { return item !== closed; }); };
+                    entry.content.addCloseListener(entry.finishClose); entries.push(entry);
+                }
+            }
+            if (!runtime.canUseAndroidSettings(user, entry, session)) {
+                if (entry && entry.userId === runtime.userId(user)) {
+                    if (entry.embedded) { entry.finishClose(); } else { runtime.closeView(entry); }
+                }
                 return;
             }
         } catch (ignoredSession) { return; }
-        if (type === 'mw:androidSettings.close') { runtime.closeView(entry); return; }
+        if (type === 'mw:androidSettings.close') {
+            if (entry.embedded) { entry.finishClose(); } else { runtime.closeView(entry); } return;
+        }
         var requestId = null;
         try {
             if (type === 'mw:androidSettings.status') { respond(session, 'status', { ok: true, state: state(read()) }); return; }

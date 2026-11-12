@@ -20,10 +20,9 @@ html:not(.mw-ready) .dialog-heading { grid-column:2; grid-row:1; min-width:0; te
 html:not(.mw-ready) .dialog-header > button { grid-column:3; grid-row:1; justify-self:end; width:44px; height:44px; }
 html:not(.mw-ready) .eyebrow { display:block; color:#b9bdc3; font-size:11px; line-height:1.4; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; }
 html:not(.mw-ready) h1 { margin:5px 0 0; font:700 var(--dialog-title)/1.15 Fraunces,Georgia,serif; letter-spacing:-.65px; overflow-wrap:anywhere; }
+html:is([data-view=studio],[data-view=wishes],[data-view=team]):not(.mw-ready) h1 { font-family:Outfit,"Segoe UI",system-ui,sans-serif; font-weight:600; letter-spacing:-.25px; }
 html:not(.mw-ready) .dialog-heading > .eyebrow { display:none; }
 html:not(.mw-ready) .dialog-content,html:not(.mw-ready) #dialog-notice-slot { visibility:hidden; }
-html[data-curtain=closed] #radio-panel { visibility:hidden; pointer-events:none; }
-html[data-view=removed] .dialog-shell { display:none!important; }
 #startup-error { display:none; margin:12px; padding:12px 16px; border:1px solid #55585b; border-radius:13px; background:#141414; color:#f5f5f2; font:14px/1.5 Outfit,"Segoe UI",Arial,sans-serif; }
 html.mw-start-failed:not(.mw-ready) #startup-error { display:block; visibility:visible; }
 </style>
@@ -44,39 +43,35 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 setTimeout(startupFailure, 15000);
 var styles = [
   'css/radio/ticker.css',
-  'css/studio/ticker.css',
   'css/shared/foundation.css',
   'css/radio/radio.css',
   'css/radio/radio-actions.css',
   'css/shared/dialogs.css',
   'css/studio/studio.css',
-        'css/studio/studio-queue.css',
+  'css/studio/responsive.css',
+  'css/studio/studio-queue.css',
   'css/studio/handover.css',
   'css/team/team.css',
+  'css/team/connection.css',
   'css/shared/feedback.css',
   'css/shared/dialogs-responsive.css',
   'css/wishes/wishbox.css',
   'css/radio/radio-surface.css',
   'css/radio/metadata-layout.css',
   'css/radio/radio-responsive.css',
-  'css/history/history.css',
-  'css/radio/curtain.css'
+  'css/schedule/day.css'
 ];
 var initialView = typeof Client !== 'undefined' && Client.pageData && Client.pageData.view;
-var view = initialView === 'schedule' ? 'removed' :
-  ['wishes', 'studio', 'team'].indexOf(initialView) !== -1 ? initialView : 'radio';
+var view = ['wishes', 'studio', 'team', 'schedule'].indexOf(initialView) !== -1 ? initialView : 'radio';
 document.documentElement.setAttribute('data-view', view);
 if (view === 'wishes' && typeof Client !== 'undefined' && Client.pageData && Client.pageData.wishSurface) { document.documentElement.setAttribute('data-wish-surface', 'true'); }
-var initialCurtain = typeof Client !== 'undefined' && Client.pageData && Client.pageData.curtain;
-document.documentElement.setAttribute('data-curtain', view === 'radio' && initialCurtain && initialCurtain.closed === true && initialCurtain.exempt !== true ? 'closed' : 'open');
 // Fachordner bestimmen die Ansichten; gemeinsame Dialoge besitzen eigene Zuordnungen.
-var styleViews = { radio:'radio', studio:'studio', team:'team', wishes:'radio wishes', history:'studio' };
+var styleViews = { radio:'radio', studio:'studio', team:'team', wishes:'radio wishes', schedule:'schedule' };
 var sharedStyleViews = {
-  'css/shared/dialogs.css':'radio wishes studio team',
-  'css/shared/dialogs-responsive.css':'wishes studio team'
+  'css/shared/dialogs.css':'radio wishes studio team schedule',
+  'css/shared/dialogs-responsive.css':'wishes studio team schedule'
 };
 function styleApplies(file) {
-  if (view === 'removed') { return false; }
   var assignedViews = sharedStyleViews[file] || styleViews[file.split('/')[1]];
   return !assignedViews || assignedViews.split(' ').indexOf(view) !== -1;
 }
@@ -87,10 +82,6 @@ styles.filter(styleApplies).forEach(function (file) {
   }
 });
 function startFrontend() {
-  if (view === 'removed') {
-    document.getElementById('startup-error').textContent = 'Der Sendeplan wird neu gestaltet und ist derzeit nicht verfügbar.';
-    startupFailure(); return;
-  }
   if (startupBroken) { return; }
   if (typeof Client !== 'undefined') { Client.includeJS('js/start.js'); }
   else { var script = document.createElement('script'); script.src = 'js/start.js'; document.body.appendChild(script); }
@@ -99,10 +90,9 @@ function startFrontend() {
 </script>
 </head>
 <body>
-<p id="startup-error" role="alert">MischWerk konnte nicht geladen werden. Bitte öffne die App erneut mit /mischwerk. Falls das Problem bleibt, muss der vollständige App-Upload geprüft werden.</p>
+<p id="startup-error" role="alert">MischWerk konnte nicht geladen werden. Bitte betrete den MischWerk-Channel erneut. Falls das Problem bleibt, muss der vollständige App-Upload geprüft werden.</p>
 <div id="demo-banner" class="demo-banner" hidden>Lokale Demo · Beispieldaten · <a href="../../preview.html">Ansicht wechseln</a></div>
 <div id="radio-placeholder"></div>
-<div id="curtain-placeholder"></div>
 <div class="dialog-shell">
   <header class="dialog-header">
     <div class="dialog-brand"><img src="img/mischwerk-logo.png" width="56" height="56" loading="lazy" decoding="async" alt="MischWerk"></div>
@@ -113,6 +103,7 @@ function startFrontend() {
     <div id="wishes-placeholder"></div>
     <div id="studio-placeholder"></div>
     <div id="team-placeholder"></div>
+    <div id="schedule-placeholder"></div>
     <section id="access-denied" class="card" hidden><h2>Kein Studiozugriff</h2><p>Das Moderationsmenü ist nur für berechtigte Moderatoren verfügbar.</p></section>
     <section id="team-access-denied" class="card" hidden><h2>Keine Berechtigung</h2><p>Nur der Channelinhaber kann Radiomoderatoren verwalten.</p></section>
   </main>
@@ -121,7 +112,7 @@ function startFrontend() {
 <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
 <audio id="radio-audio" preload="none"></audio>
 <script>
-document.getElementById('dialog-title').textContent = { wishes:'Wunschbox', studio:'Moderation', team:'Verwaltung' }[view] || 'MischWerk';
+document.getElementById('dialog-title').textContent = { wishes:'Wunschbox', studio:'Moderation', team:'Verwaltung', schedule:'Sendeplan' }[view] || 'MischWerk';
 startFrontend();
 </script>
 <script>

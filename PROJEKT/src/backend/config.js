@@ -1,19 +1,16 @@
 /* MischWerk Backend-Konfiguration. Keine Zugangsdaten oder Clientwerte. */
 var MischWerkConfig = {
-    version: '0.1.330',
-    buildNumber: 330,
+    version: '0.1.382',
+    buildNumber: 382,
     stationName: 'MischWerk',
     ownerNick: 'Otterchen',
-    curtainExemptNicks: ['Otterchen', 'Polaroid'],
-    // Öffentliche SPCast-Anschlüsse; direkter Titelabruf geprüft am 09.11.2026.
+    // Öffentliche SPCast-Anschlüsse; schneller currentsong-Anschluss geprüft am 10.11.2026.
     // Keine Moderatorpasswörter, privaten API-Schlüssel oder Beispielstationen eintragen.
     streampanel: {
         streamUrl: 'https://mischwerk.sp.radio.fm/stream',
-        allowedHosts: ['mischwerk.spcast.eu', 'scripts.streampanel.net'],
-        historyUrl: 'https://mischwerk.spcast.eu:9000/sp/cache/history/history.json',
-        historyIgnoredTitles: ['Mischwerk dein Radio', 'Dein Mix auf Mischwerk'],
+        allowedHosts: ['mischwerk.spcast.eu'],
         metadata: {
-            url: 'https://mischwerk.spcast.eu/currentSong.txt', format: 'spcast-current-song',
+            url: 'https://mischwerk.sp.radio.fm/currentsong?sid=1', format: 'spcast-shoutcast-song',
             titleField: '', artistField: '', liveField: '',
             modeUrl: 'https://mischwerk.sp.radio.fm/scripts/whoIsLive.php'
         },

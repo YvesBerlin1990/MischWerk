@@ -9,6 +9,7 @@ const { buildBackend, modules } = require('./backend.cjs');
 const { runtimeFiles, isBinary, checkText, checkRuntime } = require('../checks/lengths.cjs');
 const { manifestGroups } = require('../lib/upload-manifests.cjs');
 const { readRelease, checkAppConfig } = require('../lib/release-identity.cjs');
+const { renderUpdatePlan } = require('../lib/update-plan.cjs');
 const root = path.resolve(__dirname, '../..');
 const { frontendFiles } = require('../lib/frontend-files.cjs');
 const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').toUpperCase();
@@ -44,7 +45,7 @@ function createDelivery(project = root) {
     (line, file) => omitted.has('server/' + file) ? '' : line)));
   const read = file => fs.readFileSync(path.join(project, 'app/www', file), 'utf8');
   const plans = {};
-  for (const view of ['radio','wishes','studio','team']) {
+  for (const view of ['radio','wishes','studio','team','schedule']) {
     const scripts = [], styles = [];
     const document = { readyState:'loading', addEventListener() {}, documentElement:{ getAttribute:() => view, setAttribute() {} } };
     const scope = { document, window:{}, setTimeout() {}, Client:{ pageData:{view},
@@ -56,7 +57,9 @@ function createDelivery(project = root) {
   const skipped = { scripts:[], styles:[] };
   for (const [type, extension] of [['scripts','.js'],['styles','.css']]) {
     const files = frontendFiles.filter(file => file.endsWith(extension) && file !== 'js/start.js');
-    const membership = file => Object.keys(plans).filter(view => plans[view][type].includes(file)).join(' ');
+    // Die Verbindungskomponente startet zusätzlich direkt aus der Betreiberdatei.
+    const membership = file => Object.keys(plans).filter(view => plans[view][type].includes(file))
+      .concat(file === 'js/operator/relay-settings.js' ? ['operator'] : []).join(' ');
     let group = [];
     const separator = type === 'scripts' ? '\n;\n' : '\n';
     function flush() {
@@ -88,8 +91,13 @@ function createDelivery(project = root) {
     if (file.endsWith('.js')) new vm.Script(bytes.toString('utf8'), { filename:file });
   }
   for (const file of [...skipped.scripts, ...skipped.styles]) omitted.add('www/' + file);
-  return new Map(runtimeFiles.filter(file => !omitted.has(file)).map(file =>
+  const result = new Map(runtimeFiles.filter(file => !omitted.has(file)).map(file =>
     [file, delivery.get(file) || fs.readFileSync(path.join(project, 'app', file))]));
+  const plan = renderUpdatePlan(result.get('server/app.js').toString('utf8'), [...result.keys()], readRelease(project));
+  assert.ok(plan.length < 9500, 'Server-Ladeplan mit Dateiprüfung überschreitet Zeichengrenze');
+  new vm.Script(plan, { filename:'server/app.js' });
+  result.set('server/app.js', Buffer.from(plan));
+  return result;
 }
 function properties(text) {
   const data = {};
@@ -103,7 +111,7 @@ function properties(text) {
 }
 function build() {
   buildBackend();
-  for (const args of [['--test', 'tests/node/backend.test.cjs', 'tests/node/administration.test.cjs', 'tests/node/channel-topic.test.cjs', 'tests/node/wish-positions.test.cjs', 'tests/node/wish-storage.test.cjs', 'tests/node/stream.test.cjs', 'tests/node/history.test.cjs', 'tests/node/upload.test.cjs', 'tests/node/preview.test.cjs', 'tests/node/schedule.test.cjs', 'tests/node/announcements.test.cjs', 'tests/node/greetings.test.cjs', 'tests/node/ticker.test.cjs', 'tests/node/channel-texts.test.cjs', 'tests/node/handover.test.cjs', 'tests/node/studio-features.test.cjs', 'tests/node/website.test.cjs', 'tests/node/android-signing.test.cjs', 'tests/node/android.test.cjs', 'tests/node/relay-plan-team.test.cjs', 'tests/node/android-settings.test.cjs', 'tests/node/android-operation.test.cjs', 'tests/node/android-verification.test.cjs', 'tests/node/emulator.test.cjs'], ['tools/checks/project.cjs'], ['tools/checks/rhino.cjs']]) {
+  for (const args of [['--test', 'tests/node/backend.test.cjs', 'tests/node/moderation-auth.test.cjs', 'tests/node/administration.test.cjs', 'tests/node/channel-topic.test.cjs', 'tests/node/wish-positions.test.cjs', 'tests/node/wish-storage.test.cjs', 'tests/node/stream.test.cjs', 'tests/node/history.test.cjs', 'tests/node/upload.test.cjs', 'tests/node/preview.test.cjs', 'tests/node/schedule.test.cjs', 'tests/node/announcements.test.cjs', 'tests/node/greetings.test.cjs', 'tests/node/nicklist.test.cjs', 'tests/node/ticker.test.cjs', 'tests/node/channel-texts.test.cjs', 'tests/node/handover.test.cjs', 'tests/node/studio-features.test.cjs', 'tests/node/website.test.cjs', 'tests/node/android-signing.test.cjs', 'tests/node/android.test.cjs', 'tests/node/relay-plan-team.test.cjs', 'tests/node/public-schedule.test.cjs', 'tests/node/android-settings.test.cjs', 'tests/node/android-operation.test.cjs', 'tests/node/android-verification.test.cjs', 'tests/node/emulator.test.cjs'], ['tools/checks/project.cjs'], ['tools/checks/rhino.cjs']]) {
     const result = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit', windowsHide: true });
     assert.equal(result.status, 0, 'Prüfung fehlgeschlagen; Uploadordner nicht aktualisiert.');
   }
@@ -146,13 +154,17 @@ function build() {
     fs.writeFileSync(output, delivery.get(file));
     assert.ok(fs.readFileSync(output).equals(delivery.get(file)));
   }
-  // Nur bekannte gebündelte oder ausdrücklich entfernte Sendeplandateien aus älteren Paketen bereinigen.
+  // Nur bekannte gebündelte oder ausdrücklich entfernte Dateien aus älteren Paketen bereinigen.
   const retiredSchedule = ['calendar','markup','controller','editor','view','pages','window'].map(name => 'www/js/schedule/' + name + '.js')
     .concat(['www/css/schedule/schedule.css','www/css/schedule/schedule-options.css']);
-  for (const file of [...runtimeFiles.filter(file => !delivery.has(file)), ...retiredSchedule]) {
+  const retiredStudio = ["www/js/studio/pages.js","server/radio/pin-access.js","www/js/studio/login.js","www/js/history/controller.js","www/js/history/data.js","www/js/history/view.js","www/js/studio/ticker.js","www/css/history/history.css","www/css/studio/ticker.css"];
+  const retiredRadio = ['www/js/radio/dancers.js','www/img/knuddel-figur-gelb.png',
+    'server/radio/curtain.js','www/js/radio/curtain.js','www/js/radio/curtain-markup.js',
+    'www/css/radio/curtain.css','www/img/curtain-velvet.png','www/audio/werbung.mp3'];
+  for (const file of [...runtimeFiles.filter(file => !delivery.has(file)), ...retiredSchedule, ...retiredStudio, ...retiredRadio]) {
     const target = path.resolve(upload, file);
     assert.ok(target.startsWith(path.resolve(upload) + path.sep), 'Bündelbestandteil außerhalb des Uploadziels');
-    if (fs.existsSync(target)) { fs.unlinkSync(target); }
+    if (!delivery.has(file) && fs.existsSync(target)) { fs.unlinkSync(target); }
     let folder = path.dirname(target);
     while (folder !== path.resolve(upload) && fs.existsSync(folder) && fs.readdirSync(folder).length === 0) {
       fs.rmdirSync(folder); folder = path.dirname(folder);

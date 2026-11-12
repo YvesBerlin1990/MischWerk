@@ -22,7 +22,7 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
     };
     runtime.androidStationProjection = function () {
         var onAir = runtime.moderatorIsActive();
-        return { wishboxOpen: runtime.state.requestsEnabled === true && !runtime.shuttingDown,
+        return { wishboxOpen: runtime.requestsAvailable(),
             onAir: onAir, moderatorNick: onAir ? runtime.state.moderator.nick : null,
             topic: runtime.state.topic || null, ticker: runtime.tickerState() };
     };

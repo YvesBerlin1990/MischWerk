@@ -1,6 +1,12 @@
 /* Aktuelle Sitzung auch bei neu erzeugten Plattformwrappern eindeutig zuordnen. */
 MischWerkModules.attachSessionState = function (runtime) {
     'use strict';
+    runtime.activeSession = function (user, session) {
+        try {
+            return !!session && runtime.online(user) && user.equals(session.getUser()) && runtime.isSessionActive(session);
+        } catch (error) { return false; }
+    };
+
     runtime.isSessionActive = function (session) {
         try {
             if (!session) { return false; }

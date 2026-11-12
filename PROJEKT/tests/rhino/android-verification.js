@@ -17,7 +17,7 @@
         runtime.warn = function () {};
         runtime.userId = function (user) { return user.getUserId(); };
         runtime.isChannelOwner = function (user) { return user === owner && authorized; };
-        runtime.moderatorIsActive = function () { return false; };
+        runtime.moderatorIsActive = function () { return false; };runtime.requestsAvailable=function(){return runtime.state.requestsEnabled;};runtime.canUseModeration=function(){return true;};
         runtime.state = { requestsEnabled: true, topic: 'Synthetisches Thema', moderator: null };
         owner.sendPrivateMessage = function (text) { replies.push(JSON.parse(String(text))); };
         MischWerkModules.attachChanges(runtime);

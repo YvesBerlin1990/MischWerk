@@ -61,3 +61,12 @@ test('Fehlerantwort aktualisiert tatsächliche Freigabeflags und Laufstatus ohne
  assert.match(await p.locator('#relay-status').innerText(),/Verbindung freigegeben/);assert.match(await p.locator('#relay-status').innerText(),/Publisher aus/);
  assert.equal(await p.locator('#relay-refresh').isEnabled(),true);
 });
+
+test('Verlorene Bestätigung beendet den Wartezustand ohne automatisches erneutes Speichern',async t=>{
+ const p=await pageFor(t);await p.clock.install();await open(p,{...state,hasSyncSecret:true});
+ await p.locator('#relay-sync').fill('s'.repeat(64));await p.locator('#relay-save').click();
+ await p.clock.runFor(15010);assert.match(await p.locator('#relay-result').textContent(),/Keine Bestätigung/);
+ assert.equal(await p.locator('#relay-refresh').isEnabled(),true);
+ assert.equal(await p.locator('#relay-sync').inputValue(),'');
+ assert.equal(await p.evaluate(()=>__sent.filter(e=>e.type==='mw:androidSettings.save').length),1);
+});

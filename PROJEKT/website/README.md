@@ -1,6 +1,8 @@
 # MischWerk – Homepage und Arbeitsbereich
 
-Lokaler Stand **Website 0.2.7**, mit Knuddels-App **0.1.330 / Build 330** lokal geprüft. Stand: **09.11.2026**. Die Homepage verwendet das Vinyl-Design mit goldenen Radiotasten, lokalen Outfit-/Fraunces-Schriften und unveränderten Originalmedien. Bekannte offene Websitebefunde stehen im [Prüfbericht](docs/PRUEFUNG.md).
+Lokaler Stand **Website 0.2.11**, mit Knuddels-App **0.1.382 / Build 382** lokal geprüft. Stand: **12.11.2026**. Die Homepage verwendet das Vinyl-Design mit goldenen Radiotasten, lokalen Outfit-/Fraunces-Schriften und unveränderten Originalmedien. Bekannte offene Websitebefunde stehen im [Prüfbericht](docs/PRUEFUNG.md).
+
+Die Homepage zeigt und kopiert `/mw homepage CODE` zur Channelbestätigung. Die App verwendet dazu die gemeinsame `/mw`-Struktur; die alten Langbefehle sind entfernt. App und Homepage werden gemeinsam auf diese Befehlsfassung gebracht.
 
 Der öffentliche Teil enthält Radio, Sendeplan, Teamvorstellungen und Musikwünsche. Der eigene Arbeitsbereich unter **/arbeitsbereich** bietet Anmelden und Abmelden ohne Zeitlimit, Thema, Wunschregie, privater Übergabe und Tageshistorie, außerdem Besitzerverwaltung, Bot-Texte und Sendeplanung. Wunschbox, Moderation und Verwaltung der App bleiben erhalten; das native Sendeplan-Overlay ist zurückgesetzt.
 
@@ -18,7 +20,7 @@ pnpm --dir PROJEKT/website install --frozen-lockfile
 pnpm --dir PROJEKT/website run preview
 ```
 
-Standardadresse: **http://127.0.0.1:8766**. Beenden mit Strg+C. Der Website-Server unter server/ verwendet keine Testrollen oder Appsimulation. Er liest gemeinsame Appmedien, Player-, Kalender- und Historienkomponenten aus dem Projekt; die Laufzeitstruktur deshalb zusammengehörig erhalten. Die Website gehört nicht in den Knuddels-UPLOAD.
+Standardadresse: **http://127.0.0.1:8766**. Beenden mit Strg+C. Der Website-Server unter server/ verwendet keine Testrollen oder Appsimulation. Er liest gemeinsame Appmedien, Player- und Kalenderkomponenten aus dem Projekt; die Laufzeitstruktur deshalb zusammengehörig erhalten. Die Website gehört nicht in den Knuddels-UPLOAD.
 
 ## Dateiablage
 
@@ -27,7 +29,7 @@ Standardadresse: **http://127.0.0.1:8766**. Beenden mit Strg+C. Der Website-Serv
 | public/ | HTML für Homepage und Arbeitsbereich |
 | public/css/ | Website-Stylesheets |
 | public/js/site/ | Öffentliche Navigation, Inhalte, Kalenderdarstellung und Playeradapter |
-| public/js/workspace/ | Geschützter Arbeitsbereich mit Studio, Team, Sendeplan und Historie |
+| public/js/workspace/ | Geschützter Arbeitsbereich mit Studio, Team und Sendeplan |
 | server/ | Regulärer HTTP-Server, Sitzungen, API, Appanschluss und vorbereiteter Mailadapter |
 | tools/preview/ | Vier ausschließlich lokale Diagnose-/Testdateien |
 | tests/ und docs/ | Eigene Prüfungen und Website-Nachweise |
@@ -54,4 +56,4 @@ pnpm --dir PROJEKT/website test
 
 Die Website besitzt eigene Node-/Browserprüfungen mit lokalen HTTP- und Knuddels-Modellen. Der alte Diagnoseserver unter tools/preview/server.cjs bleibt ausschließlich durch MISCHWERK_WEBSITE_TEST=1 für diese getrennten Tests erreichbar; er ist kein Produktiveinstieg. Keine echte Mail oder Channelnachricht in Tests.
 
-[Aktueller Prüfbericht](docs/PRUEFUNG.md) · [Desktop](docs/website-startseite.jpg) · [Smartphone](docs/website-mobil.jpg) · [Arbeitsbereich](docs/arbeitsbereich.jpg). Die Aufnahmen vom 09.11.2026 zeigen den lokalen Websiteserver mit Beispieldaten und Appkomponenten aus Build 322.
+[Aktueller Prüfbericht](docs/PRUEFUNG.md) · [Desktop](docs/website-startseite.jpg) · [Smartphone](docs/website-mobil.jpg) · [Arbeitsbereich](docs/arbeitsbereich.jpg). Alle drei Aufnahmen wurden am 12.11.2026 aus dem lokalen Websiteserver mit Beispieldaten und Appkomponenten aus Build 382 erneuert. Die vollständige Websiteprüfung besteht mit 22 von 22 Fällen; bekannte zusätzliche Befunde bleiben im Prüfbericht dokumentiert.

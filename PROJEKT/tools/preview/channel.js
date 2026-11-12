@@ -5,14 +5,14 @@
   var publicRadio = home || parameters.get('radio') === 'public';
   var role = !publicRadio && parameters.get('role') === 'moderator' ? 'moderator' : 'listener';
   var radio = document.getElementById('radio-frame'), overlay = document.getElementById('overlay-frame');
-  var kinds = { wishes:true, studio:true, team:true };
+  var kinds = { wishes:true, studio:true, team:true, schedule:true };
   document.body.classList.toggle('public-radio', publicRadio);
   if (!home) {
     document.getElementById('mode-label').textContent = publicRadio ? 'Radio MischWerk' : 'Lokaler Test · ' + (role === 'moderator' ? 'Studio und Verwaltung' : 'Höreransicht');
     document.getElementById('mode-title').textContent = publicRadio ? 'Die Mischung macht’s.' : 'Ein Blick hinter die Regler.';
     document.getElementById('mode-description').textContent = publicRadio ?
       'Drücke Play und hör rein. Titel und Interpret siehst du direkt im Player.' :
-      'Die Wunschbox lässt sich oben öffnen; der Sendeplan wird neu gestaltet. Im Studio-Test kannst du auch die Moderation und die Verwaltung ausprobieren.';
+      'Wunschbox und Tagesplan lassen sich oben öffnen. Im Studio-Test kannst du auch die Moderation und die Verwaltung ausprobieren.';
     document.getElementById('mode-note').textContent = publicRadio ?
       'Der Player startet leise. Du kannst die Lautstärke jederzeit anpassen.' :
       'Dies ist ein Test mit Beispieldaten, ohne Radiostream. Wünsche, Studioanmeldungen und Sendeplaneinträge bleiben hier in der Vorschau. Sie erreichen weder das Radio noch einen echten Sendeplan.';
@@ -33,8 +33,8 @@
     if (publicRadio || !overlay || event.source !== radio.contentWindow || data.type !== 'preview-overlay') { return; }
     if (!data.open) { overlay.hidden = true; overlay.removeAttribute('src'); return; }
     if (!Object.prototype.hasOwnProperty.call(kinds, data.kind)) { return; }
-    overlay.style.width = 'min(' + (data.kind === 'studio' ? 780 : 560) + 'px,100%)';
-    overlay.style.height = (data.kind === 'studio' ? 730 : data.kind === 'team' ? 630 : 340) + 'px';
+    overlay.style.width = 'min(' + (data.kind === 'schedule' ? 640 : data.kind === 'studio' ? 780 : 560) + 'px,100%)';
+    overlay.style.height = (data.kind === 'schedule' ? 320 : data.kind === 'studio' ? 730 : data.kind === 'team' ? 630 : 340) + 'px';
     overlay.src = '/preview?view=' + data.kind + '&sourceSession=' + encodeURIComponent(data.sessionId);
     overlay.hidden = false;
   });

@@ -24,4 +24,43 @@
     check(runtime.state.topic === 'Erhalten','Lauftext erhält übrigen Appzustand');
     runtime.state.ticker = {text:new Array(302).join('x'),enabled:true,speed:0,direction:'up',revision:-1};
     check(!runtime.tickerState().enabled && runtime.tickerState().revision === 0,'Defekter gespeicherter Lauftext wird sicher normalisiert');
+    var replies = [], broadcasts = 0;
+    var radio = { sendPrivateMessage:function (message) { replies.push(String(message)); } };
+    runtime.online = function (user) { return user === radio; };
+    runtime.isModerator = function (user) { return user === radio; };
+    runtime.load = function () {};
+    runtime.broadcast = function () { broadcasts += 1; };
+    MischWerkModules.attachTickerCommand(runtime);
+    runtime.tickerCommand(radio,'+++ Dein C++ Radio +++');
+    check(runtime.tickerState().text === 'Dein C++ Radio' && runtime.tickerState().enabled,'Chatbefehl aktiviert Text und erhält innere Pluszeichen');
+    check(replies[replies.length-1].indexOf('eingeschaltet') >= 0 && broadcasts === 1,'Erst bestätigter Chatbefehl wird veröffentlicht');
+    runtime.tickerCommand(radio,'--aus');
+    check(!runtime.tickerState().enabled && runtime.tickerState().text === 'Dein C++ Radio','Chatbefehl schaltet aus und erhält den Text');
+    runtime.tickerCommand(radio,'--an');check(runtime.tickerState().enabled,'Chatbefehl schaltet gespeicherten Text wieder ein');
+    var savedText = runtime.tickerState().text, savedDirection = runtime.tickerState().direction;
+    runtime.tickerCommand(radio,'--tempo langsam');
+    check(runtime.tickerState().speed === 32 && runtime.tickerState().enabled && runtime.tickerState().text === savedText,
+        'Langsames Tempo erhält eingeschalteten Inhalt');
+    runtime.tickerCommand(radio,'--tempo normal');check(runtime.tickerState().speed === 48,'Normales Tempo über Chatbefehl');
+    runtime.tickerCommand(radio,'--tempo schnell');check(runtime.tickerState().speed === 72,'Schnelles Tempo über Chatbefehl');
+    check(runtime.tickerState().direction === savedDirection,'Tempoänderung erhält Laufrichtung');
+    runtime.tickerCommand(radio,'--aus');runtime.tickerCommand(radio,'--tempo 32');
+    check(!runtime.tickerState().enabled && runtime.tickerState().speed === 32 && runtime.tickerState().text === savedText,
+        'Numerisches Tempo im ausgeschalteten Zustand erhält Text und Sichtbarkeit');
+    var helpRevision = runtime.tickerState().revision, helpBroadcasts = broadcasts;
+    runtime.tickerCommand(radio,'');runtime.tickerCommand(radio,'--hilfe');
+    check(replies[replies.length-1].indexOf('--tempo schnell') >= 0 && replies[replies.length-1].indexOf('--an') >= 0 &&
+        replies[replies.length-1].indexOf('--aus') >= 0, 'Private Übersicht nennt Tempo und Ein/Aus');
+    check(runtime.tickerState().revision === helpRevision && broadcasts === helpBroadcasts,'Hilfe ohne Schreiben oder Zustandsbroadcast');
+    runtime.tickerCommand(radio,'--tempo 49');runtime.tickerCommand(radio,'--tempo');
+    check(runtime.tickerState().revision === helpRevision && runtime.tickerState().speed === 32,'Ungültiges Tempo verändert nichts');
+    runtime.tickerCommand(radio,'--an');check(runtime.tickerState().enabled && runtime.tickerState().speed === 32,
+        'Erneutes Einschalten übernimmt gewählte Geschwindigkeit');
+    var before = copy(runtime.tickerState());fail = true;runtime.tickerCommand(radio,'Fehler');fail = false;
+    check(runtime.tickerState().revision === before.revision && runtime.tickerState().text === before.text,'Fehlgeschlagener Chatbefehl erhält bestätigte Werte');
+    fail = true;runtime.tickerCommand(radio,'--tempo schnell');fail = false;
+    check(runtime.tickerState().revision === before.revision && runtime.tickerState().speed === before.speed,
+        'Fehlgeschlagene Tempoänderung erhält bestätigte Geschwindigkeit');
+    runtime.tickerCommand(radio,'+++');check(runtime.tickerState().text === before.text,'Reine Randzeichen erzeugen keinen Lauftext');
+    runtime.shuttingDown=true;runtime.tickerCommand(radio,'Zu spät');check(runtime.tickerState().text === before.text,'Chatbefehl beim Shutdown abgewiesen');
 }());

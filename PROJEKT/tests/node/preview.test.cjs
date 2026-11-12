@@ -38,15 +38,15 @@ test('Lokaler Vorschau-Server', async t => {
     assert.equal(demo.publicRadio, false); assert.equal(demo.pageData.station.configured, false);
     assert.equal(radio.publicRadio, true); assert.equal(radio.pageData.station.provider, 'streampanel');
     assert.equal(radio.pageData.station.streamUrl, 'https://mischwerk.sp.radio.fm/stream');
-    assert.equal(radio.pageData.station.metadataUrl, 'https://mischwerk.spcast.eu/currentSong.txt');
-    assert.equal(radio.pageData.station.metadataFormat, 'spcast-current-song');
+    assert.equal(radio.pageData.station.metadataUrl, 'https://mischwerk.sp.radio.fm/currentsong?sid=1');
+    assert.equal(radio.pageData.station.metadataFormat, 'spcast-shoutcast-song');
     assert.equal(radio.pageData.station.statusUrl, 'https://mischwerk.sp.radio.fm/statistics?json=1');
     assert.equal(radio.pageData.station.modeUrl, 'https://mischwerk.sp.radio.fm/scripts/whoIsLive.php');
     assert.equal(radio.pageData.user.canModerate, false); assert.equal(radio.pageData.user.canManageRadioModerators, false);
-    assert.equal(radio.pageData.moderator, null); assert.equal(radio.pageData.curtain.closed, false);
+    assert.equal(radio.pageData.moderator, null); assert.equal(Object.hasOwn(radio.pageData,'curtain'),false);
     assert.equal(radio.pageData.station.historyUrl, undefined);
     assert.equal((await fetch(base + '/preview?view=studio&sourceSession=' + radio.sessionId)).status, 403);
-    assert.equal((await fetch(base + '/preview?view=schedule&sourceSession=' + radio.sessionId)).status, 410);
+    assert.equal((await fetch(base + '/preview?view=schedule&sourceSession=' + radio.sessionId)).status, 403);
     assert.equal((await fetch(base + '/api/event', { method:'POST', body:JSON.stringify({ sessionId:radio.sessionId, type:'mw:wish.submit', data:{text:'Test',submissionId:'public-denied'} }) })).status, 403);
     assert.equal(demo.pageData.user.nick, 'Testleitung');
     assert.doesNotMatch(JSON.stringify(demo), /Otterchen|Polaroid|Musikfreund|Mixfreund|Klangwelle/i);
@@ -73,7 +73,6 @@ test('Lokaler Vorschau-Server', async t => {
   await t.test('Demo-Popup bleibt an den Nutzer gebunden und lässt die Radioleiste aktiv', async () => {
     const ownerHtml=await(await fetch(base+'/preview?role=moderator')).text();
     const ownerData=JSON.parse(ownerHtml.match(/window\.MischWerkDemoData=(.*?);<\/script>/)[1]);
-    await fetch(base+'/api/command',{method:'POST',body:JSON.stringify({sessionId:ownerData.sessionId,command:'vorhang',params:'öffnen'})});
     const html=await(await fetch(base+'/preview?role=listener')).text();
     const data=JSON.parse(html.match(/window\.MischWerkDemoData=(.*?);<\/script>/)[1]);
     assert.equal((await fetch(base+'/preview?sourceSession='+data.sessionId+'&view=studio')).status,403);

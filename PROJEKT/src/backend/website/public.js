@@ -14,6 +14,6 @@ MischWerkModules.attachWebsitePublic = function (runtime, config) {
         });
         return { version:1, ok:true, week:plan.week, today:plan.today, days:plan.days, revision:plan.revision,
             previousRevision:plan.previousRevision, boundaryRevision:plan.boundaryRevision, entries:entries, page:plan.page, pages:plan.pages,
-            total:plan.total, requestsEnabled:runtime.state.requestsEnabled === true };
+            total:plan.total, requestsEnabled:runtime.requestsAvailable() };
     };
 };

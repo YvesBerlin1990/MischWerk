@@ -10,7 +10,7 @@ class TestUsers {
     const key = nick.toLocaleLowerCase('de');
     if (this.users.has(key)) return this.users.get(key);
     const state = { nick, id: definition.id || 1000 + this.users.size, role: definition.role || 'listener',
-      online: false, connection: null, sendingContent: false, client: definition.client || 'k3',
+      online: false, connection: null, sendingContent: false, client: definition.client || 'k3', nicklistIcons:[],
       capabilities: { Headerbar: true, Popup: true, Overlay: true, ...definition.capabilities } };
     if (!['owner', 'listener', 'manager', 'developer', 'cm'].includes(state.role)) throw new Error('Ungültige Testrolle.');
     const runtime = this.runtime;
@@ -24,6 +24,20 @@ class TestUsers {
         return '°>' + (displayText === undefined ? nick : String(displayText)) + '|/w ' + nick + '<°';
       },
       equals: other => !!other && typeof other.getUserId === 'function' && other.getUserId() === state.id,
+      getPersistence: () => runtime.userPersistence(state.id),
+      addNicklistIcon: (imagePath, imageWidth) => {
+        if (typeof imagePath !== 'string' || !/^https?:\/\/[^\s]+\.(png|gif)(?:\?.*)?$/.test(imagePath) ||
+          !Number.isInteger(imageWidth) || imageWidth < 1 || imageWidth > 100) throw new Error('Ungültiger Nicklisten-API-Aufruf.');
+        if (runtime.faults.failNicklistAdd) throw new Error('Simulierter Nicklisten-add-Fehler.');
+        state.nicklistIcons = state.nicklistIcons.filter(icon => icon.path !== imagePath).concat({ path:imagePath, width:imageWidth });
+        runtime.emit('nicklist', { nick:state.nick, operation:'add', path:imagePath, width:imageWidth });
+      },
+      removeNicklistIcon: imagePath => {
+        if (typeof imagePath !== 'string' || !/^https?:\/\//.test(imagePath)) throw new Error('Absoluter Nicklistenbildpfad erforderlich.');
+        if (runtime.faults.failNicklistRemove) throw new Error('Simulierter Nicklisten-remove-Fehler.');
+        state.nicklistIcons = state.nicklistIcons.filter(icon => icon.path !== imagePath);
+        runtime.emit('nicklist', { nick:state.nick, operation:'remove', path:imagePath });
+      },
       isOnlineInChannel: () => state.online, isOnline: () => state.online,
       isChannelOwner: () => state.role === 'owner',
       isAppManager: () => ['owner', 'manager'].includes(state.role),

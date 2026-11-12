@@ -14,15 +14,22 @@ MischWerkUI.define('layout', function (dependencies) {
     fitContent();
   }
   function notify(message, error, action) {
+    // Wunschboxmeldungen ersetzen die vorhandene Statuszeile direkt am Schalter.
+    if (model.view === 'studio' && action === 'mw:setRequests') {
+      signals.emit('requests-feedback', { message:message, error:!!error });
+      return;
+    }
     var box = dom.el('notice');
-    // Der bestätigte Schalter und seine Statuszeile melden den Erfolg bereits ohne zusätzliche Höhe.
-    if (model.view === 'studio' && action === 'mw:setRequests' && !error) {
-      if (noticeAction === action) { box.hidden = true; clearTimeout(noticeTimer); resizeDialog(); }
+    // An-/Abmeldung und automatische Freigabe sind im bestätigten Zustand sichtbar.
+    if (model.view === 'studio' && !error && (action === 'mw:onAir' || action === 'mw:offAir')) {
+      if (noticeAction === action) {
+        box.hidden = true; box.removeAttribute('data-topic-reserved'); clearTimeout(noticeTimer); resizeDialog();
+      }
       return;
     }
     noticeAction = action;
     if (model.view !== 'radio') {
-      var targets = { 'mw:onAir':'studio-controls', 'mw:offAir':'studio-controls', 'mw:setRequests':'studio-controls',
+      var targets = { 'mw:onAir':'studio-controls', 'mw:offAir':'studio-controls',
         'mw:setWishStage':'queue-notice', 'mw:resolveRequest':'queue-notice',
         'mw:addRadioModerator':'radio-moderator-form', 'mw:removeRadioModerator':'team-list-notice', 'mw:channelTexts.save':'channel-texts-actions' };
       var target = dom.el(targets[action] || (action && action.indexOf('mw:handover.') === 0 ? 'handover-panel' : 'dialog-notice-slot'));
@@ -49,7 +56,7 @@ MischWerkUI.define('layout', function (dependencies) {
       var slot = dom.el('dialog-notice-slot');
       slot.parentNode.insertBefore(slot, document.querySelector('.dialog-content'));
       dom.el('dialog-notice-slot').appendChild(dom.el('notice'));
-      dom.setText('dialog-title', model.view === 'wishes' ? 'Wunschbox' : model.view === 'team' ? 'Verwaltung' : 'Moderation');
+      dom.setText('dialog-title', model.view === 'wishes' ? 'Wunschbox' : model.view === 'team' ? 'Verwaltung' : model.view === 'schedule' ? 'Sendeplan' : 'Moderation');
       dom.el('studio-connection').hidden = true;
     }
     layoutReady = true;

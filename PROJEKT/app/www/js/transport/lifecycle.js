@@ -10,6 +10,7 @@ MischWerkUI.define('lifecycle', function (dependencies) {
   var provider = dependencies.provider;
   var player = dependencies.player;
   var signals = dependencies.signals;
+  var listenerPresence = dependencies.listenerPresence;
   var initialLayoutTimer;
   var initialLayoutFinished = false;
   var activityInterval = 180000;
@@ -100,24 +101,32 @@ MischWerkUI.define('lifecycle', function (dependencies) {
       try {
         var frame = bridge.getHostFrame();
         frame.setTitle(model.view === 'wishes' ? 'MischWerk · Wunschbox' : model.view === 'studio' ?
-          'MischWerk · Moderation' : model.view === 'team' ? 'MischWerk · Verwaltung' : 'MischWerk · Radio');
+          'MischWerk · Moderation' : model.view === 'team' ? 'MischWerk · Verwaltung' : model.view === 'schedule' ? 'MischWerk · Sendeplan' : 'MischWerk · Radio');
       } catch (error) { /* Optionale Beschriftung darf den Player nicht blockieren. */ }
       layout.resizeBar();
       commands.send('mw:ready');
-      setInterval(function () { if (!disposed && (!document.hidden || playbackPosition() !== null)) { commands.send('mw:refresh', {}); } }, 20000);
-      setInterval(function () { samplePlaybackActivity(); signals.emit('controls'); }, 1000);
+      setInterval(function () {
+        if (!disposed && (!document.hidden || playbackPosition() !== null)) {
+          commands.send('mw:refresh', listenerPresence ? { listenerPresence:listenerPresence.renewal() } : {});
+        }
+      }, 20000);
+      setInterval(function () {
+        if (listenerPresence) { listenerPresence.sample(); }
+        samplePlaybackActivity(); signals.emit('controls');
+      }, 1000);
       document.addEventListener('visibilitychange', function () {
         if (document.hidden) { if (provider) { provider.dispose(); } }
         else { refreshVisible(); }
       });
     } else {
       if (wishes) {
-        dom.setText('wish-hint', 'Öffne diese App in Knuddels mit /mischwerk oder starte die lokale Vorschau aus dem Projektordner.');
+        dom.setText('wish-hint', 'Die App öffnet sich beim Betreten des MischWerk-Channels automatisch.');
         dom.el('wish-hint').hidden = false;
       }
       if (provider) { dom.setText('metadata-status', 'Diese Oberfläche benötigt die Verbindung zum Knuddels-MyChannel.'); }
     }
     window.addEventListener('pagehide', function () {
+      if (listenerPresence) { listenerPresence.dispose(); }
       disposed = true; resetPlaybackActivity();
       if (player) { player.stop(); }
       if (provider) { provider.dispose(); }
@@ -129,7 +138,9 @@ MischWerkUI.define('lifecycle', function (dependencies) {
     window.addEventListener('resize', function () { layout.resizeBar(); if (wishes) { wishes.fitText(); } });
     layout.resizeDialog();
     window.addEventListener('pageshow', function (event) {
-      if (event.persisted && bridge) { disposed = false; resetPlaybackActivity(); refreshVisible(); }
+      if (event.persisted && bridge) {
+        disposed = false; resetPlaybackActivity(); if (listenerPresence) { listenerPresence.resume(); } refreshVisible();
+      }
     });
   }
   return { start: start };

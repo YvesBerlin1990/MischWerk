@@ -52,7 +52,10 @@ MischWerkModules.attachScheduleBroadcasts = function (runtime) {
         entry.actualStart = moderator.since;
         if (endedAt) { entry.actualEnd = endedAt; }
         else { delete entry.actualEnd; }
-        if (topic) { entry.topic = topic; }
+        var homepage = (saved.relayBindings || []).some(function (binding) {
+            return binding.deleted === false && binding.nativeId === entry.id;
+        });
+        if (topic && !homepage) { entry.topic = topic; }
         runtime.writeScheduleWeek(week, saved);
     }
     runtime.prepareScheduleSync = function (next, purgedUserId) {

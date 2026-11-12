@@ -6,19 +6,352 @@ const os = require('node:os');
 const { chromium } = require('playwright');
 const { createEmulator } = require('../../tools/emulator/server.cjs');
 const {reveal:revealStudio}=require('../support/studio-browser.cjs');
+const studioPictures=path.join(require('node:os').tmpdir(),'MischWerk-Pruefbilder','moderation-neu');fs.mkdirSync(studioPictures,{recursive:true});
 let browser;
+
+for(const client of ['k3','stapp','android'])test('Wunschbox wird für Hörer erst nach Moderationsanmeldung sichtbar und erhält Entwurf und Audio in '+client,async t=>{
+ const lab=await setup(t,{provider:'online',authenticationTest:true});
+ const owner=await lab.join('Otterchen',client,1280,false),guest=await lab.join('Testhoerer',client,1280);
+ const wish=guest.radio.locator('#open-wishes');
+ await wish.waitFor({state:'hidden'});assert.equal(await owner.radio.locator('#open-wishes').isVisible(),false);
+ await guest.radio.locator('#play-button').click();await guest.radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+ await guest.radio.evaluate(()=>{window.__wishVisibilityAudio=document.getElementById('radio-audio');__wishVisibilityAudio.loop=true;});
+ const pictures=path.join(__dirname,'../../docs/pruefung/oberflaeche/radio');
+ if(client==='k3'&&!process.env.MISCHWERK_TEST_UPLOAD)await guest.radio.locator('#radio-panel').screenshot({path:path.join(pictures,'radio-wunschbox-autodj.png')});
+ await owner.radio.evaluate(()=>Client.sendEvent('mw:setRequests',{enabled:true}));await owner.radio.locator('#open-wishes:not([disabled])').waitFor();
+ assert.equal(await wish.isVisible(),false,'Persönliche Inhaberfreigabe öffnet Hörerzugriff nicht');
+ await owner.radio.evaluate(()=>Client.sendEvent('mw:setRequests',{enabled:false}));await owner.radio.locator('#open-wishes').waitFor({state:'hidden'});
+ await owner.radio.locator('#studio-tab').click();const studio=await overlayView(owner.page,'studio',false);
+ assert.equal(await wish.isVisible(),false,'Das Öffnen des Menüs allein startet keine Live-Moderation');
+ await studio.locator('#on-air').click();await studio.locator('#off-air').waitFor();await guest.radio.locator('#open-wishes:not([disabled])').waitFor();
+ assert.equal(await wish.isVisible(),true);
+ if(client==='k3'&&!process.env.MISCHWERK_TEST_UPLOAD)await guest.radio.locator('#radio-panel').screenshot({path:path.join(pictures,'radio-wunschbox-live.png')});
+ await wish.click();let surface=await overlayView(guest.page,'wishes',false);await surface.locator('#wish-text').fill('Mein Entwurf für die Live-Sendung');
+ await surface.locator('#close-wishes').click();await guest.page.locator('#overlays iframe').waitFor({state:'detached'});
+ await owner.radio.evaluate(()=>Client.sendEvent('mw:setRequests',{enabled:false}));await wish.waitFor({state:'hidden'});
+ await wish.evaluate(n=>n.dispatchEvent(new MouseEvent('click',{bubbles:true})));assert.equal(await guest.page.locator('#overlays iframe').count(),0);
+ await owner.radio.evaluate(()=>Client.sendEvent('mw:setRequests',{enabled:true}));await guest.radio.locator('#open-wishes:not([disabled])').waitFor();
+ await wish.click();surface=await overlayView(guest.page,'wishes',false);assert.equal(await surface.locator('#wish-text').inputValue(),'Mein Entwurf für die Live-Sendung');
+ await surface.locator('#close-wishes').click();await guest.page.locator('#overlays iframe').waitFor({state:'detached'});
+ await studio.locator('#off-air').click();await wish.waitFor({state:'hidden'});
+ assert.equal(await guest.radio.evaluate(()=>document.getElementById('radio-audio')===__wishVisibilityAudio&&!__wishVisibilityAudio.paused),true);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);assert.deepEqual(lab.hub.runtime.errors,[]);
+});
+
+for(const client of ['k3','stapp','android'])test('Private Willkommensgrafik bleibt beim Channelbeitritt nur beim Empfänger in '+client,async t=>{
+ const lab=await setup(t,{provider:'online',authenticationTest:true},false,client==='android'?{isMobile:true,hasTouch:true,deviceScaleFactor:2}:{});
+ const records=[],log=lab.hub.log.bind(lab.hub);lab.hub.log=(kind,data)=>{const item=log(kind,data);records.push(item);return item;};
+ const owner=await lab.join('Otterchen',client,client==='android'?390:900,false);
+ await owner.radio.locator('#play-button:not([disabled])').click();await owner.radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+ await owner.radio.evaluate(()=>{window.__welcomeAudio=document.getElementById('radio-audio');__welcomeAudio.loop=true;});
+ const guest=await lab.join('Testhoerer',client,client==='android'?390:640);
+ const welcomes=()=>records.filter(item=>item.kind==='private'&&item.message.includes('img/welcome/banner'));
+ assert.deepEqual(welcomes().map(item=>item.nick),['Otterchen','Testhoerer']);
+ assert.deepEqual(records.filter(item=>item.kind==='private'||item.kind==='public').map(item=>item.kind),
+  ['private','public','private','public'],'Erste Botnachricht je Beitritt ist die private Willkommensgrafik');
+ for(const person of [owner,guest]){
+  const messages=person.page.locator('#chat p').filter({hasText:'img/welcome/banner'});await messages.waitFor();assert.equal(await messages.count(),1);
+ }
+ assert.equal(await owner.page.locator('#chat p').filter({hasText:'Testhoerer (privat):'}).count(),0,'Ein anderer Empfänger erhält die Grafik nicht');
+ const message=welcomes()[1].message;
+ assert.ok(message.startsWith('°>LEFT<°°#r°°>CENTER<°'),'Absender links, danach nativer KCode-Umbruch vor dem zentrierten Banner');
+ assert.doesNotMatch(message,/[\r\n]/,'Keine wirkungslose LF-Ersatzformatierung');
+ assert.equal(message.replace(/°>[^°]*<°|°[^°]*°/g,'').trim(),'','Kein normaler Text außerhalb von Banner und Bildbuttons');
+ const images=[...message.matchAll(/°>(https?:\/\/[^°<>]*)(?:<>--<>\|([^°<>]+))?<°/g)];
+ assert.equal(images.length,4);assert.deepEqual(images.map(match=>match[2]||null),[null,'/edit setlmc','https://radio-mischwerk.web.app/','/info']);
+ const app=process.env.MISCHWERK_TEST_UPLOAD||path.resolve(__dirname,'../../app');
+ for(const image of images){
+  const relative=new URL(image[1]).pathname.slice(1).replace('...w_534.h_178.mw_534.mh_178','');
+  const response=await guest.page.request.get(lab.origin+'/app/'+relative);assert.equal(response.status(),200);assert.match(response.headers()['content-type'],/^image\/png/);
+  assert.ok((await response.body()).equals(fs.readFileSync(path.join(app,'www',relative))),'Tatsächlich ausgelieferte Grafik: '+relative);
+ }
+ lab.hub.runtime.invokeFunction(lab.hub.runtime.app.onUserJoined,[lab.hub.runtime.users.find('Testhoerer').user]);assert.equal(welcomes().length,2);
+ await guest.page.locator('#join').click();await guest.page.waitForFunction(()=>document.getElementById('join').textContent==='Channel betreten');
+ await guest.page.locator('#join').click();await guest.page.waitForFunction(()=>document.getElementById('join').textContent==='Channel verlassen');
+ await guest.page.locator('#chat p').filter({hasText:'img/welcome/banner'}).nth(1).waitFor();assert.equal(welcomes().length,3);
+ assert.equal(await owner.page.locator('#chat p').filter({hasText:'img/welcome/banner'}).count(),1);
+ assert.equal(await owner.radio.evaluate(()=>document.getElementById('radio-audio')===__welcomeAudio&&!__welcomeAudio.paused),true);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);assert.deepEqual(lab.hub.runtime.errors,[]);
+});
+
+for(const client of ['k3','stapp','android'])test('Verkleinerte Appleiste hält Musik und Sendung im gemeinsamen Raster in '+client,async t=>{
+ const lab=await setup(t,{provider:'online',authenticationTest:true}),{page,radio}=await lab.join('Otterchen',client,900,false);
+ const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','radio-fenster');fs.mkdirSync(folder,{recursive:true});
+ await radio.evaluate(()=>document.fonts.ready);
+ await page.locator('#headerbars iframe').screenshot({path:path.join(folder,'appleiste-'+lab.hub.runtime.context.MischWerkConfig.buildNumber+'-'+client+'-900.png'),scale:'css'});
+ await radio.locator('#play-button').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+ await radio.evaluate(()=>{window.__resizeAudio=document.getElementById('radio-audio');__resizeAudio.loop=true;});
+ for(const width of [900,701,780,1024,1199,700,640,390,320,1200,1280,1499,1500,1920,2560,3840,900]){
+  await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');
+  await radio.waitForFunction(w=>innerWidth===w,width);await page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
+  await require('../support/studio-browser.cjs').settle(radio);
+  const layout=await radio.evaluate(()=>{
+   const box=s=>document.querySelector(s).getBoundingClientRect(),music=box('.now-playing'),topic=box('.radio-context'),play=box('#play-button'),volume=box('.volume-control'),actions=box('#radio-actions');
+   return {music:music.toJSON(),topic:topic.toJSON(),play:play.toJSON(),logo:box('.bar-logo').toJSON(),volume:volume.toJSON(),range:box('#volume').toJSON(),orientation:getComputedStyle(document.getElementById('volume')).writingMode,actions:actions.toJSON(),height:box('#radio-panel').height,overflow:document.documentElement.scrollWidth>innerWidth};
+  });
+  assert.equal(layout.overflow,false);
+  assert.equal(layout.orientation,'horizontal-tb','Lautstärke bleibt auch im breiten Deck waagerecht bei '+width);
+  assert.ok(layout.range.width>=layout.range.height&&layout.range.height>=44,'Waagerechte Spur und 44-px-Bedienhöhe bei '+width);
+  assert.ok(layout.volume.top>=layout.topic.bottom-.5,'Lautstärke folgt unter Thema und Moderationsname bei '+width);
+  assert.ok(Math.abs((layout.volume.left+layout.volume.right-layout.topic.left-layout.topic.right)/2)<=1,'Lautstärke und Thema sind gemeinsam zentriert bei '+width);
+  if(width>=1200){assert.equal(layout.play.left,36);assert.equal(layout.play.width,80);assert.equal(layout.logo.left,width<1500?198:200);assert.equal(layout.logo.width,100);assert.equal(layout.height,160);}
+  if(width>700&&width<1200){
+   assert.ok(Math.abs(layout.music.top-layout.topic.top)<=1&&layout.music.right<=layout.topic.left,'Musik und Sendung stehen nebeneinander statt mit großem Leerraum untereinander: '+JSON.stringify({width,...layout}));
+   assert.ok(layout.height<=200,'Kurze Inhalte brauchen keine zusätzliche Informationszeile: '+JSON.stringify({width,...layout}));
+  }
+  if(width<=700){
+   assert.ok(layout.topic.left<layout.play.left&&layout.topic.right>layout.music.right-1,'Thema nutzt unter der Musik die gesamte Inhaltsbreite');
+   assert.ok(layout.topic.top>=layout.play.bottom+6,'Thema bleibt unter der vollständigen Playfläche');
+  }
+  if(width<1200)assert.ok(layout.actions.top>=Math.max(layout.topic.bottom,layout.volume.bottom,layout.play.bottom),'Aktionen stehen nach dem vollständigen Informationsbereich');
+  await radio.locator('#radio-actions').scrollIntoViewIfNeeded();
+  assert.deepEqual((await require('../support/layout-browser.cjs').inspectLayout(radio)).issues,[]);
+  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__resizeAudio&&!__resizeAudio.paused),true);
+ }
+ await radio.evaluate(()=>Client.sendEvent('mw:onAir',{}));await radio.locator('#host-name').filter({hasText:'Otterchen'}).waitFor();
+ const topic='Ein Themenabend mit Musikwünschen, tollen Gästen und Musik für euren Feierabend.';
+ await radio.evaluate(topic=>Client.sendEvent('mw:setTopic',{topic}),topic);await radio.locator('#show-topic').filter({hasText:topic}).waitFor();
+ for(const width of [900,701,700,390,320]){
+  await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await radio.waitForFunction(w=>innerWidth===w,width);await page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
+  await radio.locator('.radio-context').scrollIntoViewIfNeeded();await require('../support/studio-browser.cjs').settle(radio);
+  assert.deepEqual((await require('../support/layout-browser.cjs').inspectLayout(radio)).issues,[],'Langes Thema bei '+width);
+  assert.equal(await radio.locator('#show-topic').evaluate(n=>n.scrollHeight<=n.clientHeight+1),true);
+  await radio.evaluate(()=>window.scrollTo(0,0));
+  await page.locator('#headerbars iframe').screenshot({path:path.join(folder,'appleiste-'+lab.hub.runtime.context.MischWerkConfig.buildNumber+'-'+client+'-'+width+'-thema.png'),scale:'css'});
+ }
+ const title='Ein langer Musiktitel mit mehreren vollständigen Zeilen für kleine Fenster',artist='Interpret mit einem längeren Namen';
+ await lab.context.route('**/fonts/*.woff2',route=>route.abort());
+ await lab.context.route('**/fixture/metadata*',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({title,artist,live:false})}));
+ const fallback=await lab.join('Polaroid',client,701);
+ await fallback.radio.locator('#track-title').filter({hasText:title}).waitFor();
+ for(const width of [701,320,900]){
+  await fallback.page.locator('#width').fill(String(width));await fallback.page.locator('#width').dispatchEvent('change');await fallback.radio.waitForFunction(w=>innerWidth===w,width);await fallback.page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
+  for(const selector of ['.now-playing','.radio-context','.volume-control','#radio-actions']){
+   await fallback.radio.locator(selector).scrollIntoViewIfNeeded();await require('../support/studio-browser.cjs').settle(fallback.radio);
+   assert.deepEqual((await require('../support/layout-browser.cjs').inspectLayout(fallback.radio)).issues,[],'Lange Texte mit Ersatzschrift bei '+width);
+  }
+  assert.equal(await fallback.radio.locator('#track-title').textContent(),title);assert.equal(await fallback.radio.locator('#track-artist').textContent(),artist);
+ }
+ assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__resizeAudio&&!__resizeAudio.paused),true,'Erneutes Öffnen und Ersatzschrift erhalten die laufende Wiedergabe');
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+// Den Tastenhintergrund messen; Text-/Iconkanten enthalten normale Subpixel-Farbsäume.
+async function captureRadioButtonColor(button,radio,output){
+ const png=await button.screenshot({path:output,scale:'css',animations:'disabled'});
+ const foreground=await button.evaluate(n=>{const b=n.getBoundingClientRect();return n.classList.contains('wish-button')?Array.from(n.querySelectorAll('strong,.public-action-icon')).map(part=>{const r=part.getBoundingClientRect();return {left:r.left-b.left-2,right:r.right-b.left+2,top:r.top-b.top-2,bottom:r.bottom-b.top+2};}):[];});
+ const blue=await radio.evaluate(async ({base64,foreground})=>{const img=new Image();img.src='data:image/png;base64,'+base64;await img.decode();const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const pixels=ctx.getImageData(0,0,img.width,img.height).data;let blue=0;for(let y=4;y<img.height-4;y++)for(let x=4;x<img.width-4;x++){if(foreground.some(r=>x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom))continue;const i=(y*img.width+x)*4;if(pixels[i+1]>pixels[i]+15&&pixels[i+2]>pixels[i]+15&&pixels[i+2]>70)blue++;}return blue;},{base64:png.toString('base64'),foreground});
+ return {blue,...await button.evaluate(n=>{const s=getComputedStyle(n);return {background:s.backgroundColor,color:s.color,tap:s.webkitTapHighlightColor,pressed:n.getAttribute('aria-pressed')};})};
+}
+
+for(const density of [2,3])test('Alle mobilen Appleisten-Buttons behalten ihre Farben nach Antippen bei Pixeldichte '+density,async t=>{
+ const lab=await setup(t,{provider:'online'},false,{isMobile:true,hasTouch:true,deviceScaleFactor:density}),{page,radio}=await lab.join('Otterchen','android',390);await page.bringToFront();
+ await radio.evaluate(()=>Client.executeSlashCommand('/lauftext Alle Tasten ohne türkise Hervorhebung'));await radio.locator('#radio-ticker:not([hidden])').waitFor();
+ const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','radio-buttons');fs.mkdirSync(folder,{recursive:true});const proof=[];
+ async function record(id,phase){proof.push({id,phase,...await captureRadioButtonColor(radio.locator('#'+id),radio,path.join(folder,density+'-'+id+'-'+phase+'.png'))});}
+ const play=radio.locator('#play-button');await play.tap();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);await record('play-button','play');
+ await play.tap();await radio.waitForFunction(()=>document.getElementById('radio-audio').paused);await record('play-button','stop');
+ await play.tap();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);await radio.evaluate(()=>{window.__barButtonAudio=document.getElementById('radio-audio');__barButtonAudio.loop=true;});await radio.locator('#volume').fill('38');
+ for(const [id,kind,close] of [['open-schedule','schedule','close-overlay'],['open-wishes','wishes','close-wishes'],['studio-tab','studio','close-overlay']]){
+  await radio.locator('#'+id).tap();const overlay=await overlayView(page,kind,false);await record(id,'offen');await overlay.locator('#'+close).tap();await page.locator('#overlays iframe').waitFor({state:'detached'});await record(id,'geschlossen');
+ }
+ const pause=radio.locator('#radio-ticker-pause');await pause.tap();assert.equal(await pause.getAttribute('aria-pressed'),'true');await record('radio-ticker-pause','pause');await pause.tap();assert.equal(await pause.getAttribute('aria-pressed'),'false');await record('radio-ticker-pause','weiter');
+ await radio.evaluate(()=>Client.sendEvent('mw:setRequests',{enabled:false}));await radio.locator('#open-wishes').waitFor({state:'hidden'});await radio.locator('#open-wishes').evaluate(n=>n.dispatchEvent(new MouseEvent('click',{bubbles:true})));assert.equal(await page.locator('#overlays iframe').count(),0);await radio.evaluate(()=>Client.sendEvent('mw:setRequests',{enabled:true}));await radio.locator('#open-wishes:not([disabled])').waitFor();
+ fs.writeFileSync(path.join(folder,density+'-farben.json'),JSON.stringify(proof,null,2));
+ const ids=await radio.locator('.radio-deck button:visible').evaluateAll(nodes=>nodes.map(n=>n.id));assert.deepEqual([...ids].sort(),['mute-button','open-schedule','open-wishes','play-button','radio-ticker-pause','studio-tab'].sort());
+ await page.keyboard.press('Tab');
+ for(const id of ids){const button=radio.locator('#'+id);assert.equal(await button.evaluate(n=>getComputedStyle(n).webkitTapHighlightColor),'rgba(0, 0, 0, 0)',id+' ohne Browser-Tippfarbe');if(await button.isDisabled())continue;await button.focus();assert.equal(await button.evaluate(n=>document.activeElement===n&&n.matches(':focus-visible')&&parseFloat(getComputedStyle(n).outlineWidth)>=2),true,id+' behält den Tastaturfokus');}
+ assert.ok(proof.every(row=>row.blue===0&&row.tap==='rgba(0, 0, 0, 0)'),JSON.stringify(proof));
+ assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__barButtonAudio&&!__barButtonAudio.paused&&__barButtonAudio.volume===.38),true);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['android','stapp','k3'])test('Lautsprechertaste bleibt bei Touch, Maus und Tastatur ohne türkisfarbene Fläche in '+client,async t=>{
+ const touch=client==='android',lab=await setup(t,{provider:'online'},false,{isMobile:touch,hasTouch:touch,deviceScaleFactor:touch?2:1});
+ const {page,radio}=await lab.join('Otterchen',client,touch?390:1280);await page.bringToFront();
+ const button=radio.locator('#mute-button'),folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','radio-mute');fs.mkdirSync(folder,{recursive:true});
+ await radio.locator('#play-button').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+ await radio.evaluate(()=>{window.__muteColorAudio=document.getElementById('radio-audio');__muteColorAudio.loop=true;});
+ await radio.locator('#volume').fill('38');await button.scrollIntoViewIfNeeded();
+ const proof=[];
+ async function capture(state){proof.push({state,...await captureRadioButtonColor(button,radio,path.join(folder,client+'-'+state+'.png'))});}
+ await capture('normal');
+ if(touch)await button.tap();else await button.click();assert.equal(await radio.locator('#volume-value').textContent(),'0 %');await capture('stumm');
+ if(touch)await button.tap();else await button.click();assert.equal(await radio.locator('#volume-value').textContent(),'38 %');await capture('wieder-an');
+ await radio.locator('#volume').focus();await page.keyboard.press('Shift+Tab');
+ assert.equal(await button.evaluate(n=>document.activeElement===n&&n.matches(':focus-visible')&&getComputedStyle(n).outlineColor==='rgb(230, 199, 123)'&&parseFloat(getComputedStyle(n).outlineWidth)>=2),true,'Goldener Tastaturfokus bleibt sichtbar');
+ await capture('tastatur');await button.press('Space');assert.equal(await radio.locator('#volume-value').textContent(),'0 %');await button.press('Space');
+ fs.writeFileSync(path.join(folder,client+'-farben.json'),JSON.stringify(proof,null,2));
+ assert.ok(proof.every(row=>row.blue===0&&row.background==='rgba(0, 0, 0, 0)'&&row.tap==='rgba(0, 0, 0, 0)'),JSON.stringify(proof));
+ assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__muteColorAudio&&!__muteColorAudio.paused&&__muteColorAudio.volume===.38),true);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const sizing of ['normal','ignored','stepped'])for(const legacy of [false,true])test('Mobile Appleiste zeigt das vollständige Thema ohne Wunschplatzierung: '+sizing+', '+(legacy?'ohne :has()':'aktueller Browser'),async t=>{
+ const lab=await setup(t,{provider:'online',hostSizing:sizing},false,{isMobile:true,hasTouch:true,deviceScaleFactor:sizing==='ignored'?3:2,userAgent:'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36'});
+ const owner=await lab.join('Otterchen','android',320),listener=await lab.join('Polaroid','android',320);
+ const topic='Ein Themenabend mit Musikwünschen, tollen Gästen und Musik für euren Feierabend.';assert.equal(topic.length,80);
+ await owner.radio.evaluate(topic=>Client.sendEvent('mw:setTopic',{topic}),topic);
+ await listener.radio.locator('#show-topic').filter({hasText:topic}).waitFor({state:'attached'});
+ if(sizing==='stepped'){await owner.radio.evaluate(()=>Client.executeSlashCommand('/lauftext Mobile Information'));await listener.radio.locator('#radio-ticker:not([hidden])').waitFor();}
+ const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','radio-mobil');fs.mkdirSync(folder,{recursive:true});
+ for(const {page,radio} of [owner,listener]){
+  await page.bringToFront();await radio.evaluate(()=>document.fonts.ready);
+  if(legacy)await radio.evaluate(()=>{
+   function withoutHas(sheet){for(let i=sheet.cssRules.length-1;i>=0;i--){const rule=sheet.cssRules[i];if(rule.selectorText?.includes(':has('))sheet.deleteRule(i);else if(rule.cssRules)withoutHas(rule);}}
+   for(const sheet of document.styleSheets)withoutHas(sheet);
+  });
+  await radio.locator('#play-button:not([disabled])').tap({timeout:5000});await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+  await radio.evaluate(()=>{window.__mobileAudio=document.getElementById('radio-audio');__mobileAudio.loop=true;});
+  await radio.evaluate(submissionId=>Client.sendEvent('mw:wish.submit',{text:'Mein ausführlicher Musikwunsch mit vielen weiteren Informationen. '.repeat(4),submissionId}),'mobile-layout-'+(page===owner.page?'owner':'listener'));
+  await radio.waitForFunction(()=>!document.getElementById('own-wish-position').hidden);
+  for(const width of [320,360,390,430,640,780,1100,1199,1280,320]){
+   await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');
+   await page.locator('#headerbars iframe').scrollIntoViewIfNeeded();await radio.waitForFunction(w=>innerWidth===w,width,{polling:50,timeout:5000});await page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
+   if(width<=1199){
+    await radio.locator('.radio-context').scrollIntoViewIfNeeded();
+    const theme=await radio.locator('#show-topic').evaluate(node=>{
+     const box=node.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(node);const lines=Array.from(range.getClientRects());
+     let top=0,bottom=innerHeight,left=0,right=innerWidth;
+     for(let n=node;n;n=n.parentElement){const s=getComputedStyle(n),r=n.getBoundingClientRect();if(/auto|scroll|hidden|clip/.test(s.overflowY)){top=Math.max(top,r.top);bottom=Math.min(bottom,r.bottom);}if(/auto|scroll|hidden|clip/.test(s.overflowX)){left=Math.max(left,r.left);right=Math.min(right,r.right);}}
+     return {fits:lines.every(r=>r.top>=top-.5&&r.bottom<=bottom+.5&&r.left>=left-.5&&r.right<=right+.5),cut:node.scrollHeight>node.clientHeight+1,aboveControls:box.bottom<=document.getElementById('volume').getBoundingClientRect().top};
+    });
+    assert.deepEqual(theme,{fits:true,cut:false,aboveControls:true},'Das vollständige 80-Zeichen-Thema ist lesbar bei '+width+' px '+(theme.fits?'':JSON.stringify(await radio.evaluate(()=>({scroll:scrollY,height:innerHeight,topic:document.getElementById('show-topic').getBoundingClientRect().toJSON(),context:document.querySelector('.radio-context').getBoundingClientRect().toJSON(),focus:document.activeElement.id})))));
+    assert.equal(await radio.locator('#own-wish-position').isVisible(),false,'Keine Wunschplatzierung in der mobilen Appleiste');
+    if(width<=430){
+     const height=await radio.locator('#radio-panel').evaluate(n=>n.getBoundingClientRect().height);
+     assert.ok(height<=312,'Kompakte Leiste trotz vollständigem 80-Zeichen-Thema: '+JSON.stringify({width,height}));
+    }
+   }else assert.equal(await radio.locator('#own-wish-position').isVisible(),true,'Desktop behält die Wunschplatzierung');
+   await radio.locator('#radio-actions').scrollIntoViewIfNeeded();await require('../support/studio-browser.cjs').settle(radio);
+   const issues=await radio.evaluate(()=>{
+    const issues=[];
+    for(const button of document.querySelectorAll('#radio-actions button,#studio-tab')){
+     if(!button.getClientRects().length)continue;
+     const b=button.getBoundingClientRect(),icon=button.querySelector('.public-action-icon').getBoundingClientRect(),copy=button.querySelector('.wish-button-copy').getBoundingClientRect();
+     if(icon.right>copy.left+.5&&icon.bottom>copy.top+.5)issues.push(button.id+': Symbol überlagert Text');
+     if(b.width<44||b.height<44||b.left<0||b.right>innerWidth||b.top<0||b.bottom>innerHeight)issues.push(button.id+': Bedienfläche außerhalb des Rahmens '+JSON.stringify({top:b.top,bottom:b.bottom,height:innerHeight}));
+     for(const label of button.querySelectorAll('strong')){const range=document.createRange();range.selectNodeContents(label);const r=range.getBoundingClientRect();if(r.left<b.left||r.right>b.right||r.top<b.top||r.bottom>b.bottom)issues.push(button.id+': Beschriftung außerhalb der Taste');}
+     for(const [x,y] of [[b.left+2,b.top+b.height/2],[b.right-2,b.top+b.height/2],[b.left+b.width/2,b.top+2],[b.left+b.width/2,b.bottom-2]])if(!button.contains(document.elementFromPoint(x,y)))issues.push(button.id+': verdecktes Klickziel');
+    }
+    if(document.documentElement.scrollWidth>innerWidth)issues.push('Horizontale Überbreite');return issues;
+   });
+   assert.deepEqual(issues,[],width+' px, '+sizing+', legacy='+legacy);
+   await radio.locator('#volume').scrollIntoViewIfNeeded();assert.deepEqual((await require('../support/layout-browser.cjs').inspectLayout(radio)).issues,[]);
+   await radio.locator('#volume').fill('100');assert.equal(await radio.locator('#volume-value').textContent(),'100 %');
+   await radio.locator('#mute-button').tap({timeout:5000});assert.equal(await radio.locator('#volume-value').textContent(),'0 %');await radio.locator('#mute-button').tap({timeout:5000});
+   assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__mobileAudio&&!__mobileAudio.paused),true);
+   if(sizing==='normal'&&[320,390].includes(width)){await radio.evaluate(()=>window.scrollTo(0,0));await page.locator('#headerbars iframe').screenshot({path:path.join(folder,'android-thema-'+(page===owner.page?'moderation':'hoerer')+'-'+width+'-'+legacy+'.png'),scale:'css'});}
+  }
+  await radio.locator('#open-schedule').tap({timeout:5000});let overlay=await overlayView(page,'schedule',false);await overlay.locator('#close-overlay').tap({timeout:5000});
+  await radio.locator('#open-wishes').tap({timeout:5000});overlay=await view(page,'Overlay');await overlay.locator('#close-wishes').tap({timeout:5000});
+  if(page===owner.page){await radio.locator('#studio-tab').tap({timeout:5000});overlay=await overlayView(page,'studio',false);await overlay.locator('#close-overlay').tap({timeout:5000});}
+ }
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])test('Native Anmeldung ohne PIN erhält Wunschbox und Rollen in '+client,async t=>{
+ const lab=await setup(t,{provider:'online',authenticationTest:true}),owner=await lab.join('Otterchen',client,640,false),width=client==='k3'?320:640,dj=await lab.join('DJ-Test',client,width),listener=await lab.join('Polaroid',client,640);
+ await owner.radio.evaluate(()=>Client.sendEvent('mw:addRadioModerator',{nick:'DJ-Test'}));await dj.radio.locator('#studio-tab:not([hidden])').waitFor();
+ await dj.radio.locator('#studio-tab').click();let studio=await overlayView(dj.page,'studio',false);
+ assert.equal(await studio.locator('#moderation-pin,#moderation-login-form,#handover-pin').count(),0);
+ assert.equal(await studio.locator('#studio-queue-tab').isDisabled(),true);assert.equal(await studio.locator('#studio-topic').isDisabled(),true);
+ assert.equal(await listener.radio.locator('#open-wishes').isDisabled(),true);
+ await dj.page.waitForFunction(()=>window.EmulatorLab.frames.pendingSizes.size===0);
+ await studio.locator('.dialog-shell').screenshot({path:path.join(studioPictures,'moderation-bereit-'+width+'.png')});
+ await studio.locator('#close-overlay').click();await dj.page.locator('#overlays iframe').waitFor({state:'detached'});
+ assert.equal(lab.hub.trace.some(e=>e.kind==='sessionEvent'&&e.nick==='DJ-Test'&&e.eventData?.moderator),false);
+ await dj.radio.locator('#studio-tab').click();studio=await overlayView(dj.page,'studio',false);
+ const began=Date.now();await require('../support/studio-browser.cjs').login(studio);assert.ok(Date.now()-began<5000,'Direkter nativer Start bleibt im lokalen Modell unter fünf Sekunden');
+ await listener.radio.locator('#open-wishes:not([disabled])').waitFor();assert.equal(await studio.locator('#studio-queue-tab').isDisabled(),false);
+ await revealStudio(studio,'#studio-topic');assert.equal(await studio.locator('#studio-topic').isDisabled(),false);
+ await revealStudio(studio,'#toggle-wishes');await studio.locator('#toggle-wishes').click();await listener.radio.locator('#open-wishes').waitFor({state:'hidden'});await studio.locator('#toggle-wishes:not([disabled])').click();await listener.radio.locator('#open-wishes:not([disabled])').waitFor();
+ await revealStudio(studio,'#off-air');await studio.locator('#off-air').click();await studio.locator('#on-air:not([disabled])').waitFor();await listener.radio.locator('#open-wishes').waitFor({state:'hidden'});
+ await require('../support/studio-browser.cjs').login(studio);await listener.radio.locator('#open-wishes:not([disabled])').waitFor();
+ assert.equal(lab.hub.trace.some(e=>e.eventType==='mw:pin.login'),false);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])for(const width of [320,640])test('Neu aufgebautes flaches Moderationsmenü erhält die vollständige Wunschregie in '+client+' bei '+width,async t=>{
+ const lab=await setup(t,{provider:'online',authenticationTest:true}),owner=await lab.join('Otterchen',client,width,false),listener=await lab.join('Polaroid',client,640);
+ await owner.radio.locator('#play-button:not([disabled])').click();await owner.radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+ await owner.radio.evaluate(()=>{window.__modernAudio=document.getElementById('radio-audio');__modernAudio.loop=true;});
+ await owner.radio.locator('#studio-tab').click();const studio=await overlayView(owner.page,'studio',false);
+ assert.equal(await studio.locator('#queue-detail-toggle,.microphone-card,.studio-part').count(),0);
+ assert.deepEqual(await studio.locator('#studio-programme-tabs [role=tab]').allTextContents(),['Sendung','Wünsche (0)']);
+ await require('../support/studio-browser.cjs').login(studio);
+ await revealStudio(studio,'#studio-topic');await studio.locator('#studio-topic').fill('Neues Menü, gleiche Sendung');await studio.locator('#save-topic').click();
+ await owner.radio.locator('#show-topic').filter({hasText:'Neues Menü, gleiche Sendung'}).waitFor();
+ for(const enabled of [false,true]){await revealStudio(studio,'#toggle-wishes');await studio.locator('#toggle-wishes').click();await studio.waitForFunction(v=>document.getElementById('toggle-wishes').getAttribute('aria-checked')===String(v),enabled);}
+ await owner.page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);await require('../support/studio-browser.cjs').settle(studio);
+ await studio.locator('.dialog-shell').screenshot({path:path.join(studioPictures,'neu-sendung-'+client+'-'+width+'.png')});
+ const text='Ein vollständiger Musikwunsch mit allen Informationen und einem persönlichen Gruß. '.repeat(3).trim();
+ await listener.radio.evaluate(({text,id})=>Client.sendEvent('mw:wish.submit',{text,submissionId:id}),{text,id:'modern-'+client+'-'+width});
+ await studio.locator('#queue-count').filter({hasText:'1'}).waitFor({state:'attached'});await studio.locator('#studio-queue-tab').click();
+ assert.equal(await require('../support/studio-browser.cjs').readText(studio,'.request-text'),text);
+ await owner.page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);await require('../support/studio-browser.cjs').settle(studio);
+ await studio.locator('.dialog-shell').screenshot({path:path.join(studioPictures,'neu-wuensche-'+client+'-'+width+'.png')});
+ for(const stage of ['preparing','playing','queued']){await revealStudio(studio,'[data-stage="'+stage+'"]');await studio.locator('[data-stage="'+stage+'"]').click();await studio.locator('.request-stage').filter({hasText:stage==='preparing'?'In Vorbereitung':stage==='playing'?'Läuft gerade':'Wartet'}).waitFor();}
+ await revealStudio(studio,'[data-outcome=done]');await studio.locator('[data-outcome=done]').click();await studio.locator('#queue-count').filter({hasText:'0'}).waitFor({state:'attached'});
+ await studio.locator('#studio-programme-tab').click();await revealStudio(studio,'#off-air');await studio.locator('#off-air').click();await listener.radio.locator('#open-wishes').waitFor({state:'hidden'});
+ assert.equal(await owner.radio.evaluate(()=>document.getElementById('radio-audio')===__modernAudio&&!__modernAudio.paused),true);
+ const appearance=await studio.locator('#on-air').evaluate(n=>({shadow:getComputedStyle(n).boxShadow,image:getComputedStyle(n).backgroundImage}));assert.deepEqual(appearance,{shadow:'none',image:'none'});
+ assert.equal(await studio.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])test('Moderation mit zwei Reitern und /lauftext erhält Thema, Fokus und Audio ohne Historienabruf in '+client,async t=>{
+ const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,1280,false),requests=[];
+ lab.context.on('request',request=>requests.push(request.url()));
+ await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>0);
+ await radio.evaluate(()=>{window.__commandAudio=document.getElementById('radio-audio');});
+ await radio.locator('#studio-tab').click();const studio=await overlayView(page,'studio');
+ assert.deepEqual(await studio.locator('#studio-programme-tabs [role=tab]').allTextContents(),['Sendung','Wünsche (0)']);
+ assert.equal(await studio.locator('#studio-history-tab,#history-panel,#studio-ticker-tab,#ticker-form').count(),0);
+ if(client==='k3')for(const [width,name] of [[640,'moderation-780.png'],[320,'moderation-320.png']]){
+  await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await studio.waitForFunction(w=>innerWidth===w,width);
+  await studio.locator('.dialog-shell').screenshot({path:path.join(studioPictures,name)});
+ }
+ await revealStudio(studio,'#studio-topic');await studio.locator('#studio-topic').fill('Mein erhaltener Themenentwurf');
+ await radio.evaluate(()=>Client.executeSlashCommand('/lauftext +++ Willkommen bei MischWerk C++ +++'));
+ await radio.locator('#radio-ticker-track > span').first().filter({hasText:'+++ Willkommen bei MischWerk C++ +++'}).waitFor({state:'attached'});
+ assert.equal(await studio.locator('#studio-topic').inputValue(),'Mein erhaltener Themenentwurf');
+ assert.equal(await studio.locator('#studio-topic').evaluate(n=>n===document.activeElement),true);
+ const tickerText=await radio.locator('#radio-ticker-readable').textContent();
+ const overlays=await page.locator('#overlays iframe').count();
+ await radio.evaluate(()=>Client.executeSlashCommand('/lauftext'));
+ await assertEventually(()=>lab.hub.trace.some(event=>event.kind==='private'&&event.message.includes('--tempo langsam')&&event.message.includes('--an')&&event.message.includes('--aus')));
+ assert.equal(await page.locator('#overlays iframe').count(),overlays,'Lauftexteinstellungen öffnen keine zusätzliche Oberfläche');
+ for(const [tempo,speed] of [['langsam',32],['normal',48],['schnell',72]]){
+  await radio.evaluate(tempo=>Client.executeSlashCommand('/lauftext --tempo '+tempo),tempo);
+  await radio.waitForFunction(speed=>{const track=document.getElementById('radio-ticker-track'),duration=parseFloat(getComputedStyle(track).animationDuration),width=track.children[0].getBoundingClientRect().width;return duration>0&&Math.abs(width/duration-speed)<.1;},speed);
+  assert.equal(await radio.locator('#radio-ticker-readable').textContent(),tickerText,'Tempoänderung erhält den vollständigen Text');
+ }
+ await studio.locator('#studio-programme-tab').focus();await studio.locator('#studio-programme-tab').press('ArrowRight');assert.equal(await studio.locator('#studio-queue-tab').getAttribute('aria-selected'),'true');
+ await studio.locator('#studio-queue-tab').press('ArrowRight');assert.equal(await studio.locator('#studio-programme-tab').getAttribute('aria-selected'),'true');
+ await radio.evaluate(()=>Client.executeSlashCommand('/lauftext --aus'));await radio.locator('#radio-ticker').waitFor({state:'hidden'});
+ await radio.evaluate(()=>Client.executeSlashCommand('/lauftext --tempo langsam'));
+ await assertEventually(()=>lab.hub.runtime.persistence.api().getObject('mischwerk.state.v1').ticker.speed===32);
+ assert.equal(await radio.locator('#radio-ticker').isVisible(),false,'Tempoänderung schaltet den ausgeblendeten Lauftext nicht ein');
+ await radio.evaluate(()=>Client.executeSlashCommand('/lauftext --an'));await radio.locator('#radio-ticker').waitFor();
+ await radio.waitForFunction(()=>{const track=document.getElementById('radio-ticker-track');return Math.abs(track.children[0].getBoundingClientRect().width/parseFloat(getComputedStyle(track).animationDuration)-32)<.1;});
+ assert.equal(await studio.locator('#studio-topic').inputValue(),'Mein erhaltener Themenentwurf');
+ assert.equal(await radio.evaluate(()=>__commandAudio===document.getElementById('radio-audio')&&!__commandAudio.paused&&!__commandAudio.error),true);
+ assert.equal(requests.some(url=>/\/history\/|:9000|fixture\/history|studio\/ticker\.js/.test(url)),false);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);assert.deepEqual(lab.hub.runtime.errors,[]);
+});
 
 for(const client of ['k3','stapp'])test('Direkte Songtitel im nativen '+client+'-Modell sind für Hörer sichtbar und erhalten echtes Audio',async t=>{
   const lab=await setup(t,{provider:'online'},true);
   const config=lab.hub.providerConfig();
-  lab.hub.providerConfig=()=>({...config,metadata:{url:'https://emulator.mischwerk.invalid/fixture/current-song',format:'spcast-current-song',titleField:'',artistField:'',liveField:''}});
+  lab.hub.providerConfig=()=>({...config,metadata:{url:'https://emulator.mischwerk.invalid/fixture/current-song',format:'spcast-shoutcast-song',titleField:'',artistField:'',liveField:''}});
   lab.hub.restart(false);
   let title='a-ha - Take On Me';
   await lab.context.route('**/fixture/current-song?*',r=>r.fulfill({body:title,contentType:'text/plain',headers:{'Cache-Control':'max-age=300'}}));
+  const requests=[];lab.context.on('request',request=>requests.push(request.url()));
   const {page,radio}=await lab.join('Polaroid',client,390,false);
   // Der Hörer erhält den öffentlichen Titel, während die private Regie weiterhin verborgen bleibt.
   assert.equal(await radio.locator('#studio-tab').isVisible(),false);
   await radio.locator('#track-title').filter({hasText:'Take On Me'}).waitFor();
+  assert.equal(await radio.locator('.track-dancer,.track-dancer-measure').count(),0,'Keine Figuren oder Messkopien in der Titelanzeige');
+  assert.equal(await radio.locator('.now-playing').evaluate(node=>node.getAnimations({subtree:true}).length),0,'Die Musikangaben enthalten keine Animation');
   assert.equal(await radio.locator('.artist-copy').isVisible(),true);
   assert.equal(await radio.locator('#track-artist').textContent(),'a-ha');
   assert.equal(await radio.evaluate(()=>document.getElementById('track-title').getBoundingClientRect().bottom<=document.getElementById('track-artist').getBoundingClientRect().top),true,'Titel steht über dem Interpreten');
@@ -31,6 +364,57 @@ for(const client of ['k3','stapp'])test('Direkte Songtitel im nativen '+client+'
   assert.equal(await radio.locator('#track-artist').textContent(),'Neue Band');
   await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>window.__historyAudioAt);
   assert.equal(await radio.locator('#radio-audio').evaluate(n=>n===window.__historyAudio&&!n.paused&&!n.error),true);
+  assert.equal(requests.some(url=>/dancers\.js|knuddel-figur/.test(url)),false,'Keine Figurenressource nachgeladen');
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])for(const sizing of ['normal','stepped','ignored'])test('Schmale Moderation zeigt bei 320 Pixeln Anmeldung, Thema und Wunschbox zusammen in '+client+' bei '+sizing,async t=>{
+  const lab=await setup(t,{provider:'online',authenticationTest:true,hostSizing:sizing}),{page,radio}=await lab.join('Otterchen',client,320,false);
+  await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+  await radio.evaluate(()=>{window.__compactStudioAudio=document.getElementById('radio-audio');});
+  await radio.locator('#studio-tab').click();let frame=await overlayView(page,'studio',false);
+  async function together(){
+    await require('../support/studio-browser.cjs').settle(frame);
+    await page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
+    await require('../support/studio-browser.cjs').settle(frame);
+    assert.equal(await frame.locator('#studio-paging').isVisible(),false,'Keine Bereichsseiten bei 320 Pixeln');
+    for(const id of ['studio-controls','topic-form','toggle-wishes'])assert.equal(await frame.locator('#'+id).isVisible(),true,id+' bleibt auf derselben Seite');
+    assert.equal(await frame.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    assert.equal(await frame.locator('#toggle-wishes').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight+1),true,'Die Wunschbox passt mit den übrigen Standardgruppen in den sichtbaren Rahmen');
+  }
+  await require('../support/studio-browser.cjs').settle(frame);
+  assert.equal(await frame.locator('#moderation-pin,#moderation-confirmation').count(),0);
+  await together();
+  assert.equal(await frame.locator('#studio-topic').isDisabled(),true);
+  await revealStudio(frame,'#on-air');await frame.locator('#on-air').click();
+  await frame.locator('#off-air:not([disabled])').waitFor();await together();
+  await frame.locator('#studio-topic').fill('Mein schmaler Themenentwurf');
+  for(const enabled of [false,true]){
+    await frame.locator('#toggle-wishes').click();await frame.waitForFunction(v=>document.getElementById('toggle-wishes').getAttribute('aria-checked')===String(v),enabled);
+    await together();assert.equal(await frame.locator('#studio-topic').inputValue(),'Mein schmaler Themenentwurf');
+  }
+  await frame.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});
+  await radio.locator('#studio-tab').click();frame=await overlayView(page,'studio',false);await together();
+  assert.equal(await frame.locator('#studio-topic').inputValue(),'Mein schmaler Themenentwurf');
+  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__compactStudioAudio&&!__compactStudioAudio.paused),true);
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])test('Erste Moderationsanmeldung aktiviert die Wunschbox ohne vorübergehende Feedbackseite in '+client,async t=>{
+  const lab=await setup(t,{provider:'online',authenticationTest:true}),{page,radio}=await lab.join('Otterchen',client,1280,false);
+  await radio.locator('#studio-tab:not([disabled])').click();const frame=await overlayView(page,'studio');
+  await require('../support/studio-browser.cjs').settle(frame);
+  assert.equal(await frame.locator('#studio-paging').isVisible(),false,'Alle normalen Bediengruppen bleiben direkt nach der Anmeldung auf einer Seite');
+  assert.equal(await frame.locator('#notice').isVisible(),false,'Anmeldung und automatische Freigabe benötigen keine zusätzliche Erfolgsbox');
+  await frame.locator('#studio-topic').fill('Mein Entwurf nach der Anmeldung');
+  for(const enabled of [false,true]){
+    await frame.locator('#toggle-wishes:not([disabled])').click();
+    await frame.waitForFunction(value=>document.getElementById('toggle-wishes').getAttribute('aria-checked')===String(value),enabled);
+    await require('../support/studio-browser.cjs').settle(frame);
+    assert.equal(await frame.locator('#studio-paging').isVisible(),false);
+    assert.equal(await frame.locator('#notice').isVisible(),false);
+    assert.equal(await frame.locator('#studio-topic').inputValue(),'Mein Entwurf nach der Anmeldung');
+  }
   assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
@@ -59,18 +443,28 @@ for(const client of ['k3','stapp'])for(const sizing of ['normal','stepped','igno
   }));
   const sizes=()=>lab.hub.trace.filter(e=>e.kind==='hostSize'&&e.mode==='Overlay'&&e.method==='setSize').length;
   const sizeCount=sizes();
+  await frame.evaluate(()=>{
+    window.__wishPagerFrames=[];
+    window.__wishPagerObserver=new MutationObserver(()=>{
+      const pager=document.getElementById('studio-paging');
+      if(pager&&!pager.hidden)__wishPagerFrames.push(pager.textContent);
+    });
+    __wishPagerObserver.observe(document.getElementById('studio-panel'),{subtree:true,attributes:true,childList:true,characterData:true});
+  });
   await frame.locator('#toggle-wishes').click();
   await frame.waitForFunction(()=>document.getElementById('toggle-wishes').getAttribute('aria-checked')==='true');
   await frame.waitForTimeout(200);
   await radio.locator('#open-wishes:not([disabled])').waitFor();
-  assert.deepEqual(await radioButtons(),disabledButtons,'Serverbestätigte Freigabe erhält Taste, Symbol und Wunschbox-Beschriftung');
+  assert.equal(disabledButtons[1][0].width,0,'Die gesperrte Wunschbox reserviert keinen Platz');
+  assert.equal(await radio.locator('#open-wishes').isVisible(),true,'Serverbestätigte Freigabe blendet den Button ein');
+  assert.ok((await radioButtons())[1][0].width>=44,'Die eingeblendete Wunschbox bleibt bedienbar');
   const geometry=await frame.evaluate(()=>({height:innerHeight,pager:!document.getElementById('studio-paging').hidden,
     area:[document.getElementById('studio-setup').clientHeight,document.getElementById('studio-setup').scrollHeight],
-    parts:[...document.querySelectorAll('#studio-setup > .studio-part')].map(n=>({hidden:n.hidden,height:n.getBoundingClientRect().height})),
+    parts:[...document.querySelectorAll('#studio-setup > .studio-section')].map(n=>({hidden:n.hidden,height:n.getBoundingClientRect().height})),
     notice:document.getElementById('notice').textContent}));
   assert.equal(geometry.pager,false,'Feedback darf keine zweite Seite erzeugen: '+JSON.stringify(geometry));
   assert.equal(await frame.locator('#studio-topic').isVisible(),true);
-  assert.equal(await frame.locator('#on-air').isVisible(),true);
+  assert.equal(await frame.locator('#on-air').isVisible(),false);
   assert.match(await frame.locator('#studio-wish-state').textContent(),/offen/);
   assert.equal(await frame.locator('#studio-wish-state').getAttribute('aria-live'),'polite');
   assert.equal(await frame.locator('#notice').isVisible(),false);
@@ -87,13 +481,30 @@ for(const client of ['k3','stapp'])for(const sizing of ['normal','stepped','igno
   assert.deepEqual(await radioButtons(),disabledButtons,'Serverbestätigtes erneutes Sperren erhält dieselbe Appleistengeometrie');
   assert.match(await frame.locator('#studio-wish-state').textContent(),/geschlossen/);
   assert.equal(await frame.locator('#studio-paging').isVisible(),false);
+  assert.deepEqual(await frame.evaluate(()=>{__wishPagerObserver.disconnect();return __wishPagerFrames;}),[],'Auch zwischen den Zustandsereignissen erscheint keine zweite Seite');
+  if(sizing==='normal'){
+    lab.hub.faults.failPersistence=true;
+    await frame.locator('#toggle-wishes').click();await frame.locator('#studio-wish-state.error').waitFor();
+    assert.equal(await frame.locator('#toggle-wishes').getAttribute('aria-checked'),'false','Fehlgeschlagene Speicherung öffnet die Wunschbox nicht');
+    assert.equal(await frame.locator('#notice').isVisible(),false,'Fehler bleibt direkt beim Wunschboxschalter');
+    lab.hub.faults.failPersistence=false;lab.hub.faults.clientDelayMs=250;
+    await frame.locator('#toggle-wishes').click();
+    assert.equal(await frame.locator('#toggle-wishes').getAttribute('aria-busy'),'true');
+    assert.equal(await frame.locator('#toggle-wishes').getAttribute('aria-checked'),'false');
+    await frame.waitForFunction(()=>document.getElementById('toggle-wishes').getAttribute('aria-checked')==='true');
+    await frame.waitForFunction(()=>document.getElementById('studio-paging').hidden);
+    assert.equal(await frame.locator('#studio-wish-state.error').count(),0);
+    assert.equal(await frame.locator('#toggle-wishes').evaluate(n=>document.activeElement===n),true);
+    assert.equal(await frame.locator('#studio-topic').inputValue(),'Mein ungespeichertes Thema');
+    lab.hub.faults.clientDelayMs=0;
+  }
   assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===window.__wishToggleAudio&&!__wishToggleAudio.paused),true);
   assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
 for (const client of ['k3', 'stapp']) test('/settopic in '+client+' übernimmt Chat-KCode und erhält laufendes Audio', async t => {
   const lab = await setup(t, { provider: 'online' }), owner = await lab.join('Otterchen', client, 1280, false);
-  lab.hub.runtime.command('Otterchen', 'vorhang', 'öffnen');
+
   await owner.radio.locator('#play-button:not([disabled])').click();
   await owner.radio.waitForFunction(() => document.getElementById('radio-audio').currentTime > .1);
   await owner.radio.evaluate(() => {
@@ -119,8 +530,11 @@ for (const client of ['k3', 'stapp']) test('/settopic in '+client+' übernimmt C
   await command('--buttons');
   await assertEventually(() => lab.hub.runtime.channelTopic.includes('°>{button}Lieblings-MyChannel||call|/edit setlmc|color|'));
   const serverTopic = lab.hub.runtime.channelTopic;
+  assert.ok(serverTopic.includes('guter Laune!°#r°°#r°°>CENTER<°°>{button}'));
   assert.ok(serverTopic.includes('°>{button}Lieblings-MyChannel||call|/edit setlmc|color|'));
-  assert.ok(serverTopic.includes('°>{button}Readme setzen||call|/readme Ich höre Radio MischWerk.|color|'));
+  assert.ok(serverTopic.includes('°>{button}Homepage||enabled|0|color|'));
+  assert.doesNotMatch(serverTopic,/Readme setzen|\/readme\b/);
+  assert.doesNotMatch(serverTopic.match(/°>\{button\}Homepage\|[^°]*<°/)[0],/\|call\|/);
   assert.ok(serverTopic.includes('°>{button}Channelinfo||call|/info|color|'));
   assert.equal(lab.hub.trace.filter(e => e.kind === 'channelTopic').length, 2);
   await command('--pruefen');
@@ -140,7 +554,7 @@ for (const client of ['k3', 'stapp']) test('/settopic in '+client+' übernimmt C
 for (const client of ['k3', 'stapp']) {
   test('Dauerhafte Wünsche in '+client+' erhalten Entwurf bei Speicherfehler, Audio beim Speichern und Queue beim Neustart', async t => {
     const lab = await setup(t, { provider: 'online' }), { page, radio } = await lab.join('Otterchen', client, 1280, false);
-    await radio.evaluate(() => Client.executeSlashCommand('/vorhang öffnen'));
+
     await radio.locator('#play-button:not([disabled])').click();
     await radio.waitForFunction(() => document.getElementById('radio-audio').currentTime > .1);
     await radio.evaluate(() => {
@@ -183,67 +597,25 @@ for (const client of ['k3', 'stapp']) {
   });
 }
 async function openRadioAction(radio,button) {
-  if(button==='team-tab') { assert.equal(await radio.locator('#team-tab').count(),0); await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung')); }
+  if(button==='team-tab') { assert.equal(await radio.locator('#team-tab').count(),0); await radio.evaluate(()=>Client.executeSlashCommand('/mw admin')); }
   else { await radio.locator('#'+button+':not([disabled])').click(); }
 }
 
-async function openTicker(frame) {
-  await frame.locator('#studio-ticker-tab').click();
-  await frame.locator('#ticker-text').waitFor();
-}
 
-for(const client of ['k3','stapp'])test('Lauftextformular in '+client+' passt ohne Scrollbereich und hält alle Aktionen über Bereichsseiten erreichbar',async t=>{
- const lab=await setup(t,{hostSizing:'ignored'}),{page,radio}=await lab.join('Otterchen',client,320,false);
- await page.setViewportSize({width:1800,height:1200});
- await radio.locator('#studio-tab').click();let studio=await overlayView(page,'studio');await openTicker(studio);
- async function fits(){
-  const result=await studio.evaluate(()=>{
-   const panel=document.getElementById('studio-ticker-panel'),body=document.getElementById('ticker-body')||panel;
-   const controls=[...panel.querySelectorAll('textarea,select,input,button')].filter(n=>n.getClientRects().length).map(n=>{
-    const r=n.getBoundingClientRect();return {id:n.id,top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height,hit:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button,input,textarea,select')===n};
-   });
-   return {width:innerWidth,height:innerHeight,panel:panel.scrollHeight-panel.clientHeight,body:body.scrollHeight-body.clientHeight,overflow:getComputedStyle(panel).overflowY,document:document.documentElement.scrollHeight-innerHeight,controls};
-  });
-  assert.ok(result.panel<=1&&result.body<=1&&result.document<=1,'Inhalt passt ohne versteckten Überlauf: '+JSON.stringify(result));
-  assert.equal(result.overflow,'hidden');
-  assert.ok(result.controls.every(n=>n.top>=0&&n.bottom<=result.height+1&&n.left>=0&&n.right<=result.width+1&&n.hit),'Alle sichtbaren Felder sind erreichbar: '+JSON.stringify(result));
- }
- await fits();
- await studio.locator('#ticker-text').fill('Neue Infos für Radio MischWerk.');
- if(client==='k3')await page.locator('#overlays iframe').screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/moderation/moderation-lauftext-320.png')});
- const text='Vollständiger Lauftext mit Umlauten und Musik 🎵. '.repeat(8).slice(0,300);
- await studio.locator('#ticker-text').fill(text);assert.equal(await studio.locator('#ticker-count').textContent(),'300 / 300');await fits();
- assert.equal(await studio.locator('#ticker-paging').isVisible(),false,'Im normalen kompakten Overlay ist kein Bereichswechsel nötig');
- await page.locator('#overlays .app-window').evaluate(node=>{node.style.height='360px';});await studio.waitForFunction(()=>innerHeight===360);
- await studio.waitForFunction(()=>!document.getElementById('ticker-paging').hidden);
- await studio.locator('#ticker-text').focus();await studio.locator('#ticker-text').press('Tab');await studio.locator('#ticker-paging [data-part-next]').press('Enter');await studio.locator('#ticker-speed').waitFor();await fits();
- for(const id of ['ticker-text','ticker-speed','ticker-direction','ticker-enabled','ticker-save','ticker-reset']){await revealStudio(studio,'#'+id,'ticker');await fits();}
- await studio.locator('#ticker-reset').click();await studio.locator('#ticker-text').waitFor();
- assert.equal(await studio.locator('#ticker-text').evaluate(n=>n===document.activeElement),true,'Verwerfen kehrt zum Textfeld zurück');
- assert.equal(await studio.locator('#ticker-text').inputValue(),'');await fits();
- await studio.locator('#ticker-text').fill(text);await revealStudio(studio,'#ticker-enabled','ticker');await studio.locator('#ticker-enabled').check();
- await revealStudio(studio,'#ticker-save','ticker');lab.hub.faults.failPersistence=true;await studio.locator('#ticker-save').click();
- await studio.locator('#ticker-feedback.error').waitFor();await fits();lab.hub.faults.failPersistence=false;
- await studio.locator('#ticker-save').click();await studio.locator('#ticker-feedback').filter({hasText:'Lauftext gespeichert'}).waitFor();await fits();
- await revealStudio(studio,'#ticker-text','ticker');assert.equal(await studio.locator('#ticker-text').inputValue(),text.trim());
- assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
-});
+
+
 
 for(const client of ['k3','stapp']) {
-  test('Lauftext in '+client+' wird im Moderationsmenü für alle gespeichert und erhält laufendes Audio',async t=>{
+  test('Lauftext in '+client+' wird mit /lauftext für alle gespeichert und erhält laufendes Audio',async t=>{
     const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client,1280,false);
-    await owner.radio.evaluate(()=>Client.executeSlashCommand('/vorhang öffnen'));
+
     await owner.radio.locator('#play-button:not([disabled])').click();
     await owner.radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
     await owner.radio.evaluate(()=>{window.__tickerAudio=document.getElementById('radio-audio');window.__tickerLoads=0;__tickerAudio.addEventListener('loadstart',()=>__tickerLoads++);});
     const originalBar=await owner.radio.evaluate(()=>['radio-panel','play-button','radio-metadata','open-schedule','open-wishes','studio-tab'].map(id=>({id,...document.getElementById(id).getBoundingClientRect().toJSON()})));
     const originalGlowSpace=await owner.radio.evaluate(()=>innerHeight-document.querySelector('.radio-program-face').getBoundingClientRect().bottom);
     await owner.radio.locator('#studio-tab').click();const studio=await overlayView(owner.page,'studio');
-    await openTicker(studio);
-    await studio.locator('#ticker-text').fill('Du hörst Radio MischWerk. Dein Mix aus Musik und guter Laune. Bei geöffneter Wunschbox ist Platz für deinen Lieblingssong. Viel Spaß beim Zuhören! +++ '.repeat(3).slice(0,300));
-    await studio.locator('#ticker-speed').selectOption('32');await studio.locator('#ticker-enabled').check();
-    const checkbox=await studio.locator('#ticker-enabled').boundingBox();assert.ok(checkbox.width<=22&&checkbox.height<=22,'Kompakter Schalter innerhalb des 44-px-Labels');
-    await studio.locator('#ticker-save').click();await studio.locator('#ticker-feedback').filter({hasText:'Lauftext gespeichert.'}).waitFor();
+    lab.hub.runtime.command('Otterchen','lauftext','Du hörst Radio MischWerk. Dein Mix aus Musik und guter Laune.');
     await owner.radio.locator('#radio-ticker').waitFor();
     await owner.radio.evaluate(()=>document.fonts.ready);
     const face=await owner.radio.locator('#radio-ticker-track > span').first().evaluate(n=>({
@@ -282,8 +654,6 @@ for(const client of ['k3','stapp']) {
     await owner.page.emulateMedia({reducedMotion:'no-preference'});
     if(client==='k3') {
       await owner.page.setViewportSize({width:1800,height:1600});
-      await studio.waitForTimeout(250);
-      await studio.waitForFunction(()=>document.getElementById('ticker-save').getBoundingClientRect().bottom<=innerHeight&&document.getElementById('studio-programme-tabs').getBoundingClientRect().top>=0);
       const header=owner.page.locator('#headerbars iframe');
       await header.scrollIntoViewIfNeeded();
       await owner.page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -295,8 +665,6 @@ for(const client of ['k3','stapp']) {
         const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','radio');fs.mkdirSync(folder,{recursive:true});
         await owner.radio.locator('#radio-ticker').screenshot({path:path.join(folder,'Lauftext-Begrenzung.png'),animations:'disabled'});
       }
-      await owner.page.locator('#overlays iframe').scrollIntoViewIfNeeded();
-      await owner.page.locator('#overlays iframe').screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/moderation/moderation-lauftext.png'),animations:'disabled'});
     }
     for(const width of [320,390,780,1280,2290,3840]){
       await owner.page.locator('#width').fill(String(width));await owner.page.locator('#width').dispatchEvent('change');
@@ -351,55 +719,24 @@ for(const client of ['k3','stapp']) {
     assert.equal(await tickerPause.locator('.radio-ticker-symbol-play').isVisible(),false);
     assert.equal(await listener.radio.locator('#radio-ticker-track').evaluate(n=>getComputedStyle(n).animationPlayState),'running');
     const literal='<img src=x onerror=alert(1)> Radio MischWerk';
-    await studio.locator('#ticker-text').fill(literal);await studio.locator('#ticker-speed').selectOption('72');await studio.locator('#ticker-direction').selectOption('right');
-    await studio.locator('#ticker-save').click();await listener.radio.waitForFunction(text=>document.getElementById('radio-ticker-readable').textContent===text,literal);
+    lab.hub.runtime.command('Otterchen','lauftext',literal);await listener.radio.waitForFunction(text=>document.getElementById('radio-ticker-readable').textContent===text,literal);
     assert.equal(await listener.radio.locator('#radio-ticker img').count(),0);
-    assert.equal(await listener.radio.locator('#radio-ticker-track').evaluate(n=>getComputedStyle(n).animationDirection),'reverse');
+    assert.equal(await listener.radio.locator('#radio-ticker-track').evaluate(n=>getComputedStyle(n).animationDirection),'normal');
     assert.equal(await owner.radio.evaluate(()=>__tickerAudio===document.getElementById('radio-audio')&&!__tickerAudio.paused&&__tickerLoads===0),true);
-    await studio.locator('#ticker-enabled').uncheck();await studio.locator('#ticker-save').click();
+    lab.hub.runtime.command('Otterchen','lauftext','--aus');
     await listener.radio.locator('#radio-ticker').waitFor({state:'hidden'});await owner.radio.locator('#radio-ticker').waitFor({state:'hidden'});
     assert.equal(await owner.radio.locator('#radio-deck').evaluate(n=>getComputedStyle(n,'::before').content),'none');
     assert.notEqual(await owner.radio.locator('.radio-program-face').evaluate(n=>getComputedStyle(n).boxShadow),'none','Ohne Lauftext bleibt der ursprüngliche Halo erhalten');
     assert.equal(await owner.radio.locator('.radio-program-face').evaluate(n=>getComputedStyle(n).borderBottomLeftRadius),'24px','Ohne Lauftext wieder ursprüngliche Rundungen');
-    assert.equal(await studio.locator('#ticker-text').inputValue(),literal);
+    assert.equal(lab.hub.runtime.persistence.api().getObject('mischwerk.state.v1').ticker.text,literal);
     assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.hub.runtime.errors,[]);assert.deepEqual(lab.external,[]);
   });
-  test('Lauftextentwurf in '+client+' erhält Konflikte, Speicherfehler und Schließen; Rechteverlust sperrt ihn',async t=>{
-    const lab=await setup(t),owner=await lab.join('Otterchen',client,1280,false);
-    await owner.radio.evaluate(()=>Client.executeSlashCommand('/vorhang öffnen'));
-    const runtime=lab.hub.runtime,header=[...runtime.contents.sessions.keys()].find(id=>runtime.contents.describe(id).nick==='Otterchen');
-    runtime.event('Otterchen',header,'mw:addRadioModerator',{nick:'DJ-Test'});
-    const dj=await lab.join('DJ-Test',client,1280);
-    await owner.radio.locator('#studio-tab').click();const first=await overlayView(owner.page,'studio');
-    await dj.radio.locator('#studio-tab').click();const second=await overlayView(dj.page,'studio');
-    await openTicker(first);await openTicker(second);
-    await first.evaluate(()=>{window.__tickerDrafts=0;const original=Client.sendEvent;Client.sendEvent=function(type,data){if(type==='mw:overlay.draft'&&data.state?.tickerDraft)__tickerDrafts++;return original.call(this,type,data);};});
-    await first.locator('#ticker-text').pressSequentially('Mein ungespeicherter Entwurf',{delay:10});
-    assert.equal(await first.evaluate(()=>__tickerDrafts),0,'Eingaben werden gebündelt statt pro Zeichen gesendet');
-    await first.waitForTimeout(450);assert.equal(await first.evaluate(()=>__tickerDrafts),1,'Ein Entwurfsabgleich nach der Eingabepause');
-    await second.locator('#ticker-text').fill('Bestätigter Text des anderen DJs');await second.locator('#ticker-enabled').check();await second.locator('#ticker-save').click();
-    await first.locator('#ticker-reload').waitFor();assert.equal(await first.locator('#ticker-text').inputValue(),'Mein ungespeicherter Entwurf');
-    await first.locator('#ticker-save').click();await first.locator('#ticker-feedback.error').waitFor();
-    assert.equal(await first.locator('#ticker-text').inputValue(),'Mein ungespeicherter Entwurf');
-    await first.locator('#ticker-reload').click();assert.equal(await first.locator('#ticker-text').inputValue(),'Bestätigter Text des anderen DJs');
-    await first.locator('#ticker-text').fill('Bleibt bis zur Bestätigung privat');
-    const write=runtime.persistence.write;runtime.persistence.write=()=>{throw Error('Synthetischer Speicherfehler');};
-    await first.locator('#ticker-save').click();await first.locator('#ticker-feedback.error').waitFor();runtime.persistence.write=write;
-    assert.equal(await first.locator('#ticker-text').inputValue(),'Bleibt bis zur Bestätigung privat');
-    assert.equal(await owner.radio.locator('#radio-ticker-readable').textContent(),'Bestätigter Text des anderen DJs');
-    await first.locator('#close-overlay').click();await owner.page.locator('#overlays iframe').waitFor({state:'detached'});
-    await owner.radio.locator('#studio-tab').click();const reopened=await overlayView(owner.page,'studio');await openTicker(reopened);
-    assert.equal(await reopened.locator('#ticker-text').inputValue(),'Bleibt bis zur Bestätigung privat');
-    runtime.event('Otterchen',header,'mw:removeRadioModerator',{userId:runtime.users.find('DJ-Test').state.id});
-    await dj.radio.locator('#studio-tab').waitFor({state:'hidden'});
-    assert.ok(!await second.locator('#ticker-save').isEnabled());
-    assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
-  });
+
   test('Lauftext in '+client+' passt bei langen Texten und reduziert Bewegung; begrenzte Hosthöhe bleibt erreichbar',async t=>{
     const lab=await setup(t,{hostSizing:'ignored'}),owner=await lab.join('Otterchen',client,320,false);
-    await owner.radio.locator('#studio-tab').click();const studio=await overlayView(owner.page,'studio');await openTicker(studio);
+
     const text='UngetrennterLauftext'.repeat(16).slice(0,300);
-    await studio.locator('#ticker-text').fill(text);await studio.locator('#ticker-enabled').check();await studio.locator('#ticker-save').click();
+    lab.hub.runtime.command('Otterchen','lauftext',text);
     await owner.radio.locator('#radio-ticker').waitFor();
     for(const width of [320,390,780,1280,3840]){
       await owner.page.locator('#width').fill(String(width));await owner.page.locator('#width').dispatchEvent('change');
@@ -508,11 +845,11 @@ for(const client of ['k3','stapp']) {
 
 for(const client of ['k3','stapp'])for(const initialWidth of [320,780])test('Studio ohne Verlängerung in '+client+' bei '+initialWidth+' px bleibt nach 48 Stunden aktiv und erhält Audio sowie erreichbare Kernaktionen',async t=>{
  const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,initialWidth);
- await radio.evaluate(()=>Client.executeSlashCommand('/vorhang öffnen'));
+
  await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
  await radio.evaluate(()=>{window.__studioAudio=document.getElementById('radio-audio');__studioAudio.loop=true;window.__studioLoads=0;__studioAudio.addEventListener('loadstart',()=>__studioLoads++);});
- await radio.locator('#studio-tab:not([disabled])').click();let studio=await overlayView(page,'studio');
- assert.equal(await studio.locator('#on-air').textContent(),'Anmelden');await studio.locator('#on-air').click();
+ await radio.locator('#studio-tab:not([disabled])').click();let studio=await overlayView(page,'studio',false);
+ assert.equal(await studio.locator('#on-air').textContent(),'Anmelden');await require('../support/studio-browser.cjs').login(studio);
  await studio.locator('#off-air:not([disabled])').waitFor();const before=lab.hub.runtime.persistence.api().getObject('mischwerk.state.v1').moderator;
  assert.equal('expiresAt' in before,false);assert.equal('openEnd' in before,false);
  for(const width of [initialWidth]){
@@ -527,7 +864,7 @@ for(const client of ['k3','stapp'])for(const initialWidth of [320,780])test('Stu
  }
  lab.hub.runtime.clock.advance(48*3600000);await studio.evaluate(()=>Client.sendEvent('mw:refresh',{}));
  await studio.locator('#off-air:not([disabled])').waitFor();assert.deepEqual(lab.hub.runtime.persistence.api().getObject('mischwerk.state.v1').moderator,before);
- await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));await overlayView(page,'team');
+ await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));await overlayView(page,'team');
  await radio.locator('#studio-tab').click();studio=await overlayView(page,'studio');assert.equal(await studio.locator('#on-air').isVisible(),false);
  await page.locator('#overlays .app-window').screenshot({path:require('node:path').join(require('node:os').tmpdir(),'MischWerk-Build269-'+client+'-'+initialWidth+'.png')});
  await studio.locator('#off-air').click();await studio.locator('#on-air:not([disabled])').waitFor();
@@ -582,23 +919,77 @@ for (const client of ['k3','stapp']) test('Alle Overlaylogos sind in '+client+' 
 });
 
 
+for (const client of ['k3','stapp']) test('Neue Verwaltung in '+client+' zeigt Team und einzelne Bot-Texte ohne unnötiges Scrollen', async t => {
+  const lab=await setup(t,{},false,{deviceScaleFactor:client==='stapp'?2:1}),{page,radio}=await lab.join('Otterchen',client);
+  await page.setViewportSize({width:1800,height:1400});
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const team=await overlayView(page,'team');
+  await team.locator('#radio-moderator-nick:not([disabled])').fill('Polaroid');await team.locator('#add-radio-moderator').click();
+  await team.locator('.team-member').filter({hasText:'Polaroid'}).waitFor();
+  for(const width of [560,320]) {
+    await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await team.waitForTimeout(100);
+    await team.locator('#team-members-tab').click();
+    const metrics=await team.evaluate(()=>{
+      const head=document.querySelector('.dialog-header'),title=document.getElementById('dialog-title'),pane=document.getElementById('team-members');
+      return {font:getComputedStyle(title).fontFamily,bg:getComputedStyle(head).backgroundColor,decoration:getComputedStyle(head,'::before').content,
+        scroll:pane.scrollHeight-pane.clientHeight,outer:document.documentElement.scrollHeight-innerHeight,width:document.documentElement.scrollWidth-innerWidth};
+    });
+    assert.match(metrics.font,/Outfit/);assert.equal(metrics.bg,'rgb(23, 25, 28)');assert.ok(['none','normal','""'].includes(metrics.decoration));
+    assert.ok(metrics.scroll<=1&&metrics.outer<=1&&metrics.width<=1,JSON.stringify(metrics));
+    assert.equal(await team.locator('#team-add-heading').textContent(),'Mitglied hinzufügen');
+    await team.waitForTimeout(180);
+    if(process.env.MISCHWERK_ADMIN_DESIGN_CAPTURE&&client==='k3')await page.locator('#overlays iframe').screenshot({path:path.resolve('docs/pruefung/oberflaeche/verwaltung/verwaltung-'+width+'.png')});
+    await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-current:not([disabled])').waitFor();
+    const count=await team.locator('#channel-texts-fields textarea').count();
+    for(let i=count;i<6;i++)await team.locator('#channel-texts-add').click();
+    for(let i=0;i<6;i++) {await team.locator('#channel-texts-current').selectOption(String(i));await team.locator('#channel-texts-fields textarea').nth(i).fill('Kurze Nachricht '+(i+1));}
+    await team.locator('#channel-texts-current').selectOption('0');
+    assert.equal(await team.locator('#channel-texts-fields textarea:visible').count(),1);
+    assert.ok(await team.locator('#channel-texts-scroll').evaluate(n=>n.scrollHeight<=n.clientHeight+1),'Kurze Texte benötigen keine Scrollleiste');
+    for(const selector of ['#channel-texts-current','#channel-texts-add','#channel-texts-save','#channel-texts-refresh','#close-overlay']) {
+      assert.ok(await team.locator(selector).evaluate(n=>{const r=n.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return r.width>=44&&r.height>=44&&r.top>=0&&r.bottom<=innerHeight&&hit&&hit.closest('button,select')===n;}),selector);
+    }
+    await team.waitForTimeout(180);
+    if(process.env.MISCHWERK_ADMIN_DESIGN_CAPTURE&&client==='k3')await page.locator('#overlays iframe').screenshot({path:path.resolve('docs/pruefung/oberflaeche/verwaltung/verwaltung-bottexte-'+width+'.png')});
+  }
+  await team.locator('#channel-texts-save').click();await team.locator('#channel-texts-feedback').filter({hasText:'gespeichert'}).waitFor();
+  assert.deepEqual(lab.hub.runtime.persistence.api().getObject('mischwerk.channelTexts.v1').texts,Array.from({length:6},(_,i)=>'Kurze Nachricht '+(i+1)));
+  await team.locator('#channel-texts-current').selectOption('4');await team.locator('#channel-texts-fields textarea').nth(4).fill('Entwurf im fünften Text');
+  await team.locator('#channel-texts-refresh').click();await team.waitForFunction(()=>document.getElementById('channel-texts-refresh').getAttribute('aria-disabled')==='false');
+  assert.equal(await team.locator('#channel-texts-current').inputValue(),'4');
+  await team.locator('#close-overlay').click();await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));
+  const reopened=await overlayView(page,'team');
+  assert.equal(await reopened.locator('#channel-texts-current').inputValue(),'4');
+  assert.equal(await reopened.locator('#channel-texts-fields textarea:visible').inputValue(),'Entwurf im fünften Text');
+  await reopened.locator('.channel-texts-remove:visible').click();
+  assert.equal(await reopened.locator('#channel-texts-current').inputValue(),'4');
+  assert.equal(await reopened.locator('#channel-texts-fields textarea:visible').inputValue(),'Kurze Nachricht 6');
+  await reopened.locator('#channel-texts-save').click();await reopened.locator('#channel-texts-feedback').filter({hasText:'gespeichert'}).waitFor();
+  assert.deepEqual(lab.hub.runtime.persistence.api().getObject('mischwerk.channelTexts.v1').texts,['Kurze Nachricht 1','Kurze Nachricht 2','Kurze Nachricht 3','Kurze Nachricht 4','Kurze Nachricht 6']);
+  await reopened.locator('#channel-texts-current').selectOption('3');await reopened.locator('#close-overlay').click();
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const clean=await overlayView(page,'team');
+  await clean.locator('#channel-texts-current:not([disabled])').waitFor();
+  assert.equal(await clean.locator('#channel-texts-current').inputValue(),'3','Auch ohne ungespeicherte Änderung bleibt die Textauswahl erhalten');
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
 for (const client of ['k3','stapp']) test('Bot-Texte scrollen in '+client+' ausschließlich im festen Inhaltsbereich', async t => {
   const lab=await setup(t,{},false,{deviceScaleFactor:client==='stapp'?2:1}),{page,radio}=await lab.join('Otterchen',client);
   await page.setViewportSize({width:1800,height:1400});
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const team=await overlayView(page,'team');
   await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
   assert.equal(await team.locator('#channel-texts-scroll').count(),1,'Genau eine eigene Inhalts-Scrollfläche');
   const pane=team.locator('#channel-texts-scroll');
   for(let i=0;i<4;i++)await team.locator('#channel-texts-add').click();
   const long=Array.from({length:16},(_,i)=>'Nachricht Zeile '+(i+1)).join('\n');
-  for(const field of await team.locator('#channel-texts-fields textarea').all())await field.fill(long);
+  for(let i=0;i<6;i++){await team.locator('#channel-texts-current').selectOption(String(i));await team.locator('#channel-texts-fields textarea').nth(i).fill(long);}
+  await team.locator('#channel-texts-current').selectOption('0');
   const fixed=()=>team.evaluate(()=>['.dialog-header','.team-tabs','.channel-texts-actions'].map(selector=>{
     const r=document.querySelector(selector).getBoundingClientRect();return [r.x,r.y,r.width,r.height];
   }));
   for(const width of [560,390,320]) {
     await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await team.waitForTimeout(100);
     assert.ok(await team.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1&&document.documentElement.scrollWidth<=innerWidth+1),'Dokument bewegt sich nicht');
-    const fields=await team.locator('#channel-texts-fields textarea').evaluateAll(nodes=>nodes.map(n=>({height:n.clientHeight,content:n.scrollHeight,overflow:getComputedStyle(n).overflowY,font:parseFloat(getComputedStyle(n).fontSize)})));
+    const fields=await team.locator('#channel-texts-fields textarea:visible').evaluateAll(nodes=>nodes.map(n=>({height:n.clientHeight,content:n.scrollHeight,overflow:getComputedStyle(n).overflowY,font:parseFloat(getComputedStyle(n).fontSize)})));
     assert.ok(fields.every(n=>n.height>=n.content-1&&n.overflow==='hidden'&&n.font>=16),JSON.stringify(fields));
     const field=team.locator('#channel-texts-fields textarea').first();await field.evaluate(n=>n.scrollIntoView({block:'start'}));
     const before=await fixed(),initial=await pane.evaluate(n=>n.scrollTop),box=await field.boundingBox(),clip=await pane.boundingBox();
@@ -640,22 +1031,22 @@ for (const client of ['k3','stapp']) test('Bot-Texte scrollen in '+client+' auss
 });
 
 for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' speichern, rotieren und erhalten Entwurf, Rechte und Audio', async t => {
-  const lab=await setup(t,{provider:'online'}), {page,radio}=await lab.join('Otterchen',client,1280);
-  const greetings=lab.hub.trace.filter(e=>e.kind==='public').map(e=>e.message);
+  const lab=await setup(t,{provider:'online'}), {page,radio}=await lab.join('Otterchen',client,1280,false);
+  const greetings=lab.hub.trace.filter(e=>e.kind==='public'&&e.message.includes('Willkommen')).map(e=>e.message);
   assert.equal(greetings.length,1);
-  assert.equal(greetings[0], "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Otterchen|/w Otterchen<°._°r° Viel Spaß beim Zuhören.");
+  assert.equal(greetings[0], "°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, °>Otterchen|/w Otterchen<°.§°r° Viel Spaß beim Zuhören.");
   await page.setViewportSize({width:1800,height:1400});
   await radio.locator('#play-button:not([disabled])').click();
   await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
   await radio.evaluate(()=>{window.__botTextsAudio=document.getElementById('radio-audio');});
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));let team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));let team=await overlayView(page,'team');
   assert.equal(await team.locator('#dialog-title').textContent(),'Verwaltung');
   await team.locator('#team-texts-tab').click();
   await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
   assert.equal(await team.locator('#channel-texts-enabled').isChecked(),false);
   assert.deepEqual(await team.locator('#channel-texts-interval option').allTextContents(),['20 Minuten','30 Minuten','40 Minuten','50 Minuten']);
-  await team.locator('#channel-texts-fields textarea').nth(0).fill('Erster Channeltext');
-  await team.locator('#channel-texts-fields textarea').nth(1).fill('Zweiter Channeltext');
+  await team.locator('#channel-texts-current').selectOption('0');await team.locator('#channel-texts-fields textarea').nth(0).fill('Erster Channeltext');
+  await team.locator('#channel-texts-current').selectOption('1');await team.locator('#channel-texts-fields textarea').nth(1).fill('Zweiter Channeltext');
   await team.locator('#channel-texts-interval').selectOption('30');
   await team.locator('#channel-texts-enabled').check();
   await team.locator('#channel-texts-save').click();
@@ -668,14 +1059,15 @@ for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' speichern, ro
   await team.locator('#channel-texts-enabled').uncheck();await team.locator('#channel-texts-save').click();
   await team.locator('#channel-texts-feedback').filter({hasText:'ausgeschaltet'}).waitFor();
   lab.hub.runtime.clock.advance(50*60000);assert.deepEqual(lab.hub.trace.filter(e=>e.kind==='public').map(e=>e.message),[...greetings,'Erster Channeltext','Zweiter Channeltext']);
-  await team.locator('#channel-texts-fields textarea').nth(0).fill('Mein ungespeicherter Bot-Text');
+  await team.locator('#channel-texts-current').selectOption('0');await team.locator('#channel-texts-fields textarea').nth(0).fill('Mein ungespeicherter Bot-Text');
   await team.locator('#channel-texts-refresh').click();
   await team.locator('#channel-texts-feedback').filter({hasText:'Aktualisiert'}).waitFor();
   assert.equal(await team.locator('#channel-texts-fields textarea').nth(0).inputValue(),'Mein ungespeicherter Bot-Text');
   await openRadioAction(radio,'open-wishes');await overlayView(page,'wishes');
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));team=await overlayView(page,'team');
   assert.equal(await team.locator('#team-texts-tab').getAttribute('aria-selected'),'true');
   assert.equal(await team.locator('#channel-texts-fields textarea').nth(0).inputValue(),'Mein ungespeicherter Bot-Text');
+  assert.equal(await team.locator('#channel-texts-current').inputValue(),'0');
   assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===window.__botTextsAudio&&!window.__botTextsAudio.paused),true);
   await team.locator('#team-members-tab').click();assert.equal(await team.locator('#radio-moderator-form').isVisible(),true);
   await team.locator('#team-members-tab').press('ArrowRight');assert.equal(await team.locator('#channel-texts-form').isVisible(),true);
@@ -690,13 +1082,49 @@ for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' speichern, ro
   assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
+for (const client of ['k3','stapp']) test('Bot-Texte übernehmen eigene Knuddels-Smileys in '+client+' und erhalten Kürzel, Entwurf und Audio', async t => {
+  const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,1280,false);
+  await radio.locator('#play-button:not([disabled])').click();
+  await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
+  await radio.evaluate(()=>{window.__smileyAudio=document.getElementById('radio-audio');});
+  const runtime=lab.hub.runtime, owner=runtime.users.find('Otterchen').user;
+  const code=':(nosmoking-happy-y):',image='°>sm_abo_24-03_nosmoking_yellow_happy...b.w_35.h_39.mx_1.pw_33.ph_39.gif<°';
+  runtime.invokeFunction(runtime.app.onPrivateMessage,[{getAuthor:()=>owner,getRawText:()=> 'smiley '+code,
+    getText:()=> client==='k3' ? '°r°smiley '+image.replace('<°','<>|/tb-show sid~smileyClick:21178<°')+'°r°' :
+      'smiley _'+image.replace('<°','|/tb-show sid~smileyClick:21178<°')+'_'}]);
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));let team=await overlayView(page,'team');
+  await team.locator('#team-texts-tab').click();
+  await team.locator('.channel-texts-help summary').click();await team.getByText('smiley DEIN-CODE',{exact:true}).waitFor();await team.locator('.channel-texts-help summary').click();
+  await team.locator('#channel-texts-current').selectOption('0');await team.locator('#channel-texts-fields textarea').nth(0).fill('Rauchen bitte vor der Tür. '+code);
+  await team.locator('#channel-texts-enabled').check();
+  await team.locator('#channel-texts-save').click();
+  await team.locator('#channel-texts-feedback').filter({hasText:'Erste Ausgabe in 20 Minuten'}).waitFor();
+  runtime.clock.advance(20*60000);
+  assert.equal(lab.hub.trace.filter(e=>e.kind==='public').at(-1).message,'Rauchen bitte vor der Tür. '+image);
+  assert.equal(await team.locator('#channel-texts-fields textarea').nth(0).inputValue(),'Rauchen bitte vor der Tür. '+code);
+  if(process.env.MISCHWERK_SMILEY_CAPTURE&&client==='k3') {
+    for(const width of [560,320]) {
+      await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');
+      await team.waitForTimeout(100);
+      await team.evaluate(()=>{document.getElementById('channel-texts-scroll').scrollTop=0;});
+      await page.locator('#overlays iframe').screenshot({path:path.resolve('docs/pruefung/oberflaeche/verwaltung/verwaltung-bottexte-'+width+'.png')});
+    }
+  }
+  await team.locator('#channel-texts-current').selectOption('0');await team.locator('#channel-texts-fields textarea').nth(0).fill('Mein Entwurf '+code);
+  await team.locator('#close-overlay').click();
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));team=await overlayView(page,'team');
+  assert.equal(await team.locator('#channel-texts-fields textarea').nth(0).inputValue(),'Mein Entwurf '+code);
+  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===window.__smileyAudio&&!window.__smileyAudio.paused),true);
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
 for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' bleiben bei 560 und 320 Pixeln erreichbar und behalten Fehlerentwürfe', async t => {
   const lab=await setup(t),{page,radio}=await lab.join('Otterchen',client,1280);
   await page.setViewportSize({width:1800,height:1400});
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const team=await overlayView(page,'team');
   await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
-  await team.locator('#channel-texts-fields textarea').nth(0).fill('Ein Text für unsere Hörerinnen und Hörer.');
-  await team.locator('#channel-texts-fields textarea').nth(1).fill('Deinen Musikwunsch kannst du in der Wunschbox abgeben.');
+  await team.locator('#channel-texts-current').selectOption('0');await team.locator('#channel-texts-fields textarea').nth(0).fill('Ein Text für unsere Hörerinnen und Hörer.');
+  await team.locator('#channel-texts-current').selectOption('1');await team.locator('#channel-texts-fields textarea').nth(1).fill('Deinen Musikwunsch kannst du in der Wunschbox abgeben.');
   lab.hub.faults.failPersistence=true;await team.locator('#channel-texts-save').click();
   await team.locator('#channel-texts-feedback').filter({hasText:'konnten nicht gespeichert'}).waitFor();
   assert.equal(await team.locator('#channel-texts-fields textarea').nth(0).inputValue(),'Ein Text für unsere Hörerinnen und Hörer.');
@@ -704,7 +1132,7 @@ for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' bleiben bei 5
   for(const width of [560,320]) {
     await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await team.waitForTimeout(100);
     assert.equal(await team.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
-    const metrics=await team.evaluate(()=>Array.from(document.querySelectorAll('#channel-texts-form textarea,#channel-texts-form select,#channel-texts-save')).map(n=>{
+    const metrics=await team.evaluate(()=>Array.from(document.querySelectorAll('#channel-texts-fields .channel-texts-entry:not([hidden]) textarea,#channel-texts-form select,#channel-texts-save')).map(n=>{
       const r=n.getBoundingClientRect();return {width:r.width,height:r.height,font:parseFloat(getComputedStyle(n).fontSize),button:n.tagName==='BUTTON'};
     }));
     assert.ok(metrics.every(m=>m.width>44&&m.height>=44&&m.font>=(m.button?14:16)),JSON.stringify(metrics));
@@ -720,7 +1148,7 @@ for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' bleiben bei 5
 
 for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' schützen ungespeicherte Eingaben bei einer neueren Serverrevision', async t => {
   const lab=await setup(t),{page,radio}=await lab.join('Otterchen',client);
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const team=await overlayView(page,'team');
   await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
   await team.locator('#channel-texts-fields textarea').first().fill('Mein noch nicht gespeicherter Entwurf');
   await team.evaluate(()=>Client.sendEvent('mw:channelTexts.save',{requestId:'other-owner-edit',view:'team',viewRevision:1,
@@ -744,7 +1172,7 @@ for (const client of ['k3','stapp']) test('Bot-Texte in '+client+' schützen ung
 
 test('Bot-Texte erhalten bei verlorener Speicherquittung die globale Hinweisbox und einen erreichbaren Wiederanlauf', async t => {
   const lab=await setup(t,{},true),{page,radio}=await lab.join('Otterchen','k3');
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const team=await overlayView(page,'team');
   await team.locator('#team-texts-tab').click();await team.locator('#channel-texts-enabled:not([disabled])').waitFor();
   await team.locator('#channel-texts-fields textarea').first().fill('Text mit verlorener Bestätigung');
   lab.hub.faults.dropServerType='mw:result';lab.hub.faults.dropServer=1;
@@ -784,9 +1212,7 @@ for(const client of ['k3','stapp'])for(const sizing of ['normal','stepped','igno
   assert.deepEqual(await outer(),initialOuter,'Overlay bleibt beim Eingeben am selben Ort und gleich groß');
   assert.deepEqual(await topicGeometry(),initialTopic,'Bedienelemente bleiben beim Eingeben unverändert');
   assert.equal(await frame.locator('#studio-topic').evaluate(n=>n===document.activeElement),true);
-  await frame.locator('#studio-history-tab').click();await frame.waitForTimeout(600);
-  assert.ok(await frame.evaluate(()=>innerHeight>0&&innerHeight<=580),'Historie bleibt vollständig innerhalb der anfänglich verfügbaren Höhe');
-  assert.doesNotMatch(await frame.locator('#history-panel').textContent(),/Senderzeit in deutscher Ortszeit|Ton und Titel können zeitversetzt/);
+  await frame.locator('#studio-queue-tab').click();await frame.waitForTimeout(200);
   await frame.locator('#studio-programme-tab').click();await frame.waitForTimeout(600);await revealStudio(frame,'#studio-topic');
   assert.equal(await frame.locator('#studio-topic').inputValue(),'Mein ungespeicherter Themenentwurf');
   await frame.waitForTimeout(500);const saveOuter=await outer(),saveTopic=await topicGeometry(),saveSizes=sizes().length;
@@ -799,47 +1225,9 @@ for(const client of ['k3','stapp'])for(const sizing of ['normal','stepped','igno
   assertAllowedOverlaySizes(lab);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
-for(const client of ['k3','stapp'])test('Moderationshistorie erhält in '+client+' native Studioentwürfe sowie Audio',async t=>{
-  const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client);
-  await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
-  await radio.evaluate(()=>{window.__historyAudio=document.getElementById('radio-audio');});
-  await radio.locator('#studio-tab:not([disabled])').click();const studio=await overlayView(page,'studio');
-  await studio.locator('#studio-topic').fill('Mein Studioentwurf');await studio.locator('#studio-topic').dispatchEvent('input');
-  await studio.locator('#studio-history-tab').click();await studio.locator('#history-list li span').filter({hasText:'Emulator · Lokaler Testtitel'}).waitFor();
-  await openRadioAction(radio,'open-wishes');await overlayView(page,'wishes');
-  await radio.locator('#studio-tab:not([disabled])').click();const back=await overlayView(page,'studio');
-  assert.equal(await back.locator('#history-panel').isVisible(),true);
-  await back.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});
-  await radio.locator('#studio-tab:not([disabled])').click();const reopened=await overlayView(page,'studio');
-  await reopened.locator('#history-list li span').filter({hasText:'Emulator · Lokaler Testtitel'}).waitFor();
-  assert.equal(await reopened.locator('#history-panel').isVisible(),true,'Moderationsreiter nach echtem Schließen wiederherstellen');
-  await reopened.locator('#studio-programme-tab').click();assert.equal(await reopened.locator('#studio-topic').inputValue(),'Mein Studioentwurf');
-  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===window.__historyAudio&&!window.__historyAudio.paused),true);
-  assert.equal(lab.hub.trace.filter(e=>e.kind==='contentShow'&&e.mode==='Overlay').length,4);
-  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
-});
 
-for(const client of ['k3','stapp'])test('Historienrechte werden in '+client+' serverseitig vergeben und beim Entzug auch im offenen Studio gelöscht',async t=>{
-  const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client);
-  lab.hub.runtime.command('Otterchen','vorhang','öffnen');
-  await owner.radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(owner.page,'team');
-  await team.locator('#radio-moderator-nick').fill('DJ-Test');await team.locator('#radio-moderator-form button[type=submit]').click();
-  await team.locator('#radio-moderator-list').filter({hasText:'DJ-Test'}).waitFor();
-  const dj=await lab.join('DJ-Test',client);await dj.radio.locator('#studio-tab:not([disabled])').click();
-  await dj.radio.locator('#play-button:not([disabled])').click();await dj.radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
-  await dj.radio.evaluate(()=>{window.__historyRoleAudio=document.getElementById('radio-audio');});
-  const studio=await overlayView(dj.page,'studio');await studio.locator('#studio-history-tab').click();await studio.locator('#history-list li').waitFor();
-  await team.locator('.team-member').filter({hasText:'DJ-Test'}).locator('button').click();
-  await team.locator('[data-confirm-removal]').click();await dj.radio.locator('#studio-tab').waitFor({state:'hidden'});
-  if(!studio.isDetached()){
-    await studio.locator('#history-panel').waitFor({state:'hidden'});assert.equal(await studio.locator('#history-list li').count(),0);
-    await studio.locator('#studio-history-tab').evaluate(n=>n.click());assert.equal(await studio.locator('#history-panel').isVisible(),false);
-  }
-  const listener=await lab.join('Testhoerer',client);
-  assert.equal(await listener.radio.locator('#open-schedule').isDisabled(),true);
-  assert.equal(await dj.radio.evaluate(()=>document.getElementById('radio-audio')===window.__historyRoleAudio&&!window.__historyRoleAudio.paused),true,'Rechteverlust der Historie unterbricht kein öffentliches Radioaudio');
-  assert.equal(await listener.radio.locator('#studio-history-tab').isVisible(),false);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
-});
+
+
 
 for(const client of ['k3','stapp'])test('Doppelte native Wunschöffnung in '+client+' bleibt einmalig und erhält Entwurf und Audio',async t=>{
  const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client);await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);lab.hub.faults.clientEventType='mw:openWishes';lab.hub.faults.duplicateNext=true;await radio.locator('#open-wishes:not([disabled])').click();let wishes=await overlayView(page,'wishes');await wishes.locator('#wish-text:not([disabled])').fill('Nativer Entwurf');await page.waitForFunction(()=>EmulatorLab.trace.some(e=>e.kind==='clientEvent'&&e.eventType==='mw:wishes.sync'&&e.eventData.text==='Nativer Entwurf'));assert.equal(lab.hub.trace.filter(e=>e.kind==='contentShow'&&e.mode==='Overlay').length,1);lab.hub.faults.duplicateNext=true;const before=await page.locator('#overlays iframe').getAttribute('src');await radio.locator('#open-wishes:not([disabled])').click();await page.waitForFunction(old=>document.querySelector('#overlays iframe')?.getAttribute('src')!==old,before);wishes=await overlayView(page,'wishes');assert.equal(await wishes.locator('#wish-text').inputValue(),'Nativer Entwurf');assert.equal(lab.hub.trace.filter(e=>e.kind==='contentShow'&&e.mode==='Overlay').length,2);await wishes.locator('#close-wishes').click();await page.locator('#overlays iframe').waitFor({state:'detached'});assert.equal(await radio.evaluate(()=>!document.getElementById('radio-audio').paused),true);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
@@ -855,7 +1243,7 @@ for(const client of ['k3','stapp'])test('Wechsel während der ersten HTML-Ladeph
     await assertEventually(()=>typeof release==='function');
     assert.equal(await radio.locator('#team-tab').count(),0);
     lab.hub.faults.dropServer=1;lab.hub.faults.dropServerType='mw:overlay.prepare';
-    await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));
+    await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));
     await page.waitForFunction(()=>window.EmulatorLab.trace.some(e=>e.kind==='droppedServer'&&e.eventType==='mw:overlay.prepare'));
     release();const team=await overlayView(page,'team');
     await team.locator('#radio-moderator-nick:not([disabled])').fill('Unfertiger Entwurf');
@@ -863,7 +1251,7 @@ for(const client of ['k3','stapp'])test('Wechsel während der ersten HTML-Ladeph
     assert.equal(lab.hub.trace.filter(e=>e.kind==='contentShow'&&e.mode==='Overlay').length,2);
     assert.equal(lab.hub.trace.filter(e=>e.kind==='sessionEvent'&&e.eventType==='mw:overlay.prepare').length,2);
     await openRadioAction(radio,'open-wishes');await overlayView(page,'wishes');
-    await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const back=await overlayView(page,'team');
+    await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const back=await overlayView(page,'team');
     assert.equal(await back.locator('#radio-moderator-nick').inputValue(),'Unfertiger Entwurf');
     assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
   }finally{if(release)release();}
@@ -880,7 +1268,7 @@ for(const client of ['k3','stapp'])test('SDK-Ladeübergabe zeigt in '+client+' b
     const opening=lab.hub.trace.slice(from),handoff=opening.findIndex(e=>e.kind==='nativeReady');
     assert.equal(opening[handoff].visibleAtHandoff,true,kind+' vor Loader-Entfernung fertig');
     const sizing=opening.findIndex(e=>e.kind==='hostSize'&&e.mode==='Overlay'&&e.method==='setSize');
-    if(kind==='studio')assert.ok(sizing>=0&&sizing<handoff,'Kompakte Studiohöhe vor der SDK-Übergabe: '+JSON.stringify(opening.filter(e=>['nativeReady','hostSize','frameReady'].includes(e.kind))));else assert.equal(sizing,-1,kind+' behält sein Anfangsmaß');
+    if(kind!=='wishes')assert.equal(sizing,-1,kind+' behält sein Anfangsmaß');
     await frame.locator(kind==='wishes'?'#close-wishes':'#close-overlay').click();
     await page.locator('#overlays iframe').waitFor({state:'detached'});
   }
@@ -922,7 +1310,7 @@ for (const client of ['k3','stapp']) test('Aktive Ladeabdeckung verhindert in '+
     const surface=await frame.locator(kind==='wishes'?'.wish-drawer':'.dialog-shell').evaluate(n=>({
       color:getComputedStyle(n).backgroundColor,radius:parseFloat(getComputedStyle(n).borderTopLeftRadius)
     }));
-    assert.equal(surface.color,'rgb(20, 20, 20)');assert.ok(surface.radius>0,'Abgerundete Inhaltsfläche bleibt erhalten');
+    assert.equal(surface.color,'rgb(23, 25, 28)');assert.ok(surface.radius>0,'Abgerundete Inhaltsfläche bleibt erhalten');
     await assertOverlayCornerPixels(page);
     await page.locator('#width').fill('320');await page.locator('#width').dispatchEvent('change');await frame.waitForTimeout(100);
     await assertOverlayCornerPixels(page);
@@ -1019,47 +1407,31 @@ test('Native Wiederöffnung erzeugt neue Dokumente und erhält die reguläre SDK
  const lab=await setup(t),{page,radio}=await lab.join('Otterchen','stapp');await radio.locator('#studio-tab:not([disabled])').click();let studio=await overlayView(page,'studio');const first=await page.locator('#overlays iframe').getAttribute('src'),cache=await studio.evaluate(()=>Client.getCacheInvalidationId());await studio.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});await radio.locator('#studio-tab:not([disabled])').click();studio=await overlayView(page,'studio');assert.notEqual(await page.locator('#overlays iframe').getAttribute('src'),first);assert.equal(await studio.evaluate(()=>Client.getCacheInvalidationId()),cache);assert.equal(await studio.locator('link[rel=prefetch]').count(),0);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
-async function overlayView(page,kind) {
+async function overlayView(page,kind,authenticate=true) {
  const selector='#overlays iframe[title$=" · '+kind+'"]';
  for(let attempt=0;attempt<100;attempt++){
   const handle=await page.waitForSelector(selector),frame=await handle.contentFrame();
   if(!frame||frame.isDetached()){await page.waitForTimeout(20);continue;}
-  try{await frame.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));return frame;}
+  try{await frame.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));if(kind==='studio'&&authenticate)await require('../support/studio-browser.cjs').login(frame);return frame;}
   catch(error){if(!frame.isDetached())throw error;}
  }
  throw Error('Native Overlayseite wurde nicht bereit: '+kind);
 }
 
-test('Geschlossener Vorhang erhält beim Schließen eines Verwaltungs-Overlays ein sichtbares Fokusziel',async t=>{
-  const lab=await setup(t),owner=await lab.join('Otterchen','stapp');
-  await owner.radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(owner.page,'team');
-  await team.locator('#radio-moderator-nick').fill('DJ-Test');
-  await team.locator('#radio-moderator-form button[type=submit]').click();
-  await team.locator('#radio-moderator-list').filter({hasText:'DJ-Test'}).waitFor();
-  lab.hub.runtime.command('Otterchen','vorhang','öffnen');
-  const dj=await lab.join('DJ-Test','k3');
-  await dj.radio.locator('#studio-tab:not([disabled])').click();const studio=await overlayView(dj.page,'studio');
-  lab.hub.runtime.command('Otterchen','vorhang','schließen');
-  await dj.radio.locator('#curtain-ad').waitFor();
-  await studio.locator('#close-overlay').click();
-  await dj.page.locator('#overlays iframe').waitFor({state:'detached'});
-  assert.equal(await dj.radio.locator('#curtain-ad').evaluate(n=>document.activeElement===n),true);
-  assert.deepEqual(lab.errors,[]);
-});
 test('Verlorene Overlaybestätigung lässt den Entwurf stehen; Abbrechen und fehlende Fähigkeit erhalten die Ansicht',async t=>{
   const lab=await setup(t),{page,radio}=await lab.join('Otterchen','stapp',700);
   await radio.locator('#studio-tab').click();const studio=await overlayView(page,'studio');
   await studio.locator('#studio-topic:not([disabled])').fill('Diesen Entwurf behalten');
   lab.hub.faults.dropClient=1;lab.hub.faults.clientEventType='mw:overlay.ready';
   const at=lab.hub.trace.filter(e=>e.kind==='droppedClient').length;
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));
   await page.waitForFunction(n=>window.EmulatorLab.trace.filter(e=>e.kind==='droppedClient').length>n,at);
   assert.equal(await studio.locator('.dialog-content').evaluate(n=>n.inert),true);
   assert.equal(await studio.locator('#studio-topic').inputValue(),'Diesen Entwurf behalten');
   await studio.locator('#close-overlay').click();
   await studio.waitForFunction(()=>!document.querySelector('.dialog-content').inert);
   assert.equal(await page.locator('#overlays iframe').count(),1);
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const team=await overlayView(page,'team');
   await team.locator('#radio-moderator-nick:not([disabled])').fill('Bleibt auch ohne Fähigkeit');
   await page.locator('#no-overlay').check();
   await page.waitForFunction(()=>EmulatorLab.state.users.find(u=>u.nick==='Otterchen').capabilities.Overlay===false);
@@ -1083,12 +1455,12 @@ for(const client of ['k3','stapp'])test('Alle Channel-Overlays in '+client+' erh
   await studio.evaluate(()=>{window.__keptDocument=document;});
   const firstSource=await page.locator('#overlays iframe').getAttribute('src');
   await studio.locator('#studio-topic:not([disabled])').fill('Mein ungespeichertes Thema');
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));let team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));let team=await overlayView(page,'team');
   await team.locator('#radio-moderator-nick:not([disabled])').fill('Unfertiger Nick');
   await radio.locator('#studio-tab:not([disabled])').click();studio=await overlayView(page,'studio');
   assert.equal(await studio.locator('#studio-topic').inputValue(),'Mein ungespeichertes Thema');
   assert.equal(await studio.locator('#reset-topic').isVisible(),true);
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));team=await overlayView(page,'team');
   assert.equal(await team.locator('#radio-moderator-nick').inputValue(),'Unfertiger Nick');
   assert.notEqual(studio,team);
   assert.notEqual(await page.locator('#overlays iframe').getAttribute('src'),firstSource);
@@ -1126,53 +1498,92 @@ for(const client of ['k3','stapp'])test('Alle Channel-Overlays in '+client+' erh
 for(const client of ['k3','stapp'])test('Studioanmeldung zeigt in '+client+' eindeutig die Moderation; Abmeldung stellt MischWerk wieder her',async t=>{
  const lab=await setup(t,{provider:'online'});let live=false;
  await lab.context.route('**/fixture/metadata',r=>r.fulfill({json:{title:'Lokaler Testtitel',artist:'Emulator-Testsignal',live}}));
- const {page,radio}=await lab.join('Otterchen',client,1920);
+ const {page,radio}=await lab.join('Otterchen',client,1920,false);
  await radio.locator('#on-air-sign').filter({hasText:'MischWerk am Pult'}).waitFor();
- const neutral='rgb(180, 180, 176)',liveColor='rgb(255, 154, 143)';
+ const neutral='rgb(180, 180, 176)',goldColor='rgb(230, 199, 123)';
  assert.equal(await radio.locator('#on-air-sign').evaluate(n=>getComputedStyle(n).color),neutral);
  // Die vergrößerte Moderationsanzeige bleibt gegenüber dem Musiktitel nachgeordnet.
  assert.equal(await radio.locator('#on-air-sign').evaluate(n=>parseFloat(getComputedStyle(n).fontSize)),15,'Besser lesbare AutoDJ-Anzeige');
  await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
  await radio.evaluate(()=>{window.__moderatorNameAudio=document.getElementById('radio-audio');window.__moderatorAudioEvents=[];for(const type of ['playing','pause','emptied','error','ended'])window.__moderatorNameAudio.addEventListener(type,()=>window.__moderatorAudioEvents.push(type));});
  await radio.locator('#studio-tab:not([disabled])').click();let studio=await overlayView(page,'studio');
- await studio.locator('#on-air:not([disabled])').click();await studio.locator('#studio-host').filter({hasText:'Otterchen ist am Mikrofon'}).waitFor();
+ await require('../support/studio-browser.cjs').login(studio);await studio.locator('#studio-host').filter({hasText:'Otterchen ist am Mikrofon'}).waitFor();
  await studio.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});
  assert.equal(await radio.locator('#on-air-sign').textContent(),'Es moderiert');
  assert.equal(await radio.locator('#host-name').textContent(),'Otterchen');assert.equal(await radio.locator('#host-name').getAttribute('data-prefix'),'');
  assert.equal(await radio.locator('.presenter').getAttribute('data-mode'),'moderation');
- for(const selector of ['#on-air-sign','#host-name'])assert.equal(await radio.locator(selector).evaluate(n=>getComputedStyle(n).color),liveColor);
+ assert.equal(await radio.locator('.live-topic-label').count(),0);
+ assert.equal(await radio.locator('.presenter-mic').isVisible(),true);
+ assert.equal(await radio.locator('.topic-label').isVisible(),false);
+ for(const selector of ['#on-air-sign','#host-name'])assert.equal(await radio.locator(selector).evaluate(n=>getComputedStyle(n).color),selector==='#host-name'?goldColor:neutral);
  assert.doesNotMatch(await radio.locator('.presenter').textContent(),/MischWerk am Pult|Im Studio angemeldet/);
  await radio.locator('#studio-tab:not([disabled])').click();studio=await overlayView(page,'studio');
  await studio.locator('#off-air:not([disabled])').click();await studio.locator('#studio-host').filter({hasText:'Keine Moderation angemeldet'}).waitFor();
  await radio.locator('#host-name').waitFor({state:'hidden'});assert.equal(await radio.locator('#on-air-sign').textContent(),'MischWerk am Pult','Abmeldung schaltet bei unverändertem AutoDJ sichtbar zurück');
- await studio.locator('#on-air:not([disabled])').click();await studio.locator('#studio-host').filter({hasText:'Otterchen ist am Mikrofon'}).waitFor();
+ await require('../support/studio-browser.cjs').login(studio);await studio.locator('#studio-host').filter({hasText:'Otterchen ist am Mikrofon'}).waitFor();
  await radio.locator('#on-air-sign').filter({hasText:'Es moderiert'}).waitFor();
  await studio.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});
  live=true;await radio.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
  await radio.waitForFunction(()=>document.querySelector('.presenter').getAttribute('data-mode')==='live');
- for(const width of [1920,1351,1024,768,390,320]){
+ await radio.evaluate(()=>Client.sendEvent('mw:setTopic',{topic:'80er und 90er'}));
+ await radio.locator('#show-topic').filter({hasText:'80er und 90er'}).waitFor();
+ for(const width of [3840,1920,1351,1200,1024,768,390,320]){
   await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await radio.waitForTimeout(100);
   assert.equal(await radio.locator('#host-name').textContent(),'Otterchen');assert.equal(await radio.locator('#host-name').isVisible(),true);
   assert.equal(await radio.locator('#host-name').getAttribute('data-prefix'),'');await radio.locator('#host-name').scrollIntoViewIfNeeded();
   assert.equal(await radio.locator('#host-name').evaluate(n=>{const r=n.getBoundingClientRect(),p=n.closest('.presenter').getBoundingClientRect();return r.top>=p.top-1&&r.bottom<=p.bottom+1;}),true);
   assert.equal(await radio.locator('#on-air-sign').textContent(),'Es moderiert');assert.equal(await radio.locator('.presenter').getAttribute('data-mode'),'live');
   for(const selector of ['#on-air-sign','#host-name']){
-   assert.equal(await radio.locator(selector).evaluate(n=>getComputedStyle(n).color),liveColor);
-   const constrained=await radio.locator('html').evaluate(n=>n.classList.contains('radio-constrained'));
-   assert.equal(await radio.locator(selector).evaluate(n=>parseFloat(getComputedStyle(n).fontSize)),constrained?14:15,'Größere Moderationsschrift bei '+width);
+   assert.equal(await radio.locator(selector).evaluate(n=>getComputedStyle(n).color),selector==='#host-name'?goldColor:neutral);
+   assert.equal(await radio.locator(selector).evaluate(n=>parseFloat(getComputedStyle(n).fontSize)),selector==='#host-name'?16:12,'Studio-Hierarchie bei '+width);
   }
   assert.ok(await radio.locator('.radio-status-row').evaluate(n=>{
    const row=n.getBoundingClientRect(),text=n.querySelector('.presenter').getBoundingClientRect();
-   const padding=n.closest('.radio-constrained')?10:4;
+   const padding=innerWidth<1200?3:6;
    return parseFloat(getComputedStyle(n).paddingTop)===padding&&text.top-row.top>=padding;
   }),'Anzeige gegenüber dem Thema tiefer bei '+width);
+  const centering=await radio.evaluate(()=>{
+   const context=document.querySelector('.radio-context'),box=context.getBoundingClientRect(),style=getComputedStyle(context);
+   const axis=(box.left+parseFloat(style.paddingLeft)+parseFloat(style.borderLeftWidth)+box.right-parseFloat(style.paddingRight)-parseFloat(style.borderRightWidth))/2;
+   const range=document.createRange();range.selectNodeContents(document.getElementById('show-topic'));const topic=range.getBoundingClientRect();
+   const parts=Array.from(document.querySelector('.presenter').children).filter(n=>n.getClientRects().length).map(n=>n.getBoundingClientRect());
+   return {topic:Math.abs((topic.left+topic.right)/2-axis),moderation:Math.abs((Math.min(...parts.map(r=>r.left))+Math.max(...parts.map(r=>r.right)))/2-axis)};
+  });
+  assert.ok(centering.topic<=1&&centering.moderation<=1,'Thema und gesamte Moderationszeile sind mittig: '+JSON.stringify({width,...centering}));
+  if(width<1200){
+   const badgeSpace=await radio.evaluate(()=>{
+    const badge=document.querySelector('#radio-topic').getBoundingClientRect(),face=document.querySelector('.radio-program-face'),f=face.getBoundingClientRect(),s=getComputedStyle(face,'::before');
+    const disc={right:f.left+parseFloat(s.left)+parseFloat(s.width),bottom:f.top+parseFloat(s.top)+parseFloat(s.height)/2};
+    return {clear:badge.left>=disc.right+6||badge.top>=disc.bottom+6,badge:badge.toJSON(),disc};
+   });
+   assert.ok(badgeSpace.clear,'Gemeinsamer Themen-/Moderationsbereich hält Abstand zum gesamten Play-/Vinylbereich: '+JSON.stringify({width,...badgeSpace}));
+  }
   assert.ok((await radio.locator('#on-air-sign').getAttribute('aria-label')).startsWith('Radio Mischwerk bestätigt eine Live-Sendung.'));
   assert.equal(await radio.locator('#on-air-sign').getAttribute('title'),'Sendung und Moderation');
-  if(width===1920){const sign=await radio.locator('#on-air-sign').boundingBox(),name=await radio.locator('#host-name').boundingBox();assert.ok(Math.abs(sign.y-name.y)<1&&name.x>=sign.x+sign.width);}
+  if(process.env.MISCHWERK_LIVE_CAPTURE&&client==='k3'&&[1920,390].includes(width)){
+   const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','radio-live-neu');fs.mkdirSync(folder,{recursive:true});
+   await radio.evaluate(()=>document.fonts.ready);await radio.locator('.radio-context').screenshot({path:path.join(folder,'live-moderation-'+width+'.png')});
+   if(width===1920){
+    const viewport=page.viewportSize();await page.setViewportSize({width:width+360,height:1100});
+    await page.locator('#headerbars iframe').scrollIntoViewIfNeeded();
+    await radio.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    await page.locator('#headerbars iframe').screenshot({path:path.join(folder,'appleiste-live-'+lab.hub.runtime.context.MischWerkConfig.buildNumber+'-'+width+'.png')});
+    await page.setViewportSize(viewport);
+   }
+   if(width===390)await page.locator('#headerbars iframe').screenshot({path:path.join(folder,'appleiste-live-'+width+'.png')});
+  }
+  if(width===1920){const sign=await radio.locator('#on-air-sign').boundingBox(),name=await radio.locator('#host-name').boundingBox();assert.ok(Math.abs(sign.y+sign.height/2-name.y-name.height/2)<=4&&name.x>=sign.x+sign.width);}
   const audioState=await radio.evaluate(()=>{const audio=window.__moderatorNameAudio;return {same:document.getElementById('radio-audio')===audio,paused:audio.paused,ended:audio.ended,error:audio.error?.code||null,source:audio.getAttribute('src'),events:window.__moderatorAudioEvents};});
   assert.equal(audioState.same&&!audioState.paused,true,JSON.stringify({width,...audioState}));
   assert.equal(await radio.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  }
+ const longTopic='Ein Themenabend mit Musikwünschen, tollen Gästen und Musik für euren Feierabend.';
+ await radio.evaluate(topic=>Client.sendEvent('mw:setTopic',{topic}),longTopic);
+ await radio.locator('#show-topic').filter({hasText:longTopic}).waitFor();
+ assert.equal(await radio.locator('#show-topic').evaluate(n=>n.scrollHeight<=n.clientHeight+1),true);
+ assert.ok(await radio.evaluate(()=>document.getElementById('show-topic').getBoundingClientRect().bottom<=document.getElementById('volume').getBoundingClientRect().top));
+ const liveHeight=await radio.locator('#radio-panel').evaluate(n=>n.getBoundingClientRect().height);
+ assert.ok(liveHeight<=312,'Live bleibt bei 320 px kompakt mit vollständigem Thema: '+liveHeight);
  await radio.locator('#studio-tab:not([disabled])').click();const back=await overlayView(page,'studio');
  await back.locator('#off-air:not([disabled])').click();await back.locator('#studio-host').filter({hasText:'Keine Moderation angemeldet'}).waitFor();
  await radio.locator('#host-name').waitFor({state:'hidden'});assert.equal(await radio.locator('#on-air-sign').textContent(),'MischWerk spielt live','Kein falscher AutoDJ aus einer App-Abmeldung');
@@ -1191,7 +1602,7 @@ for(const client of ['k3','stapp']) test('Neugestaltete Arbeitsfenster in '+clie
     return overlayView(page,kind);
   }
   await page.setViewportSize({width:1800,height:1600});
-  await radio.evaluate(()=>Client.executeSlashCommand('/vorhang öffnen'));
+
   await radio.locator('#play-button:not([disabled])').click();
   await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
   await radio.evaluate(()=>{window.__redesignAudio=document.getElementById('radio-audio');__redesignAudio.loop=true;window.__redesignLoads=0;__redesignAudio.addEventListener('loadstart',()=>__redesignLoads++);});
@@ -1201,12 +1612,12 @@ for(const client of ['k3','stapp']) test('Neugestaltete Arbeitsfenster in '+clie
   lab.hub.runtime.event('Otterchen',ownerHeader,'mw:wish.submit',{submissionId:'redesign-wish',text:'Lokaler Prüfwunsch: a-ha – Take On Me'});
   await radio.locator('#studio-tab').click();let studio=await overlayView(page,'studio');
   await studio.locator('#studio-topic').fill('Lokale Prüfung · Musik zum Feierabend');await studio.locator('#save-topic').click();
-  await studio.locator('#on-air').click();await studio.locator('#off-air:not([disabled])').waitFor();
+  await require('../support/studio-browser.cjs').login(studio);await studio.locator('#off-air:not([disabled])').waitFor();
   for(const width of [780,320,390,560,1280,3840]) {
     await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');
     studio=await reopen('studio',()=>radio.locator('#studio-tab').click());
     await studio.waitForFunction(width=>innerWidth===Math.min(width,640),width);
-    for(const [tab,panel,name] of [['studio-programme-tab','studio-programme','moderation'],['studio-queue-tab','studio-requests','moderation-wuensche'],['studio-history-tab','history-panel','moderation-historie'],['studio-ticker-tab','studio-ticker-panel','moderation-lauftext']]) {
+    for(const [tab,panel,name] of [['studio-programme-tab','studio-programme','moderation'],['studio-queue-tab','studio-requests','moderation-wuensche']]) {
       await studio.locator('#'+tab).click();await studio.locator('#'+panel).waitFor();await studio.waitForTimeout(100);
       const fit=await studio.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,
         tabs:[...document.querySelectorAll('#studio-programme-tabs button')].map(button=>{const r=button.getBoundingClientRect();return {width:r.width,height:r.height,scroll:button.scrollWidth};})}));
@@ -1221,14 +1632,14 @@ for(const client of ['k3','stapp']) test('Neugestaltete Arbeitsfenster in '+clie
         if(rows.meta&&rows.actions)assert.ok(rows.meta.bottom<=rows.actions.top+1,'Absender und Aktionen überlappen nicht: '+JSON.stringify(rows));
       }
 
-      if(client==='k3'&&[320,780].includes(width))await page.locator('#overlays iframe').screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/moderation/'+name+'-'+width+'.png'),animations:'disabled'});
+      if(client==='k3'&&[320,780].includes(width))await page.locator('#overlays iframe').screenshot({path:path.join(studioPictures,name+'-'+width+'.png'),animations:'disabled'});
     }
   }
   await studio.locator('#studio-programme-tab').click();await revealStudio(studio,'#off-air');await studio.locator('#off-air').click();await studio.locator('#on-air:not([disabled])').waitFor();
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));let team=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));let team=await overlayView(page,'team');
   for(const width of [560,320]) {
     await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');
-    team=await reopen('team',()=>radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung')));
+    team=await reopen('team',()=>radio.evaluate(()=>Client.executeSlashCommand('/mw admin')));
     for(const [tab,panel,name] of [['team-members-tab','team-members','verwaltung'],['team-texts-tab','channel-texts-panel','verwaltung-bottexte']]) {
       await team.locator('#'+tab).click();await team.locator('#'+panel).waitFor();await team.waitForTimeout(100);
       assert.ok(await team.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
@@ -1251,7 +1662,7 @@ for (const client of ['k3', 'stapp']) {
     lab.hub.log = (kind, data) => { const item = log(kind, data); records.push(item); return item; };
     const { radio } = await lab.join('Otterchen', client, 1280, false);
     const runtime = lab.hub.runtime;
-    runtime.command('Otterchen', 'vorhang', 'öffnen');
+
     const header = [...runtime.contents.sessions.keys()].find(id => runtime.contents.describe(id).nick === 'Otterchen');
     for (const nick of ['DJ-Test', 'Polaroid']) runtime.event('Otterchen', header, 'mw:addRadioModerator', { nick });
     runtime.users.find('Polaroid').state.role = 'cm';
@@ -1264,11 +1675,11 @@ for (const client of ['k3', 'stapp']) {
     for (const nick of ['Testhoerer', 'Channelmoderator', 'DJ-Test', 'Polaroid']) await lab.join(nick, client);
     const messages = () => records.filter(item => item.kind === 'public').map(item => item.message);
     assert.equal(messages().length, 5);
-    assert.equal(messages()[1], "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Testhoerer|/w Testhoerer<°._°r° Viel Spaß beim Zuhören. °>https://example.invalid/profile.png<>--<>|/w Testhoerer<°");
+    assert.equal(messages()[1], "°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, °>Testhoerer|/w Testhoerer<°.§°r° Viel Spaß beim Zuhören. °>https://example.invalid/profile.png<>--<>|/w Testhoerer<°");
     assert.deepEqual(runtime.users.find('Testhoerer').state.photoSize, [24, 24]);
-    assert.equal(messages()[2], "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Channelmoderator|/w Channelmoderator<°._°r° Viel Spaß beim Zuhören.");
-    assert.equal(messages()[3], "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>DJ-Test|/w DJ-Test<°._°r° Viel Spaß beim Zuhören.");
-    assert.equal(messages()[4], "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Polaroid|/w Polaroid<°._°r° Viel Spaß beim Zuhören.");
+    assert.equal(messages()[2], "°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, °>Channelmoderator|/w Channelmoderator<°.§°r° Viel Spaß beim Zuhören.");
+    assert.equal(messages()[3], "°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, °>DJ-Test|/w DJ-Test<°.§°r° Viel Spaß beim Zuhören.");
+    assert.equal(messages()[4], "°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, °>Polaroid|/w Polaroid<°.§°r° Viel Spaß beim Zuhören.");
     for (const person of runtime.users.online()) runtime.invokeFunction(runtime.app.onUserJoined, [person.user]);
     runtime.invokeFunction(runtime.app.onAppStart);
     assert.equal(messages().length, 5, 'Keine Doppelmeldungen oder nachträgliche Startbegrüßung');
@@ -1311,6 +1722,7 @@ async function setup(t, faults = {}, clock = false, contextOptions = {}) {
       if(!(saved?.radioModeratorUserIds||[]).includes(operator.state.id))await radio.evaluate(()=>Client.sendEvent('mw:addRadioModerator',{nick:'Otterchen'}));
       await radio.locator('#studio-tab:not([hidden])').waitFor();
     }
+    if(nick==='Otterchen'&&!faults.authenticationTest){if(registeredOwner){await radio.evaluate(()=>Client.sendEvent('mw:onAir',{}));await radio.locator('#open-wishes:not([disabled])').waitFor();}else await radio.evaluate(()=>Client.sendEvent('mw:setRequests',{enabled:true}));}
     return { page, radio };
   }
   return { ...instance, context, join, errors, external };
@@ -1320,6 +1732,7 @@ async function view(page, mode) {
   const handle = await page.waitForSelector(selector);
   const frame = await handle.contentFrame();
   await frame.waitForFunction(() => document.documentElement.classList.contains('mw-ready'));
+  if(mode==='Overlay'&&await frame.locator('#on-air').count())await require('../support/studio-browser.cjs').login(frame);
   return frame;
 }
 async function send(page, value) { await page.evaluate(value => window.EmulatorLab.send(value), value); }
@@ -1329,6 +1742,11 @@ for (const client of ['k3','stapp']) {
     const lab=await setup(t,{hostSizing:'stepped'}),{page,radio}=await lab.join('Otterchen',client,320);
     await radio.locator('#open-wishes:not([disabled])').click();
     const surface=await view(page,'Overlay');
+    const appearance=await surface.evaluate(()=>({background:getComputedStyle(document.getElementById('wishes-panel')).backgroundColor,font:getComputedStyle(document.getElementById('inline-wish-title')).fontFamily,button:getComputedStyle(document.getElementById('submit-wish')).backgroundColor}));
+    assert.equal(appearance.background,'rgb(23, 25, 28)');assert.match(appearance.font,/Outfit/);assert.equal(appearance.button,'rgb(230, 199, 123)');
+    await surface.waitForFunction(()=>Math.abs(document.getElementById('wishes-panel').getBoundingClientRect().height-innerHeight)<=1);
+    const pictures=path.join(os.tmpdir(),'MischWerk-Pruefbilder','wunschbox-neu');fs.mkdirSync(pictures,{recursive:true});
+    await surface.locator('#wishes-panel').screenshot({path:path.join(pictures,'wunschbox-build-355-'+client+'-320.png')});
     const song='Langer Interpret und vollständiger Musikwunsch '.repeat(7).slice(0,300);
     for(const text of [song,'Mein zweiter Wunsch']) {
       if(await surface.locator('#wish-compose-open').isVisible())await surface.locator('#wish-compose-open').click();
@@ -1428,7 +1846,7 @@ test('Parserstart zeigt alle Besitzeraktionen und korrekte Client-/Cacheverträg
 });
 test('Zwei echte Nutzer: natives Overlay, Entwurf, doppeltes Senden und Erledigt bis zum Nachrücken', async t => {
   const lab = await setup(t), owner = await lab.join();
-  lab.hub.runtime.command('Otterchen','vorhang','öffnen');
+
   const listener = await lab.join('Testhoerer');
   const before = await listener.page.locator('#channel').boundingBox();
   await listener.radio.locator('#open-wishes').click();
@@ -1458,7 +1876,7 @@ test('Zwei echte Nutzer: natives Overlay, Entwurf, doppeltes Senden und Erledigt
   assert.deepEqual(lab.errors, []); assert.deepEqual(lab.external, []);
 });
 test('Verlorene Quittung: Timeout und Wiederholung behalten dieselbe submissionId', async t => {
-  const lab = await setup(t), { page, radio } = await lab.join('Polaroid');
+  const lab = await setup(t);await lab.join('Otterchen');const { page, radio } = await lab.join('Polaroid');
   await send(page, { type: 'faults', value: { dropServer: 1, dropServerType: 'mw:wish.receipt' } });
   await page.waitForFunction(() => window.EmulatorLab.state.faults.dropServer === 1);
   await radio.locator('#open-wishes').click(); const surface = await view(page, 'Overlay');
@@ -1477,7 +1895,7 @@ test('Verlorene Quittung: Timeout und Wiederholung behalten dieselbe submissionI
   assert.equal(lab.hub.trace.findLast(item => item.eventType === 'mw:state' && item.nick === 'Polaroid').eventData.wishPositions.total, 1);
 });
 test('320 und 2290 Pixel sind tatsächliche Framebreiten, Overlay verändert den Channelbeginn nicht', async t => {
-  const lab = await setup(t), { page, radio } = await lab.join('Polaroid', 'k3', 320);
+  const lab = await setup(t);await lab.join('Otterchen');const { page, radio } = await lab.join('Polaroid', 'k3', 320);
   assert.equal(await radio.evaluate(() => innerWidth), 320);
   await radio.locator('#open-wishes').click(); const surface = await view(page, 'Overlay');
   assert.ok(await surface.locator('#submit-wish').isVisible());
@@ -1490,12 +1908,12 @@ test('320 und 2290 Pixel sind tatsächliche Framebreiten, Overlay verändert den
 });
 test('Team-Popup öffnet die Verwaltung direkt und bleibt bei schrittweisen Hostantworten stabil', async t => {
   const lab = await setup(t, { hostSizing: 'stepped' }), { page, radio } = await lab.join('Otterchen', 'stapp');
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung')); const team = await view(page, 'Overlay');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin')); const team = await view(page, 'Overlay');
   await page.waitForFunction(() => [...window.EmulatorLab.frames.sessions.values()].some(entry => entry.mode === 'Overlay' && entry.height === 560));
   assert.deepEqual(await team.evaluate(()=>[innerWidth,innerHeight]),[500,560]);
   const initialHeight = await team.evaluate(() => innerHeight);
   assert.equal(await team.locator('#team-status,#team-status-tab').count(),0);
-  assert.deepEqual(await team.locator('.team-tabs [role=tab]').allTextContents(),['Radio-Team','Bot-Texte']);
+  assert.deepEqual(await team.locator('.team-tabs [role=tab]').allTextContents(),['Radio-Team','Bot-Texte','Verbindung']);
   assert.equal(await team.locator('#radio-moderator-form').isVisible(),true);
   assert.equal(await team.evaluate(()=>innerHeight),initialHeight);
   await page.waitForFunction(() => [...window.EmulatorLab.frames.sessions.values()].filter(entry => entry.mode === 'Overlay').every(entry =>
@@ -1510,7 +1928,7 @@ test('Team-Popup öffnet die Verwaltung direkt und bleibt bei schrittweisen Host
   assert.deepEqual(lab.errors, []);
 });
 test('Fehlende Overlayfähigkeit erhält die Radioleiste und erklärt die Ablehnung', async t => {
-  const lab = await setup(t), { page, radio } = await lab.join('Polaroid');
+  const lab = await setup(t);await lab.join('Otterchen');const { page, radio } = await lab.join('Polaroid');
   await page.locator('#no-overlay').check();
   await page.waitForFunction(() => window.EmulatorLab.state.users.find(user => user.nick === 'Polaroid').capabilities.Overlay === false);
   await radio.locator('#open-wishes').click();
@@ -1558,7 +1976,8 @@ test('Parsermodus meldet verspätete Einbindung; fehlendes Modul verhindert fals
   await send(page, { type: 'faults', value: { resourceFailure: missing } });
   await page.waitForFunction(file => window.EmulatorLab.state.faults.resourceFailure === file, missing);
   const originalFrame = await page.locator('#headerbars iframe').getAttribute('src');
-  await send(page, { type: 'command', command: 'mischwerk' });
+  await page.locator('#join').click();await page.locator('#headerbars iframe').waitFor({state:'detached'});
+  await page.locator('#join').click();
   await page.waitForFunction(original => document.querySelector('#headerbars iframe')?.getAttribute('src') !== original, originalFrame);
   const handle = await page.waitForSelector('#headerbars iframe[src]'); const failed = await handle.contentFrame();
   await failed.locator('#startup-error').waitFor({ state: 'visible', timeout: 20000 });
@@ -1568,7 +1987,7 @@ test('Parsermodus meldet verspätete Einbindung; fehlendes Modul verhindert fals
 test('Async-Stresstest, langsame Dateien und Rollenwechsel funktionieren ohne simulierte Besitzerfreigabe', async t => {
   const lab = await setup(t, { loader: 'async', resourceDelayMs: 80 });
   const owner = await lab.join();
-  lab.hub.runtime.command('Otterchen','vorhang','öffnen');
+
   const { page, radio } = await lab.join('AppManager');
   assert.equal(await radio.locator('#studio-tab').isVisible(), false);
   assert.equal(await radio.locator('#team-tab').isVisible(), false);
@@ -1582,8 +2001,8 @@ test('Async-Stresstest, langsame Dateien und Rollenwechsel funktionieren ohne si
 test('Moderationserweiterung im strengen Emulator: private Wunschregie, Themenentwurf und Übergabenotizen zwischen drei Nutzern',async t=>{
   const lab=await setup(t,{hostSizing:'stepped'}),owner=await lab.join('Otterchen','stapp');
   await owner.page.setViewportSize({width:1800,height:1400});
-  lab.hub.runtime.command('Otterchen','vorhang','öffnen');
-  await owner.radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));let team=await view(owner.page,'Overlay');
+
+  await owner.radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));let team=await view(owner.page,'Overlay');
   await team.locator('#radio-moderator-nick').fill('DJ-Test');await team.locator('#add-radio-moderator').click();
   await team.locator('#radio-moderator-list').filter({hasText:'DJ-Test'}).waitFor();
   const dj=await lab.join('DJ-Test','k3'),listener=await lab.join('Testhoerer','stapp');
@@ -1595,7 +2014,7 @@ test('Moderationserweiterung im strengen Emulator: private Wunschregie, Themenen
   await owner.radio.locator('#studio-tab').click();
   const studio=await overlayView(owner.page,'studio');
   assert.notEqual(await owner.page.locator('#overlays iframe').getAttribute('src'),oldPopup);
-  await studio.locator('#on-air').click();await studio.locator('#off-air:not([disabled])').waitFor();
+  await require('../support/studio-browser.cjs').login(studio);await studio.locator('#off-air:not([disabled])').waitFor();
   if(await studio.locator('#studio-queue-tab').isVisible())await studio.locator('#studio-queue-tab').click();
   await studio.locator('[data-stage=preparing]').click();await listener.radio.locator('#own-wish-stage').filter({hasText:'In Vorbereitung'}).waitFor();
   await studio.locator('[data-stage=playing]').click();await listener.radio.locator('#own-wish-stage').filter({hasText:'Läuft gerade'}).waitFor();
@@ -1621,15 +2040,15 @@ test('Moderationserweiterung im strengen Emulator: private Wunschregie, Themenen
 
 for(const client of ['k3','stapp'])test('Übergabe in '+client+' bleibt bei höchstens 320 × 360 und verlorener Annahmequittung vollständig bedienbar',async t=>{
   const lab=await setup(t,{provider:'online',hostSizing:'stepped'}),owner=await lab.join('Otterchen','stapp',320);
-  lab.hub.runtime.command('Otterchen','vorhang','öffnen');
-  await owner.radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));const team=await overlayView(owner.page,'team');
+
+  await owner.radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const team=await overlayView(owner.page,'team');
   await team.locator('#radio-moderator-nick').fill('DJ-Test');await team.locator('#add-radio-moderator').click();
   await team.locator('#radio-moderator-list').filter({hasText:'DJ-Test'}).waitFor();
   await team.locator('#close-overlay').click();await owner.page.locator('#overlays iframe').waitFor({state:'detached'});
   const dj=await lab.join('DJ-Test',client,320);
   for(const person of [owner,dj]){await person.radio.locator('#play-button:not([disabled])').click();await person.radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);await person.radio.locator('#radio-audio').evaluate(a=>{a.loop=true;});}
   await owner.radio.locator('#studio-tab').click();const source=await overlayView(owner.page,'studio');
-  await source.locator('#on-air').click();await source.locator('#off-air:not([disabled])').waitFor();
+  await require('../support/studio-browser.cjs').login(source);await source.locator('#off-air:not([disabled])').waitFor();
   await owner.page.setViewportSize({width:1800,height:490});await dj.page.setViewportSize({width:1800,height:490});
   await owner.page.locator('#overlays .app-window').evaluate(node=>{node.style.height='360px';});
   await source.waitForFunction(()=>innerWidth===320&&innerHeight===360);await revealStudio(source,'#handover-open');await source.locator('#handover-open').click();
@@ -1652,7 +2071,7 @@ for(const client of ['k3','stapp'])test('Übergabe in '+client+' bleibt bei höc
 
 test('Native Wunschliste zeigt drei Einträge, erhält die Auswahl über Fensterseiten und quittiert nur den ausgewählten Wunsch',async t=>{
   const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen','stapp');
-  lab.hub.runtime.command('Otterchen','vorhang','öffnen');
+
   await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
   // Der zwölfsekündige Testton darf während des vollständigen Listenablaufs nicht enden.
   await radio.evaluate(()=>{window.__listAudio=document.getElementById('radio-audio');window.__listAudio.loop=true;});
@@ -1664,7 +2083,7 @@ test('Native Wunschliste zeigt drei Einträge, erhält die Auswahl über Fenster
   assert.equal(acks().length,0);await studio.locator('#studio-queue-tab').click();
   await assertEventually(()=>acks().length===1);
   assert.equal(await studio.locator('.queue-item').count(),3);
-  await studio.locator('[data-position="1"]').click();await studio.locator('.request-text').filter({hasText:'Listenwunsch 2'}).waitFor();
+  await revealStudio(studio,'[data-position="1"]');await studio.locator('[data-position="1"]').click();await studio.locator('.request-text').filter({hasText:'Listenwunsch 2'}).waitFor();
   await assertEventually(()=>acks().length===2);
   assert.notEqual(acks()[0].eventData.id,acks()[1].eventData.id);
   await studio.locator('#next-page').click();await studio.locator('.request-text').filter({hasText:'Listenwunsch 3'}).waitFor();
@@ -1672,7 +2091,7 @@ test('Native Wunschliste zeigt drei Einträge, erhält die Auswahl über Fenster
   assert.equal(await studio.locator('.queue-item').count(),2);
   await studio.locator('#prev-page').click();await studio.locator('.request-text').filter({hasText:'Listenwunsch 3'}).waitFor();
   assert.equal(await studio.locator('.queue-item').count(),3);
-  await studio.locator('[data-outcome=done]').click();await studio.locator('#queue-count').filter({hasText:'4'}).waitFor();
+  await revealStudio(studio,'[data-outcome=done]');await studio.locator('[data-outcome=done]').click();await studio.locator('#queue-count').filter({hasText:'4'}).waitFor();
   assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===window.__listAudio&&!window.__listAudio.paused),true);
   assert.equal(lab.hub.trace.filter(e=>e.kind==='contentShow'&&e.mode==='Overlay').length,1);
   assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
@@ -1685,7 +2104,7 @@ for(const client of ['k3','stapp'])test('Alle nativen Öffnungen in '+client+' b
 });
 
 test('Rechteverlust löscht gespeicherte native Verwaltungsentwürfe vor erneuter Öffnung',async t=>{
- const lab=await setup(t),{page,radio}=await lab.join('Otterchen','stapp',2290);await radio.locator('#studio-tab:not([disabled])').click();let frame=await overlayView(page,'studio');await frame.locator('#studio-topic').fill('Privater Studioentwurf');await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));frame=await overlayView(page,'team');await frame.locator('#radio-moderator-nick').fill('Privater Teamnick');await radio.locator('#open-wishes:not([disabled])').click();await overlayView(page,'wishes');const runtime=lab.hub.runtime,record=runtime.users.find('Otterchen');const headerId=[...runtime.contents.sessions.keys()].find(id=>runtime.contents.describe(id).mode==='Headerbar');runtime.event('Otterchen',headerId,'mw:removeRadioModerator',{userId:record.state.id});record.state.role='listener';let id=[...runtime.contents.sessions.keys()].find(id=>runtime.contents.describe(id).mode==='Overlay');runtime.event('Otterchen',id,'mw:refresh',{});await radio.locator('#studio-tab').waitFor({state:'hidden'});record.state.role='owner';runtime.event('Otterchen',headerId,'mw:addRadioModerator',{nick:'Otterchen'});runtime.event('Otterchen',id,'mw:refresh',{});await radio.evaluate(()=>Client.sendEvent('mw:refresh',{}));await radio.locator('#studio-tab:not([disabled])').click();frame=await overlayView(page,'studio');assert.equal(await frame.locator('#studio-topic').inputValue(),'');assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+ const lab=await setup(t),{page,radio}=await lab.join('Otterchen','stapp',2290);await radio.locator('#studio-tab:not([disabled])').click();let frame=await overlayView(page,'studio');await frame.locator('#studio-topic').fill('Privater Studioentwurf');await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));frame=await overlayView(page,'team');await frame.locator('#radio-moderator-nick').fill('Privater Teamnick');await radio.locator('#open-wishes:not([disabled])').click();await overlayView(page,'wishes');const runtime=lab.hub.runtime,record=runtime.users.find('Otterchen');const headerId=[...runtime.contents.sessions.keys()].find(id=>runtime.contents.describe(id).mode==='Headerbar');runtime.event('Otterchen',headerId,'mw:removeRadioModerator',{userId:record.state.id});record.state.role='listener';let id=[...runtime.contents.sessions.keys()].find(id=>runtime.contents.describe(id).mode==='Overlay');runtime.event('Otterchen',id,'mw:refresh',{});await radio.locator('#studio-tab').waitFor({state:'hidden'});record.state.role='owner';runtime.event('Otterchen',headerId,'mw:addRadioModerator',{nick:'Otterchen'});runtime.event('Otterchen',id,'mw:refresh',{});await radio.evaluate(()=>Client.sendEvent('mw:refresh',{}));await radio.locator('#studio-tab:not([disabled])').click();frame=await overlayView(page,'studio');assert.equal(await frame.locator('#studio-topic').inputValue(),'');assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
 test('Wiederöffnen über Moderation erhält den Wunschentwurf und setzt die Eingabesequenz der neuen Sitzung zurück',async t=>{
@@ -1723,16 +2142,17 @@ for(const client of ['k3','stapp'])test('Langer Wunschentwurf wird nach verborge
 
 for(const client of ['k3','stapp'])for(const width of [320,2290])test('Overlaydesign: matte Tasten, stabile Druckfläche und Tastaturfokus in '+client+' bei '+width+' px',async t=>{
   const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,width);
-  // Primäraktionen sind silbern, der Hörerplan verwendet eine dunkle Sekundäraktion.
-  for(const [entry,kind,control]of [['studio-tab','studio','on-air'],['team-tab','team','add-radio-moderator'],['open-wishes','wishes','submit-wish']]){
+  // Hauptaktionen der Arbeitsfenster verwenden denselben Goldton.
+  for(const [entry,kind,control]of [['studio-tab','studio','save-topic'],['team-tab','team','add-radio-moderator'],['open-wishes','wishes','submit-wish']]){
     await openRadioAction(radio,entry);const frame=await overlayView(page,kind);
     if(kind==='team')await frame.locator('#radio-moderator-nick').fill('DJ-Test');
     if(kind==='wishes')await frame.locator('#wish-text:not([disabled])').fill('a-ha – Take On Me');
     if(kind==='studio'||kind==='team')assert.equal(await frame.locator('#studio-connection').isVisible(),false);
+    if(kind==='studio'){await revealStudio(frame,'#studio-topic');await frame.locator('#studio-topic').fill('Prüfthema');await revealStudio(frame,'#save-topic');}
     const button=frame.locator('#'+control+':not([disabled])');await button.scrollIntoViewIfNeeded();
     await page.mouse.move(0,0);
     const resting=await button.evaluate(n=>{const s=getComputedStyle(n);return{background:s.backgroundColor,image:s.backgroundImage,shadow:s.boxShadow,textShadow:s.textShadow,transform:s.transform};});
-    assert.equal(resting.background,kind==='wishes'?'rgb(233, 234, 236)':'rgb(230, 199, 123)');assert.equal(resting.image,'none');
+    assert.equal(resting.background,'rgb(230, 199, 123)');assert.equal(resting.image,'none');
     assert.equal(resting.shadow,'none');assert.equal(resting.textShadow,'none');assert.equal(resting.transform,'none');
     await button.hover();await frame.waitForTimeout(180);const hover=await button.evaluate(n=>getComputedStyle(n).backgroundColor);assert.notEqual(hover,resting.background);
     const before=await button.boundingBox();await page.mouse.down();
@@ -1750,14 +2170,14 @@ for(const client of ['k3','stapp'])for(const width of [320,2290])test('Overlayde
 });
 
 for(const client of ['k3','stapp'])test('Overlaydesign: kompakte Rückmeldungen bleiben in '+client+' bei Eingabe, Fehler und Versand an der Aktion',async t=>{
-  const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,320);
+  const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,320,false);
   async function inline(frame,selector,parent){
     const box=frame.locator(selector);await box.waitFor();
     assert.equal(await box.evaluate((n,parent)=>!!n.closest('#'+parent),parent),true);
-    assert.equal(await box.evaluate(n=>{const s=getComputedStyle(n);return s.position==='static'&&s.fontSize===(n.id==='topic-feedback'?'12px':'13px')&&s.boxShadow==='none'&&n.scrollWidth<=n.clientWidth+1;}),true);
+    assert.equal(await box.evaluate(n=>{const s=getComputedStyle(n);return s.position==='static'&&s.fontSize===(n.id==='topic-feedback'||document.documentElement.dataset.view==='team'?'12px':'13px')&&s.boxShadow==='none'&&n.scrollWidth<=n.clientWidth+1;}),true);
     await box.scrollIntoViewIfNeeded();
   }
-  await radio.evaluate(()=>Client.executeSlashCommand('/MW Verwaltung'));let frame=await overlayView(page,'team');
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));let frame=await overlayView(page,'team');
   await frame.locator('#radio-moderator-nick').fill('DieserNickExistiertNicht');await frame.locator('#add-radio-moderator').click();
   await inline(frame,'#notice.error','radio-moderator-form');assert.equal(await frame.locator('#notice').getAttribute('role'),'alert');
   await frame.locator('#radio-moderator-nick').fill('DJ-Test');await frame.locator('#add-radio-moderator').click();await frame.locator('.team-member').filter({hasText:'DJ-Test'}).waitFor();
@@ -1767,7 +2187,8 @@ for(const client of ['k3','stapp'])test('Overlaydesign: kompakte Rückmeldungen 
   assert.equal(await frame.locator('#notice.error:visible').count(),0,'Entzugsfehler wird ausschließlich am betroffenen Mitglied ausgegeben');
   lab.hub.faults.failPersistence=false;
   await radio.locator('#studio-tab:not([disabled])').click();frame=await overlayView(page,'studio');
-  await frame.locator('#on-air').click();await inline(frame,'#notice:not(.error)','studio-controls');
+  await require('../support/studio-browser.cjs').login(frame);await frame.locator('#off-air:not([disabled])').waitFor();
+  assert.equal(await frame.locator('#notice').isVisible(),false,'Bestätigte Moderation und Wunschboxstatus ersetzen die zusätzliche Erfolgsbox');
   await revealStudio(frame,'#studio-topic');await frame.locator('#studio-topic').fill('Unser Musikabend');await frame.locator('#save-topic').click();await frame.locator('#topic-feedback').filter({hasText:'gespeichert'}).waitFor();await inline(frame,'#topic-feedback','topic-form');
   await radio.locator('#open-wishes:not([disabled])').click();frame=await overlayView(page,'wishes');await frame.locator('#wish-text:not([disabled])').fill('https://example.com');await frame.locator('#submit-wish').click();await frame.locator('#wish-feedback.error').waitFor();assert.equal(await frame.locator('#wish-text').inputValue(),'https://example.com');
   const deliver=lab.hub.sendUser.bind(lab.hub),receipts=[];
@@ -1792,10 +2213,10 @@ function assertAllowedOverlaySizes(lab) {
 for(const client of ['k3','stapp'])for(const width of [320,390,2290])test('Wunschbestätigung passt in '+client+' bei '+width+' px ohne Scrollen vollständig in denselben nativen Rahmen',async t=>{
   const lab=await setup(t,{provider:'online',hostSizing:'stepped'}),{page,radio}=await lab.join('Otterchen',client,width);
   await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
-  await radio.evaluate(()=>{window.__wishFitAudio=document.getElementById('radio-audio');});
+  await radio.evaluate(()=>{window.__wishFitAudio=document.getElementById('radio-audio');__wishFitAudio.loop=true;});
   await radio.locator('#open-wishes:not([disabled])').click();let frame=await overlayView(page,'wishes');
   const source=await page.locator('#overlays iframe').getAttribute('src');
-  assert.equal(await frame.evaluate(()=>innerHeight),340,'Erstes leeres Formular behält sein kompaktes Anfangsmaß');
+  await fits();assert.ok(await frame.evaluate(()=>innerHeight<=340),'Das leere Formular nutzt nur seine natürliche Höhe');
   async function fits(){
     await frame.waitForFunction(()=>{const p=document.getElementById('wishes-panel').getBoundingClientRect(),b=document.getElementById(document.getElementById('wish-form').hidden?'wish-compose-open':'submit-wish').getBoundingClientRect();return Math.abs(Math.ceil(p.height)-innerHeight)<=1&&b.top>=0&&b.bottom<=innerHeight+1&&document.body.scrollHeight<=document.body.clientHeight+1&&document.documentElement.scrollHeight<=innerHeight+1;},null,{timeout:5000});
     assert.equal(await frame.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
@@ -1806,7 +2227,8 @@ for(const client of ['k3','stapp'])for(const width of [320,390,2290])test('Wunsc
     assert.equal(await page.locator('#overlays iframe').getAttribute('src'),source,'Kein Ersetzen oder erneutes Öffnen nach dem Absenden');
   }
   assert.equal(await frame.locator('#wish-positions,#refresh-wish-positions,#wish-positions-pages').count(),0);
-  await radio.locator('#own-wish-more').filter({hasText:'+1'}).waitFor();
+  await radio.locator('#own-wish-more').filter({hasText:'+1'}).waitFor({state:width<1200?'attached':'visible'});
+  assert.equal(await radio.locator('#own-wish-position').isVisible(),width>=1200,'Eigene Wunschplatzierung bleibt nur im breiten Deck sichtbar');
   assert.equal(await radio.locator('#own-wish-title').textContent(),'Aha - Take On Me');
   if(process.env.MISCHWERK_CAPTURE_WISH196&&client==='stapp'&&[320,2290].includes(width)){
     await frame.locator('#wish-feedback').waitFor({state:'hidden'});await fits();
@@ -1836,65 +2258,28 @@ for(const client of ['k3','stapp'])for(const constraint of ['ignored','clamped']
   assertAllowedOverlaySizes(lab);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
-for(const client of ['k3','stapp'])test('Vorhang wird in '+client+' ausschließlich per Chat bedient und erhält laufendes Audio',async t=>{
-  const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client,1920),listener=await lab.join('Testhoerer',client,390);
-  assert.equal(await owner.radio.locator('#curtain-toggle').count(),0);
-  const drape=listener.radio.locator('.curtain-drape');
-  assert.equal(await drape.count(),1,'Eigene rein dekorative Stoffhälften');
-  assert.equal(await drape.getAttribute('aria-hidden'),'true');
-  assert.equal(await drape.evaluate(n=>getComputedStyle(n).pointerEvents),'none');
-  async function wings() {
-    return drape.evaluate(node=>['::before','::after'].map(pseudo=>{
-      const style=getComputedStyle(node,pseudo),matrix=new DOMMatrixReadOnly(style.transform);
-      return {x:matrix.m41,width:parseFloat(style.width),color:style.backgroundColor};
-    }));
-  }
-  const closedWings=await wings();assert.ok(closedWings.every(wing=>wing.x===0));
-  assert.ok(closedWings.every(wing=>{const [r,g,b]=wing.color.match(/\d+/g).map(Number);return r>3*g&&r>2*b;}),'Roter Samtgrund');
-  assert.equal(await owner.radio.locator('.curtain-drape').evaluate(n=>n.getAnimations({subtree:true}).length),0,'Ausnahme erhält keine künstliche Startanimation');
-  await listener.radio.locator('#curtain-ad').waitFor();await listener.radio.locator('#curtain-ad').click();
-  await listener.radio.waitForFunction(()=>!document.getElementById('curtain-audio').paused);
-  const chat=async (person,params)=>{await person.page.locator('#chat-input').fill('/vorhang '+params);await person.page.locator('#chat-form button').click();};
-  await chat(listener,'öffnen');await listener.page.locator('#chat').filter({hasText:'Nur Otterchen als Channelinhaber'}).waitFor();
-  assert.equal(await listener.radio.locator('#radio-curtain').isVisible(),true);
-  await chat(owner,'öffnen');await owner.page.locator('#chat').filter({hasText:'Vorhang geöffnet.'}).waitFor();
-  await listener.radio.locator('#radio-curtain').waitFor({state:'hidden'});
-  assert.equal(await listener.radio.locator('#radio-panel').evaluate(n=>n.inert),false,'Logische Freigabe wartet nicht auf Dekoration');
-  await listener.radio.waitForFunction(()=>document.querySelector('.curtain-drape').getAnimations({subtree:true}).length===2);
-  await drape.evaluate(node=>{
-    window.__curtainMotion=node.getAnimations({subtree:true});
-    __curtainMotion.forEach(animation=>{animation.pause();animation.currentTime=animation.effect.getTiming().duration*.35;});
-  });
-  const middle=await wings();
-  assert.ok(middle[0].x<0&&middle[0].x>-middle[0].width&&middle[1].x>0&&middle[1].x<middle[1].width,'Stoffhälften öffnen tatsächlich gegenläufig');
-  await listener.radio.evaluate(()=>Client.sendEvent('mw:refresh'));
-  await listener.radio.waitForTimeout(60);
-  assert.equal(await drape.evaluate(n=>n.getAnimations({subtree:true}).every(animation=>__curtainMotion.includes(animation))),true,'Identischer Snapshot startet keine neue Bewegung');
-  await drape.evaluate(()=>__curtainMotion.forEach(animation=>animation.finish()));
-  const opened=await wings();assert.ok(opened[0].x<=-opened[0].width&&opened[1].x>=opened[1].width,'Stoff vollständig außerhalb der Leiste');
-  assert.equal(await listener.radio.evaluate(()=>!document.getElementById('curtain-audio').paused),true);
-  await listener.radio.locator('#play-button:not([disabled])').click();await listener.radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
-  await listener.radio.evaluate(()=>{window.__curtainAudio=document.getElementById('radio-audio');});
-  await chat(owner,'schließen');await owner.page.locator('#chat').filter({hasText:'Vorhang geschlossen.'}).waitFor();
-  await listener.radio.locator('#radio-curtain').waitFor();
-  assert.equal(await listener.radio.evaluate(()=>document.getElementById('radio-audio')===window.__curtainAudio&&!window.__curtainAudio.paused),true);
-  assert.equal(await owner.radio.locator('#radio-curtain').isVisible(),false);
-  await chat(owner,'toggle');await owner.page.locator('#chat').filter({hasText:'Bitte verwende /vorhang öffnen oder /vorhang schließen.'}).waitFor();
-  assert.equal(await listener.radio.locator('#radio-curtain').isVisible(),true);
-  await listener.page.emulateMedia({reducedMotion:'reduce'});
-  await chat(owner,'öffnen');await listener.radio.locator('#radio-curtain').waitFor({state:'hidden'});
-  assert.equal(await drape.evaluate(n=>n.getAnimations({subtree:true}).length),0,'Reduzierte Bewegung öffnet unmittelbar');
-  const reduced=await wings();assert.ok(reduced[0].x<=-reduced[0].width&&reduced[1].x>=reduced[1].width);
-  assert.equal(await listener.radio.evaluate(()=>document.getElementById('radio-audio')===window.__curtainAudio&&!window.__curtainAudio.paused),true);
-  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+for(const client of ['k3','stapp'])test('Radio ist in '+client+' ohne Vorhang und Werbung direkt nutzbar',async t=>{
+ const lab=await setup(t,{provider:'online'}),requests=[];lab.context.on('request',request=>requests.push(request.url()));
+ const {page,radio}=await lab.join('DJ-Test',client,1280,false);
+ await radio.locator('#play-button:not([disabled])').waitFor();assert.equal(await radio.locator('#radio-panel').isVisible(),true);
+ assert.equal(await radio.locator('#radio-curtain,#curtain-audio,.curtain-drape').count(),0);assert.equal(await radio.locator('audio').count(),1);
+ assert.equal(await radio.locator('#radio-audio').getAttribute('src'),null);
+ await radio.locator('#play-button').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+ await radio.evaluate(()=>{window.__directRadioAudio=document.getElementById('radio-audio');});
+ assert.equal(await radio.locator('#open-wishes').isDisabled(),true);await lab.join('Otterchen',client,1280);
+ await radio.locator('#open-wishes:not([disabled])').click();const wishes=await overlayView(page,'wishes');
+ await wishes.locator('#wish-text').fill('Mein erreichbarer Wunsch');await wishes.locator('#close-wishes').click();
+ await page.locator('#overlays iframe').waitFor({state:'detached'});
+ assert.equal(await radio.locator('#open-wishes').evaluate(n=>document.activeElement===n),true);
+ assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===window.__directRadioAudio&&!__directRadioAudio.paused),true);
+ assert.equal(requests.some(url=>/curtain|werbung\.mp3/.test(url)),false);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
-
 
 for(const client of ['k3','stapp'])test('Wunschrelay in '+client+' bündelt gleichzeitiges Tippen dreier Nutzer unter dem beobachteten Eventbudget und erhält Schlusszeichen',async t=>{
  const lab=await setup(t,{provider:'online'}),records=[],log=lab.hub.log.bind(lab.hub);
  lab.hub.log=(kind,data)=>{const item=log(kind,data);records.push(item);return item;};
  const users=[];users.push({...await lab.join('Otterchen',client,1360),nick:'Otterchen'});
- lab.hub.runtime.command('Otterchen','vorhang','öffnen');
+
  for(const nick of ['Polaroid','DJ-Test'])users.push({...await lab.join(nick,client,1360),nick});
  for(const item of users){await item.radio.locator('#open-wishes:not([disabled])').click();item.surface=await overlayView(item.page,'wishes');await item.surface.locator('#wish-fields:not([disabled])').waitFor();item.text='Wunsch '+item.nick+' – abcdefghijklmnopqrstuvwxyz 1234567890 Schlusszeichen';}
  await users[0].radio.evaluate(()=>{window.__relayAudio=document.getElementById('radio-audio');__relayAudio.loop=true;});await users[0].radio.locator('#play-button:not([disabled])').click();await users[0].radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
@@ -1913,13 +2298,94 @@ for(const client of ['k3','stapp'])test('Wunschrelay in '+client+' bündelt glei
 });
 
 
-for (const client of ['k3','stapp']) test('Verwaltung wird in '+client+' über den eingegebenen Chatbefehl geöffnet und erhält Radio und Entwurf', async t => {
+for(const client of ['k3','stapp'])test('Verbindung im Admin-Reiter erhält in '+client+' Firebase, Einstellungen, Schlüssel und Radio',async t=>{
+  const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client);
+  await page.setViewportSize({width:1800,height:1400});
+  const runtime=lab.hub.runtime,key='mischwerk.android.private.v1',secret='s'.repeat(64),calls=[];
+  runtime.persistence.api().setObject(key,{enabled:true,runtimeVerified:true,syncSecret:secret,relaySecret:'r'.repeat(64),syncUrl:'https://radio-mischwerk.web.app/api/publishKnuddelsState',revision:7});
+  runtime.context.KnuddelsServer.getExternalServerAccess=()=>({canAccessURL:()=>true,postURL:(url,p)=>{
+    calls.push(url);p.onSuccess(JSON.stringify({accepted:true,serverTime:runtime.clock.now(),wishes:[]}),{getResponseCode:()=>200,getURLString:()=>url});
+  }});
+  runtime.invokeFunction(runtime.app.onAppStart,[]);assert.equal(calls.length,1);
+  const saved=JSON.stringify(runtime.persistence.api().getObject(key));
+  await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+  await radio.evaluate(()=>{window.__settingsAudio=document.getElementById('radio-audio');});
+  for(const option of ['', 'hilfe', 'einrichten', 'status', 'pruefen', 'http-pruefen', 'auth-pruefen']){
+    await page.locator('#chat-input').fill('/mw verbindung '+option);await page.locator('#chat-form button').click();
+  }
+  await page.waitForFunction(()=>Array.from(document.querySelectorAll('#chat p')).filter(n=>n.textContent.includes('Diesen Aufruf gibt es nicht.')).length===7);
+  assert.equal(await page.locator('#overlays iframe').count(),0);
+  assert.equal(JSON.stringify(runtime.persistence.api().getObject(key)),saved);assert.equal(calls.length,1);
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));let team=await overlayView(page,'team');
+  assert.equal(await team.locator('#team-connection-tab').count(),1);
+  for(const width of [560,320]) {
+    await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');
+    await team.locator('#team-connection-tab').click();await team.locator('#relay-status').filter({hasText:'Aktiv –'}).waitFor();
+    assert.equal(await team.locator('#relay-save').isDisabled(),true);assert.equal(await team.locator('#relay-sync').inputValue(),'');
+    assert.ok(await team.locator('.connection-content').evaluate(n=>n.scrollHeight<=n.clientHeight+1));
+    assert.ok(await team.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight+1));
+    for(const selector of ['#relay-activate','#relay-deactivate','#relay-refresh','#close-overlay'])assert.ok(await team.locator(selector).evaluate(n=>{const r=n.getBoundingClientRect();return r.width>=44&&r.height>=44&&r.top>=0&&r.bottom<=innerHeight;}),selector);
+    if(process.env.MISCHWERK_CONNECTION_CAPTURE&&client==='k3')await team.waitForTimeout(180);
+    if(process.env.MISCHWERK_CONNECTION_CAPTURE&&client==='k3')await page.locator('#overlays iframe').screenshot({path:path.resolve('docs/pruefung/oberflaeche/verwaltung/verwaltung-verbindung-'+width+'.png')});
+    await team.locator('.connection-secret summary').click();await team.locator('#relay-sync').fill('x'.repeat(64));await team.waitForTimeout(30);
+    assert.equal(await team.locator('#relay-sync').inputValue(),'x'.repeat(64));assert.equal(await team.locator('#relay-save').isEnabled(),true);
+    await team.locator('#team-texts-tab').click();assert.equal(await team.locator('#relay-sync').inputValue(),'');
+    await team.locator('#team-connection-tab').click();await team.locator('#relay-status').filter({hasText:'Aktiv –'}).waitFor();
+    await team.locator('.connection-secret summary').click();
+  }
+  await team.locator('#relay-refresh').click();await team.locator('#relay-status').filter({hasText:'Aktiv –'}).waitFor();
+  await team.locator('.connection-secret summary').click();await team.locator('#relay-sync').fill('x'.repeat(64));
+  await team.locator('#close-overlay').click();await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));team=await overlayView(page,'team');
+  assert.equal(await team.locator('#team-connection-tab').getAttribute('aria-selected'),'true');await team.locator('#relay-status').filter({hasText:'Aktiv –'}).waitFor();
+  assert.equal(await team.locator('#relay-sync').inputValue(),'');
+  assert.doesNotMatch(JSON.stringify(lab.hub.trace.filter(e=>e.eventType&&e.eventType.startsWith('mw:overlay.'))),/xxxxxxxx/);
+  assert.equal(JSON.stringify(runtime.persistence.api().getObject(key)),saved);assert.equal(calls.length,1);
+  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__settingsAudio&&!__settingsAudio.paused),true);
+  assert.doesNotMatch(await team.locator('body').innerText(),/ssssssss|rrrrrrrr/);
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+test('Neue Verbindungseinstellungen speichern und schalten nur nach ausdrücklicher Aktion',async t=>{
+  const lab=await setup(t),{page,radio}=await lab.join('Otterchen','k3'),runtime=lab.hub.runtime,key='mischwerk.android.private.v1',calls=[];
+  runtime.persistence.api().setObject(key,{enabled:false,runtimeVerified:false,syncSecret:'s'.repeat(64),relaySecret:'r'.repeat(64),syncUrl:'https://radio-mischwerk.web.app/api/publishKnuddelsState',revision:3});
+  runtime.context.KnuddelsServer.getExternalServerAccess=()=>({canAccessURL:()=>true,postURL:(url,p)=>{calls.push(url);p.onSuccess(JSON.stringify({accepted:true,serverTime:runtime.clock.now(),wishes:[]}),{getResponseCode:()=>200,getURLString:()=>url});}});
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const team=await overlayView(page,'team');
+  await team.locator('#team-connection-tab').click();await team.locator('#relay-status').filter({hasText:'ausgeschaltet'}).waitFor();
+  await team.locator('.connection-secret summary').click();await team.locator('#relay-sync').fill('n'.repeat(64));await team.waitForTimeout(50);
+  assert.equal(await team.locator('#relay-sync').inputValue(),'n'.repeat(64));await team.locator('#relay-save').click();
+  await team.locator('#relay-result').filter({hasText:'Einstellungen gespeichert'}).waitFor();
+  const stored=runtime.persistence.api().getObject(key);assert.equal(stored.syncSecret,'n'.repeat(64));assert.equal(stored.relaySecret,'r'.repeat(64));assert.equal(stored.enabled,false);assert.equal(stored.revision,4);assert.equal(calls.length,0);
+  assert.equal(await team.locator('#relay-sync').inputValue(),'');assert.equal(await team.locator('#relay-save').isDisabled(),true);
+  await team.locator('#relay-activate').click();await team.locator('#relay-status').filter({hasText:'Aktiv –'}).waitFor();assert.equal(calls.length,1);
+  await team.locator('#relay-deactivate').click();await team.locator('#relay-status').filter({hasText:'ausgeschaltet'}).waitFor();assert.equal(runtime.persistence.api().getObject(key).enabled,false);assert.equal(calls.length,1);
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])test('Einheitliche /mw-Hilfe in '+client+' erhält die dauerhaft geöffnete App und laufendes Radio',async t=>{
+  const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,2290);
+  assert.deepEqual(Object.keys(lab.hub.runtime.app.chatCommands).sort(),['lauftext','mw','settopic','update']);
+  await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+  await radio.evaluate(()=>{window.__mwAudio=document.getElementById('radio-audio');});
+  const header=await page.locator('#headerbars iframe').getAttribute('src');
+  for(const value of ['/mw','/mw homepage hilfe','/mw verbindung hilfe','/mw radio']) {
+    await page.locator('#chat-input').fill(value);await page.locator('#chat-form button').click();
+  }
+  await page.waitForFunction(()=>Array.from(document.querySelectorAll('#chat p')).filter(n=>n.textContent.includes('Diesen Aufruf gibt es nicht.')).length===2);
+  assert.ok(await page.locator('#chat').textContent().then(s=>s.includes('/mw admin')&&!s.includes('/mw verbindung status')));
+  assert.equal(await page.locator('#overlays iframe').count(),0);assert.equal(await page.locator('#headerbars iframe').getAttribute('src'),header);
+  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__mwAudio&&!__mwAudio.paused),true);
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for (const client of ['k3','stapp']) test('Verwaltung wird in '+client+' ausschließlich über /mw admin geöffnet und erhält Radio und Entwurf', async t => {
   const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,2290);
   assert.equal(await radio.locator('#team-tab').count(),0);
   await radio.locator('#play-button:not([disabled])').click();
   await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
   await radio.evaluate(()=>{window.__administrationAudio=document.getElementById('radio-audio');__administrationAudio.loop=true;});
-  async function command() { await page.locator('#chat-input').fill('/MW Verwaltung'); await page.locator('#chat-form button').click(); }
+  async function command(value='/mw admin') { await page.locator('#chat-input').fill(value); await page.locator('#chat-form button').click(); }
+  await command('/mw verwaltung');await page.locator('#chat p').filter({hasText:'Deine Befehle findest du mit /mw.'}).waitFor();
+  assert.equal(await page.locator('#overlays iframe').count(),0,'Der alte Unterbefehl öffnet kein Fenster');
   await command(); let team=await overlayView(page,'team');
   await team.locator('#radio-moderator-nick:not([disabled])').fill('Privater Verwaltungsentwurf');
   await team.locator('#close-overlay').click(); await page.locator('#overlays iframe').waitFor({state:'detached'});
@@ -1945,13 +2411,13 @@ for (const client of ['k3','stapp']) test('Verwaltung wird in '+client+' über d
 });
 
 
-for(const client of ['k3','stapp'])test('Otterchen hat in '+client+' automatisch Vollzugriff; andere Moderatoren brauchen einen Eintrag',async t=>{
+for(const client of ['k3','stapp'])test('Otterchen hat in '+client+' automatisch Zugang zur Moderationsanmeldung; andere Moderatoren brauchen einen Eintrag',async t=>{
   const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client,1280,false);
   assert.equal(await owner.radio.locator('#studio-tab').isVisible(),true,'Otterchen als Inhaber erhält automatisch Zugriff');
-  lab.hub.runtime.command('Otterchen','vorhang','öffnen');
+
   const dj=await lab.join('DJ-Test',client,390),manager=await lab.join('AppManager',client,390);
   assert.equal(await dj.radio.locator('#studio-tab').isVisible(),false);assert.equal(await manager.radio.locator('#studio-tab').isVisible(),false);
-  await owner.page.locator('#chat-input').fill('/MW Verwaltung');await owner.page.locator('#chat-form button').click();const team=await overlayView(owner.page,'team');
+  await owner.page.locator('#chat-input').fill('/mw admin');await owner.page.locator('#chat-form button').click();const team=await overlayView(owner.page,'team');
   async function add(nick){await team.locator('#radio-moderator-nick').fill(nick);await team.locator('#radio-moderator-form button[type=submit]:not([disabled])').click();await team.locator('.team-member').filter({hasText:nick}).waitFor();}
   async function remove(nick){await team.locator('.team-member').filter({hasText:nick}).locator(':scope > button').click();await team.locator('[data-confirm-removal]:not([disabled])').click();await team.locator('.team-member').filter({hasText:nick}).waitFor({state:'detached'});}
   await add('DJ-Test');await dj.radio.locator('#studio-tab:not([hidden])').waitFor();assert.equal(await owner.radio.locator('#studio-tab').isVisible(),true);assert.equal(await manager.radio.locator('#studio-tab').isVisible(),false);
@@ -1959,12 +2425,64 @@ for(const client of ['k3','stapp'])test('Otterchen hat in '+client+' automatisch
   await add('Otterchen');await owner.radio.locator('#studio-tab:not([hidden])').waitFor();
   await remove('Otterchen');assert.equal(await owner.radio.locator('#studio-tab').isVisible(),true);assert.equal(await team.locator('#radio-moderator-form').isVisible(),true,'Verwaltung bleibt für den Inhaber erreichbar');
   await add('DJ-Test');await dj.radio.locator('#studio-tab:not([hidden])').waitFor();
-  await dj.radio.locator('#studio-tab').click();const source=await overlayView(dj.page,'studio');await source.locator('#on-air').click();
+  await dj.radio.locator('#studio-tab').click();const source=await overlayView(dj.page,'studio');await require('../support/studio-browser.cjs').login(source);
   await source.locator('#off-air:not([disabled])').waitFor();await revealStudio(source,'#handover-open');await source.locator('#handover-open').click();
   await revealStudio(source,'#handover-target','handover');await source.locator('#handover-target').selectOption('Otterchen');
   await revealStudio(source,'#handover-request','handover');await source.locator('#handover-request').click();
   await owner.radio.locator('#studio-tab').click();const target=await overlayView(owner.page,'studio');await revealStudio(target,'#handover-open');await target.locator('#handover-open').click();
   await revealStudio(target,'#handover-accept','handover');await target.locator('#handover-accept').click();await target.locator('#handover-panel').waitFor({state:'hidden'});
   await revealStudio(target,'#off-air');assert.equal(await target.locator('#on-air').isVisible(),false);
+  assert.ok(lab.hub.runtime.users.find('Otterchen').state.nicklistIcons.some(icon=>icon.path.endsWith('/moderator.png')));
+  assert.ok(!lab.hub.runtime.users.find('DJ-Test').state.nicklistIcons.some(icon=>icon.path.endsWith('/moderator.png')));
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])test('Nicklistenstatus folgt echtem Playerfortschritt, Ton und bestätigter Moderation in '+client,async t=>{
+  const lab=await setup(t,{provider:'online',authenticationTest:true});
+  const {page,radio}=await lab.join('Otterchen',client,1280,false);
+  const record=lab.hub.runtime.users.find('Otterchen');
+  const icons=()=>record.state.nicklistIcons.map(icon=>path.basename(icon.path,'.png')).sort();
+  async function waitIcons(expected){for(let i=0;i<80;i++){if(JSON.stringify(icons())===JSON.stringify(expected))return;await page.waitForTimeout(100);}assert.deepEqual(icons(),expected);}
+  assert.deepEqual(icons(),['team']);
+  await radio.locator('#play-button').click();await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
+  await radio.evaluate(()=>{window.__nickAudio=document.getElementById('radio-audio');__nickAudio.loop=true;});
+  await waitIcons(['listener','team']);
+  await radio.locator('#volume').fill('0');await waitIcons(['team']);
+  assert.equal(await radio.evaluate(()=>!__nickAudio.paused),true);
+  await radio.locator('#volume').fill('35');await waitIcons(['listener','team']);
+  await page.locator('#visibility').click();await page.waitForTimeout(2200);assert.deepEqual(icons(),['listener','team']);
+  await page.locator('#visibility').click();
+  await radio.locator('#studio-tab').click();const studio=await overlayView(page,'studio',false);
+  assert.deepEqual(icons(),['listener','team'],'Bloßes Öffnen startet keine Moderation');
+  await studio.locator('#on-air').click();await studio.locator('#off-air').waitFor();await waitIcons(['moderator','team']);
+  await studio.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});
+  assert.deepEqual(icons(),['moderator','team'],'Fensterschließen erhält gültige Studioanmeldung');
+  await radio.evaluate(()=>Client.sendEvent('mw:offAir',{}));await waitIcons(['listener','team']);
+  await radio.locator('#play-button').click();await waitIcons(['team']);
+  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__nickAudio&&__nickAudio.paused&&__nickAudio.volume===.35),true);
+  assert.ok(record.state.nicklistIcons.every(icon=>icon.width===(icon.path.endsWith('/team.png')?32:24)));
+  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])test('Dateiprüfung vor /update sperrt unvollständigen Stand und erhält laufendes Radio in '+client,async t=>{
+  const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,2290);
+  const runtime=lab.hub.runtime,server=runtime.context.KnuddelsServer,root=server.getAppAccess().getOwnInstance().getRootInstance();
+  let missing=true,first=true,queued=0;
+  const nativeList=server.listFiles;
+  server.listFiles=folder=>nativeList(folder).filter(name=>!(missing&&folder==='server/users'&&name==='nicklist-storage.js'));
+  root.updateAppFiles=()=>{if(!first)return [];first=false;return ['server/app.js'];};
+  root.updateApp=()=>{queued++;return 30;};
+  await radio.locator('#play-button').click();await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
+  await radio.evaluate(()=>{window.__guardAudio=document.getElementById('radio-audio');__guardAudio.loop=true;});
+  const modules=runtime.context.MischWerkModules,configuration=runtime.context.MischWerkConfig;
+  const saved=JSON.stringify(runtime.persistence.data),header=await page.locator('#headerbars iframe').getAttribute('src');
+  await page.locator('#chat-input').fill('/update');await page.locator('#chat-form button').click();
+  await page.locator('#chat p').filter({hasText:'Es fehlen: server/users/nicklist-storage.js'}).waitFor();
+  assert.equal(queued,0);assert.equal(runtime.context.MischWerkModules,modules);assert.equal(runtime.context.MischWerkConfig,configuration);
+  assert.equal(JSON.stringify(runtime.persistence.data),saved);assert.equal(await page.locator('#headerbars iframe').getAttribute('src'),header);
+  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__guardAudio&&!__guardAudio.paused),true);
+  missing=false;await page.locator('#chat-input').fill('/update');await page.locator('#chat-form button').click();
+  await page.locator('#chat p').filter({hasText:'Update vorgemerkt.'}).waitFor();assert.equal(queued,1);
+  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__guardAudio&&!__guardAudio.paused),true);
   assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });

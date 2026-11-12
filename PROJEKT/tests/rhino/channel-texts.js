@@ -9,6 +9,8 @@ function clearTimeout(id) { delete channelTextTasks[id]; }
 (function () {
     var previousPersistence = KnuddelsServer.getPersistence, previousBot = KnuddelsServer.getDefaultBotUser;
     var data = {}, messages = [], failWrite = false, failSend = false, attempts = 0;
+    var smileyReplies = [], smileyOwner = { getUserType:function () { return UserType.Human; },
+        sendPrivateMessage:function (text) { smileyReplies.push(text); } };
     KnuddelsServer.getPersistence = function () { return {
         getObjectKeys: function () { return Object.keys(data); },
         deleteObject: function (key) { delete data[key]; },
@@ -30,8 +32,10 @@ function clearTimeout(id) { delete channelTextTasks[id]; }
         runtime.now = function () { return channelTextTime; };
         runtime.warn = function () {};
         runtime.isChannelOwner = function (user) { return user === 'owner'; };
-        runtime.canAdminister = runtime.isChannelOwner;
+        runtime.canAdminister = function (user) { return user === 'owner' || user === smileyOwner; };
+        MischWerkModules.attachChannelTextFormat(runtime);
         MischWerkModules.attachChannelTextStorage(runtime);
+        MischWerkModules.attachChannelTextSmileys(runtime);
         MischWerkModules.attachChannelTextScheduler(runtime);
         return runtime;
     }
@@ -74,6 +78,43 @@ function clearTimeout(id) { delete channelTextTasks[id]; }
             try { runtime.validateChannelTexts(invalid); } catch (error) { rejected += 1; }
         });
         check(rejected === 3, 'Intervalle, leere Aktivierung und Länge in Rhino validiert');
+        data = {}; messages = []; channelTextTasks = {};
+        var smileyRuntime = create(), code = ':(nosmoking-happy-y):', image = '°>sm_fixture_nosmoking.gif<°';
+        smileyRuntime.startChannelTexts(); configure(smileyRuntime, 20, true);
+        var state = smileyRuntime.readChannelTexts(), due = state.nextAt;
+        state.texts = ['Rauchen bitte vor der Tür. ' + code]; state.cursor = 0;
+        smileyRuntime.storeChannelTexts(state);
+        smileyRuntime.receiveChannelSmiley({ getAuthor:function () { return smileyOwner; },
+            getRawText:function () { return new String('smiley ' + code); },
+            getText:function () { return new String('smiley ' + image.replace('<°', '<>--<>|/tb-show sid~smileyClick:21178<°')); } });
+        check(smileyRuntime.readChannelTexts().smileys[0].image === image, 'Native Smiley-Grafik ohne Tauschbörsenlink übernommen');
+        check(smileyRuntime.readChannelTexts().nextAt === due && messages.length === 0, 'Smileyimport erhält Termin ohne öffentliche Nachricht');
+        smileyRuntime.stopChannelTexts(); smileyRuntime = create(); smileyRuntime.startChannelTexts();
+        advance(20);
+        check(messages[0] === 'Rauchen bitte vor der Tür. ' + image, 'Smiley über Neustart in Rhino ersetzt');
+        check(smileyRuntime.formatChannelText('_Text_ :(unbekannt):', []) === '\\_Text\\_ :(unbekannt):', 'Unbekannte Smileys und Klartext erhalten');
+        check(smileyRuntime.channelSmileyImage('°>https://example.org/sm.gif<°') === null, 'Fremdes Bild abgewiesen');
+        check(smileyRuntime.channelSmileyImage('°>sm_test.gif|/update<°') === null, 'Befehlslink abgewiesen');
+        check(smileyRuntime.channelSmileyImage('°>https://apps10.knuddels.biz/kimg/smileys/ft_freetext_happy_y.gif<°') !== null, 'Dokumentiertes Knuddels-Bild erlaubt');
+        check(smileyRuntime.nativeChannelSmileyImage('°r°smiley ' + image + '°r°') === image, 'Native Formatierung um Keyword und Bild erkannt');
+        check(smileyRuntime.nativeChannelSmileyImage('_' + image.replace('<°', '<>|/tb-show sid~smileyClick:21178<°') + '_') === image, 'Nativer Bild-Linktrenner und Fettschrift erkannt');
+        check(smileyRuntime.channelSmileyImage('°>smileys/sm_fixture.gif<°') !== null, 'Relativer nativer Bildunterordner erlaubt');
+        var reportedPath = 'sm_abo_24-03_nosmoking_yellow_happy...b.w_35.h_39.mx_1.pw_33.ph_39.gif';
+        var reportedMessage = '°>' + reportedPath + '<>--<>|/tb-show sid~smileyClick:21178<°';
+        check(reportedMessage.length === 111, 'Länge entspricht dem nativen Diagnosescreenshot');
+        check(smileyRuntime.nativeChannelSmileyImage(reportedMessage) === '°>' + reportedPath + '<°', 'Native Punkte und Bildmodifikatoren exakt erhalten');
+        check(smileyRuntime.channelSmileyImage('°>smileys/../sm_test.gif<°') === null &&
+            smileyRuntime.channelSmileyImage('°>https://chat.knuddels.de/pics/../sm_test.gif<°') === null, 'Echte relative und absolute Pfadwechsel weiter gesperrt');
+        smileyRuntime.receiveChannelSmiley({ getAuthor:function () { return smileyOwner; },
+            getRawText:function () { return 'smiley ' + code; }, getText:function () { return 'smiley ' + reportedMessage; } });
+        check(smileyRuntime.readChannelTexts().smileys[0].image === '°>' + reportedPath + '<°', 'Gemeldeter nativer Bildcode dauerhaft übernommen');
+        check(smileyRuntime.formatChannelText(code, smileyRuntime.readChannelTexts().smileys) === '°>' + reportedPath + '<°', 'Gemeldeter Smiley unverändert zum Versand formatiert');
+        smileyRuntime.receiveChannelSmiley({ getAuthor:function () { return smileyOwner; },
+            getRawText:function () { return 'smiley ' + code; }, getText:function () { return 'smiley ' + code; } });
+        check(smileyReplies[smileyReplies.length - 1].indexOf('Empfangen') !== -1 &&
+            smileyReplies[smileyReplies.length - 1].indexOf('eigenen aktiven') === -1, 'Unbekanntes natives Format ohne Besitzbehauptung privat erklärt');
+        check(!JSON.stringify(smileyRuntime.channelTextsView('owner')).match(/sm_fixture/), 'Grafikzuordnung bleibt privat im Speicher');
+        smileyRuntime.stopChannelTexts();
     } finally {
         KnuddelsServer.getPersistence = previousPersistence; KnuddelsServer.getDefaultBotUser = previousBot;
         channelTextTasks = {};

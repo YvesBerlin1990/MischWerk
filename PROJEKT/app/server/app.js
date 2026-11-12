@@ -1,3 +1,246 @@
+/* Der Prüfzweig liefert ausschließlich den beim Build erzeugten Dateibedarf. */
+if (typeof MischWerkUpdateProbe === 'function') {
+    MischWerkUpdateProbe(/* update-files:start */ {
+  "schema": 1,
+  "version": "0.1.382",
+  "buildNumber": 382,
+  "directories": {
+    "": [
+      "main.js",
+      "app.config"
+    ],
+    "server": [
+      "config.js",
+      "maintenance.js",
+      "lifecycle.js",
+      "app.js"
+    ],
+    "server/core": [
+      "runtime.js",
+      "diagnostics.js",
+      "changes.js",
+      "relay-results.js",
+      "validation.js",
+      "pin-constants-1.js",
+      "pin-constants-2.js",
+      "pin-bcrypt.js",
+      "composition.js"
+    ],
+    "server/users": [
+      "identity.js",
+      "greetings.js",
+      "nicklist-storage.js",
+      "nicklist.js"
+    ],
+    "server/state": [
+      "persistence.js",
+      "initialization.js"
+    ],
+    "server/radio": [
+      "station.js",
+      "team.js",
+      "pin-work.js",
+      "pin.js",
+      "moderation.js",
+      "announcements.js",
+      "ticker.js",
+      "ticker-command.js",
+      "handover.js",
+      "show.js"
+    ],
+    "server/channel-texts": [
+      "format.js",
+      "storage.js",
+      "smileys.js",
+      "scheduler.js",
+      "transport.js",
+      "settings.js"
+    ],
+    "server/wishes": [
+      "storage.js",
+      "queue.js",
+      "transport.js",
+      "website.js"
+    ],
+    "server/schedule": [
+      "calendar.js",
+      "storage.js",
+      "programme.js",
+      "commands.js",
+      "relay.js",
+      "overview.js",
+      "public-data.js",
+      "public.js",
+      "day.js",
+      "broadcasts.js",
+      "transport.js"
+    ],
+    "server/ui": [
+      "snapshot.js",
+      "session-state.js",
+      "loading.js",
+      "content.js",
+      "sessions.js",
+      "wish-surface.js",
+      "overlays.js",
+      "administration.js",
+      "commands.js"
+    ],
+    "server/transport": [
+      "views.js",
+      "events.js"
+    ],
+    "server/website": [
+      "access.js",
+      "public.js",
+      "commands.js",
+      "transport.js"
+    ],
+    "server/android": [
+      "signing.js",
+      "failures.js",
+      "connection.js",
+      "diagnostics.js",
+      "settings-access.js",
+      "settings.js",
+      "receipts.js",
+      "incoming.js",
+      "projection.js",
+      "commands.js",
+      "publisher.js",
+      "verification.js",
+      "relay.js",
+      "operation.js"
+    ],
+    "www": [
+      "index.html",
+      "relay-settings.html"
+    ],
+    "www/js": [
+      "start.js"
+    ],
+    "www/js/ui": [
+      "composition.js",
+      "layout.js",
+      "overlays.js",
+      "updates.js"
+    ],
+    "www/js/core": [
+      "dom.js",
+      "signals.js",
+      "model.js"
+    ],
+    "www/js/radio": [
+      "markup.js",
+      "viewport.js",
+      "metadata.js",
+      "requests.js",
+      "api.js",
+      "presentation.js",
+      "provider.js",
+      "volume.js",
+      "connection.js",
+      "player.js",
+      "listener.js",
+      "ticker.js"
+    ],
+    "www/js/wishes": [
+      "markup.js",
+      "wishbox.js",
+      "feedback.js",
+      "relay.js",
+      "drawer.js",
+      "window.js"
+    ],
+    "www/js/studio": [
+      "markup.js",
+      "handover-markup.js",
+      "controls.js",
+      "handover.js",
+      "workspace.js",
+      "window.js",
+      "reader.js",
+      "queue.js"
+    ],
+    "www/js/team": [
+      "markup.js",
+      "channel-texts-markup.js",
+      "layout.js",
+      "management.js",
+      "channel-texts.js",
+      "navigation.js"
+    ],
+    "www/js/transport": [
+      "commands.js",
+      "lifecycle.js"
+    ],
+    "www/js/operator": [
+      "relay-settings.js"
+    ],
+    "www/js/schedule": [
+      "markup.js",
+      "view.js",
+      "controller.js"
+    ],
+    "www/css/radio": [
+      "ticker.css",
+      "radio.css",
+      "radio-actions.css",
+      "radio-surface.css",
+      "metadata-layout.css",
+      "radio-responsive.css"
+    ],
+    "www/css/shared": [
+      "foundation.css",
+      "dialogs.css",
+      "feedback.css",
+      "dialogs-responsive.css"
+    ],
+    "www/css/studio": [
+      "studio.css",
+      "responsive.css",
+      "studio-queue.css",
+      "handover.css"
+    ],
+    "www/css/team": [
+      "team.css",
+      "connection.css"
+    ],
+    "www/css/wishes": [
+      "wishbox.css"
+    ],
+    "www/css/schedule": [
+      "day.css"
+    ],
+    "www/img": [
+      "mischwerk-logo.png",
+      "mischwerk-radio.png"
+    ],
+    "www/img/nicklist": [
+      "team.png",
+      "listener.png",
+      "moderator.png"
+    ],
+    "www/img/welcome": [
+      "banner.png",
+      "lieblingschannel.png",
+      "mitmachen.png",
+      "channelinfo.png"
+    ],
+    "www/fonts": [
+      "inter-latin.woff2",
+      "OFL.txt",
+      "bcrypt-LICENSE.txt",
+      "outfit-latin.woff2",
+      "fraunces-latin.woff2",
+      "outfit-OFL.txt",
+      "fraunces-OFL.txt",
+      "rajdhani-medium-latin.woff2",
+      "rajdhani-OFL.txt"
+    ]
+  }
+} /* update-files:end */);
+} else {
 /* Zentraler Backend-Start: Module laden, Abhängigkeiten verbinden, Knuddels-Hooks zuordnen. */
 var MischWerkModules = {};
 KnuddelsServer.execute('server/config.js');
@@ -10,17 +253,24 @@ KnuddelsServer.execute('server/core/validation.js');
 KnuddelsServer.execute('server/state/persistence.js');
 KnuddelsServer.execute('server/radio/station.js');
 KnuddelsServer.execute('server/radio/team.js');
+KnuddelsServer.execute('server/core/pin-constants-1.js');
+KnuddelsServer.execute('server/core/pin-constants-2.js');
+KnuddelsServer.execute('server/core/pin-bcrypt.js');
+KnuddelsServer.execute('server/radio/pin-work.js');
+KnuddelsServer.execute('server/radio/pin.js');
 KnuddelsServer.execute('server/radio/moderation.js');
 KnuddelsServer.execute('server/radio/announcements.js');
 KnuddelsServer.execute('server/radio/ticker.js');
+KnuddelsServer.execute('server/radio/ticker-command.js');
 KnuddelsServer.execute('server/users/greetings.js');
+KnuddelsServer.execute('server/channel-texts/format.js');
 KnuddelsServer.execute('server/channel-texts/storage.js');
+KnuddelsServer.execute('server/channel-texts/smileys.js');
 KnuddelsServer.execute('server/channel-texts/scheduler.js');
 KnuddelsServer.execute('server/channel-texts/transport.js');
 KnuddelsServer.execute('server/radio/handover.js');
 KnuddelsServer.execute('server/state/initialization.js');
 KnuddelsServer.execute('server/radio/show.js');
-KnuddelsServer.execute('server/radio/curtain.js');
 KnuddelsServer.execute('server/wishes/storage.js');
 KnuddelsServer.execute('server/wishes/queue.js');
 KnuddelsServer.execute('server/wishes/transport.js');
@@ -30,6 +280,9 @@ KnuddelsServer.execute('server/schedule/programme.js');
 KnuddelsServer.execute('server/schedule/commands.js');
 KnuddelsServer.execute('server/schedule/relay.js');
 KnuddelsServer.execute('server/schedule/overview.js');
+KnuddelsServer.execute('server/schedule/public-data.js');
+KnuddelsServer.execute('server/schedule/public.js');
+KnuddelsServer.execute('server/schedule/day.js');
 KnuddelsServer.execute('server/schedule/broadcasts.js');
 KnuddelsServer.execute('server/schedule/transport.js');
 KnuddelsServer.execute('server/ui/snapshot.js');
@@ -38,9 +291,12 @@ KnuddelsServer.execute('server/transport/views.js');
 KnuddelsServer.execute('server/ui/loading.js');
 KnuddelsServer.execute('server/ui/content.js');
 KnuddelsServer.execute('server/ui/sessions.js');
+KnuddelsServer.execute('server/users/nicklist-storage.js');
+KnuddelsServer.execute('server/users/nicklist.js');
 KnuddelsServer.execute('server/ui/wish-surface.js');
 KnuddelsServer.execute('server/ui/overlays.js');
 KnuddelsServer.execute('server/ui/administration.js');
+KnuddelsServer.execute('server/ui/commands.js');
 KnuddelsServer.execute('server/maintenance.js');
 KnuddelsServer.execute('server/channel-texts/settings.js');
 KnuddelsServer.execute('server/wishes/website.js');
@@ -52,6 +308,7 @@ KnuddelsServer.execute('server/android/signing.js');
 KnuddelsServer.execute('server/android/failures.js');
 KnuddelsServer.execute('server/android/connection.js');
 KnuddelsServer.execute('server/android/diagnostics.js');
+KnuddelsServer.execute('server/android/settings-access.js');
 KnuddelsServer.execute('server/android/settings.js');
 KnuddelsServer.execute('server/android/receipts.js');
 KnuddelsServer.execute('server/android/incoming.js');
@@ -63,81 +320,5 @@ KnuddelsServer.execute('server/android/relay.js');
 KnuddelsServer.execute('server/android/operation.js');
 KnuddelsServer.execute('server/lifecycle.js');
 KnuddelsServer.execute('server/transport/events.js');
-
-/* Verdrahtung der Fachmodule und Zuordnung der Knuddels-Hooks. */
-MischWerkModules.createApp = function (config, androidWire) {
-    'use strict';
-    var runtime = MischWerkModules.createRuntime(config);
-    MischWerkModules.attachDiagnostics(runtime, config);
-    MischWerkModules.attachChanges(runtime);
-    MischWerkModules.attachRelayResults(runtime);
-    MischWerkModules.attachIdentity(runtime, config);
-    MischWerkModules.attachValidation(runtime, config);
-    MischWerkModules.attachPersistence(runtime, config);
-    MischWerkModules.attachStation(runtime, config);
-    MischWerkModules.attachRadioTeam(runtime, config);
-    MischWerkModules.attachModeration(runtime, config);
-    MischWerkModules.attachStudioAnnouncements(runtime);
-    MischWerkModules.attachTicker(runtime);
-    MischWerkModules.attachUserGreetings(runtime);
-    MischWerkModules.attachChannelTextStorage(runtime);
-    MischWerkModules.attachChannelTextScheduler(runtime);
-    MischWerkModules.attachChannelTextTransport(runtime);
-    MischWerkModules.attachHandover(runtime);
-    MischWerkModules.attachStateInitialization(runtime, config);
-    MischWerkModules.attachShow(runtime, config);
-    MischWerkModules.attachCurtain(runtime, config);
-    MischWerkModules.attachWishStorage(runtime);
-    MischWerkModules.attachWishQueue(runtime, config);
-    MischWerkModules.attachWishTransport(runtime, config);
-    MischWerkModules.attachScheduleCalendar(runtime);
-    MischWerkModules.attachScheduleStorage(runtime);
-    MischWerkModules.attachScheduleProgramme(runtime, config);
-    MischWerkModules.attachScheduleCommands(runtime, config);
-    MischWerkModules.attachScheduleRelay(runtime);
-    MischWerkModules.attachScheduleOverview(runtime);
-    MischWerkModules.attachScheduleBroadcasts(runtime);
-    MischWerkModules.attachScheduleTransport(runtime);
-    MischWerkModules.attachSnapshot(runtime, config);
-    MischWerkModules.attachSessionState(runtime);
-    MischWerkModules.attachViewTransport(runtime, config);
-    MischWerkModules.attachContent(runtime);
-    MischWerkModules.attachSessions(runtime, config);
-    MischWerkModules.attachWishSurface(runtime);
-    MischWerkModules.attachOverlays(runtime);
-    MischWerkModules.attachAdministration(runtime);
-    MischWerkModules.attachMaintenance(runtime, config);
-    MischWerkModules.attachChannelTextSettings(runtime);
-    MischWerkModules.attachWebsiteWishes(runtime);
-    MischWerkModules.attachWebsiteAccess(runtime);
-    MischWerkModules.attachWebsitePublic(runtime, config);
-    MischWerkModules.attachWebsiteCommands(runtime);
-    MischWerkModules.attachWebsiteTransport(runtime);
-    MischWerkModules.attachAndroidSigning(runtime);
-    MischWerkModules.attachAndroidFailures(runtime);
-    MischWerkModules.attachAndroidConnection(runtime);
-    MischWerkModules.attachAndroidDiagnostics(runtime, config);
-    MischWerkModules.attachAndroidSettings(runtime, config);
-    MischWerkModules.attachAndroidReceipts(runtime);
-    MischWerkModules.attachAndroidIncoming(runtime);
-    MischWerkModules.attachRelayProjection(runtime);
-    MischWerkModules.attachRelayCommands(runtime);
-    MischWerkModules.attachAndroidPublisher(runtime);
-    MischWerkModules.attachAndroidVerification(runtime, config);
-    MischWerkModules.attachAndroidRelay(runtime, androidWire);
-    MischWerkModules.attachAndroidOperation(runtime, config);
-    MischWerkModules.attachLifecycle(runtime, config);
-    MischWerkModules.attachEvents(runtime, config);
-    return {
-        onAppStart: runtime.start,
-        onUserJoined: runtime.userJoined,
-        onPrepareShutdown: runtime.prepareShutdown,
-        onShutdown: runtime.shutdown,
-        onUserLeft: runtime.userLeft,
-        onUserDeleted: runtime.userDeleted,
-        onEventReceived: runtime.handleEvent,
-        chatCommands: { mw: runtime.administrationCommand, mischwerk: runtime.open, update: runtime.requestUpdate,
-            vorhang: runtime.curtainCommand, settopic: runtime.setTopicCommand, 'mischwerk-web': runtime.websiteCommand,
-            'mischwerk-relay': runtime.androidRelayCommand }
-    };
-};
+KnuddelsServer.execute('server/core/composition.js');
+}

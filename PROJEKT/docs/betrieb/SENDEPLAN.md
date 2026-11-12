@@ -1,19 +1,27 @@
 # MischWerk – Sendeplan
 
-Stand **0.1.330 / Build 330**, 09.11.2026. Das bisherige native Sendeplan-Overlay ist vollständig zurückgesetzt. Gestaltung, Layout, Kalenderansicht, Editor und deren Frontendmodule sind entfernt. Ein neuer Entwurf ist noch nicht eingebaut.
+Stand **0.1.372 / Build 372**, 11.11.2026. Der rein lesende Tagesplan öffnet für alle verbundenen Hörer als natives Fenster mit 640 × 320 px Anfangsgröße und natürlicher Inhaltshöhe bis 600 px. Thema, Moderation und Uhrzeit folgen der öffentlichen Homepage. Davor, Jetzt im Programm und Danach beziehen sich auf die geplante Berliner Zeit. Die Anzeige bestätigt keinen echten Encoderstatus.
 
-Der Button in der Appleiste bleibt an seiner Position mit Symbol und Beschriftung **Sendeplan** erhalten. Darunter steht dauerhaft **In Kürze**. Er ist für alle Nutzer einschließlich des Inhabers deaktiviert; Klick, Enter und Leertaste öffnen kein Fenster. Alte Öffnungsaufrufe werden serverseitig abgewiesen und schließen kein anderes Overlay. Alte direkte Sendeplanseiten zeigen einen neutralen Hinweis und starten keine Radio- oder Providercontroller.
+## Daten direkt von der Homepage
 
-Die entfernte native Oberfläche hat keine Anbieter-, Titel-, Historien- oder Kalenderabfragen mehr. Die bestehende Appleiste behält ihren Stream sowie den Liveabruf für Titel und Interpreten; die private Historie bleibt in der berechtigten Moderation.
+Der Knuddels-Server liest `https://radio-mischwerk.web.app/api/public-schedule?week=<Montag>` über die dokumentierte native GET-Schnittstelle. Das funktioniert unabhängig vom Verbindungsschalter und Sync-Schlüssel. Homepage und App nutzen damit dieselbe öffentliche Wochenantwort. Die bestehende Status-/Wunschverbindung bleibt für ihre bisherigen Aufgaben erhalten.
 
-## Erhaltene Daten und Anbindungen
+Die Liste zeigt Live-Einträge und die vom Endpunkt gelieferten generierten AutoDJ-Zeilen. Deren Titel und Moderationsnamen bleiben unverändert. Ein leeres Thema erscheint wie auf der Homepage als **Live-Sendung**, ein leerer Moderationsname als **Moderation**. Ganztägige Einträge zeigen **Ganztägig**, Tagesende **00:00**. Open End verwendet das aufgelöste numerische `until` in Berliner Kalenderminuten; fehlt es, endet die Anzeige wie auf der Homepage am Ende des Starttags. Es werden keine lokalen Ersatzsendungen oder Lücken ergänzt. Tatsächlich leere Antworten melden „Für diesen Tag sind keine Sendungen vorhanden.“.
 
-Gespeicherte Wochen und Revisionen bleiben unverändert unter `mischwerk.schedule.v1.<Montag>` und `mischwerk.schedule.v1.weeks`. Es gibt weder Migration noch Löschung. Automatische Studioeinträge, Fünf-Minuten-Filter, Kalenderberechnung in Europe/Berlin, Überlappungsprüfung und Nutzerbereinigung bleiben erhalten.
+Pfeile wechseln innerhalb der vorigen, aktuellen und nächsten Berliner Woche. Die Datumsmitte führt zu Heute. Über Mitternacht laufende Intervalle werden am Tag abgeschnitten; überlappende Intervalle werden wie im Homepage-Renderer nach Anfang/Ende geordnet und an der bereits belegten Zeit begrenzt.
 
-Das sitzungsgeprüfte `mw:schedule.*`-Datenprotokoll bleibt für bestehende Fachverträge erhalten, ohne native Overlaybenachrichtigungen. Manuelle native Änderungen benötigen weiterhin die authentifizierte Inhaberberechtigung und passende Wochenrevision; CM-, Appmanager- oder Radiomoderatorenrechte genügen nicht. Planung steuert weder Encoder noch Audio.
+## Aktualisierung und Fehler
 
-Der eigenständige Homepage-Sendeplan und die bestehende Homepage-/Android-Anbindung bleiben aktiv. Der bisher gemeinsam verwendete Kalenderhelfer liegt jetzt ausschließlich unter `website/public/js/site/calendar.js` und wird von der Website über `/calendar.js` geladen. Der reguläre Websiteserver und der isolierte Diagnoseserver bedienen diesen Pfad.
+Die geöffnete Ansicht verwendet den bestehenden 20-Sekunden-Lifecycle. Alle Hörer teilen einen laufenden GET je Woche und einen flüchtigen Cache von 15 Sekunden. Zehn Sekunden ohne gültige Antwort ergeben einen sichtbaren Fehler. HTTP-Fehler, Weiterleitungen zu anderen Zielen, ungültiges oder übergroßes JSON bestätigen keinen leeren Tag. Der bekannte Plan bleibt bei einem fehlgeschlagenen Refresh sichtbar; **Erneut laden** startet einen neuen Versuch. Geschlossene Sitzungen, Shutdown sowie verspätete oder doppelte Antworten werden verworfen. Es gibt keinen zusätzlichen Hintergrundpolltimer.
 
-`schedule/commands`, `schedule/relay` und `schedule/storage` behalten die gemeinsamen Fachaktionen sowie dauerhafte Firebase-Zuordnungen und Löschmarker im bestehenden Wochenobjekt. Änderung und Ergebnis werden gemeinsam gespeichert. `android/projection` meldet echte Revisionen über den vorhandenen signierten Statusweg. Es entstehen keine zusätzliche Persistenz und kein neuer Timer.
+Seiten eines umfangreichen Tages werden vollständig empfangen und erst danach gemeinsam angezeigt. Die Inhaltskennung erkennt Änderungen auch dann, wenn die öffentliche Revision 0 bleibt. Datum, Leseposition, Fokus, Radio und Studioentwürfe behalten ihre vorhandenen Wege. Die natürliche Höhe passt sich langen Texten, leeren Tagen und Fehlern an; bei 600 px oder begrenzten Clients scrollt die Liste.
 
-Die alten nativen Sendeplanbilder sind aus der aktuellen Dokumentation entfernt; frühere Gestaltung bleibt in Git nachvollziehbar. [Prüfbericht](../pruefung/PRUEFBERICHT.md) · [Frontendarchitektur](../architektur/ARCHITEKTUR-FRONTEND.md).
+## Bestehende Datenverträge
+
+Der öffentliche GET importiert und speichert keine Planungen. Native Wochen unter `mischwerk.schedule.v1.<Montag>`, Index, Revisionen, Relayzuordnungen, Studioaufzeichnungen und deren Schreibrechte bleiben erhalten. Sendeplan-/Teamaufträge und Quittungen verwenden weiterhin den signierten Statusweg. Fehler in dessen fachlicher Übernahme blockieren die öffentliche Anzeige nicht mehr. Das Overlay enthält keinen Editor und weist Schreibversuche mit einem Homepagehinweis ab.
+
+## Abnahme nach Installation
+
+Build 372 vollständig aus dem festen Desktop-UPLOAD installieren. Heute muss bei unverändertem Homepagebestand **MischWerk Radio Show / MischWerk am Pult / Ganztägig** erscheinen. Am **07.11.2026** müssen **Live-Sendung / Otterchen / 12:00–14:00** und **Live-Sendung / Polaroid / 14:00–15:00** samt den beiden vom JSON gelieferten AutoDJ-Zeiträumen erscheinen. Eine beabsichtigte Homepageänderung im geöffneten Plan nach ungefähr einem regulären Refresh vergleichen. Der Betreiber hat Build 372 inzwischen installiert. Empfang und Anzeige dieser beiden Tage sind am 11.11.2026 in der echten Knuddels-App bestätigt, einschließlich erneuerter heutiger Anzeige um 17:31:48 UTC; siehe Prüfbericht. Eine neue redaktionelle Teständerung wurde dabei nicht ausgelöst.
+
+[640-px-Ansicht](../pruefung/oberflaeche/sendeplan/sendeplan-tag-640.png) · [320-px-Ansicht](../pruefung/oberflaeche/sendeplan/sendeplan-tag-320.png) · [Leerer Tag](../pruefung/oberflaeche/sendeplan/sendeplan-autodj.png) · [Prüfbericht](../pruefung/PRUEFBERICHT.md) · [Homepage-Rückantwort](../api/HOMEPAGE-SENDEPLAN-RUECKANTWORT.md).

@@ -23,7 +23,7 @@ MischWerkModules.attachIdentity = function (runtime, config) {
     };
 
     runtime.isModerator = function (user) {
-        return runtime.online(user) && (user.isChannelOwner() ||
+        return runtime.online(user) && (runtime.canAdminister(user) ||
             runtime.state.radioModeratorUserIds.indexOf(runtime.userId(user)) !== -1);
     };
 };

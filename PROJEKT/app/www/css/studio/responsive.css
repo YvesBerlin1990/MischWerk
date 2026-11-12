@@ -1,0 +1,23 @@
+/* Dieselbe einfache Struktur auf kleinen Breiten und niedrigen Hosts. */
+@media (max-width:420px) {
+ .studio-programme-tabs { padding-inline:16px; gap:22px; }
+ .studio-sections,.studio-pagination { padding-inline:16px; }
+ .studio-section { padding-block:14px; }
+ #studio-host { font-size:18px; }
+ .studio-session-actions { gap:8px; margin-top:12px; }
+ .studio-session-actions > button { flex:1 1 auto; padding:9px 10px; }
+ .studio-topic-footer { flex-direction:column; gap:8px; }
+ .topic-status { min-height:36px; width:100%; }
+ .topic-actions { width:100%; }
+ #save-topic { min-width:104px; }
+}
+@media (max-height:460px) {
+ .studio-programme-tabs button { min-height:44px; padding-block:10px; }
+ .studio-section { padding-block:10px; }
+ #topic-help { display:none; }
+ .studio-topic { padding-block:6px; }
+ .studio-topic .studio-section-heading { margin-bottom:6px; }
+ .topic-status { min-height:36px; }
+ .studio-topic-footer { gap:6px; margin-top:6px; }
+ .studio-reader { height:86px; }
+}

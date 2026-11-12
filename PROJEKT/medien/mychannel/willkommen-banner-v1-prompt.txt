@@ -1,0 +1,19 @@
+Edit the supplied MischWerk logo image into a new finished welcome banner for a Knuddels private chat message. Use case: ads-marketing / branded UI graphic. The supplied image is the original logo and must remain recognizable, proportional and faithful: cream gear enclosing vinyl and gold mixing-console accents, with original MischWerk wordmark. Do not invent or substitute a different logo.
+
+Make a very wide landscape banner, approximately 1536 x 512 pixels (3:1), straight-on flat digital artwork, full canvas used, no surrounding mockup or device. Refined restrained Radio MischWerk style: matte near-black #141414 background, a thin muted gold #ad9360 outer outline with gently rounded corners, sparse extremely subtle vinyl grooves at the far right. Neutral charcoal, warm cream and gold #e6c77b only. Original logo in a compact left area, a quiet fine separator, typography in the wide right area. The image will be shown at about 560 pixels wide so all copy must remain large and exceptionally readable. Use a clean rounded geometric sans closely matching Outfit. Crisp flat typography, generous spacing, no 3D, no glow, no decorative badges.
+
+The exact German copy, with correct spelling, umlauts and punctuation:
+Small upper line: "WILLKOMMEN BEI"
+Large main title in gold: "Radio MischWerk"
+Clearly visible channel theme in warm white, can wrap across two lines: "Dein Mix aus Musik und guter Laune!"
+At the bottom, separated by a little breathing space, a smaller but legible neutral light-grey friendly note in two lines:
+"Kleiner Hinweis für iPhone & iPad:"
+"Unsere MyChannel-App ist unter iOS leider nicht verfügbar."
+
+Include every line verbatim. "MischWerk" must have a capital W. Do not add a nickname, placeholder, extra slogan, URL, button, play icon, headphone, character or watermark. There are no buttons in this banner: three real separately linked button-image assets will be placed below it later. The channel theme and iOS note are essential. Preserve the original logo's design and use a seamless dark surround so no rectangular black logo tile is apparent. Opaque background.
+
+Edit 12.11.2026 — builtin image_gen.imagegen; original banner supplied as reference:
+
+Precise local color correction to the supplied existing finished banner. Change ONLY the pale ivory/white vertical stem of the lowercase letter "i" immediately after the capital "M" in the large gold headline "Radio MischWerk" (the i between M and s). Its dot is already gold. Recolor the white stem to the same warm gold as the adjoining letters, preserving the existing gold dot. The entire large headline must read "Radio MischWerk" in consistent gold.
+
+Keep absolutely everything else unchanged: original canvas size 2172 × 724 pixels and 3:1 aspect ratio, all lettering shapes, letter positions, font weights, the logo and its ivory wordmark at the left, headline layout, main tagline, iOS note, gold frame, background, grooves, spacing, sharpness. Do not redraw, restyle, rewrite, move, resize or add anything. The lower white tagline, left ivory logo/wordmark, and grey iOS note must retain their current colors. The only edited pixels should be those of this one white i stem and its anti-aliased edge. Return the complete corrected banner, opaque background.

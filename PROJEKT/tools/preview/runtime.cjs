@@ -5,19 +5,17 @@ function createPreviewRuntime(publicRadio, onEvent, startModeration = true) {
   const harness = createHarness(undefined, { onEvent });
   if (!publicRadio) { harness.config.streampanel.streamUrl = ''; }
   harness.config.ownerNick = 'Testleitung';
-  harness.config.curtainExemptNicks = ['Testleitung'];
-  const owner = harness.user(1, publicRadio ? harness.config.ownerNick : 'Testmoderation', 'owner');
+  const owner = harness.user(1, harness.config.ownerNick, 'owner');
   const ownerSession = harness.open(owner);
   if (publicRadio) {
-    harness.app.chatCommands.vorhang(owner, 'öffnen');
     ownerSession.remove(); owner.online = false;
-  } else if (startModeration) { harness.event(owner, ownerSession, 'mw:onAir'); }
+  } else if (startModeration) { harness.event(owner, ownerSession, 'mw:onAir', {pin:'0123',pinConfirmation:'0123'}); }
   if (!publicRadio) {
     [['Testhörer 1', 'Beispielinterpret – Beispieltitel 1'], ['Testhörer 2', 'Beispielinterpret – Beispieltitel 2']].forEach((sample, index) => {
       const user = harness.user(index + 2, sample[0]);
       harness.event(user, harness.open(user), 'mw:wish.submit', { submissionId: 'preview-' + index, text: sample[1] });
     });
   }
-  return { harness, publicRadio, clockAt: Date.now() };
+  return { harness, owner, publicRadio, clockAt: Date.now() };
 }
 module.exports = { createPreviewRuntime };

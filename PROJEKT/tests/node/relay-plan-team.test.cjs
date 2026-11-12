@@ -53,6 +53,33 @@ function seedEntries(f, entries, revision = 0) {
 }
 function result(f, kind = 'schedule') { f.h.advance(20000); return f.body()[kind + 'Results'][0]; }
 
+test('Homepage-Inhalte bleiben für Live und AutoDJ im bestehenden Relay-Wochencommit unverändert', () => {
+  for (const kind of ['live', 'autodj']) {
+    const f=fixture(),row=command(f);
+    Object.assign(row.entry,{kind,nick:kind==='live'?'otterchen':'MischWerk am Pult',topic:'  Web   Titel  '});
+    f.schedule(row);
+    const saved=f.saved().entries[0];
+    assert.equal(saved.topic,row.entry.topic);assert.equal(saved.nick,row.entry.nick);
+    assert.equal(saved.userId,kind==='live'?1:null,'Anzeigetext ersetzt keine native Identitätsprüfung');
+  }
+});
+test('Studioabgleich erhält den Webtitel eines aktiv gebundenen Homepage-Eintrags', () => {
+  const f=fixture(),row=command(f);
+  Object.assign(row.entry,{timing:'allDay',start:'00:00',end:'',topic:'Web-Original'});f.schedule(row);
+  const owner=f.h.user(1,'Otterchen'),radio=f.h.open(owner);
+  f.h.event(owner,radio,'mw:onAir',{});f.h.event(owner,radio,'mw:setTopic',{topic:'Natives Studiothema'});
+  assert.equal(f.runtime.state.topic,'Natives Studiothema');
+  f.h.advance(1000);f.h.event(owner,radio,'mw:offAir');
+  const saved=f.saved();assert.equal(saved.entries.length,1);assert.ok(saved.entries[0].actualEnd);
+  assert.equal(saved.entries[0].topic,'Web-Original');
+});
+test('Unveränderte Webtexte überschreiten keine Grenzen und übernehmen keine Steuerzeichen', () => {
+  for(const entry of [{topic:' '.repeat(81)+'Titel'},{topic:'Web\tTitel'},{nick:'Otterchen\n'},{nick:'Otterchen'+' '.repeat(50)}]) {
+    const f=fixture(),row=command(f);Object.assign(row.entry,entry);f.schedule(row);
+    assert.equal(f.saved().entries.length,0);assert.equal(result(f).reason,'validation');
+  }
+});
+
 test('Stabile ID ändert und löscht genau denselben nativen Eintrag nach Neustart', () => {
   const f = fixture(), row = command(f); f.schedule(row); f.h.app.onShutdown();
   const reboot = fixture({ store: f.store });
@@ -284,12 +311,16 @@ test('Mehrfachaufträge und ungültige Kennungen verändern nichts; einzelne Ber
   f.tick({ scheduleCommands: [command(f, { commandId: '__proto__' })] }); assert.equal(f.saved().entries.length, 1);
 });
 test('Beide Auftragsbereiche und Androidwünsche teilen dieselbe Antwort ohne rekursive Sendeschleife', () => {
-  const f = fixture(); f.reply({ scheduleCommands: [command(f)], moderatorCommands: [teamCommand()],
-    wishes: [{ submissionId: 'existing-wish', text: 'Band – Titel', displayName: null }] });
-  assert.equal(f.saved().entries.length, 1); assert.equal(f.runtime.state.radioModeratorRevision, 1); assert.equal(f.runtime.wishItems().length, 1);
-  assert.equal(f.calls.length, 1); f.h.advance(20000); assert.equal(f.body().wishUpdates[0].state, 'queued');
-  assert.equal(f.body().scheduleResults[0].state, 'applied'); assert.equal(f.body().moderatorResults[0].state, 'applied');
+  const f = fixture(), owner=f.h.user(1,'Otterchen','owner');
+  f.h.event(owner,f.h.open(owner),'mw:onAir',{});
+  const date=f.runtime.scheduleDay(f.runtime.scheduleToday(),7), week=f.runtime.scheduleWeek(date);
+  f.reply({ scheduleCommands:[command(f,{week,entry:{...command(f).entry,date}})], moderatorCommands:[teamCommand()],
+    wishes:[{submissionId:'existing-wish',text:'Band – Titel',displayName:null}] });
+  assert.equal(f.saved(week).entries.length,1);assert.equal(f.runtime.state.radioModeratorRevision,1);assert.equal(f.runtime.wishItems().length,1);
+  assert.equal(f.calls.length,1);f.h.advance(20000);assert.equal(f.body().wishUpdates[0].state,'queued');
+  assert.equal(f.body().scheduleResults[0].state,'applied');assert.equal(f.body().moderatorResults[0].state,'applied');
 });
+
 test('Leere Auftragsarrays erhalten die bisherige Nachlieferung großer Wunschquittungsmengen', () => {
   const f = fixture(); f.reply(); const at = f.h.now() - 120000;
   f.store.setObject('mischwerk.android.receipts.v1', { version: 1, entries: Array.from({ length: 205 }, (_, i) => ({
@@ -318,7 +349,7 @@ test('Remoteentzug beendet fremde Moderation, erhält aber die automatischen Inh
     const f = fixture(), nick = ownerEntry ? 'Otterchen' : 'DJ Test', person = f.h.user(ownerEntry ? 1 : 2, nick);
     f.team(teamCommand({ nick })); f.h.advance(20000); f.reply();
     const radio = person.sessions.find(s => s.content.viewMode === 'Headerbar');
-    f.h.event(person, radio, 'mw:onAir'); assert.equal(f.runtime.state.moderator.userId, person.id);
+    f.h.event(person, radio, 'mw:onAir', {}); assert.equal(f.runtime.state.moderator.userId, person.id);
     f.reply({ moderatorCommands: [teamCommand({ commandId: 'remove-active', operation: 'remove', expectedRevision: 1, nick })] });
     assert.deepEqual(plain(f.runtime.state.radioModeratorUserIds), []);
     assert.equal(!!f.runtime.state.moderator, ownerEntry);

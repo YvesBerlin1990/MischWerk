@@ -16,10 +16,10 @@ function appoint(h, owner, session, person) {
 test('Nick-Bot meldet bestätigte An-/Abmeldung einmalig mit echtem Nick; Verlängern und Ansichten bleiben still', () => {
   const { h, owner, listener, os, ls } = fixture();
   assert.deepEqual(h.bot.messages, []);
-  assert.equal(result(h.event(owner, os, 'mw:onAir', { nick: 'Gefälschter Nick' })).ok, true);
+  assert.equal(result(h.event(owner, os, 'mw:onAir', {nick: 'Gefälschter Nick' })).ok, true);
   assert.deepEqual(h.bot.messages, [onAir('Otterchen')]);
   const key = h.state(owner, os).moderator.sessionKey;
-  assert.equal(result(h.event(owner, os, 'mw:onAir', { expectedModerator: key })).ok, true);
+  assert.equal(result(h.event(owner, os, 'mw:onAir', {expectedModerator: key })).ok, true);
   h.event(owner, os, 'mw:openStudio');
   h.event(listener, ls, 'mw:openSchedule');
   h.state(listener, ls); h.state(owner, os); h.app.onAppStart();
@@ -32,12 +32,12 @@ test('Nick-Bot meldet bestätigte An-/Abmeldung einmalig mit echtem Nick; Verlä
 test('Abgewiesene Rollen, veraltete Aktionen und fehlgeschlagene Speicherung erzeugen keine Botmeldung', () => {
   const { h, owner, listener, os, ls } = fixture();
   const save = h.store.setObject;
-  assert.equal(result(h.event(listener, ls, 'mw:onAir', { canModerate: true })).ok, false);
+  assert.equal(result(h.event(listener, ls, 'mw:onAir', {canModerate: true })).ok, false);
   h.store.setObject = () => { throw new Error('private-storage-detail'); };
-  assert.equal(result(h.event(owner, os, 'mw:onAir')).ok, false);
+  assert.equal(result(h.event(owner, os, 'mw:onAir', {})).ok, false);
   assert.deepEqual(h.bot.messages, []);
   h.store.setObject = save;
-  h.event(owner, os, 'mw:onAir');
+  h.event(owner, os, 'mw:onAir', {});
   assert.equal(result(h.event(owner, os, 'mw:offAir', { expectedModerator: 'veraltet' })).ok, false);
   h.store.setObject = () => { throw new Error('private-storage-detail'); };
   assert.equal(result(h.event(owner, os, 'mw:offAir')).ok, false);
@@ -49,9 +49,9 @@ test('Bestätigte Übergabe meldet beide Moderatoren gemeinsam; Besitzerabmeldun
   const { h, owner, os } = fixture();
   const dj = h.user(3, 'Radio-DJ'), ds = h.open(dj);
   appoint(h, owner, os, dj);
-  h.event(owner, os, 'mw:onAir');
+  h.event(owner, os, 'mw:onAir', {});
   h.event(owner, os, 'mw:handover.request', { expectedModerator: h.state(owner, os).moderator.sessionKey, nick: dj.nick });
-  h.event(dj, ds, 'mw:handover.accept', { id: h.state(dj, ds).handover.incoming.id, topic: '' });
+  h.event(dj, ds, 'mw:handover.accept', {id: h.state(dj, ds).handover.incoming.id, topic: '' });
   const transfer = '🎙️ Otterchen macht Platz im Studio – Radio-DJ ist jetzt live ON AIR bei Radio MischWerk!';
   assert.deepEqual(h.bot.messages, [onAir('Otterchen'), transfer]);
   assert.equal(result(h.event(owner, os, 'mw:offAir')).ok, true);
@@ -64,8 +64,8 @@ for (const cause of ['Channel verlassen', 'Ernennung entzogen', 'Nutzer gelösch
     const dj = h.user(3, 'Radio-DJ'), ds = h.open(dj);
     appoint(h, owner, os, dj);
     const presenter = cause === 'Besitzerrechte verloren' ? owner : dj;
-    h.event(presenter, presenter === owner ? os : ds, 'mw:onAir');
-    h.event(owner, os, 'mw:setTopic', { topic: 'Thema bleibt bei automatischem Ende' });
+    h.event(presenter, presenter === owner ? os : ds, 'mw:onAir', {});
+    h.event(presenter, presenter === owner ? os : ds, 'mw:setTopic', { topic: 'Thema bleibt bei automatischem Ende' });
     if (cause === 'Channel verlassen') { presenter.online = false; h.app.onUserLeft(presenter); }
     if (cause === 'Ernennung entzogen') { h.event(owner, os, 'mw:removeRadioModerator', { userId: dj.id }); }
     if (cause === 'Nutzer gelöscht') { h.app.onUserDeleted(dj.id); }
@@ -80,7 +80,7 @@ for (const cause of ['Channel verlassen', 'Ernennung entzogen', 'Nutzer gelösch
 
 test('Verlassen mit Speicherfehler beendet die öffentliche Moderation ohne Wiederholung bei Wiederbeitritt', () => {
   const { h, owner, listener, os, ls } = fixture();
-  h.event(owner, os, 'mw:onAir');
+  h.event(owner, os, 'mw:onAir', {});
   h.store.setObject = () => { throw new Error('storage-failed'); };
   owner.online = false; h.app.onUserLeft(owner);
   h.state(listener, ls); h.state(listener, ls);
@@ -96,7 +96,7 @@ test('Botfehler nehmen die Studioaktion nicht zurück und werden nicht bei jedem
   const { h, owner, listener, os, ls } = fixture();
   let attempts = 0;
   h.bot.sendPublicMessage = () => { attempts++; throw new Error('private-bot-detail'); };
-  assert.equal(result(h.event(owner, os, 'mw:onAir')).ok, true);
+  assert.equal(result(h.event(owner, os, 'mw:onAir', {})).ok, true);
   h.state(listener, ls); h.state(owner, os);
   assert.equal(attempts, 1);
   assert.equal(h.state(owner, os).user.isOnAir, true);
@@ -109,14 +109,14 @@ test('Botfehler nehmen die Studioaktion nicht zurück und werden nicht bei jedem
 
 test('App-Neustart übernimmt gültige Moderation still und entfernt alte Endzeitfelder ohne Start-/Endmeldung', () => {
   const { h, owner, os } = fixture();
-  h.event(owner, os, 'mw:onAir');
+  h.event(owner, os, 'mw:onAir', {});
   const restarted = createHarness(h.store, { users: [{ id: 2, nick: 'Otterchen', role: 'owner' }] });
   const current = restarted.user(2), session = current.sessions[0];
   restarted.app.onAppStart(); restarted.state(current, session);
   assert.deepEqual(restarted.bot.messages, []);
   assert.equal(result(restarted.event(current, session, 'mw:offAir')).ok, true);
   assert.deepEqual(restarted.bot.messages, [offAir('Otterchen')]);
-  restarted.event(current, session, 'mw:onAir');
+  restarted.event(current, session, 'mw:onAir', {});
   h.store.data['mischwerk.state.v1'].moderator.expiresAt = 0;
   const expired = createHarness(h.store, { users: [{ id: 2, nick: 'Otterchen', role: 'owner' }] });
   assert.deepEqual(expired.bot.messages, []);
@@ -125,8 +125,9 @@ test('App-Neustart übernimmt gültige Moderation still und entfernt alte Endzei
 
 test('Moderatornick wird über die dokumentierte KCode-Escapemethode als Text eingesetzt', () => {
   const { h, owner, os } = fixture();
+  appoint(h,owner,os,owner);
   owner.nick = '_DJ°>/befehl|Text<°';
-  h.event(owner, os, 'mw:onAir');
+  h.event(owner, os, 'mw:onAir', {});
   assert.deepEqual(h.escapedNicks, [owner.nick]);
   const escaped = owner.nick.replace(/[_°<>\\]/g, character => '\\' + character);
   assert.deepEqual(h.bot.messages, [onAir(escaped)]);

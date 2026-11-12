@@ -18,6 +18,7 @@ class AppRuntime {
     this.contents = new TestContents(this); this.users = new TestUsers(this, options.profiles);
     this.persistence = new TestPersistence(options.dataDir, () => this.faults.failPersistence,
       write => this.emit('persistence', write));
+    this.userPersistences = new Map();
     this.cacheVersion = 0; this.loadedFiles = []; this.errors = [];
     this.channelTopic = '';
   }
@@ -67,6 +68,30 @@ class AppRuntime {
     };
     const server = {
       execute: file => runtime.execute(file), getPersistence: () => runtime.persistence.api(),
+      listFiles: folder => {
+        if (typeof folder !== 'string') throw new Error('Runtime-Pfad als String erforderlich.');
+        const relative = folder === '.' || folder === '/' ? '' : folder.replace(/\/$/,'');
+        if (relative.startsWith('/') || relative.split(/[\\/]/).includes('..')) throw new Error('Dateiliste außerhalb der App.');
+        const prefix = relative ? relative+'/' : '';
+        if (!runtime.options.source) {
+          const directory=path.resolve(runtime.appDir,relative);
+          if(directory!==runtime.appDir&&!directory.startsWith(runtime.appDir+path.sep))throw new Error('Dateiliste außerhalb der App.');
+          return fs.readdirSync(directory,{withFileTypes:true}).map(entry=>entry.name+(entry.isDirectory()?'/':''))
+            .sort((a,b)=>(b.endsWith('/')-a.endsWith('/'))||a.toLowerCase().localeCompare(b.toLowerCase()));
+        }
+        const names = [...runtime.options.source.files.keys()];
+        const entries = new Set();
+        for (const name of names.filter(name=>name.startsWith(prefix))) {
+          const rest=name.slice(prefix.length),slash=rest.indexOf('/');
+          entries.add(slash<0?rest:rest.slice(0,slash+1));
+        }
+        return [...entries].sort((a,b)=>(b.endsWith('/')-a.endsWith('/'))||a.toLowerCase().localeCompare(b.toLowerCase()));
+      },
+      getFullImagePath: name => {
+        if (typeof name !== 'string' || !name || name.startsWith('/') || name.split('/').includes('..') || !/\.(png|gif)$/.test(name)) throw new Error('Relativer eigener Bildpfad erforderlich.');
+        if (!fs.existsSync(path.join(runtime.appDir, 'www', name))) throw new Error('Eigenes Bild fehlt.');
+        return 'https://mischwerk.invalid/' + name;
+      },
       getDefaultLogger: () => logger, getChannel: () => channel, getUserAccess: () => runtime.users.access(),
       getDefaultBotUser: () => ({ getNick: () => 'MischWerk-Testbot',
         sendPublicMessage: message => runtime.emit('public', { nick: 'MischWerk-Testbot', message: String(message) }) }),
@@ -85,6 +110,7 @@ class AppRuntime {
       this.getAssetPath = () => assetPath; this.getPageData = () => copy(data);
     }
     const context = {
+      RandomOperations: { getRandomString: (length, alphabet) => Array.from(require('node:crypto').randomBytes(length), value => alphabet[value % alphabet.length]).join('') },
       Date: this.clock.Date, HTMLFile, UserType: this.enums.UserType, AppViewMode: this.enums.AppViewMode,
       Color: strict({ fromHexString: value => {
         if (typeof value !== 'string' || !/^#[\da-f]{6}$/i.test(value)) throw new Error('Color.fromHexString benötigt #RRGGBB.');
@@ -118,6 +144,13 @@ class AppRuntime {
     try { this.invokeFunction(this.app.onUserJoined, [record.user]); }
     catch (error) { this.leave(nick); throw error; }
     return record;
+  }
+  userPersistence(id) {
+    if (!Number.isSafeInteger(id) || id <= 0) throw new Error('Ungültige UserPersistence-ID.');
+    if (!this.userPersistences.has(id)) this.userPersistences.set(id, new TestPersistence(
+      path.join(this.options.dataDir, 'user-' + id), () => this.faults.failPersistence,
+      write => this.emit('userPersistence', { userId:id, ...write })));
+    return this.userPersistences.get(id).api();
   }
   leave(nick) {
     const record = this.users.find(nick); if (!record || !record.state.online) return;

@@ -17,11 +17,6 @@ MischWerkModules.attachSessions = function (runtime, config) {
         });
         views = views.filter(function (view) { return view.userId !== userId; });
     };
-    runtime.activeSession = function (user, session) {
-        try {
-            return !!session && runtime.online(user) && user.equals(session.getUser()) && runtime.isSessionActive(session);
-        } catch (error) { return false; }
-    };
     runtime.overlayDraftState = function (user, radio, kind) {
         if (!radio || !radio.overlayDrafts) { return null; }
         var drafts = radio.overlayDrafts;
@@ -34,7 +29,7 @@ MischWerkModules.attachSessions = function (runtime, config) {
         return radio && radio.overlaySelections && radio.overlaySelections[kind] || {};
     }
     function prepareView(user, kind, opening) {
-        if (['radio', 'wishes', 'studio', 'team'].indexOf(kind) === -1) { throw runtime.failure('Diese Ansicht ist nicht verfügbar.'); }
+        if (['radio', 'wishes', 'studio', 'team', 'schedule'].indexOf(kind) === -1) { throw runtime.failure('Diese Ansicht ist nicht verfügbar.'); }
         if (!runtime.online(user)) { throw runtime.failure('Bitte öffne MischWerk im MyChannel.'); }
         if (kind !== 'radio' && (!opening || !opening.radioContent || !views.some(function (view) {
             return view.kind === 'radio' && view.userId === runtime.userId(user) && view.content === opening.radioContent && view.content.getSessions().length;
@@ -43,12 +38,13 @@ MischWerkModules.attachSessions = function (runtime, config) {
         if (kind === 'studio' && !runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf das Moderationsmenü öffnen.'); }
         if (kind === 'team' && !runtime.canAdminister(user)) { throw runtime.failure('Nur Otterchen als Channelinhaber darf die Verwaltung öffnen.'); }
         runtime.prune();
-        if (kind === 'wishes' && !runtime.state.requestsEnabled) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
+        if (kind === 'wishes' && !runtime.requestsAvailable(user)) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
         var selected = selection(opening, kind), page = selected.page || 0;
         if (kind === 'studio' && selected.queueId) {
             runtime.wishItems().some(function (item, index) { if (item.id !== selected.queueId) { return false; } page = Math.floor(index / runtime.pageSize); return true; });
         }
         var data = runtime.snapshot(user, page, selected.myPage || 0, selected.feedbackId || null, selected.radioModeratorPage || 0, kind);
+        delete data.user.pinSetupRequired;
         data.view = kind; data.overlay = kind !== 'radio';
         data.viewRevision = 1;
         if (kind !== 'radio') {
@@ -97,6 +93,7 @@ MischWerkModules.attachSessions = function (runtime, config) {
                 }); }
             }
             if (closedKind === 'radio') {
+                runtime.changed('radio-closed');
                 views.slice().forEach(function (view) {
                     if (view.radioContent === content) { runtime.closeView(view); }
                 });

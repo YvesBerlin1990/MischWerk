@@ -17,7 +17,7 @@
     function create() {
         var r = MischWerkModules.createRuntime(MischWerkConfig);
         r.now = function () { return clock; }; r.warn = function () {}; r.broadcast = function () {};
-        r.moderatorIsActive = function () { return false; }; r.dropWebsiteUser = function () {};
+        r.moderatorIsActive = function () { return false; };r.requestsAvailable=function(){return r.state.requestsEnabled;}; r.dropWebsiteUser = function () {};
         r.pendingAndroidUpdates = function () { return []; }; r.confirmAndroidUpdates = function () {};
         r.androidReceiptsReady = function () { return true; };
         MischWerkModules.attachChanges(r); MischWerkModules.attachRelayResults(r);
@@ -49,7 +49,7 @@
         channelTextTasks = {}; runtime = create();
         var week = runtime.scheduleWeek(runtime.scheduleToday()), prefix = 'mischwerk.schedule.v1.';
         var plan = { commandId: 'rhino-plan', id: 'firebase-plan', operation: 'save', week: week, expectedRevision: 0,
-            entry: { date: runtime.scheduleToday(), kind: 'live', timing: 'fixed', start: '18:00', end: '19:00', nick: 'Otterchen', topic: 'Sendung' } };
+            entry: { date: runtime.scheduleToday(), kind: 'live', timing: 'fixed', start: '18:00', end: '19:00', nick: 'Otterchen', topic: '  Web   Sendung  ' } };
         var team = { commandId: 'rhino-team', operation: 'add', expectedRevision: 0, nick: 'DJ Test' };
         check(body().scheduleRevisions.length === 3 && body().moderatorRevision === 0, 'Tatsächliche Revisionen in Rhino');
         check(!body().scheduleUpdates && !body().teamUpdates, 'Keine vollständigen Listen');
@@ -61,6 +61,8 @@
         check(committed.relayBindings[0].firebaseId === plan.id && committed.relayBindings[0].nativeId === committed.entries[0].id,
             'Firebase-ID, native Änderung und Quittung in einem Commit');
         check(committed.relayResults[0].revision === committed.revision, 'Quittung enthält tatsächliche Revision');
+        check(committed.entries[0].topic === plan.entry.topic && committed.entries[0].nick === plan.entry.nick,
+            'Empfangene Webtexte bleiben unter Rhino unverändert');
         tick();
         check(body().scheduleResults[0].state === 'applied' && body().moderatorResults[0].state === 'applied', 'Regulärer Folgepost quittiert');
         check(body().moderatorRevision === 1 && !body().teamUpdates, 'Nur Teamrevision ohne Nicks');

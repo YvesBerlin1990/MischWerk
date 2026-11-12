@@ -45,7 +45,7 @@ MischWerkModules.attachHandover = function (runtime) {
         if (pending && pending.toId === userId) { view.incoming = { id: pending.id, nick: pending.fromNick, notes: pending.notes }; }
         return view;
     };
-    runtime.changeHandover = function (user, type, data) {
+    runtime.changeHandover = function (user, type, data, nativeSession) {
         runtime.pruneHandover();
         if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf eine Übergabe verwenden.'); }
         var userId = runtime.userId(user);
@@ -78,7 +78,7 @@ MischWerkModules.attachHandover = function (runtime) {
         if (type !== 'mw:handover.accept' || pending.toId !== userId) {
             throw runtime.failure('Diese Übergabe ist nicht für dich vorgesehen.');
         }
-        runtime.transferModeration(user, pending.moderatorKey, data.topic === undefined ? '' : data.topic);
+        runtime.transferModeration(user, pending.moderatorKey, data.topic === undefined ? '' : data.topic, data, nativeSession);
         received = { id: pending.id, userId: userId, fromId: pending.fromId,
             since: runtime.state.moderator.since, notes: pending.notes };
         clear();

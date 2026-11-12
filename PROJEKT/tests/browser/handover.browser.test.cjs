@@ -8,13 +8,19 @@ const { createHarness } = require('../support/knuddels.cjs');
 const root = path.resolve(__dirname, '../..');
 const browserSource=process.env.MISCHWERK_TEST_UPLOAD?path.join(process.env.MISCHWERK_TEST_UPLOAD,'www'):path.join(root,'app/www');
 const {reveal,readText,fits:studioFits}=require('../support/studio-browser.cjs');
+const studioPictures=path.join(require('node:os').tmpdir(),'MischWerk-Pruefbilder','moderation-neu');fs.mkdirSync(studioPictures,{recursive:true});
 let browser;
 test.before(async () => { browser = await chromium.launch({ headless: true, channel: 'msedge' }); });
 test.after(async () => { await browser?.close(); });
-async function setup(t, width = 780, longNames = false) {
+async function setup(t, width = 780, longNames = false, knownPin = true) {
   const h = createHarness(), owner = h.user(1, 'Otterchen', 'owner'), next = h.user(2, longNames ? 'D'.repeat(50) : 'Nächster DJ');
   const radio = h.open(owner); h.event(owner, radio, 'mw:addRadioModerator', { nick: next.nick });
-  h.event(owner, radio, 'mw:onAir'); h.event(owner, radio, 'mw:setTopic', { topic: 'Bisherige Sendung' });
+  const nextRadio=h.open(next);
+  if(knownPin){
+    h.event(next,nextRadio,'mw:onAir',{});h.event(next,nextRadio,'mw:offAir');
+    h.bot.messages.length=0;
+  }
+  h.event(owner, radio, 'mw:onAir', {}); h.event(owner, radio, 'mw:setTopic', { topic: 'Bisherige Sendung' });
   const context = await browser.newContext({ viewport: { width, height: 740 } });
   t.after(() => context.close());
   const records = [], errors = [];
@@ -46,7 +52,7 @@ async function setup(t, width = 780, longNames = false) {
     await route.fulfill({ contentType: types[path.extname(file)], body: fs.readFileSync(file) });
   });
   for (const user of [owner, next]) {
-    const header = user === owner ? radio : h.open(user);
+    const header = user === owner ? radio : nextRadio;
     h.event(user, header, 'mw:openStudio');
     const session = user.sessions.find(item => item.content.viewMode === 'Overlay');
     const state = h.state(user, session); state.view = 'studio'; state.station.configured = false;
@@ -91,6 +97,18 @@ async function request(source, target) {
   await reveal(target,'#handover-accept','handover');
 }
 
+test('Moderationsmenü ohne PIN übernimmt erst nach Jetzt übernehmen',async t=>{
+ const {source,target,h,records,errors}=await setup(t,320,false,false);
+ assert.equal(await target.locator('#moderation-login-form,#moderation-pin,#handover-pin').count(),0);
+ assert.equal(h.bot.messages.length,1);assert.equal(await target.locator('#studio-topic').isDisabled(),true);
+ assert.equal(h.state(records[0].user,records[0].session).user.isOnAir,true);
+ await request(source,target);records[1].dropResult='mw:handover.accept';
+ await reveal(target,'#handover-topic','handover');await target.locator('#handover-topic').fill('Bisherige Sendung');
+ await reveal(target,'#handover-accept','handover');await target.locator('#handover-accept').click();
+ await target.locator('#off-air:not([disabled])').waitFor();
+ assert.equal(await target.locator('#studio-topic').inputValue(),'Bisherige Sendung');assert.equal(h.bot.messages.length,2);assert.deepEqual(errors,[]);
+});
+
 test('Bestätigte Übergabe im Browser: Auswahl, Warten, Annahme mit Thema und genau eine gemeinsame Botansage', async t => {
   const { h, source, target, errors } = await setup(t);
   assert.equal(await target.locator('#on-air').isDisabled(), true);
@@ -104,6 +122,7 @@ test('Bestätigte Übergabe im Browser: Auswahl, Warten, Annahme mit Thema und g
     await target.screenshot({ path: path.join(folder, 'Uebergabe-Annehmen.png') });
   }
   await reveal(target,'#handover-accept','handover');await target.locator('#handover-accept').click();
+  await target.locator('#handover-panel').waitFor({state:'hidden'});
   await reveal(target,'#off-air');await target.locator('#off-air:not([disabled])').waitFor();
   await source.locator('#studio-host').filter({ hasText: 'Nächster DJ ist am Mikrofon' }).waitFor();
   assert.equal(await target.locator('#studio-topic').inputValue(), 'Die nächste Sendung');
@@ -172,7 +191,7 @@ test('Private Übergabenotizen erscheinen im echten Browserablauf vor und nach A
   assert.equal(await readText(target,'#studio-notes-text'),notes);
   await target.locator('#studio-notes-text').scrollIntoViewIfNeeded();
   assert.equal(await target.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-  if(process.env.MISCHWERK_CAPTURE_STUDIO_FEATURES)await target.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/moderation/moderation-320.png'),fullPage:true});
+  if(process.env.MISCHWERK_CAPTURE_STUDIO_FEATURES)await target.screenshot({path:path.join(studioPictures,'moderation-320.png'),fullPage:true});
   assert.equal(h.bot.messages.length,2);assert.deepEqual(errors,[]);
 });
 
@@ -180,27 +199,26 @@ test('Ausgewählte Themen- und Übergabegruppen bleiben nach vorübergehend grö
  const {source,errors}=await setup(t,320);
  await source.setViewportSize({width:320,height:568});await reveal(source,'#studio-topic');
  await source.setViewportSize({width:320,height:1400});await source.waitForFunction(()=>document.getElementById('studio-paging').hidden);
- await source.setViewportSize({width:320,height:568});await source.waitForFunction(()=>!document.getElementById('studio-paging').hidden);
+ await source.setViewportSize({width:320,height:568});await source.waitForFunction(()=>document.getElementById('studio-paging').hidden);
  assert.equal(await source.locator('#studio-topic').isVisible(),true,'Die gewählte Themengruppe bleibt bei Rückkehr zur kleinen Höhe erhalten');
  await reveal(source,'#handover-open');await source.locator('#handover-open').click();await reveal(source,'#handover-notes','handover');
  await source.setViewportSize({width:320,height:1400});await source.waitForFunction(()=>document.getElementById('handover-paging').hidden);
- await source.setViewportSize({width:320,height:568});await source.waitForFunction(()=>!document.getElementById('handover-paging').hidden);
+ await source.setViewportSize({width:320,height:360});await reveal(source,'#handover-notes');
  assert.equal(await source.locator('#handover-notes').isVisible(),true,'Die gewählte Notizgruppe bleibt bei Rückkehr zur kleinen Höhe erhalten');
  assert.deepEqual(errors,[]);
 });
 
-test('Sehr niedrige Übergabe lässt übergroße Bediengruppen mit Rad und Touch scrollen',async t=>{
+test('Sehr niedrige Übergabe erreicht jede Bediengruppe ohne Scrollen',async t=>{
  const {source,target,drain,errors}=await setup(t,320);
  for(const page of [source,target])await page.setViewportSize({width:320,height:360});
  await reveal(source,'#handover-open');await source.locator('#handover-open').click();await reveal(source,'#handover-notes','handover');
  const area=source.locator('#handover-body');
- assert.equal(await area.evaluate(n=>getComputedStyle(n).overflowY),'auto','Die übergroße Notizgruppe hat einen nativ bedienbaren Scrollweg');
- assert.ok(await area.evaluate(n=>n.scrollHeight>n.clientHeight));
- await area.hover();await source.mouse.wheel(0,600);await source.waitForFunction(()=>document.getElementById('handover-body').scrollTop>0);
- const scroll=await area.evaluate(n=>n.scrollTop);await source.evaluate(()=>Client.sendEvent('mw:refresh',{requestId:'handover-scroll-check'}));await drain();
+ assert.equal(await area.evaluate(n=>getComputedStyle(n).overflowY),'hidden');
+ await studioFits(source);await area.hover();await source.mouse.wheel(0,600);
+ const scroll=await area.evaluate(n=>n.scrollTop);assert.equal(scroll,0);await source.evaluate(()=>Client.sendEvent('mw:refresh',{requestId:'handover-scroll-check'}));await drain();
  await source.waitForFunction(()=>window.__lastSnapshot?.refreshRequestId==='handover-scroll-check');
  assert.equal(await area.evaluate(n=>n.scrollTop),scroll,'Ein Zustandsrefresh setzt die gelesene Bediengruppe nicht an den Anfang');
- const send=source.locator('#handover-request');assert.equal(await send.evaluate(n=>{const b=n.getBoundingClientRect();return b.top>=0&&b.bottom<=innerHeight;}),true);
+ await reveal(source,'#handover-request');const send=source.locator('#handover-request');assert.equal(await send.evaluate(n=>{const b=n.getBoundingClientRect();return b.top>=0&&b.bottom<=innerHeight;}),true);
  await send.click();await reveal(target,'#handover-open');await target.locator('#handover-open').click();await reveal(target,'#handover-accept','handover');
  await target.locator('#handover-body').hover();await target.mouse.wheel(0,600);await target.locator('#handover-accept').click();
  await target.locator('#handover-panel').waitFor({state:'hidden'});assert.deepEqual(errors,[]);
@@ -208,7 +226,7 @@ test('Sehr niedrige Übergabe lässt übergroße Bediengruppen mit Rad und Touch
 
 test('Bestätigter Zustandswechsel schließt die Übergabe auch bei verlorener Annahmequittung und verwirft den alten Themenentwurf',async t=>{
  const {source,target,h,records,errors}=await setup(t,320);
- await reveal(target,'#studio-topic');await target.locator('#studio-topic').fill('Alter ungespeicherter Studioentwurf');
+ await reveal(target,'#studio-topic');assert.equal(await target.locator('#studio-topic').isDisabled(),true);await target.evaluate(()=>{const n=document.getElementById('studio-topic');n.value='Alter ungespeicherter Studioentwurf';n.dispatchEvent(new Event('input',{bubbles:true}));});
  await request(source,target);await reveal(target,'#handover-topic','handover');await target.locator('#handover-topic').fill('Bestätigte neue Sendung');
  await target.clock.install();
  records[1].dropResult='mw:handover.accept';await reveal(target,'#handover-accept','handover');await target.locator('#handover-accept').click();
@@ -248,8 +266,8 @@ test('Abgelehnte Anfrage hinterlässt keine alte Übergabeidentität, die einen 
  const {source,target,errors}=await setup(t,320);await request(source,target);
  await target.locator('#handover-decline').click();await target.locator('#handover-panel').waitFor({state:'hidden'});
  await source.locator('#handover-back').click();await reveal(source,'#off-air');await source.locator('#off-air').click();
- await reveal(target,'#studio-topic');await target.locator('#studio-topic').fill('Entwurf für meine unabhängige Sendung');
- await reveal(target,'#on-air');await target.locator('#on-air').click();await target.locator('#off-air:not([disabled])').waitFor();
+ await reveal(target,'#on-air');await require('../support/studio-browser.cjs').login(target);await target.locator('#off-air:not([disabled])').waitFor();
+ await reveal(target,'#studio-topic');await target.locator('#studio-topic').fill('Entwurf für meine unabhängige Sendung');await target.evaluate(()=>Client.sendEvent('mw:refresh',{}));await target.waitForTimeout(150);
  assert.equal(await target.locator('#studio-topic').inputValue(),'Entwurf für meine unabhängige Sendung','Eine neue eigene Anmeldung ist keine Annahme der alten, abgelehnten Anfrage');
  assert.deepEqual(errors,[]);
 });
@@ -258,7 +276,7 @@ test('Verlorene Annahmequittung wird auch bei gleichzeitig geändertem Thema ein
  const {source,target,h,owner,records,drain,flush,errors}=await setup(t,320);await request(source,target);
  const record=records[1];record.dropResult='mw:handover.accept';record.holdStates=true;
  await target.locator('#handover-accept').click();await drain();
- h.event(owner,records[0].session,'mw:setTopic',{topic:'Parallel bestätigte Änderung'});await flush();
+ h.event(record.user,record.session,'mw:setTopic',{topic:'Parallel bestätigte Änderung'});await flush();
  record.holdStates=false;await target.evaluate(e=>window.__emit(e.type,e.data),record.held.at(-1));
  await target.locator('#handover-panel').waitFor({state:'hidden'});await reveal(target,'#off-air');
  assert.equal(await target.locator('#off-air').isDisabled(),false,'Die bestätigte Übergabe bleibt trotz späterer Themenänderung eindeutig');

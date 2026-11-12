@@ -15,22 +15,30 @@ MischWerkUI.define('updates', function (dependencies) {
   var signals = dependencies.signals;
   function radioAvailability() {
     var state = model.current(), live = model.connected(), pending = commands.pending();
+    var wishButton = dom.el('open-wishes'), wishesAvailable = state.requestsEnabled === true;
+    var wishFocused = document.activeElement === wishButton && document.hasFocus();
     dom.el('studio-tab').hidden = !state.user.showModerationButton;
     dom.el('studio-tab').disabled = !live || pending || !state.user.showModerationButton;
     dom.el('radio-private-actions').hidden = !state.user.showModerationButton;
+    dom.el('radio-panel').classList.toggle('has-moderation', !dom.el('radio-private-actions').hidden);
     dom.el('radio-listener-brand').hidden = !dom.el('radio-private-actions').hidden;
     dom.el('radio-actions').classList.toggle('public-only', dom.el('radio-private-actions').hidden);
-    dom.el('open-schedule').disabled = true;
-    dom.el('open-schedule').setAttribute('aria-disabled', 'true');
-    dom.el('schedule-button-caption').hidden = false;
-    dom.el('open-schedule').title = 'Sendeplan – In Kürze';
-    dom.el('open-schedule').removeAttribute('aria-haspopup');
-    dom.el('open-wishes').classList.toggle('wishes-closed', !state.requestsEnabled);
+    dom.el('open-schedule').disabled = !live || !!pending;
+    dom.el('open-schedule').setAttribute('aria-disabled', String(dom.el('open-schedule').disabled));
+    dom.el('schedule-button-caption').hidden = true;
+    dom.el('open-schedule').title = 'Sendeplan öffnen';
+    dom.el('open-schedule').setAttribute('aria-haspopup', 'dialog');
+    wishButton.hidden = !wishesAvailable;
+    dom.el('radio-panel').classList.toggle('has-wishes', wishesAvailable);
+    dom.el('open-wishes').classList.toggle('wishes-closed', !wishesAvailable);
     dom.setText('wish-button-caption', !state.requestsEnabled ? 'Deaktiviert' : !live ? 'Verbindung fehlt' : 'Dein Musikwunsch');
     dom.el('open-wishes').title = !state.requestsEnabled ? 'Wunschbox deaktiviert' :
       !live ? 'Verbindung zum Channel fehlt' : 'Wunschbox öffnen';
-    dom.el('open-wishes').disabled = !live || !state.requestsEnabled || pending;
+    dom.el('open-wishes').disabled = !live || !wishesAvailable || pending;
     dom.el('open-wishes').setAttribute('aria-disabled', String(dom.el('open-wishes').disabled));
+    if (!wishesAvailable && wishFocused) {
+      dom.el(dom.el('open-schedule').disabled ? 'mute-button' : 'open-schedule').focus({ preventScroll:true });
+    }
     dom.setText('host-name', state.moderator ? state.moderator.nick : 'Radio Mischwerk');
     presentation.renderOnAirStatus();
     player.renderStatus();
@@ -43,6 +51,7 @@ MischWerkUI.define('updates', function (dependencies) {
     if (team) { team.availability(); }
     layout.availability(commands.pending());
     if (model.view === 'radio') { radioAvailability(); }
+    if (model.view === 'studio') { layout.resizeDialog(); }
   }
   function receive(change) {
     var state = model.current();

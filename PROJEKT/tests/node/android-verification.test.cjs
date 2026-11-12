@@ -1,3 +1,4 @@
+// Interne Fachcontroller direkt prüfen; /mw verbindung ist kein Chat-Einstieg mehr.
 // Ausschließlich Plattform-Fakes und lokale Testschlüssel; kein echter HTTP-Aufruf.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -16,7 +17,7 @@ function fixture(options = {}) {
   });
   const owner = h.user(1, 'Otterchen', 'owner');
   return { h, owner, runtime, calls, hooks, value, options,
-    run(user = owner, params = 'http-pruefen') { h.app.chatCommands['mischwerk-relay'](user, params); },
+    run(user = owner, params = 'http-pruefen') { h.runtime.androidRelayCommand(user,params); },
     reply(change = {}) { const p = calls.at(-1).parameters;
       (change.failed ? p.onFailure : p.onSuccess)(change.raw ?? JSON.stringify({ accepted: true, serverTime: h.now() }),
         { getResponseCode: () => change.status ?? 200, getURLString: () => change.url ?? target }); },
@@ -103,12 +104,12 @@ test('Fehlende native HTTP-API und Uhrenrücksprung erzeugen keinen Netzwerkvers
   assert.ok(f.result().errors.includes('clock-invalid'));
   const store = persistence({ [key]: { enabled:false, runtimeVerified:false, syncUrl:target, syncSecret:'s'.repeat(64) } });
   const h = createHarness(store, {serverMethods:{getExternalServerAccess:undefined}}), owner = h.user(1,'Otterchen','owner');
-  h.app.chatCommands['mischwerk-relay'](owner,'http-pruefen');
+  h.runtime.androidRelayCommand(owner,'http-pruefen');
   assert.equal(JSON.parse(owner.messages.at(-1)).nativeResponseAccepted,false); assert.equal(h.timers.size,0);
 });
 
 test('Speichern neuer privater Einstellungen verwirft den alten Einmaltest endgültig', () => {
-  const f = fixture(); f.run(); f.h.app.chatCommands['mischwerk-relay'](f.owner,'einrichten');
+  const f = fixture(); f.run(); f.h.runtime.androidRelayCommand(f.owner,'einrichten');
   const session = f.owner.sessions.find(s=>s.content.htmlFile.assetPath==='relay-settings.html');
   f.h.event(f.owner,session,'mw:androidSettings.save',{revision:1,requestId:'save-probe',syncSecret:'n'.repeat(64),relaySecret:''});
   f.reply(); assert.equal(f.owner.messages.length,0); assert.equal(f.h.timers.size,0);

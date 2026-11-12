@@ -1,7 +1,7 @@
 {
   "name": "mischwerk-knuddels-userapp",
-  "version": "0.1.330",
-  "buildNumber": 330,
+  "version": "0.1.382",
+  "buildNumber": 382,
   "private": true,
   "packageManager": "pnpm@11.25.0",
   "description": "MischWerk MyChannel Radio für Otterchen – Knuddels UserApps / K3",
@@ -10,7 +10,7 @@
     "check:backend": "node tools/build/backend.cjs --check",
     "check:rhino": "node tools/checks/rhino.cjs",
     "check:lengths": "node tools/checks/lengths.cjs",
-    "test": "node tools/build/backend.cjs --check && node --test tests/node/backend.test.cjs tests/node/administration.test.cjs tests/node/channel-topic.test.cjs tests/node/wish-positions.test.cjs tests/node/wish-storage.test.cjs tests/node/stream.test.cjs tests/node/history.test.cjs tests/node/upload.test.cjs tests/node/preview.test.cjs tests/node/schedule.test.cjs tests/node/announcements.test.cjs tests/node/greetings.test.cjs tests/node/ticker.test.cjs tests/node/channel-texts.test.cjs tests/node/handover.test.cjs tests/node/emulator.test.cjs tests/node/studio-features.test.cjs tests/node/website.test.cjs tests/node/android-signing.test.cjs tests/node/android.test.cjs tests/node/relay-plan-team.test.cjs tests/node/android-settings.test.cjs tests/node/android-operation.test.cjs tests/node/android-verification.test.cjs",
+    "test": "node tools/build/backend.cjs --check && node --test tests/node/backend.test.cjs tests/node/moderation-auth.test.cjs tests/node/administration.test.cjs tests/node/channel-topic.test.cjs tests/node/wish-positions.test.cjs tests/node/wish-storage.test.cjs tests/node/stream.test.cjs tests/node/history.test.cjs tests/node/upload.test.cjs tests/node/preview.test.cjs tests/node/schedule.test.cjs tests/node/announcements.test.cjs tests/node/greetings.test.cjs tests/node/nicklist.test.cjs tests/node/ticker.test.cjs tests/node/channel-texts.test.cjs tests/node/handover.test.cjs tests/node/emulator.test.cjs tests/node/studio-features.test.cjs tests/node/website.test.cjs tests/node/android-signing.test.cjs tests/node/android.test.cjs tests/node/relay-plan-team.test.cjs tests/node/public-schedule.test.cjs tests/node/android-settings.test.cjs tests/node/android-operation.test.cjs tests/node/android-verification.test.cjs",
     "test:browser": "node tools/build/backend.cjs --check && node --test tests/browser/frontend.browser.test.cjs tests/browser/schedule.browser.test.cjs tests/browser/handover.browser.test.cjs tests/browser/wish-surface.browser.test.cjs tests/browser/emulator.browser.test.cjs tests/browser/android-settings.browser.test.cjs",
     "check": "node tools/checks/project.cjs",
     "preview": "node tools/preview/server.cjs",

@@ -18,9 +18,9 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
 
     runtime.snapshot = function (user, page, myPage, feedbackId, radioModeratorPage, kind) {
         var mod = runtime.isModerator(user);
-        var showQueue = mod && kind !== 'team';
+        var authorized = runtime.canUseModeration(user);
+        var showQueue = authorized && kind !== 'team' && kind !== 'schedule';
         var station = runtime.station();
-        if (!mod) { delete station.historyUrl; delete station.historyIgnoredTitles; }
         var presenter = runtime.moderatorIsActive() ? runtime.state.moderator : null;
         var radioTeam = runtime.radioModeratorViews(user, radioModeratorPage);
         var currentUserId = runtime.userId(user);
@@ -32,16 +32,17 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
             topic: runtime.state.topic,
             ticker: runtime.tickerState(),
             scheduleSyncPending: mod && !!runtime.state.scheduleSync,
-            curtain: runtime.curtainState(user),
             revision: runtime.state.revision,
-            user: { nick: runtime.nick(user), canModerate: mod,
+            user: { nick: runtime.nick(user), canModerate: mod, canUseModeration: authorized,
+                pinSetupRequired: mod && !runtime.hasModerationPin(user),
+                canToggleRequests: authorized || runtime.canAdminister(user),
                 showModerationButton: runtime.canAdminister(user) ||
                     (runtime.online(user) && runtime.state.radioModeratorUserIds.indexOf(currentUserId) !== -1),
                 canManageRadioModerators: runtime.canAdminister(user),
                 isOnAir: !!(mod && presenter && presenter.userId === currentUserId),
-                canEndModeration: !!(mod && presenter && (presenter.userId === currentUserId || user.isChannelOwner())) },
+                canEndModeration: !!(mod && presenter && (presenter.userId === currentUserId || runtime.canAdminister(user))) },
             limits: { maxTextLength: 300, maxTopicLength: 80 },
-            requestsEnabled: runtime.state.requestsEnabled && !runtime.shuttingDown,
+            requestsEnabled: runtime.requestsAvailable(user),
             moderator: presenter ? { nick: presenter.nick, since: presenter.since,
                 sessionKey: runtime.moderatorKey() } : null,
             handover: runtime.handoverSnapshot(user),

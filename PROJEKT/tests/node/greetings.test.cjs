@@ -2,8 +2,84 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createHarness } = require('../support/knuddels.cjs');
 
+const privateWelcomes = user => user.messages.filter(text => text.includes('img/welcome/banner'));
+
+test('Private Willkommensgrafik und drei Bildbuttons werden unverändert mit der App ausgeliefert',()=>{
+  const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+  const app=process.env.MISCHWERK_TEST_UPLOAD||path.resolve(__dirname,'../../app');
+  const files={banner:'willkommen-banner-v1.png',lieblingschannel:'willkommen-button-lieblingschannel-v1.png',mitmachen:'willkommen-button-mitmachen-v1.png',channelinfo:'willkommen-button-channelinfo-v1.png'};
+  const {frontendFiles,frontendFilesForView}=require('../../tools/lib/frontend-files.cjs');
+  for(const [name,original]of Object.entries(files)){
+    const file='img/welcome/'+name+'.png',bytes=fs.readFileSync(path.join(app,'www',file));
+    assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+    assert.deepEqual([bytes.readUInt32BE(16),bytes.readUInt32BE(20)],name==='banner'?[2172,724]:[170,44]);
+    assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),crypto.createHash('sha256').update(fs.readFileSync(path.resolve(__dirname,'../../medien/mychannel',original))).digest('hex'));
+    assert.ok(frontendFiles.includes(file));assert.ok(!frontendFilesForView('radio').includes(file),'Kein zusätzlicher Vorabruf im Radioplayer');
+  }
+});
+
+test('Private Willkommensgrafik geht nur an den Eintretenden und verknüpft alle drei aktiven Bildbuttons einschließlich Website', () => {
+  const { h, owner } = fixture(), first=h.user(2,'Erster Gast'),second=h.user(3,'Zweiter Gast');
+  const order=[],sendPrivate=first.sendPrivateMessage,sendPublic=h.bot.sendPublicMessage,sendContent=first.sendAppContent;
+  first.sendPrivateMessage=function(text){order.push('private');return sendPrivate.call(this,text);};
+  h.bot.sendPublicMessage=function(text){order.push('public');return sendPublic.call(this,text);};
+  first.sendAppContent=function(content){order.push('radio');return sendContent.call(this,content);};
+  h.app.onUserJoined(first);
+  assert.deepEqual(order,['private','public','radio'],'Willkommensgrafik vor öffentlicher Begrüßung und Radioöffnung');
+  assert.equal(privateWelcomes(first).length,1);assert.equal(privateWelcomes(second).length,0);assert.equal(privateWelcomes(owner).length,0);
+  const text=privateWelcomes(first)[0];
+  const lines=text.split('°#r°');
+  assert.equal(lines[0],'°>LEFT<°','Die native Absenderzeile bleibt links und enthält kein Banner');
+  assert.ok(lines[1].startsWith('°>CENTER<°°>https://'),'Banner beginnt erst nach dem nativen KCode-Umbruch');
+  assert.ok(lines[2].startsWith('°>CENTER<°°>https://'),'Die separate Buttonzeile erhält ihre eigene Zentrierung');
+  assert.equal(lines[3],'°>LEFT<°');assert.equal(lines.length,4);
+  assert.doesNotMatch(text,/[\r\n]/,'Kein JavaScript-Zeilenumbruch als Ersatz für einen KCode-Absatz');
+  assert.equal(text.replace(/°>[^°]*<°|°[^°]*°/g,'').trim(),'','Außerhalb der vier Bilder steht kein normaler Text');
+  assert.match(text,/img\/welcome\/banner\.\.\.w_534\.h_178\.mw_534\.mh_178\.png<°/);
+  assert.match(text,/img\/welcome\/lieblingschannel\.png<>--<>\|\/edit setlmc<°/);
+  assert.match(text,/img\/welcome\/channelinfo\.png<>--<>\|\/info<°/);
+  assert.match(text,/img\/welcome\/mitmachen\.png<>--<>\|https:\/\/radio-mischwerk\.web\.app\/<°/);
+  assert.doesNotMatch(text,/\{button\}|javascript:/);
+  assert.equal((text.match(/<>--<>\|/g)||[]).length,3);
+  assert.doesNotMatch(text,/Willkommen bei|Erster Gast|Dein Mix|iOS|Alternativ:|°>Lieblings-MyChannel\|/);
+  assert.ok(text.length<9500);assert.ok(h.bot.messages.every(message=>!message.includes('img/welcome/')));
+  h.app.onUserJoined(second);assert.equal(privateWelcomes(first).length,1);assert.equal(privateWelcomes(second).length,1);
+});
+
+test('Private Willkommensgrafik nutzt den bestehenden Beitrittsschutz auch ohne Appfenster', () => {
+  const {h}=fixture(),person=h.user(2,'Ohne Appfenster');person.capable=false;
+  h.app.onUserJoined(person);h.app.onUserJoined(person);h.app.onAppStart();h.app.onUserJoined(person);
+  assert.equal(privateWelcomes(person).length,1);assert.equal(person.sessions.length,0);
+  person.online=false;h.app.onUserLeft(person);person.online=true;h.app.onUserJoined(person);
+  assert.equal(privateWelcomes(person).length,2);
+  const bot=h.user(3,'Kein Mensch');bot.userType='appbot';h.app.onUserJoined(bot);assert.equal(privateWelcomes(bot).length,0);
+  h.app.onPrepareShutdown();h.app.onUserJoined(h.user(4,'Zu spät'));assert.equal(privateWelcomes(h.user(4)).length,0);
+  assert.ok(Object.keys(h.store.data).every(key=>!/greet|welcome/i.test(key)));
+});
+
+test('Private Willkommensgrafik isoliert öffentliche und private Versandfehler ohne Wiederholung', () => {
+  const {h}=fixture(),first=h.user(2,'Öffentlicher Fehler'),second=h.user(3,'Privater Fehler');
+  h.bot.sendPublicMessage=()=>{throw Error('geheimes-public-detail');};h.app.onUserJoined(first);h.app.onUserJoined(first);
+  assert.equal(privateWelcomes(first).length,1);
+  h.bot.sendPublicMessage=text=>h.bot.messages.push(text);let attempts=0;
+  second.sendPrivateMessage=()=>{attempts++;throw Error('geheimes-private-detail');};h.app.onUserJoined(second);h.app.onUserJoined(second);
+  assert.equal(attempts,1);assert.equal(h.bot.messages.length,1);assert.equal(second.sessions.length,1);
+  assert.ok(!JSON.stringify(h.logs).includes('geheimes-'));
+  assert.ok(h.logs.some(row=>row.message.includes('USER_WELCOME')));
+});
+
+test('Private Willkommensgrafik sendet bei unbrauchbaren Bildadressen weder Leer- noch Ersatztext', () => {
+  for(const value of [null,'','javascript:alert(1)','https://example.invalid/a|/info.png','https://example.invalid/a°>x.png','https://example.invalid/a\\b.png']){
+    const {h}=fixture({serverMethods:{getFullImagePath:name=>name.startsWith('img/welcome/')?value:'https://mischwerk.invalid/'+name}});
+    const person=h.user(2,'Lesbarer Gast');h.app.onUserJoined(person);
+    h.app.onUserJoined(person);
+    assert.deepEqual(person.messages,[]);assert.equal(h.bot.messages.length,1);
+    assert.equal(h.logs.filter(row=>row.message.includes('USER_WELCOME_ASSET')).length,1);
+  }
+});
+
 function greeting(nick) {
-  return '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>' + nick + '|/w ' + nick + '<°._°r° Viel Spaß beim Zuhören.';
+  return '°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, °>' + nick + '|/w ' + nick + '<°.§°r° Viel Spaß beim Zuhören.';
 }
 function photoLink(url, nick) { return ' °>' + url + '<>--<>|/w ' + nick + '<°'; }
 
@@ -16,6 +92,9 @@ test('Bildtag bleibt gültig, wenn die Profilfunktion Anzeigetext maskiert oder 
       return '°>' + format(display) + '|/w "native-profile-target"<°';
     };
     h.app.onUserJoined(person);
+    assert.ok(h.bot.messages[0].startsWith('°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, '));
+    assert.ok(h.bot.messages[0].includes('.§°r° Viel Spaß beim Zuhören.'));
+    assert.ok(h.bot.messages[0].includes('°>' + format('Fotofreund') + '|/w "native-profile-target"<°'));
     assert.ok(h.bot.messages[0].endsWith(' °>https://example.invalid/profile.png?cnt=91&.img<>--<>|/w "native-profile-target"<°'));
     assert.deepEqual(displays, ['Fotofreund', 'Profil öffnen']);
   }
@@ -31,14 +110,14 @@ function fixture(options = {}) {
   return { h, owner, session, appoint };
 }
 
-test('Nick und Foto verwenden den nativen Profillink; Begrüßung ist größer, fett, warmgolden und ohne festen Zeilenumbruch', () => {
+test('Nick und Foto verwenden den nativen Profillink; Begrüßung nutzt RobotoBold und Gold; der zweite Satz hat vollständigen Schriftreset', () => {
   const { h } = fixture(), person = h.user(2, 'Fotofreund'), displays = [];
   person.profilePhoto = 'https://example.invalid/profile.png';
   person.getProfileLink = display => { displays.push(display); return '°>' + display + '|/w Fotofreund<°'; };
   h.app.onUserJoined(person);
   assert.deepEqual(displays, ['Fotofreund', 'Profil öffnen']);
   assert.doesNotMatch(h.bot.messages[0], /°#°|[\r\n]/, 'Kein erzwungener Umbruch zwischen den Begrüßungssätzen');
-  assert.equal(h.bot.messages[0], '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Fotofreund|/w Fotofreund<°._°r° Viel Spaß beim Zuhören. °>https://example.invalid/profile.png<>--<>|/w Fotofreund<°');
+  assert.equal(h.bot.messages[0], '°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, °>Fotofreund|/w Fotofreund<°.§°r° Viel Spaß beim Zuhören. °>https://example.invalid/profile.png<>--<>|/w Fotofreund<°');
   assert.deepEqual(person.photoSize, [24, 24]);
 });
 
@@ -81,7 +160,8 @@ test('Kleines Profilfoto steht hinter der vollständigen Begrüßung; die User-A
   assert.deepEqual(person.photoSize, [24, 24]);
   assert.equal(h.bot.messages.length, 1);
   assert.equal(h.bot.messages[0], greeting('Fotofreund') + photoLink('https://example.invalid/profile.png?size=24', 'Fotofreund'));
-  assert.deepEqual(person.messages, []);
+  assert.equal(privateWelcomes(person).length,1,'Zusätzliche private Willkommensgrafik');
+  assert.ok(!privateWelcomes(person)[0].includes('example.invalid/profile.png'),'Das Profilfoto bleibt in der bisherigen öffentlichen Begrüßung');
 });
 
 test('Mit und ohne Foto erhalten alle Rollen dieselbe neutrale Begrüßung', () => {
@@ -130,7 +210,7 @@ test('Ausgefallene oder leere Profillinks erhalten Text und Foto als unverlinkte
     person.profilePhoto = 'https://example.invalid/photo.png';
     person.getProfileLink = () => { if (result instanceof Error) throw result; return result; };
     h.app.onUserJoined(person);
-    assert.equal(h.bot.messages[0], '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, Linkfehler._°r° Viel Spaß beim Zuhören. °>https://example.invalid/photo.png<°');
+    assert.equal(h.bot.messages[0], '°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, Linkfehler.§°r° Viel Spaß beim Zuhören. °>https://example.invalid/photo.png<°');
     assert.ok(!JSON.stringify(h.logs).includes('private-link-detail'));
   }
 });
@@ -189,8 +269,10 @@ test('Start und Neustart begrüßen bereits Anwesende nicht nachträglich', () =
   const person = h.user(2);
   h.app.onUserJoined(person); h.app.onAppStart();
   assert.deepEqual(h.bot.messages, []);
+  assert.deepEqual(privateWelcomes(person), []);
   const restarted = createHarness(h.store, { users: [{ id: 2, nick: 'SchonDa', role: 'listener' }] });
   restarted.app.onUserJoined(restarted.user(2)); assert.deepEqual(restarted.bot.messages, []);
+  assert.deepEqual(privateWelcomes(restarted.user(2)),[]);
 });
 
 test('Echter Wiederbeitritt behält auch nach Rollenwechsel den Text; Verlassen und Nutzerlöschung bleiben still', () => {
@@ -209,6 +291,7 @@ test('Botfehler werden einmal versucht, verraten keine Details und verhindern we
   h.bot.sendPublicMessage = () => { attempts++; throw new Error('private-bot-detail'); };
   h.app.onUserJoined(person); h.app.onUserJoined(person); h.app.onAppStart();
   assert.equal(attempts, 1); assert.equal(person.sessions.length, 1);
+  const control=h.user(99,'Otterchen','owner'),controlSession=h.open(control);h.event(control,controlSession,'mw:onAir',{});
   const events = h.event(person, person.sessions[0], 'mw:wish.submit', { text: 'Interpret – Titel' });
   assert.equal(events.find(event => event.type === 'mw:wish.receipt').data.accepted, true);
   assert.ok(h.logs.some(entry => entry.message.includes('USER_GREETING')));

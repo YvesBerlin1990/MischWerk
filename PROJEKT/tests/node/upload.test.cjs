@@ -6,6 +6,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const vm = require('node:vm');
 const { createDelivery } = require('../../tools/build/prepare-upload.cjs');
+const { withoutUpdatePlan, readUpdatePlan } = require('../../tools/lib/update-plan.cjs');
 const { modules } = require('../../tools/build/backend.cjs');
 const { frontendFilesForView } = require('../../tools/lib/frontend-files.cjs');
 const { runtimeFiles, isBinary } = require('../../tools/checks/lengths.cjs');
@@ -49,7 +50,7 @@ function fixture(t, bundled = false) {
       const input=path.join(upload,entry.path);
       entry.bytes=fs.statSync(input).size;entry.sha256=digest(input);
     }
-    fs.writeFileSync(partFile,JSON.stringify(data,null,2)+'\n');
+    fs.writeFileSync(partFile,JSON.stringify(data)+'\n');
     part.bytes=fs.statSync(partFile).size;part.sha256=digest(partFile);
   }
   manifest.fileCount=manifest.fileManifests.reduce((total,part)=>total+part.fileCount,0);
@@ -69,7 +70,7 @@ test('Auslieferungsbündel erhalten alle vollständigen Module und ihre Reihenfo
   const delivered = file => (delivery.get('www/'+file) || Buffer.from(read(file))).toString('utf8');
   const required = new Set(runtimeFiles.filter(file => file.startsWith('www/') && !/^www\/(?:js|css)\//.test(file)));
   required.add('www/js/start.js'); required.add('www/js/operator/relay-settings.js');
-  for (const view of ['radio','wishes','studio','team']) {
+  for (const view of ['radio','wishes','studio','team','schedule']) {
     const scripts = [], styles = [];
     const scope = { document:{readyState:'loading',addEventListener(){},documentElement:{getAttribute:() => view,setAttribute(){}}},
       Client:{pageData:{view},includeJS:file => scripts.push(file),includeCSS:file => styles.push(file)},setTimeout(){} };
@@ -98,7 +99,7 @@ test('Serverbündel laden jedes vollständige Modul genau einmal in derselben Re
   const original = read('app.js'), bundled = delivery.get('server/app.js').toString('utf8');
   const pattern = /^KnuddelsServer\.execute\('server\/([^']+)'\);\r?\n/gm;
   const imports = [...bundled.matchAll(pattern)].map(match => match[1]);
-  assert.equal(bundled.replace(pattern, ''), original.replace(pattern, ''), 'Komposition und Hooks unverändert');
+  assert.equal(withoutUpdatePlan(bundled.replace(pattern, '')), withoutUpdatePlan(original.replace(pattern, '')), 'Ladeplan bleibt bis auf Bündelpfade und Dateiinventar unverändert');
   assert.equal(imports.map(file => delivery.get('server/' + file).toString('utf8')).join('\n;\n'),
     modules.filter(file => file !== 'app.js').map(read).join('\n;\n'), 'Vollständige Module in Quellreihenfolge');
   assert.deepEqual([...delivery.keys()].filter(file => file.startsWith('server/')).sort(),
@@ -110,13 +111,68 @@ test('Serverbündel laden jedes vollständige Modul genau einmal in derselben Re
   assert.deepEqual(h.loadedFiles, ['main.js', 'server/app.js', ...imports.map(file => 'server/' + file)]);
   const owner = h.user(1, 'Otterchen', 'owner'), listener = h.user(2, 'Hörer');
   const os = h.open(owner), ls = h.open(listener);
+  h.event(owner,os,'mw:onAir',{});
   const receipt = h.event(listener, ls, 'mw:wish.submit', {text:'Bündelprüfung',submissionId:'bundle-wish'});
   assert.equal(receipt.find(event => event.type === 'mw:wish.receipt').data.accepted, true);
   assert.equal(h.state(owner, os).queueTotal, 1);
   h.app.onPrepareShutdown(); h.app.onShutdown();
-  const reboot = createHarness(h.store, { appDir });
+  const reboot = createHarness(h.store, { appDir, users:[{id:1,nick:'Otterchen',role:'owner'}] });
   const returnedOwner = reboot.user(1, 'Otterchen', 'owner');
   assert.equal(reboot.state(returnedOwner, reboot.open(returnedOwner)).queue[0].text, 'Bündelprüfung');
+});
+
+test('Dateiplan beschreibt genau den modularen beziehungsweise tatsächlich gebündelten Appbestand', () => {
+  const project=path.resolve(__dirname,'../..'), delivery=createDelivery(project);
+  for(const [source,expected] of [[fs.readFileSync(path.join(project,'app/server/app.js'),'utf8'),runtimeFiles],[delivery.get('server/app.js').toString('utf8'),[...delivery.keys()]]]){
+    const plan=readUpdatePlan(source),files=Object.entries(plan.directories).flatMap(([directory,names])=>names.map(name=>(directory?directory+'/':'')+name));
+    assert.deepEqual(files.sort(),[...expected].sort());
+    assert.equal(new Set(files).size,files.length);
+    assert.equal(plan.version,JSON.parse(fs.readFileSync(path.join(project,'package.json'),'utf8')).version);
+  }
+});
+
+test('Startfehler vom 11.11.: fehlende Nicklisten-Dateien erklären die undefinierten Fabriken, vollständiges Paket startet', () => {
+  const delivery = createDelivery(path.resolve(__dirname, '../..'));
+  const storage = 'server/users/nicklist-storage.js', presence = 'server/users/nicklist.js';
+  assert.ok(delivery.has(storage)); assert.ok(delivery.has(presence));
+  function boot(missing) {
+    const absent = [], context = vm.createContext({ KnuddelsServer: { execute(file) {
+      // Gegenprobe zum Screenshot: protokollierter Ladefehler, danach fortgesetzte Komposition.
+      // Dies modelliert nur den beobachteten Ablauf, keine allgemeine execute-Fehlergarantie.
+      if (missing.includes(file)) { absent.push(file); return; }
+      assert.ok(delivery.has(file), 'Ladedatei fehlt im Paket: ' + file);
+      vm.runInContext(delivery.get(file).toString('utf8'), context, { filename:file });
+    } } });
+    let error;
+    try { vm.runInContext(delivery.get('main.js').toString('utf8'), context, { filename:'main.js' }); }
+    catch (failure) { error = failure; }
+    return { context, absent, error };
+  }
+  for (const missing of [[storage], [presence], [storage, presence]]) {
+    const failed = boot(missing);
+    assert.deepEqual(failed.absent, missing);
+    assert.match(failed.error.message, missing.includes(storage) ? /attachNicklistStorage.*not a function/ : /attachNicklist.*not a function/);
+    assert.equal(failed.context.App, undefined, 'Kein erfolgreicher Appaufbau mit fehlenden Pflichtmodulen');
+  }
+  const complete = boot([]);
+  assert.equal(complete.error, undefined);
+  assert.equal(typeof complete.context.MischWerkModules.attachNicklistStorage, 'function');
+  assert.equal(typeof complete.context.MischWerkModules.attachNicklist, 'function');
+  assert.equal(typeof complete.context.App.onAppStart, 'function');
+});
+
+test('Paketprüfung verwirft jede der im nativen Startprotokoll fehlenden Nicklisten-Dateien', t => {
+  const f = fixture(t, true), app = path.resolve(f.upload, 'MischWerk');
+  for (const relative of ['server/users/nicklist-storage.js', 'server/users/nicklist.js']) {
+    const file = path.resolve(app, relative);
+    assert.ok(file.startsWith(app + path.sep), 'Gegenprobe bleibt im temporären Testpaket');
+    const bytes = fs.readFileSync(file);
+    try {
+      fs.unlinkSync(file);
+      assert.throws(() => checkUpload({ project:f.project }), /Unerwartete oder fehlende Laufzeitdateien/);
+    } finally { fs.writeFileSync(file, bytes); }
+    assert.equal(checkUpload({ project:f.project }).files, createDelivery(f.project).size);
+  }
 });
 
 test('Uploadprüfung validiert Bündel gegen die Quellmodule und weist nachgehashte Fremdinhalte zurück', t => {

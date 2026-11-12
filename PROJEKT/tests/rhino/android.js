@@ -18,8 +18,8 @@
         channelTextTasks = {};
         var runtime = MischWerkModules.createRuntime(MischWerkConfig);
         runtime.now = function () { return clock; }; runtime.warn = function () {}; runtime.broadcast = function () {};
-        runtime.moderatorIsActive = function () { return false; }; runtime.isModerator = function () { return true; };
-        runtime.state = { requestsEnabled: true, topic: '', moderator: null };
+        runtime.moderatorIsActive = function () { return false; };runtime.requestsAvailable=function(){return runtime.state.requestsEnabled;};runtime.canUseModeration=function(){return true;}; runtime.isModerator = function () { return true; };
+        runtime.state = { requestsEnabled: true, topic: '', moderator: null };runtime.requestsAvailable=function(){return runtime.state.requestsEnabled;};
         MischWerkModules.attachChanges(runtime); MischWerkModules.attachValidation(runtime);
         MischWerkModules.attachTicker(runtime);
         MischWerkModules.attachWishStorage(runtime); MischWerkModules.attachWishQueue(runtime);

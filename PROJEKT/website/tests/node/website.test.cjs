@@ -37,11 +37,11 @@ test('WebHook veröffentlicht denselben Sendeplan ohne interne Identitäten oder
   assert.equal(f.h.webhooks.invoke('website', {query:'week=%ZZ'}).status,400);
   assert.equal(f.invoke('POST', { type: 'mw:schedule.delete', id: 1 }).status, 400);
   assert.equal(f.invoke().data.entries.length, 1);
-  f.h.app.chatCommands['mischwerk-web'](f.listener); assert.equal(f.listener.messages.length, 0);
-  f.h.app.chatCommands['mischwerk-web'](f.owner); assert.match(f.owner.messages.at(-1), /https:\/\/emulator\.mischwerk\.invalid\/webhooks/);
+  f.h.app.chatCommands.mw(f.listener,'homepage status'); assert.equal(f.listener.messages.length, 0);
+  f.h.app.chatCommands.mw(f.owner,'homepage status'); assert.match(f.owner.messages.at(-1), /https:\/\/emulator\.mischwerk\.invalid\/webhooks/);
 });
 test('Websitewunsch erscheint einmalig in der echten Moderationsqueue und gibt keine Channelidentität vor', () => {
-  const f = fixture(), data = { text: 'a-ha – Take On Me', submissionId: 'web-test-12345', visitorId: 'a'.repeat(32) };
+  const f = fixture();f.h.event(f.owner,f.radio,'mw:onAir',{pin:'0123',pinConfirmation:'0123'});const data = { text: 'a-ha – Take On Me', submissionId: 'web-test-12345', visitorId: 'a'.repeat(32) };
   assert.equal(f.h.webhooks.invoke('website', {method:'POST',body:new String(JSON.stringify(data))}).status,200);
   assert.equal(f.invoke('POST', data).status, 200);
   const state = f.h.state(f.owner, f.radio);
@@ -91,7 +91,7 @@ test('Fehlende oder abgewiesene Mailzustellung behauptet keinen Erfolg und bleib
   assert.equal((await second.post('applications',application)).status,503);
 });
 test('HTTP-Anschluss übermittelt Plan und Wünsche an den dokumentierten WebHook statt in die Demo', async t => {
-  const f = fixture();
+  const f = fixture();f.h.event(f.owner,f.radio,'mw:onAir',{pin:'0123',pinConfirmation:'0123'});
   const bridge = createSiteBridge({ MISCHWERK_APP_WEBHOOK: 'https://bridge.example.test/website' }, async (url, options) => {
     const native = f.h.webhooks.invoke('website', { method: options.method, query: url.search.slice(1), body: options.body });
     return new Response(native.body, { status: native.status, headers: native.headers });

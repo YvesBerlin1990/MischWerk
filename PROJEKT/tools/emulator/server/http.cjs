@@ -82,8 +82,7 @@ function httpHandler(hub) {
         }
         if (hub.faults.provider === 'invalid') { send(res, 200, types['.json'], '{"broken":'); return; }
         const values = { '/fixture/metadata': { title: 'Lokaler Testtitel', artist: 'Emulator-Testsignal', live: false },
-          '/fixture/status': { status: hub.faults.provider === 'stopped' ? 'stopped' : 'started' },
-          '/fixture/history': [{timestamp:Math.floor(hub.runtime.clock.now() / 1000) - 60, metadata:{song:'Emulator · Lokaler Testtitel'}}] };
+          '/fixture/status': { status: hub.faults.provider === 'stopped' ? 'stopped' : 'started' } };
         if (values[route]) { send(res, 200, types['.json'], JSON.stringify(values[route]), head); return; }
       }
       if (route.startsWith('/frame/')) {

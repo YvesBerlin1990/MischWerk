@@ -25,6 +25,7 @@ MischWerkModules.attachViewTransport = function (runtime, config) {
         var next = runtime.snapshot(user, page === undefined && view ? view.page : page,
             myPage === undefined && view ? view.myPage : myPage, view ? view.feedbackId : null,
             radioModeratorPage === undefined && view ? view.radioModeratorPage : radioModeratorPage, view && view.kind);
+        delete next.user.pinSetupRequired;
         if (view) {
             view.page = next.page;
             view.myPage = next.wishPositions.page;

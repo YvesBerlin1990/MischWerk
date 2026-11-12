@@ -17,6 +17,11 @@ MischWerkModules.attachScheduleRelay = function (runtime) {
     function same(left, right) {
         return ['date', 'kind', 'timing', 'start', 'end', 'nick', 'topic'].every(function (key) { return left[key] === right[key]; });
     }
+    function displayText(value, maximum, required) {
+        if (typeof value !== 'string' || value.length > maximum || /[\u0000-\u001f\u007f]/.test(value) ||
+                (required && !value.replace(/\s/g, ''))) { throw runtime.relayFailure('validation'); }
+        return value;
+    }
     runtime.changeScheduleFromRelay = function (row) {
         var week = row.week, saved = runtime.readScheduleWeek(week), rows = bindings(saved), binding = null;
         // Wochen sind die bestehenden Speicherpartitionen. Ein stabiler Schlüssel bleibt global an seine Woche gebunden.
@@ -30,9 +35,11 @@ MischWerkModules.attachScheduleRelay = function (runtime) {
             });
         });
         var data = { week: week, expectedRevision: row.expectedRevision, id: binding ? binding.nativeId : 0 };
-        var prepared, advance = false;
+        var prepared, advance = false, displayNick, displayTopic;
         if (row.operation === 'save') {
             if (binding && binding.deleted) { throw runtime.relayFailure('business_rule'); }
+            displayNick = displayText(row.entry.nick, 50, row.entry.kind === 'live');
+            displayTopic = displayText(row.entry.topic, 80, true);
             Object.keys(row.entry).forEach(function (key) { data[key] = row.entry[key]; });
             var normalized;
             try { normalized = runtime.normalizedScheduleEntry(null, data); }
@@ -68,8 +75,11 @@ MischWerkModules.attachScheduleRelay = function (runtime) {
                 throw runtime.relayFailure('business_rule');
             }
             saved = prepared.next; rows = bindings(saved);
-            if (row.operation === 'save' && saved.entries.filter(function (entry) { return entry.id === prepared.entryId; }).length !== 1) {
-                throw runtime.relayFailure('business_rule');
+            if (row.operation === 'save') {
+                var target = saved.entries.filter(function (entry) { return entry.id === prepared.entryId; });
+                if (target.length !== 1) { throw runtime.relayFailure('business_rule'); }
+                // Native Identität und Bestandsvergleich bleiben geprüft; Web-Anzeigetexte bleiben unverändert.
+                target[0].nick = displayNick; target[0].topic = displayTopic;
             }
             if (row.operation === 'save' && rows.some(function (item) {
                 return item.nativeId === prepared.entryId && item.firebaseId !== row.id;

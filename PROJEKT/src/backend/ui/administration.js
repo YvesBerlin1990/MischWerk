@@ -3,12 +3,13 @@ MischWerkModules.attachAdministration = function (runtime) {
     'use strict';
     runtime.administrationCommand = function (user, params) {
         try {
-            if (!runtime.online(user)) { throw runtime.failure('Bitte verwende /MW Verwaltung im MischWerk-Channel.'); }
+            if (!runtime.online(user)) { throw runtime.failure('Bitte verwende /mw admin im MischWerk-Channel.'); }
             if (!runtime.canAdminister(user)) {
                 throw runtime.failure('Nur Otterchen als Channelinhaber darf die Verwaltung öffnen.');
             }
-            if (String(params || '').replace(/^\s+|\s+$/g, '').toLowerCase() !== 'verwaltung') {
-                throw runtime.failure('Bitte verwende /MW Verwaltung.');
+            var command = String(params || '').replace(/^\s+|\s+$/g, '').toLowerCase();
+            if (command !== 'admin') {
+                throw runtime.failure('Bitte verwende /mw admin.');
             }
             if (runtime.shuttingDown) { throw runtime.failure('MischWerk wird gerade neu gestartet. Bitte versuche es gleich erneut.'); }
             var radio = runtime.getViews().filter(function (view) {

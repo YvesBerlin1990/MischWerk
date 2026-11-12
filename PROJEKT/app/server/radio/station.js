@@ -36,19 +36,12 @@ MischWerkModules.attachStation = function (runtime, config) {
             var url = publicUrl(value);
             return stream && url && hosts.indexOf(host(url)) !== -1 ? url : '';
         }
-        var history = endpoint(settings.historyUrl);
-        if (stream && settings.historyUrl === 'https://mischwerk.spcast.eu:9000/sp/cache/history/history.json' &&
-                hosts.indexOf('mischwerk.spcast.eu') !== -1) { history = settings.historyUrl; }
         var metadata = settings.metadata || {}, status = settings.status || {};
         return { name: config.stationName, provider: 'streampanel', configured: !!stream,
             streamUrl: stream, stationUrl: stream, allowedHosts: hosts,
-            metadataUrl: metadata.format === 'spcast-history' && metadata.url === history ? history : endpoint(metadata.url),
-            metadataFormat: ['spcast-history', 'spcast-current-song'].indexOf(metadata.format) !== -1 ? metadata.format : '', modeUrl: endpoint(metadata.modeUrl),
+            metadataUrl: endpoint(metadata.url),
+            metadataFormat: metadata.format === 'spcast-shoutcast-song' ? metadata.format : '', modeUrl: endpoint(metadata.modeUrl),
             statusUrl: endpoint(status.url),
-            historyUrl: history,
-            historyIgnoredTitles: Array.isArray(settings.historyIgnoredTitles) ? settings.historyIgnoredTitles.slice(0, 20).filter(function (title) {
-                return typeof title === 'string' && title.trim().length > 0 && title.length <= 200;
-            }).map(function (title) { return title.trim(); }) : [],
             statusFormat: status.format === 'spcast-statistics' ? status.format : '',
             streamId: typeof status.streamId === 'number' && status.streamId > 0 && status.streamId % 1 === 0 ? status.streamId : null,
             streamPath: typeof status.streamPath === 'string' && /^\/[a-zA-Z0-9_/-]{1,120}$/.test(status.streamPath) ? status.streamPath : '',

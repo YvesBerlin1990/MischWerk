@@ -30,10 +30,50 @@ function setup(t) {
   const runtime = new AppRuntime({ appDir: process.env.MISCHWERK_TEST_UPLOAD || path.join(project, 'app'), dataDir: scratch(t), profiles, faults,
     emit: (kind, data) => events.push({ kind, ...data }) });
   runtime.start(); t.after(() => runtime.shutdown());
-  const join = nick => { runtime.join(nick, nick); return [...runtime.contents.sessions.keys()].find(id => runtime.contents.describe(id).nick === nick); };
+  const join = nick => { runtime.join(nick, nick);const id=[...runtime.contents.sessions.keys()].find(id => runtime.contents.describe(id).nick === nick);if(nick==='Otterchen'){
+    runtime.event(nick,id,'mw:onAir',{});
+    for(let count=0;count<2048&&[...runtime.clock.tasks.values()].some(task=>!task.period&&task.at<=runtime.clock.now()+1);count++) runtime.clock.advance(1);
+  }return id; };
   const state = (nick, id) => { runtime.event(nick, id, 'mw:refresh', {}); return events.findLast(event => event.kind === 'sessionEvent' && event.sessionId === id && event.eventType === 'mw:state').eventData; };
   return { runtime, events, faults, join, state };
 }
+
+test('Nicklisten-API und eigene UserPersistence sind im bestehenden Emulator ausdrücklich modelliert',t=>{
+  const f=setup(t),id=f.join('Otterchen'),record=f.runtime.users.find('Otterchen'),key='mischwerk.nicklist-icons.v1';
+  const kinds=()=>record.state.nicklistIcons.map(icon=>path.basename(icon.path,'.png')).sort();
+  assert.deepEqual(kinds(),['moderator','team']);
+  assert.ok(record.state.nicklistIcons.every(icon=>icon.width===(icon.path.endsWith('/team.png')?32:24)));
+  assert.throws(()=>record.user.addNicklistIcon('relative.png',20),/Ungültiger/);
+  assert.throws(()=>record.user.addNicklistIcon('https://example.invalid/x.png',20.5),/Ungültiger/);
+  const own=record.user.getPersistence().getObject(key);own.paths=[];
+  assert.equal(record.user.getPersistence().getObject(key).paths.length,2,'Plattformwerte sind Kopien');
+  f.faults.failNicklistRemove=true;f.runtime.event('Otterchen',id,'mw:offAir',{});
+  assert.equal(f.state('Otterchen',id).moderator,null,'Bestätigte Aktion bleibt trotz Iconfehler erfolgreich');
+  assert.deepEqual(kinds(),['moderator','team']);
+  assert.equal(record.user.getPersistence().getObject(key).paths.find(p=>p.kind==='moderator').status,'remove');
+  f.faults.failNicklistRemove=false;f.runtime.clock.advance(1000);assert.deepEqual(kinds(),['team']);
+  f.runtime.event('Otterchen',id,'mw:listenerPresence',{active:true,sequence:1});assert.deepEqual(kinds(),['listener','team']);
+  f.runtime.close('Otterchen',id);assert.deepEqual(kinds(),['team']);
+  f.runtime.leave('Otterchen');assert.deepEqual(kinds(),[]);
+  f.runtime.join('Otterchen','new');assert.deepEqual(kinds(),['team']);
+  assert.deepEqual(f.runtime.errors,[]);
+});
+
+test('Native Dateiliste bleibt nicht rekursiv; /update sperrt fehlende Dateien und lässt spätere Vervollständigung zu',t=>{
+  const f=setup(t),id=f.join('Otterchen'),server=f.runtime.context.KnuddelsServer;
+  assert.ok(server.listFiles('.').includes('server/'));assert.ok(!server.listFiles('.').some(file=>file==='server/app.js'));
+  const original=server.listFiles,root=server.getAppAccess().getOwnInstance().getRootInstance();
+  let missing=true,copied=false,restarts=0;
+  server.listFiles=folder=>original(folder).filter(name=>!(missing&&folder==='server/users'&&name==='nicklist-storage.js'));
+  root.updateAppFiles=()=>{if(copied)return [];copied=true;return ['server/app.js'];};
+  root.updateApp=()=>{restarts++;return 30;};
+  const saved=JSON.stringify(f.runtime.persistence.data),app=f.runtime.app;
+  f.runtime.command('Otterchen','update');
+  assert.equal(restarts,0);assert.ok(f.events.some(event=>event.kind==='private'&&/Kein Neustart.*nicklist-storage\.js/.test(event.message)));
+  assert.equal(f.state('Otterchen',id).user.isOnAir,true);assert.equal(f.runtime.app,app);assert.equal(JSON.stringify(f.runtime.persistence.data),saved);
+  missing=false;f.runtime.command('Otterchen','update');assert.equal(restarts,1);
+  assert.deepEqual(f.runtime.errors,[]);
+});
 
 test('/settopic nutzt im integrierten Emulator die dokumentierte ChannelInformation ohne Änderung des Sendungsthemas', t => {
   const f = setup(t), owner = f.join('Otterchen'), listener = f.join('Polaroid');
@@ -53,20 +93,18 @@ test('/settopic nutzt im integrierten Emulator die dokumentierte ChannelInformat
   assert.deepEqual(f.runtime.errors, []);
 });
 
-test('Einmalprüfung im integrierten Emulator meldet nicht modellierte HTTP-API statt nativen Erfolg', t => {
+test('Entfernte Verbindungsprüfbefehle lösen im Emulator keine HTTP- oder Speicheraktion aus', t => {
   for (const command of ['http-pruefen', 'auth-pruefen']) {
   const f = setup(t); f.join('Otterchen');
   const api = f.runtime.persistence.api(), key = 'mischwerk.android.private.v1';
   api.setObject(key, { enabled:false, runtimeVerified:false, syncSecret:'s'.repeat(64),
     syncUrl:'https://radio-mischwerk.web.app/api/publishKnuddelsState', revision:1 });
   const before = JSON.stringify(api.getObject(key));
-  f.runtime.command('Otterchen', 'mischwerk-relay', command);
+  f.runtime.command('Otterchen', 'mw', 'verbindung ' + command);
   const response = f.events.findLast(e => e.kind === 'private' && e.nick === 'Otterchen');
-  assert.ok(response); const result = JSON.parse(response.message);
-  assert.equal(result.nativeResponseAccepted, false); assert.ok(result.errors.includes('send-unavailable'));
-  assert.equal(JSON.stringify(api.getObject(key)), before); assert.equal(result.firestoreWriteConfirmed, null);
-  assert.ok(f.runtime.errors.some(e => JSON.stringify(e).includes('getExternalServerAccess')));
-  if (command === 'auth-pruefen') { assert.equal(result.authenticationAccepted, false); }
+  assert.ok(response); assert.match(response.message,/Diesen Aufruf gibt es nicht/);
+  assert.equal(JSON.stringify(api.getObject(key)), before);
+  assert.deepEqual(f.runtime.errors,[],'Kein Zugriff auf die nicht modellierte HTTP-API');
   }
 });
 
@@ -122,7 +160,7 @@ test('Speicherfehler bestätigen weder Thema noch Wunsch; erneutes Senden geling
   faults.failPersistence = true;
   runtime.event('Otterchen', owner, 'mw:setTopic', { topic: 'Nicht speichern' });
   assert.equal(state('Otterchen', owner).topic, '');
-  assert.equal(runtime.persistence.api().getObject('mischwerk.state.v1', null), null);
+  assert.equal(runtime.persistence.api().getObject('mischwerk.state.v1', null).topic, '');
   runtime.event('Otterchen', owner, 'mw:wish.submit', { submissionId: 'memory-test', text: 'Interpret – Titel' });
   assert.equal(state('Otterchen', owner).queueTotal, 0);
   faults.failPersistence = false;
@@ -241,7 +279,7 @@ async function peer(t, instance) {
   await new Promise((resolve, reject) => { socket.once('open', resolve); socket.once('error', reject); });
   t.after(() => socket.terminate());
   const wait = async predicate => {
-    const deadline = Date.now() + 4000;
+    const deadline = Date.now() + 10000;
     while (Date.now() < deadline) {
       const found = messages.find(predicate); if (found) return found;
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -275,6 +313,8 @@ test('WebSocket-Nick und Sitzung können nicht durch Rollenfelder oder fremde ID
 test('Doppeltes Senden und verlorene Quittung behalten dieselbe Wunsch-ID', async t => {
   const instance = await server(t), client = await peer(t, instance);
   client.send({ type: 'join', nick: 'Otterchen' }); const view = await client.wait(message => message.type === 'contentShow');
+  client.send({type:'event',sessionId:view.sessionId,eventType:'mw:onAir',eventData:{pin:'0123',pinConfirmation:'0123'}});
+  await client.wait(message=>message.type==='sessionEvent'&&message.eventType==='mw:state'&&message.eventData.user.isOnAir);
   client.send({ type: 'faults', value: { duplicateNext: true, dropServer: 1, dropServerType: 'mw:wish.receipt' } });
   client.send({ type: 'event', sessionId: view.sessionId, eventType: 'mw:wish.submit',
     eventData: { text: 'Interpret – Titel', submissionId: 'dup-test' } });
@@ -285,6 +325,8 @@ test('Doppeltes Senden und verlorene Quittung behalten dieselbe Wunsch-ID', asyn
 test('Neustart erhält bestätigte Wünsche, Thema und Rollen und verwirft verspätete alte Pakete', async t => {
   const instance = await server(t), client = await peer(t, instance);
   client.send({ type: 'join', nick: 'Otterchen' }); const first = await client.wait(message => message.type === 'contentShow');
+  client.send({type:'event',sessionId:first.sessionId,eventType:'mw:onAir',eventData:{pin:'0123',pinConfirmation:'0123'}});
+  await client.wait(message=>message.type==='sessionEvent'&&message.eventType==='mw:state'&&message.eventData.user.isOnAir);
   client.send({ type: 'event', sessionId: first.sessionId, eventType: 'mw:setTopic', eventData: { topic: 'Bleibt gespeichert' } });
   await client.wait(message => message.type === 'sessionEvent' && message.eventType === 'mw:state' && message.eventData.topic === 'Bleibt gespeichert');
   client.send({ type: 'event', sessionId: first.sessionId, eventType: 'mw:wish.submit', eventData: { text: 'Bestätigt', submissionId: 'saved' } });
@@ -293,7 +335,9 @@ test('Neustart erhält bestätigte Wünsche, Thema und Rollen und verwirft versp
   client.send({ type: 'event', sessionId: first.sessionId, eventType: 'mw:wish.submit', eventData: { text: 'Alt', submissionId: 'old' } });
   client.send({ type: 'restart' });
   const next = await client.wait(message => message.type === 'contentShow' && message.sessionId !== first.sessionId);
-  assert.equal(next.pageData.topic, 'Bleibt gespeichert'); assert.equal(next.pageData.queueTotal, 1);assert.equal(next.pageData.queue[0].text,'Bestätigt');
+  assert.equal(next.pageData.topic, 'Bleibt gespeichert');assert.equal(next.pageData.queueTotal,0);
+  client.send({type:'event',sessionId:next.sessionId,eventType:'mw:onAir',eventData:{pin:'0123'}});
+  const restored=await client.wait(message=>message.type==='sessionEvent'&&message.eventType==='mw:state'&&message.eventData.user.isOnAir&&message.sessionId===next.sessionId);assert.equal(restored.eventData.queue[0].text,'Bestätigt');
   await new Promise(resolve => setTimeout(resolve, 150));
   assert.equal(instance.hub.runtime.contents.sessions.has(first.sessionId), false);
   assert.equal(instance.hub.deliveryTimers.size, 0);

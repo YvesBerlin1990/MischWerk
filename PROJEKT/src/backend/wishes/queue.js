@@ -1,4 +1,4 @@
-/* Eine dauerhafte Wunschqueue; private Positionen werden ausschließlich daraus abgeleitet. */
+/* Dauerhafte Wunschqueue und private Positionen. */
 MischWerkModules.attachWishQueue = function (runtime) {
     'use strict';
 
@@ -86,7 +86,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
         if (queue.submissionIds[submissionKey] !== undefined) {
             return { duplicate: true, item: itemById(queue, queue.submissionIds[submissionKey]) };
         }
-        if (runtime.shuttingDown || !runtime.state || runtime.state.requestsEnabled !== true) {
+        if (runtime.shuttingDown || !runtime.state || !runtime.requestsAvailable(user)) {
             throw runtime.failure('Die Wunschbox ist deaktiviert.');
         }
         runtime.wishPhase = 'WISH_TEXT';
@@ -107,7 +107,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
     };
     runtime.enqueueAndroidWish = function (data, remember, confirm) {
         var queue = queueState();
-        if (runtime.shuttingDown || !runtime.state || runtime.state.requestsEnabled !== true) {
+        if (runtime.shuttingDown || !runtime.state || !runtime.requestsAvailable()) {
             throw new Error('ANDROID_CLOSED');
         }
         var value = runtime.text(data.text, 300, true);
@@ -167,14 +167,14 @@ MischWerkModules.attachWishQueue = function (runtime) {
         }
     };
     runtime.resolveRequest = function (user, data) {
-        if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf diese Aktion ausführen.'); }
+        if (!runtime.canUseModeration(user)) { throw runtime.failure('Nur die Radio-Moderation darf diese Aktion ausführen.'); }
         if (data.outcome !== undefined && data.outcome !== 'done' && data.outcome !== 'discarded') {
             throw runtime.failure('Ungültige Wunsch-Aktion.');
         }
         runtime.resolveWish(data.id, data.outcome);
     };
     runtime.changeWishStage = function (user, data) {
-        if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf Wünsche bearbeiten.'); }
+        if (!runtime.canUseModeration(user)) { throw runtime.failure('Nur die Radio-Moderation darf Wünsche bearbeiten.'); }
         var queue = runtime.copy(queueState()), item = itemById(queue, data.id);
         if (!item) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
         if (['queued', 'preparing', 'playing'].indexOf(data.stage) === -1) {

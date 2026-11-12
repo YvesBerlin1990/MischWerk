@@ -1,3 +1,4 @@
+// Interne Fachcontroller direkt prüfen; /mw verbindung ist kein Chat-Einstieg mehr.
 // Reale Backendmodule, dokumentierte postURL-Callbacks und isolierte Plattform-/Speicheradapter.
 const test=require('node:test'),assert=require('node:assert/strict');
 const {createHarness,persistence}=require('../support/knuddels.cjs');
@@ -7,8 +8,10 @@ const settings=()=>({enabled:true,runtimeVerified:true,syncSecret:'s'.repeat(64)
 function setup(options={}){
  const calls=[],store=options.store||persistence({[privateKey]:{...settings(),...options.config}});let runtime,hookCalls=0;
  const external={canAccessURL:()=>options.allowed!==false,postURL(url,p){calls.push({url,p});if(options.throwPost)throw Error('private-network-details');}};
- const h=createHarness(store,{serverMethods:{getExternalServerAccess:()=>external,getWebHookAccess(){hookCalls++;throw Error('WEBHOOK-MUST-NOT-BE-CALLED');},...options.serverMethods},configureModules(c){const attach=c.MischWerkModules.attachAndroidPublisher;c.MischWerkModules.attachAndroidPublisher=r=>{attach(r);runtime=r;};}});
+ const h=createHarness(store,{serverMethods:{getExternalServerAccess:()=>external,getWebHookAccess(){hookCalls++;throw Error('WEBHOOK-MUST-NOT-BE-CALLED');},...options.serverMethods},configureModules(c){const attach=c.MischWerkModules.attachAndroidPublisher;c.MischWerkModules.attachAndroidPublisher=r=>{attach(r);runtime=r;};const lifecycle=c.MischWerkModules.attachLifecycle;c.MischWerkModules.attachLifecycle=(r,cfg)=>{lifecycle(r,cfg);const start=r.start;r.start=()=>{const saved=r.startAndroidRelay;r.startAndroidRelay=()=>{};start();r.startAndroidRelay=saved;};};}});
  const owner=h.user(1,'Otterchen','owner'),listener=h.user(2,'Privater Nick');const radio=h.open(owner),listenerRadio=h.open(listener);
+ h.event(owner,radio,'mw:onAir',{});
+ runtime.startAndroidRelay();
  return {h,store,runtime,owner,listener,radio,listenerRadio,calls,options,get hookCalls(){return hookCalls;},
   reply(wishes=[],opts={}){const c=calls[opts.index===undefined?calls.length-1:opts.index];assert.ok(c,'Nativer Status-POST vorhanden');const body=opts.body||{accepted:true,serverTime:h.now(),wishes};c.p[opts.failure?'onFailure':'onSuccess'](opts.raw===undefined?JSON.stringify(body):opts.raw,{getResponseCode:()=>opts.status||200,getURLString:()=>opts.url||hostingUrl});},
   poll(wishes=[],opts={}){h.advance(20000);this.reply(wishes,opts);},
@@ -131,7 +134,7 @@ test('Station überträgt bestätigten Lauftext einschließlich Aus mit Studiozu
  const f=setup(),station=()=>JSON.parse(f.calls.at(-1).p.data.payload).station;
  assert.deepEqual(station().ticker,{text:'',enabled:false,speed:48,direction:'left',revision:0});
  f.reply();f.h.advance(19999);assert.equal(f.calls.length,1);f.h.advance(1);assert.equal(f.calls.length,2);f.reply();
- f.h.event(f.owner,f.radio,'mw:onAir');f.reply();f.h.event(f.owner,f.radio,'mw:setTopic',{topic:'Sendung'});const state=JSON.parse(f.calls.at(-1).p.data.payload).station;assert.equal(state.onAir,true);assert.equal(state.moderatorNick,'Otterchen');assert.equal(state.topic,'Sendung');
+ f.h.event(f.owner,f.radio,'mw:onAir', {});f.reply();f.h.event(f.owner,f.radio,'mw:setTopic',{topic:'Sendung'});const state=JSON.parse(f.calls.at(-1).p.data.payload).station;assert.equal(state.onAir,true);assert.equal(state.moderatorNick,'Otterchen');assert.equal(state.topic,'Sendung');
  f.reply();f.h.event(f.owner,f.radio,'mw:openStudio');const studio=f.owner.sessions.find(s=>s.activeView==='studio');
  const save=(data)=>f.h.event(f.owner,studio,'mw:setTicker',{view:'studio',viewRevision:1,...data});
  const text='Ä'.repeat(300);
@@ -172,9 +175,11 @@ function runtimeProbeFixture(options = {}) {
     getWebHookAccess: () => ({ registerWebHook() { throw Error('Probe darf keinen Hook registrieren'); } })
   } });
   return { h, checks, invoke(person, command = 'pruefen') {
-    assert.equal(typeof h.app.chatCommands['mischwerk-relay'], 'function', 'Privater Diagnosebefehl vorhanden');
-    h.app.chatCommands['mischwerk-relay'](person, command);
-    return person.messages.length ? JSON.parse(person.messages.at(-1).replace(/\\([_°<>\\])/g, '$1')) : null;
+    assert.equal(typeof h.app.chatCommands.mw, 'function', 'Privater Diagnosebefehl vorhanden');
+    h.runtime.androidRelayCommand(person,command);
+    if (!person.messages.length) return null;
+    const message=person.messages.at(-1).replace(/\\([_°<>\\])/g, '$1');
+    return message.startsWith('{') ? JSON.parse(message) : message;
   } };
 }
 test('Geschützte Laufzeitprüfung liest Version und Domainrechte ohne Wünsche, Secrets oder Konfiguration zu verändern', () => {
@@ -196,7 +201,7 @@ test('Laufzeitprüfung bleibt ausschließlich dem anwesenden tatsächlichen Chan
     assert.equal(f.invoke(user), null); assert.equal(user.messages.length, 0);
   }
   const owner = f.h.user(1, 'Otterchen', 'owner'); owner.online = false;
-  assert.equal(f.invoke(owner), null); assert.equal(f.checks.length, 0);
+  assert.equal(f.invoke(owner),null); assert.equal(f.checks.length, 0);
 });
 test('Fehlende und fehlerhafte Laufzeit-APIs bleiben unbekannt und geben keine Exceptiondetails aus', () => {
   for (const options of [{ missing: true }, { fail: true }]) {
@@ -213,7 +218,7 @@ test('Domainliste ersetzt keine echte HTTPS-Freigabe; ältere Serverversion und 
   assert.equal(report.externalHttps.relayTargetAllowed, false); assert.equal(report.externalHttps.targetListed, false);
   assert.equal(report.appServer.webhookMinimumVersionSatisfied, false);
   const before = f.checks.length;
-  assert.equal(f.invoke(owner, 'aktivieren').error, 'invalid-command'); assert.equal(f.checks.length, before);
+  assert.equal(f.invoke(owner, 'aktivieren').error,'invalid-command'); assert.equal(f.checks.length, before);
 });
 test('Anders typisierte Freigaben bleiben unbekannt; ein Versionslabel ergibt keinen Datumsnachweis', () => {
   for (const allowed of ['true', 1, null]) {

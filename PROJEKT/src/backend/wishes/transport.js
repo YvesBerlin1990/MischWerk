@@ -26,7 +26,7 @@ MischWerkModules.attachWishTransport = function (runtime, config) {
     };
 
     runtime.acknowledgeRequest = function (user, data, session) {
-        if (!runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf den Empfang bestätigen.'); }
+        if (!runtime.canUseModeration(user)) { throw runtime.failure('Nur die Radio-Moderation darf den Empfang bestätigen.'); }
         var view = runtime.getViews().filter(function (item) {
             return item.content === session.getAppContent();
         })[0];

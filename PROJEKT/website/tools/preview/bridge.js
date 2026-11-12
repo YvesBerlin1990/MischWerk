@@ -42,9 +42,9 @@
   };
   // Lokale Diagnosehilfe; keine zusätzliche native Clientfähigkeit behaupten.
   window.MischWerkPreviewCommand = function (command) {
-    if (!/^\/MW Verwaltung$/i.test(command)) { throw new Error('Unbekannter lokaler Diagnosebefehl'); }
+    if (!/^\/mw admin$/i.test(command)) { throw new Error('Unbekannter lokaler Diagnosebefehl'); }
     return fetch('/api/command', { method:'POST', headers:{ 'Content-Type':'application/json' },
-      body:JSON.stringify({ sessionId:boot.sessionId, command:'mw', params:'Verwaltung' }) })
+      body:JSON.stringify({ sessionId:boot.sessionId, command:'mw', params:'admin' }) })
       .then(function (response) { if (!response.ok) { throw new Error('Lokaler Chatbefehl fehlgeschlagen'); } return response.json(); }).then(deliver);
   };
   var pollTimer;

@@ -1,17 +1,31 @@
-/* Privater Moderationswechsel, mit Seiten statt Dokument-Scrollen. */
-#studio-panel.show-handover #studio-setup,#studio-panel.show-handover #studio-paging { display:none; }
-#handover-open { display:flex; align-items:center; justify-content:center; min-height:44px; margin:0; }
-.handover-panel { display:flex; flex-direction:column; flex:1; min-height:0; }
-.handover-heading { display:flex; align-items:center; gap:12px; margin-bottom:10px; flex:none; }
-.handover-symbol { display:grid; place-items:center; width:44px; height:44px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--gold); font-size:26px; flex-shrink:0; }
-.handover-heading h2 { margin:2px 0 0; font-size:20px; }
-#handover-body { grid-template-columns:minmax(0,1fr); }
-.studio-part-form { display:contents; }
-.handover-description { margin:0 0 8px; color:var(--muted); font-size:14px; line-height:1.4; overflow-wrap:anywhere; }
-#handover-panel :is(input,select) { margin:6px 0 8px; }
-#handover-notes { height:80px; min-height:80px; resize:none; margin:6px 0; }
-.handover-notes-heading { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
-#handover-notes-count { font-size:12px; color:var(--muted); }
-#handover-notes-help,#handover-topic-help { font-size:12px; margin:4px 0 8px; }
-.handover-note-preview h3 { font-size:14px; margin:0 0 8px; }
-#handover-back { align-self:flex-start; margin-top:8px; flex:none; }
+/* Private Übergabe als einfache Seite innerhalb derselben Moderation. */
+#studio-panel.show-handover #studio-setup { display:none; }
+#studio-panel.show-handover #studio-paging { display:none; }
+#handover-open { display:inline-flex; align-items:center; justify-content:center; }
+.handover-panel { display:flex; flex-direction:column; flex:1; min-height:0; padding:18px 24px; overflow:hidden; }
+.handover-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; flex:none; }
+.handover-heading h2 { margin:0; font-size:19px; }
+.handover-description { margin:0 0 16px; color:var(--muted); font-size:14px; line-height:1.55; overflow-wrap:anywhere; }
+#handover-placeholder { display:contents; }
+#handover-body { flex:1; min-width:0; min-height:0; overflow:hidden; }
+#handover-panel form { display:contents; }
+.handover-group { min-width:0; }
+#handover-panel :is(input,select) { margin:8px 0 12px; }
+#handover-notes { height:96px; min-height:96px; resize:none; overflow:hidden; margin:8px 0; }
+.handover-notes-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+#handover-notes-count { color:var(--muted); font-size:12px; }
+#handover-notes-help,#handover-topic-help { margin:0 0 16px; font-size:12px; }
+.handover-note-preview { padding:0 0 18px; margin-bottom:18px; border-bottom:1px solid var(--line); }
+#handover-panel .button-row { margin:12px 0 0; gap:8px; }
+#handover-back { margin:0; flex:none; }
+#handover-paging { padding:8px 0 0; }
+@media (max-width:420px) { .handover-panel { padding:16px; } }
+@media (max-height:460px) {
+ .handover-panel { padding:10px 16px; }
+ .handover-heading { margin-bottom:8px; }
+ .handover-heading h2 { font-size:17px; }
+ #handover-panel :is(input,select) { margin:6px 0; }
+ #handover-notes { height:44px; min-height:44px; margin:6px 0; overflow:hidden; }
+ #handover-notes-help,#handover-topic-help { display:none; }
+ .handover-note-preview { padding:0; margin:0; border:0; }
+}

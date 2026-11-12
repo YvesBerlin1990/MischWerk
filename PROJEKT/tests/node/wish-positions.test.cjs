@@ -4,7 +4,8 @@ const assert = require('node:assert/strict');
 const { createHarness } = require('../support/knuddels.cjs');
 function setup() {
   const h=createHarness(), owner=h.user(1,'Otterchen','owner'), a=h.user(2,'Hörer A'), b=h.user(3,'Hörer B');
-  return {h,owner,a,b,os:h.open(owner),as:h.open(a),bs:h.open(b)};
+  const os=h.open(owner);h.event(owner,os,'mw:onAir',{});
+  return { h,owner,a,b,os,as:h.open(a),bs:h.open(b)};
 }
 test('Eigene Positionen sind privat und rücken nach Erledigt oder Verwerfen tatsächlich nach',()=>{
   const {h,owner,a,b,os,as,bs}=setup();
@@ -109,7 +110,7 @@ test('Geschlossene Wunschbox und Nutzerlöschung erhalten korrekte Positionen mi
 
 test('Wunschbox öffnet als natives Channel-Overlay; Header bleibt beim Wechsel zur Moderation erhalten',()=>{
  const {h,owner,a,os,as}=setup();
- h.app.chatCommands.vorhang(owner,'öffnen');
+
  h.event(a,as,'mw:wishes.sync',{text:'Mein Entwurf',sequence:0,disabled:false});
  const events=h.event(a,as,'mw:openWishes');
  assert.equal(events.find(e=>e.type==='mw:result').data.ok,true);
@@ -128,7 +129,7 @@ test('Wunschbox öffnet als natives Channel-Overlay; Header bleibt beim Wechsel 
 });
 
 test('Overlay-Eingabe wird nur an die eigene Radio-Sitzung gereicht; Wunschtransport bleibt eigenständig',()=>{
- const {h,owner,a,b,os,as,bs}=setup();h.app.chatCommands.vorhang(owner,'öffnen');
+ const {h,owner,a,b,os,as,bs}=setup();
  h.event(a,as,'mw:openWishes');const surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
  const id=surface.content.htmlFile.pageData.wishSurfaceId;
  h.event(a,surface,'mw:wishes.submit',{text:'Unser Song',sequence:1});
@@ -147,7 +148,7 @@ test('Overlay-Eingabe wird nur an die eigene Radio-Sitzung gereicht; Wunschtrans
 });
 
 test('Geschlossene, fremde und veraltete Overlay-Eingaben verändern keinen Radioentwurf',()=>{
- const {h,owner,a,b,os,as,bs}=setup();h.app.chatCommands.vorhang(owner,'öffnen');
+ const {h,owner,a,b,os,as,bs}=setup();
  h.event(a,as,'mw:openWishes');const surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
  as.events=[];h.event(b,surface,'mw:wishes.edit',{text:'Fremd',sequence:1});assert.equal(as.events.length,0);
  h.event(b,bs,'mw:wishes.edit',{text:'Falsche Ansicht',sequence:1});assert.equal(as.events.length,0);
@@ -160,10 +161,9 @@ test('Geschlossene, fremde und veraltete Overlay-Eingaben verändern keinen Radi
  assert.equal(as.events.length,0);
 });
 
-test('Nicht unterstütztes Overlay und verhüllte Radioleiste erhalten den bestehenden Header',()=>{
+test('Nicht unterstütztes Overlay erhält den bestehenden Header',()=>{
  const {h,owner,a,os,as}=setup();
- assert.equal(h.event(a,as,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
- h.app.chatCommands.vorhang(owner,'öffnen');
+
  a.capable=false;assert.equal(h.event(a,as,'mw:openWishes').find(e=>e.type==='mw:result').data.ok,false);
  assert.equal(as.removed,false);assert.equal(as.content.height,176);assert.equal(a.sessions.length,1);
  a.capable=true;h.event(a,as,'mw:openWishes');const surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
@@ -172,7 +172,7 @@ test('Nicht unterstütztes Overlay und verhüllte Radioleiste erhalten den beste
 
 
 test('Identische Wunschdarstellung wird nicht erneut gesendet; neue Sequenz und neues Fenster erhalten ihre Bestätigung',()=>{
- const {h,owner,a,as}=setup();h.app.chatCommands.vorhang(owner,'öffnen');h.event(a,as,'mw:openWishes');
+ const {h,owner,a,as}=setup();h.event(a,as,'mw:openWishes');
  let surface=a.sessions.find(s=>s.content.viewMode==='Overlay');
  const data={surfaceId:as.events.findLast(e=>e.type==='mw:wishes.open').data.surfaceId,sequence:1,text:'Mein Entwurf',disabled:false,feedbackHidden:true};
  for(let i=0;i<25;i++)h.event(a,as,'mw:wishes.sync',data);

@@ -1,17 +1,15 @@
-/* Native Wunschhöhe nach der Bestätigung aus dem sichtbaren Inhalt ableiten. */
+/* Native Wunschhöhe vom Öffnen bis zur Bestätigung aus dem sichtbaren Inhalt ableiten. */
 MischWerkUI.define('wishWindow', function (dependencies) {
   'use strict';
   var bridge = dependencies.bridge, model = dependencies.model, dom = dependencies.dom, signals = dependencies.signals;
-  var active = false, requested = null, frameRequest = null, observer;
+  var requested = null, frameRequest = null, observer, disposed = false;
   function fit() {
     frameRequest = null;
-    if (!document.documentElement.classList.contains('mw-ready') || document.hidden) { return; }
+    if (disposed || !model.current() || !document.documentElement.classList.contains('mw-ready') || document.hidden) { return; }
+    if (document.fonts && document.fonts.status === 'loading') { return; }
     var panel = dom.el('wishes-panel');
     if (!panel.getClientRects().length) { return; }
-    var own = model.current() && model.current().wishPositions, feedback = dom.el('wish-feedback');
-    if ((own && own.available && own.total > 0) || (!feedback.hidden && feedback.classList.contains('success'))) { active = true; }
-    if (!active) { return; }
-    var width = Math.ceil(window.innerWidth), height = Math.ceil(panel.getBoundingClientRect().height);
+    var width = Math.ceil(window.innerWidth), height = Math.min(1000, Math.ceil(panel.getBoundingClientRect().height));
     var geometry = width + ':' + height;
     if (width <= 0 || height <= 0 || requested === geometry) { return; }
     requested = geometry;
@@ -19,7 +17,7 @@ MischWerkUI.define('wishWindow', function (dependencies) {
     catch (error) { /* Bei nicht unterstützter Größenannahme bleiben Inhalte nativ erreichbar. */ }
   }
   function schedule() {
-    if (frameRequest === null) { frameRequest = requestAnimationFrame(fit); }
+    if (!disposed && frameRequest === null) { frameRequest = requestAnimationFrame(fit); }
   }
   function start() {
     if (model.view !== 'wishes' || !bridge || !bridge.pageData || bridge.pageData.wishSurface !== true) { return; }
@@ -29,6 +27,7 @@ MischWerkUI.define('wishWindow', function (dependencies) {
     window.addEventListener('resize', schedule);
     document.addEventListener('visibilitychange', schedule);
     window.addEventListener('pagehide', function () {
+      disposed = true;
       observer.disconnect();
       if (frameRequest !== null) { cancelAnimationFrame(frameRequest); frameRequest = null; }
     });

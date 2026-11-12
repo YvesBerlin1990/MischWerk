@@ -22,14 +22,22 @@ MischWerkModules.attachChannelTextStorage = function (runtime) {
     runtime.readChannelTexts = function () {
         if (cached) { return runtime.copy(cached); }
         var stored = KnuddelsServer.getPersistence().getObject(key, null);
-        var initial = { version:1, revision:0, enabled:false, interval:20, texts:['', ''], cursor:0, nextAt:0 };
+        var initial = { version:1, revision:0, enabled:false, interval:20, texts:['', ''], smileys:[], cursor:0, nextAt:0 };
         if (stored) {
             try {
                 var valid = runtime.validateChannelTexts(stored);
                 if (stored.version !== 1 || !integer(stored.revision) || !integer(stored.cursor) ||
                         stored.cursor >= valid.texts.length || !integer(stored.nextAt)) { throw new Error('Invalid settings'); }
+                var smileys = stored.smileys === undefined ? [] : stored.smileys, seen = {};
+                if (!Array.isArray(smileys) || smileys.length > 32) { throw new Error('Invalid smileys'); }
+                smileys = smileys.map(function (item) {
+                    if (!item || !runtime.channelSmileyCode(item.code) || seen[item.code] ||
+                            !item.image || runtime.channelSmileyImage(item.image) !== item.image) { throw new Error('Invalid smiley'); }
+                    seen[item.code] = true;
+                    return { code:item.code, image:item.image };
+                });
                 initial = { version:1, revision:stored.revision, enabled:valid.enabled, interval:valid.interval,
-                    texts:valid.texts, cursor:stored.cursor, nextAt:stored.nextAt };
+                    texts:valid.texts, smileys:smileys, cursor:stored.cursor, nextAt:stored.nextAt };
             } catch (error) {
                 runtime.warn('CHANNEL_TEXTS_INVALID');
                 throw runtime.failure('Gespeicherte Bot-Texte sind ungültig. Bitte die App-Daten prüfen lassen.');

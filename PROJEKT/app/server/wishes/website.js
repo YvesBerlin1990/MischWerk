@@ -7,7 +7,7 @@ MischWerkModules.attachWebsiteWishes = function (runtime) {
                 !/^[a-f0-9]{32}$/.test(data.visitorId || '')) { throw runtime.failure('Ungültiger Websitewunsch.'); }
         var queue = runtime.copy(runtime.loadWishes()), key = '$web-' + data.submissionId;
         if (queue.submissionIds[key] !== undefined) { return; }
-        if (runtime.shuttingDown || runtime.state.requestsEnabled !== true) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
+        if (runtime.shuttingDown || !runtime.requestsAvailable()) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
         var value = runtime.text(data.text, 300, true);
         if (runtime.containsWishLink(value)) { throw runtime.failure('Nur Interpret + Titel. Keine Links.'); }
         var item = { id:queue.nextId, senderKey:'website:' + data.visitorId, nick:'Website', text:value,

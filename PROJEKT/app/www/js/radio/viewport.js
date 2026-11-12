@@ -26,7 +26,7 @@ MischWerkUI.define('viewport', function (dependencies) {
     var contentHeight = Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + tickerHeight + 16;
     var height = Math.min(500, contentHeight);
     if (bridge && !bridge.isK3Client()) { constrained = small && window.innerHeight + 1 < contentHeight; }
-    if (bridge && bridge.isK3Client()) { height = Math.min(500, 176 + tickerHeight); }
+    if (bridge && bridge.isK3Client() && window.innerWidth > 1199) { height = Math.min(500, 176 + tickerHeight); }
     root.style.setProperty('--radio-height', height + 'px');
     if (bridge && height !== requestedHeight) {
       requestedHeight = height;

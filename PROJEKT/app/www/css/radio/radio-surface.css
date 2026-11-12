@@ -23,6 +23,8 @@ html[data-view=radio] body::after {
   html[data-view=radio].radio-constrained body::after { height:8px; }
 }
 .radio-bar { flex-shrink:0; }
+/* Eigene Druck- und Fokuszustände für alle Leistentasten, einschließlich Lauftext. */
+.radio-deck button { -webkit-tap-highlight-color:transparent; }
 .radio-deck {
   --mw-vinyl-groove:rgba(222,230,240,.045);
   --mw-deck-grooves:

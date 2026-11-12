@@ -1,12 +1,178 @@
-# Rückantwort: Homepage-Sendeplan und Radioteam · Build 308
+# Rückantwort: Homepage-Sendeplan und Radioteam · Build 372
 
-Aktueller lokaler Paketstand: **Build 330** verwendet den direkten SPCast-Abruf `/currentSong.txt` als aktuelle Player-Titelquelle und enthält die Radio-Aktivitätskorrekturen aus Build 312. Er enthält die Wunschboxkorrektur aus 309, Lauftextschrift und Randmarker aus 310 sowie harmonisierte Radioanzeigen, kompaktere Lautstärke und kleinere Aktionen. Titelkonfiguration und Browserauswertung sind angepasst. Der hier nachgewiesene Vertrag aus Build 308 bleibt unverändert enthalten. Nach Installation Build 330 im privaten Status prüfen.
+## Direkter öffentlicher Sendeplanabruf auf Nutzerauftrag · 11.11.2026
+
+Der Betreiber hat ausdrücklich beauftragt, die öffentliche JSON direkt in der Knuddels-App zu lesen. Build **0.1.372 / 372** stellt die öffentliche Tagesanzeige deshalb auf `GET https://radio-mischwerk.web.app/api/public-schedule?week=<Montag>` über **ExternalServerAccess.getURL** um. Die Homepage benötigt dafür keine Änderung und keinen neuen Auftragsdatensatz. Die Anzeige funktioniert unabhängig von Aktivierung und Schlüssel des bestehenden Statuspublishers.
+
+Das vollständige öffentliche Wochen-JSON ist die Anzeigequelle. Generierte AutoDJ-Zeilen erscheinen mit gelieferten Titeln und Moderationsnamen. Leere Titel zeigen wie die Homepage **Live-Sendung**, leere Moderationsfelder **Moderation**. Ganztags erscheint **Ganztägig**, Tagesende **00:00**. Open End nutzt das vom Endpunkt aufgelöste numerische `until` in Berliner Kalenderminuten; ohne `until` gilt das Ende des Starttags. Keine lokalen Ersatzsendungen, kein Import und kein Rückfall auf den nativen Wochenbestand.
+
+Je Woche wird ein laufender GET gemeinsam verwendet; flüchtiger Cache 15 Sekunden, maximal vorige/aktuelle/nächste Woche. Ein 10-Sekunden-Timeout sowie HTTP-/URL-/JSON-/Feldprüfung verhindern falsche Erfolgsanzeigen. Die bestehende 20-Sekunden-Aktualisierung liest nur die offene Ansicht. Fehler erhalten den bekannten Plan und bieten Wiederholen. Paketfolge und Inhaltskennung verhindern gemischte Antworten auch bei unveränderter öffentlicher Revision 0. Beide Shutdown-Hooks sowie geschlossene/fremde Sitzungen verwerfen ausstehende Zustellungen.
+
+Die vorhandenen signierten `scheduleCommands`/`moderatorCommands`, Revisionen und Ergebnisquittungen bleiben für ihre nativen Schreibverträge unverändert. Der zuvor offene Relaynachweis ist damit keine Voraussetzung mehr für den öffentlichen Tagesplan. Dessen separate fachliche Übernahme ist durch diesen lesenden GET weder repariert noch bewiesen. Senderstatus, Lauftext, Team, Wunschqueue und Schlüssel werden nicht umkonfiguriert.
+
+Die echten öffentlichen Antworten aller drei Wochen wurden lokal gegen die tatsächliche `dayTimeline`-Funktion des Homepage-Renderers verglichen: **21 Tage, 24 Zeilen, drei GETs**, gleiche Zeiten, Themen, Namen und Ganztagskennzeichnung. Am **07.11.2026** ergeben sich:
+
+| Zeitraum | Thema | Moderation |
+| --- | --- | --- |
+| 00:00–12:00 | MischWerk Radio Show | MischWerk am Pult |
+| 12:00–14:00 | Live-Sendung | Otterchen |
+| 14:00–15:00 | Live-Sendung | Polaroid |
+| 15:00–00:00 | MischWerk Radio Show | MischWerk am Pult |
+
+Heute, **11.11.2026**, ergibt sich **MischWerk Radio Show / MischWerk am Pult / Ganztägig**. Dieser Vergleich wurde zunächst lokal ausgeführt und ist nach der Betreiberinstallation nun auch für beide genannten Tage in der echten Knuddels-App bestätigt. Paket und endgültige Prüfungen: [Prüfbericht](../pruefung/PRUEFBERICHT.md); Bedienung: [Sendeplan](../betrieb/SENDEPLAN.md).
+
+### Native Prüfung nach Betreiberinstallation
+
+Der Betreiber hat Upload von Build 372 und /update bestätigt. Im echten Channel MischWerk / Otterchen wurde zusätzlich die private Meldung mit Version **0.1.372** gelesen. Die öffentlichen JSON-Antworten für 2026-11-02 und 2026-11-09 wurden am **11.11.2026 um 17:29:54–17:29:55 UTC** erneut per HTTP 200 gelesen. Danach wurde das echte native Sendeplanfenster geöffnet und verglichen: Am **07.11.2026** stehen alle vier gelieferten Zeiträume mit denselben Titeln und Moderationsnamen; insbesondere **Live-Sendung / Otterchen / 12:00–14:00** und **Live-Sendung / Polaroid / 14:00–15:00**. Die beiden AutoDJ-Zeiträume sind **00:00–12:00** und **15:00–00:00**, jeweils **MischWerk Radio Show / MischWerk am Pult**.
+
+Nach Rückkehr zu Heute zeigt die echte App am **11.11.2026** **MischWerk Radio Show / MischWerk am Pult / Ganztägig** und Jetzt im Programm. Nach 22 Sekunden zusätzlicher Beobachtungszeit wurde die regulär erneuerte Tagesliste um **17:31:48 UTC / 18:31:48 Europe/Berlin** erneut korrekt und ohne Fehlermeldung gelesen. Damit sind Empfang und Darstellung der geprüften öffentlichen Sendeplandaten in der produktiven Knuddels-App bestätigt. Der bisher offene Sichtvergleich dieser beiden Tage ist abgeschlossen. Eine neue redaktionelle Homepageänderung wurde dafür nicht ausgelöst; deren Änderung/Löschung und die unabhängigen nativen Relay-Schreibquittungen sind damit nicht zusätzlich abgenommen.
+
+Die folgenden Abschnitte dokumentieren die bisherigen Relay-/Sichtbefunde bis Build 370. Ihre damalige Anforderung, Einzelaufträge vor einer öffentlichen Anzeige zu belegen, gilt nicht für den neuen direkten Lesepfad.
+
+## Nativer Datenabgleich nach Installation von Build 370 · 11.11.2026
+
+Der Betreiber hat den vollständigen Upload und `/update` ausdrücklich bestätigt. In der echten Knuddels-Ansicht ist außerdem die private Appmeldung mit **Version 0.1.370** sichtbar. Die Sendeplanansicht zeigt jetzt die neue Meldung **„Für diesen Tag wurden noch keine Sendungen übernommen.“** statt der früheren Ersatzzeile. Die neue Tagesdarstellung ist damit nativ beobachtet.
+
+Der Betreiber meldete im Prüfverlauf zunächst eine ausgeschaltete Verbindung mit hinterlegtem Schlüssel und anschließend die aktive Verbindung. Nach dieser Aktivierung wurde `/mw admin` → Verbindung in der laufenden App gelesen. Zunächst stand dort **„Verbindung aktiv – Übertragung noch nicht bestätigt.“**. Nach mehr als zwei regulären 20-Sekunden-Takten und ausdrücklichem **Aktualisieren** wurde **„Aktiv – Daten werden übertragen.“** und **„Schlüssel ist hinterlegt.“** beobachtet. Der Statusabruf erfolgte um **16:39:37 UTC / 17:39:37 Europe/Berlin**; die darauf folgende fertige Anzeige bestätigte die angenommene letzte reguläre Antwort. Der Betreiber hat aktiviert; Codex hat lediglich den vorhandenen Status aktualisiert und die Tagesansichten gelesen.
+
+| Vergleich | Öffentliche Homepage-JSON | Echte Knuddels-Tagesansicht |
+| --- | --- | --- |
+| 11.11.2026 | Nur eine generierte ganztägige AutoDJ-Lücke, keine nicht generierte Sendung | Keine übernommenen Sendungen |
+| 07.11.2026 | Zwei nicht generierte Live-Einträge, siehe unten | Keine übernommenen Sendungen; nach Aktivierung erneut geöffnet und um **16:40:49 UTC / 17:40:49 Europe/Berlin** nochmals beobachtet |
+
+Die [öffentliche Vorwoche](https://radio-mischwerk.web.app/api/public-schedule?week=2026-11-02) enthält konkret:
+
+- Firebase-/öffentliche Eintrags-ID `mw_20261102_1`, Datum `2026-11-07`, `12:00`–`14:00`, Moderator `Otterchen`, öffentliches `topic: ""`.
+- Firebase-/öffentliche Eintrags-ID `mw_20261102_2`, Datum `2026-11-07`, `14:00`–`15:00`, Moderator `Polaroid`, öffentliches `topic: ""`.
+
+Aktuelle und nächste öffentliche Woche enthalten weiterhin ausschließlich je sieben `generated: true`-Lücken. Alle drei öffentlichen Wochenrevisionen sind 0; `knuddelsSyncState` und `knuddelsSyncError` sind jeweils `null`. Diese Werte sind öffentliche Lesedaten und keine echten Knuddels-Revisionen oder Auftragsbelege.
+
+**Gesicherte Aussage:** Die aktuelle Statusverbindung nimmt reguläre Antworten an. Für die geprüften Tage liegen im neuen öffentlichen Knuddels-Tagesplan keine aktiv gebundenen übernommenen Sendungen vor. Die zwei öffentlichen Einträge vom 07.11. sind dort nicht sichtbar. Weder der Empfang eines bestimmten `scheduleCommands`-Auftrags noch eine konkrete Ablehnung oder eine fehlerhafte Firebase-Quittungsverarbeitung ist damit nachgewiesen. Öffentliche JSON-Verfügbarkeit allein erzeugt keinen Import; maßgeblich bleiben die Einzelaufträge im bestehenden Statusrückkanal.
+
+### Konkreter nächster Nachweis für den Homepage-/Firebase-Codex
+
+Bitte für die beiden genannten IDs beziehungsweise eine tatsächlich beabsichtigte redaktionelle Änderung feststellen: Gibt es einen Auftragsdatensatz? Welche `commandId`, `week`, `expectedRevision` und welches tatsächliche `entry` wurden erzeugt? Wurde dieser Auftrag nach der Betreiberaktivierung in einer regulären Statusantwort ausgeliefert? Welches zugehörige `scheduleResults` und welche tatsächlichen `scheduleRevisions` kamen anschließend zurück, und welchen Endstatus erhielt der Auftrag in Firebase? Für die Logsuche liegt eine native Sichtbeobachtung der aktiven Verbindung im Fenster **16:38:35–16:40:49 UTC am 11.11.2026** vor; dies sind Beobachtungszeiten, keine behaupteten Request-/Trace-IDs oder genauen POST-Zeitstempel.
+
+Die öffentlich leeren topic-Felder sind ein konkreter Prüfhinweis: Der bestehende native Vertrag verlangt ein nicht leeres Thema. **Nur falls ein tatsächlicher Auftrag ebenfalls ein leeres `entry.topic` enthält**, ist eine fachliche Validierungsablehnung zu erwarten. Die öffentliche Projektion genügt nicht zum Beleg dieser Ursache. Keine Themen erfinden, keine neuen Gesamtimporte oder Schnittstellen ergänzen und die bestehende Verbindung nicht erneut einrichten.
+
+Dieser Arbeitsgang bestand aus nativer Sichtprüfung, öffentlichem Leseabruf und Dokumentation. Appcode, UPLOAD, Manifeste und gespeicherte Schlüssel wurden von Codex nicht geändert. Die folgenden früheren Hinweise auf eine noch ausstehende Installation beschreiben den Stand vor der nun vom Betreiber bestätigten Installation.
+
+## Ersatztexte auf direkten Nutzerauftrag entfernt · Build 370
+
+Nach dem Kontrollbefund bat der Nutzer ausdrücklich, die vorgegebenen Texte aus dem Code zu entfernen und den Empfang zu prüfen. Der gemeinsame lokale Arbeitsstand ist inzwischen **0.1.370 / Build 370**; parallel weiterentwickelte Wartungs-/Updatefunktionen wurden erhalten.
+
+Die öffentliche Tagesprojektion `schedule/day.js` liefert jetzt ausschließlich tatsächlich übernommene, aktiv gebundene Homepage-Einträge. Der bisherige Lückenzweig mit Mischwerk Show / AutoDJ ist vollständig entfernt. Leere Tage und freie Zeiträume erzeugen keine künstlichen Sendungszeilen. Die Oberfläche meldet nach einem erfolgreich geladenen leeren Tag ausdrücklich **„Für diesen Tag wurden noch keine Sendungen übernommen.“**. Fehler bleiben davon getrennt sichtbar.
+
+`schedule/relay.js` erhält gültige empfangene topic-/nick-Anzeigetexte unverändert im bestehenden atomaren Wochencommit. Die bisherigen nativen Identitäts-, Revisions-, Überschneidungs- und normalisierten Bestandsprüfungen bleiben erhalten. Die ursprünglichen Anzeigezeichenfolgen werden nach der Fachprüfung übernommen; Steuerzeichen, überschrittene Längen und leere Pflichtthemen werden abgewiesen, statt still verändert. AutoDJ-Namen werden im Tagespaket und in `schedule/view.js` nicht mehr ersetzt; der Zusatz Mit entfällt ebenfalls. Der Studioabgleich erhält bei aktiv gebundenen Homepage-Einträgen den Webtitel und protokolliert weiterhin die tatsächlichen Studiozeiten. Es gibt keine zusätzliche Queue oder Schnittstelle und keine Datenmigration. Schon früher umgeschriebene gespeicherte Texte benötigen einen neuen regulären Homepageauftrag, um ihre ursprünglichen Werte erneut zu erhalten.
+
+Zwei passende Gegenfälle scheiterten vor der Korrektur an Textnormalisierung beziehungsweise Studioüberschreibung und bestehen anschließend. Die gezielte Nodeprüfung besteht mit **81/81 Fällen**, darunter Inhaltsgleichheit für Live und AutoDJ, Ablehnung ungültiger Rohtexte und Schutz des Webtitels beim Studioabgleich. **14/14 Sendeplan-Browserfälle** bestehen jeweils am App-Arbeitsbestand und am tatsächlich gebündelten UPLOAD. Sie prüfen leere Tage, direkten Live-Namen, tatsächlich gelieferten AutoDJ-Namen, HTML als sicheren Text, Anlegen/Ändern/Löschen, Fokus, Audio und Größenverhalten in K3/STAPP.
+
+Der vollständige Paketbau besteht mit **596/596 Nodefällen**, Architektur-/API-/Längenprüfungen und beiden verifizierten Rhino-Engines **1.7.7.2 und 1.9.1**, jeweils **1294 Prüfungen** an App und UPLOAD einschließlich unverändert erhaltener Webtexte. Die vollständige Node-Suite besteht zusätzlich am tatsächlichen gebündelten UPLOAD mit **596/596 Fällen**. Der aktuelle Paketvergleich bestätigt **113 Dateien, 104 Texte, maximal 9494 UTF-16-Zeichen** und fünf konsistente Manifeste. Paket: `C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/`. Protokolle im System-Tempverzeichnis: `mischwerk-sendeplan-370-paket.log`, `mischwerk-sendeplan-370-upload-node.log` und `mischwerk-sendeplan-370-upload-browser.log`.
+
+### Beobachtung in der echten Knuddels-App
+
+Über die Computersteuerung wurde der vorhandene Channel **MischWerk / Otterchen** ausgewählt und dessen Sendeplan geöffnet. Die echte Ansicht zeigt am **Mittwoch, 11. November** weiterhin **Mischwerk Show / AutoDJ**, **Ganztägig** und **00:00–24:00 Uhr**. Die neue Darstellung ist dort noch nicht sichtbar; die installierte Buildnummer wurde dadurch nicht ermittelt. Es wurde kein Update, Neustart oder FTP-Upload ausgeführt. Die Datenherkunft dieser alten Zeile und eine konkrete erfolgreiche Auftragübernahme lassen sich aus dieser Anzeige weiterhin nicht eindeutig bestimmen.
+
+Ein erneuter öffentlicher JSON-Abruf am 11.11.2026 zeigt in der aktuellen und nächsten Woche weiterhin ausschließlich je sieben generierte AutoDJ-Lücken und keine nicht generierten Einträge. Die Vorwoche enthält zwei öffentliche Live-Einträge am 07.11.2026; deren öffentliche topic-Felder sind leer. Diese Leseprojektion ist keine Auftragswarteschlange. Daraus ist weder der tatsächliche `entry.topic` eines möglichen Auftrags noch dessen native Annahme ableitbar; eine konkrete zusammengehörige Auftrags-/Ergebnisquittung fehlt weiterhin.
+
+Für den echten Empfangstest muss der vollständige neue Paketstand installiert sein. Ein danach erfolgreich geladener leerer Tag zeigt keine künstliche Sendung mehr. Eine beabsichtigte Homepageänderung muss anschließend als tatsächlicher Eintrag mit passender Auftrags-/Ergebnisquittung verfolgt werden. Der bestehende Statuskanal, gespeicherte Schlüssel und Aktivierung werden dafür nicht erneut eingerichtet.
+
+## Kontrollbefund vor der anschließenden Korrektur · Build 369
+
+Grundlage ist die vom Betreiber nachgereichte `C:/Users/Yves/Desktop/Übergabe.zip` mit `MischWerk Sendeplan Kontrollauftrag.md` und zwei Screenshots. ZIP-SHA-256: **8D6D286D7274A35EC58A4F098E8C23F439BD8EBFE313952B0CE9C17CB869479D**. Geprüft wurde der inzwischen vorhandene lokale Stand **0.1.369 / Build 369**. Der folgende Befund ergänzt den früheren Transportabgleich zu Build 368: Die vorhandene Auftragsverarbeitung bedeutet ausdrücklich keine unveränderte Übernahme aller Anzeigetexte.
+
+### Belegte Ursachen
+
+| Stelle | Tatsächliches Verhalten und Abweichung zur übergebenen Anforderung |
+| --- | --- |
+| [schedule/day.js](../../src/backend/schedule/day.js), Zeilen 28–30 | Freie Zeiten werden lokal als `Mischwerk Show` / `AutoDJ` erzeugt. Ein vollständig leerer Tag reproduziert damit den Text des Knuddels-Screenshots, ohne eine gespeicherte Sendung oder einen Firebase-Auftrag. Erwartet werden laut Kontrollunterlage `MischWerk Radio Show` / `MischWerk am Pult`. |
+| [schedule/commands.js](../../src/backend/schedule/commands.js), Zeilen 74–92 | Bei `kind: autodj` wird der übermittelte Nick bereits beim Normalisieren durch `MischWerk` ersetzt. Bei Live-Sendungen wird der Nick über UserAccess auf die native Kontoschreibweise umgestellt. Das Thema durchläuft `runtime.text`. |
+| [core/validation.js](../../src/backend/core/validation.js), Zeile 7 | `runtime.text` ersetzt Steuerzeichen, fasst Leerraum zusammen und entfernt äußere Leerzeichen. Beispiel: Empfang `topic: "  Web   Titel  "`, `nick: "otterchen"`; Speicherung und Tagespaket `Web Titel` / `Otterchen`. Zu lange Themen werden abgelehnt, nicht abgeschnitten. Normale bereits normalisierte Titel bleiben an dieser Stelle erhalten. |
+| [schedule/day.js](../../src/backend/schedule/day.js), Zeile 41 | Das Thema wird aus dem gespeicherten Eintrag übernommen; für AutoDJ wird der Name erneut durch `AutoDJ` ersetzt. |
+| [schedule/view.js](../../app/www/js/schedule/view.js), Zeilen 68–69 | Der Titel wird als Textknoten ausgegeben. Der Name wird bei AutoDJ unabhängig vom gelieferten Nick zu `AutoDJ`; Live-Namen erhalten den Zusatz `Mit `. Die CSS-Regeln umbrechen lange Titel und Namen, ohne eine eigene Textkürzung einzuführen. |
+| [schedule/broadcasts.js](../../src/backend/schedule/broadcasts.js), Zeilen 29–55 | Eine passende gebundene Planung kann durch den bestehenden Studioabgleich gefunden werden. `if (topic) { entry.topic = topic; }` überschreibt dann auch deren Webtitel. Reproduktion: `Web-Original` wird nach nativer Anmeldung, Themenänderung und Abmeldung zu `Natives Studiothema`, bei unveränderter aktiver Firebase-Zuordnung. |
+
+Für einen übernommenen ganztägigen AutoDJ-Eintrag wurde die vollständige Kette lokal beobachtet: Empfang `MischWerk Radio Show` / `MischWerk am Pult` → Speicherung `MischWerk Radio Show` / `MischWerk` → Tagespaket und sichtbare Browseranzeige `MischWerk Radio Show` / `AutoDJ`. Die Anforderung unveränderter Titel und Namen ist somit im aktuellen Stand nicht durchgängig erfüllt.
+
+Die drei sichtbaren Abweichungen sind im Code nachvollziehbar. Die konkrete Herkunft der Zeile im echten Knuddels-Screenshot ist trotzdem nicht eindeutig bewiesen: Derselbe Text könnte auch aus einem übernommenen Eintrag mit entsprechendem Thema entstehen. Es fehlt der zugehörige native Wochen-/Bindungsstand. Im zugeschnittenen Webbild fehlt das Datum; ein Vergleich desselben Tages derselben Woche wurde nicht belegt.
+
+### Ganztagsanzeige und Lücken
+
+`schedule/view.js:50` setzt bei `00:00`–`24:00` und nicht offenem Ende die Positionsbeschriftung `Ganztägig`. Zeile 66 erzeugt zusätzlich die Uhrzeit `00:00 – 24:00 Uhr`. Beide beschreiben denselben Tagesbereich. Es wurde keine doppelt gespeicherte Sendung daraus festgestellt. Die lokale Browserreproduktion zeigt beide Angaben in K3 und STAPP. Die Anzeige könnte für Ganztagsbereiche auf eine einzelne Zeitbeschriftung vereinheitlicht werden; dies ist von den festgelegten Titel-/Namensinhalten getrennt zu behandeln.
+
+Vor, zwischen und nach zwei festen Sendungen entstehen ausschließlich passende freie Bereiche: `00–10 AutoDJ`, `10–12 Sendung`, `12–14 AutoDJ`, `14–16 Sendung`, `16–24 AutoDJ`. Es werden nur die zwei übernommenen Sendungen gespeichert. Keine zusätzliche ganztägige Lücke überlagert die belegten Bereiche. Vorhandene Fälle für Ganztags, Open End, Mitternacht, Nachbarwochen und Überlappungsablehnung bestehen ebenfalls.
+
+### Zuordnung und Grenzen
+
+Der reguläre Relayweg hält dieselbe Firebase-ID bei Wiederholung und Änderung auf derselben nativen ID. Die geprüfte Folge Anlegen → Wiederholung → Änderung → Löschen → Wiederholung endet mit Revision 3, keinem Eintrag und einem gelöschten Bindungsmarker. Im geprüften Relay-Löschablauf bleibt keine aktive verwaiste Zuordnung.
+
+Ein gesonderter Randfall wurde reproduziert: Die bestehende inhabergeprüfte native Wochen-Fachaktion löscht einen gebundenen Eintrag in `schedule/commands.js:33`, erhält aber dessen `relayBindings` mit `deleted: false`. Der öffentliche Tag zeigt danach die freie Zeit; die Zuordnung verweist weiterhin auf das fehlende Ziel. Der vorhandene Schutz verhindert eine stille Neuzuordnung dieser Firebase-ID. Dies ist ein belegter lokaler Randfall, kein Nachweis, dass er im laufenden System aufgetreten ist.
+
+### Ausgeführte Prüfung und Korrekturvorschlag
+
+**78/78 vorhandene Nodefälle** für Relay/Sendeplan sowie **14/14 vorhandene Edge-Browserfälle** für die integrierten K3-/STAPP-Modelle bestehen. Die bisherigen Fälle erwarten teilweise ausdrücklich die abweichenden Texte; ihr Erfolg belegt die neue Inhaltsanforderung nicht. Zusätzliche temporäre Beobachtungsproben verwenden die vorhandenen Fixtures und den integrierten Emulator unverändert. Sie verfolgen Empfang, Speicherung, Tagespaket und tatsächliche Browser-Textknoten. Sämtliche externen Browseranfragen waren gesperrt; es gab keine externen Anfragen oder Browserfehler. Proben, JSON-Befund und zwei Prüfbilder liegen ausschließlich unter `C:/Users/Yves/AppData/Local/Temp/mischwerk-homepage-rueckmeldung-20261111/`.
+
+Konkrete Korrekturstellen für eine anschließende Umsetzung:
+
+1. Lokale Lücken in `schedule/day.js` mit den gemeinsamen Namen `MischWerk Radio Show` / `MischWerk am Pult` beschriften; weiterhin ausschließlich ableiten.
+2. Empfangene Anzeigeinhalte im Relay-Speicherweg validieren und unverändert erhalten. Native Identitäts-/Rechteprüfung davon trennen. `schedule/day.js` und `schedule/view.js` müssen den erhaltenen Namen darstellen, ohne AutoDJ-Ersetzung oder angehängtes `Mit `.
+3. Beim Studioabgleich Webtitel aktiv gebundener Homepage-Einträge erhalten; tatsächliche Studiozeiten weiterhin im vorhandenen Eintrag protokollieren. Ungebundene lokale Studioeinträge behalten ihren bisherigen Fachweg.
+4. Für native Löschung gebundener Ziele eine konsistente Behandlung festlegen und prüfen, einschließlich Bindungsstatus und späterer Firebase-Änderung; keine automatische Umbelegung oder Wiederanlage einführen.
+5. Die betroffenen vorhandenen Node-/Browserfälle auf die gewünschte Inhaltsgleichheit ausrichten und Gegenfälle für Namen, Titel, Studioabgleich und Bindungs-Löschung ergänzen. Die derzeitige lokale Regel `AGENTS.md:196` verlangt noch die alten Lückentexte; bei Umsetzung muss sie im selben Schritt konsistent angepasst werden.
+
+Die Kontrollphase verwendete die zu Beginn vorhandenen Sendeplanmodule aus Build 369. Der gemeinsame Ordner wurde währenddessen an anderer Stelle weiterentwickelt; deshalb besteht kein globaler Unverändert-Nachweis für die ursprünglich erfassten 444 Dateien. In der Kontrollphase bestand der Quellen-/Laufzeit- und Uploadabgleich mit **111 Dateien, 102 Texten, maximal 9494 UTF-16-Zeichen**. Erst der anschließende direkte Nutzerauftrag führte zur oben beschriebenen Sendeplankorrektur in Build 370. Installation und echte Auftragübernahme wurden nicht ausgeführt.
+
+### Weiterhin fehlender Live-Nachweis
+
+Im ZIP gibt es keine `commandId`, keine zugeordnete stabile Firebase-ID und keine zusammengehörigen Revisions-/Quittungsdaten eines realen Auftrags. Der früher bestätigte aktive Verbindungsstatus ersetzt diese Angaben nicht. Benötigt werden für eine vorhandene oder beabsichtigte redaktionelle Änderung: Datum und Woche, Auftrags- und Eintrags-ID, erwartete native Revision, UTC-Auslieferungszeit, passendes `scheduleResults`, tatsächlich gemeldete `scheduleRevisions` und der belegte Abschluss auf Firebase-Seite. Vor öffentlichem Sichtvergleich denselben Tag derselben Woche wählen. Eine konkrete echte Übernahme wurde in dieser Kontrolle nicht beobachtet.
+
+Die kompakte Rückmeldung für den Homepage-Codex liegt auf dem Desktop als [MischWerk Sendeplan Kontrollergebnis.md](<C:/Users/Yves/Desktop/MischWerk Sendeplan Kontrollergebnis.md>).
+
+## Vorheriger Transportabgleich der Übergabe · Build 368
+
+Geprüfter lokaler Stand: **0.1.368 / Build 368**, Arbeitsordner **C:/Users/Yves/Desktop/MischWerk/**. Grundlage ist die damalige Eingangsfassung von `C:/Users/Yves/Desktop/Knuddels Sendeplan Übergabe.md`, SHA-256 **FB969963107AB7C7EF5AA2C48D72186A6BD712A99E6487F99703EDF2F6A25F6C**. Auf anschließenden ausdrücklichen Nutzerauftrag wurde diese Datei um den Knuddels-Befund, den bestätigten Verbindungsstatus und die Zuständigkeit des Homepage-Codex ergänzt. Der Auftrag zum Bestandsabgleich ist abgeschlossen; gegenüber dem beschriebenen Vertrag ist keine fehlende Knuddels-Funktion festgestellt worden. Es wurde kein neuer Build erzeugt.
+
+| Gegenstand der Übergabe | Tatsächlich vorhandene Verarbeitung |
+| --- | --- |
+| Bestehender Statuskanal | [connection.js](../../src/backend/android/connection.js) sendet per nativem HTTP-POST an das konfigurierte feste Ziel. [publisher.js](../../src/backend/android/publisher.js) übernimmt Aufträge ausschließlich aus einer passenden, rechtzeitigen HTTP-200-Antwort mit `accepted === true`, plausibler `serverTime` und gültigem `wishes`-Array. |
+| `scheduleCommands` | [commands.js](../../src/backend/android/commands.js) prüft höchstens einen Auftrag mit exakt `commandId`, `operation`, `week`, `expectedRevision`, `id`, `entry`. `save` erwartet die sieben genannten Sendungsfelder; `delete` verlangt `entry: null`. Bestehende Vollstunden-, Nick-, Themen- und Überschneidungsprüfungen bleiben maßgeblich. |
+| Firebase-Eintrags-ID | [relay.js](../../src/backend/schedule/relay.js) ordnet die stabile String-ID dauerhaft einer nativen Woche und Eintrags-ID zu. Änderung, Zuordnung und Ergebnis werden zusammen gespeichert. Wiederholungen, Neustarts und Löschmarker verhindern doppelte oder neu zugeordnete Einträge. |
+| Ergebnisse und Revisionen | `pendingRelayResults()` liefert höchstens zehn `scheduleResults` im folgenden regulären POST. [projection.js](../../src/backend/android/projection.js) meldet die tatsächlich lesbaren `scheduleRevisions` für vorige, aktuelle und nächste Berliner ISO-Woche. Die öffentliche JSON-Revision wird dafür nicht übernommen. |
+| Öffentlicher Tagesplan | [day.js](../../src/backend/schedule/day.js) zeigt bestätigte aktive `relayBindings`. Ungebundene Alteinträge und automatische Studioaufzeichnungen bleiben außerhalb dieser Projektion. AutoDJ-Lücken werden nur abgeleitet. Die öffentliche JSON-Ansicht wird von Knuddels nicht als Auftragsliste eingelesen. |
+
+Die vorhandene native Tagesansicht und deren Gestaltung erfüllen den bisherigen freigegebenen Projektstand. Aus der Homepage-Ansicht ergibt sich kein zusätzlicher Gestaltungsauftrag.
+
+### Öffentliche HTTP-Stichprobe
+
+Die [Homepage](https://radio-mischwerk.web.app/) und alle drei unten verlinkten öffentlichen Wochenabrufe lieferten bei der Prüfung HTTP 200:
+
+| Montag der Woche | Einträge insgesamt | `generated: true` | Ohne `generated: true` | Öffentliche `revision` |
+| --- | ---: | ---: | ---: | ---: |
+| [02.11.2026](https://radio-mischwerk.web.app/api/public-schedule?week=2026-11-02) | 10 | 8 | 2 | 0 |
+| [09.11.2026](https://radio-mischwerk.web.app/api/public-schedule?week=2026-11-09) | 7 | 7 | 0 | 0 |
+| [16.11.2026](https://radio-mischwerk.web.app/api/public-schedule?week=2026-11-16) | 7 | 7 | 0 | 0 |
+
+`knuddelsSyncState` und `knuddelsSyncError` waren in allen drei Antworten `null`. Die aktuelle Woche enthält somit in dieser öffentlichen Stichprobe ausschließlich generierte AutoDJ-Zeiten. Diese Daten belegen weder ausgelieferte Änderungsaufträge noch eine erfolgreiche native Übernahme. Öffentliche Darstellung, interne Auftragswarteschlange und echte Knuddels-Revisionen sind getrennt zu beurteilen.
+
+### Nachgereichter nativer Verbindungsstatus
+
+Der Betreiber hat am 11.11.2026 einen Screenshot aus `/mw admin` → **Verbindung** bereitgestellt. Sichtbar sind **„Aktiv – Daten werden übertragen.“**, **„Schlüssel ist hinterlegt.“**, die Taste **„Aktiv“** und **„Ausschalten“**. Nach dem vorhandenen Controller bedeutet dies `publisherActive === true` und eine angenommene letzte reguläre Statusantwort (`lastPost.accepted`). Der Screenshot zeigt keine Buildnummer, keinen einzelnen Sendeplanauftrag und keine Ergebnisquittung.
+
+Die Homepage einschließlich Sendeplanpflege wird vom anderen Codex betreut. Dieser übernimmt den nächsten Schritt der fachlichen Datenflussprüfung. Die damalige Desktop-Rückgabe `MischWerk Sendeplan Rückgabe an Homepage-Codex.md` wurde inzwischen entfernt; maßgeblich ist der Kontrollbefund oben und die dort verlinkte neue Rückmeldung. Die bisher beschriebene manuelle Homepageänderung wurde vom Betreiber nicht als ausgeführt bestätigt.
+
+### Prüfergebnis und verbleibender Betriebsnachweis
+
+**115/115 vorhandene Nodefälle** bestehen: 42 für Relay/Tagesplan/Team, 36 für den Sendeplan und 37 für Android-Transport/Wünsche/Diagnose. Geprüft wurden insbesondere Anlegen, Ändern und Löschen über reguläre Antworten, ID-Bindung, Ergebnisrückweg, Revisionskonflikte, Wiederholung/Neustart, Speicherfehler, AutoDJ-Ableitung und abgewiesene ungültige Antworten. Quellen-/Laufzeitabgleich und `check:upload` bestehen. Das vorhandene Paket enthält **105 Dateien, davon 99 Texte, maximal 9494 UTF-16-Zeichen**; alle fünf Manifeste stimmen überein. Die **339 vor dieser Prüfung erfassten Dateien** aus Backendquellen, App, Deployment, festem UPLOAD sowie Paket-/Lockdatei bleiben per SHA-256 unverändert. Einzelheiten stehen im [Prüfbericht](../pruefung/PRUEFBERICHT.md).
+
+Der tatsächlich in Knuddels installierte Build und die Annahme eines konkreten Sendeplanauftrags bleiben unbekannt. Die aktive Statusverbindung ist durch den nachgereichten Screenshot belegt. Der noch offene gemeinsame Betriebsnachweis besteht aus einer beabsichtigten Homepageänderung, dem zugehörigen `scheduleCommands`-Auftrag, dessen nativer Anwendung sowie passendem `scheduleResults` und tatsächlicher `scheduleRevisions` im nächsten regulären POST. Dazu vorhandene redigierte technische Befunde verwenden; keine Schlüssel, vollständigen Nutzlasten oder privaten Inhalte weitergeben. Der aktuelle Bedienweg für den Verbindungsstatus ist `/mw admin` → Verbindung; frühere Relay-Chatbefehle sind entfernt. Die bestehende Konfiguration muss für den Abgleich nicht erneut gespeichert werden.
+
+## Historischer Implementierungsabschluss · Build 308
 
 Stand: 08.11.2026. Die vom Betreiber ausdrücklich freigegebene Anforderungsfassung vom **03:10:26 Uhr Europe/Berlin** ist vollständig in **0.1.308 / Build 308** umgesetzt. Genau ein lokales Funktionspaket wurde erstellt; seine native Installation und gemeinsame Abnahme stehen aus.
 
 Referenz: Knuddels-Anforderungen-Homepage-Sendeplan.md, SHA-256 **D244DBD5D6999EE962E2B52D2CBACD3780548638A773E8CE57511881E4285457**. Die Referenzdatei wurde nicht verändert. Die in dieser Fassung Firebase-seitig abgesicherten Randfälle sind geschlossen; dazu werden keine erneuten Antworten angefordert.
 
-## Gelieferter Knuddels-Stand
+### Gelieferter Knuddels-Stand
 
 - Bestehender signierter Status-POST, Sync-Schlüssel, vier signierte Strings, Senderstatus, Lauftext, Wunschqueue und 20-Sekunden-Takt bleiben erhalten. Keine neue URL, kein WebHook, Callable oder Timer.
 - Keine scheduleUpdates/teamUpdates. Jeder reguläre POST meldet ausschließlich bekannte native scheduleRevisions für vorige/aktuelle/nächste Berliner ISO-Woche und optional moderatorRevision. Unbekannte Werte werden ausgelassen; Ergebnisrevisionen bleiben tatsächliche Ganzzahlen oder ausdrücklich null.
@@ -17,9 +183,9 @@ Referenz: Knuddels-Anforderungen-Homepage-Sendeplan.md, SHA-256 **D244DBD5D6999E
 - Im folgenden regulären POST höchstens zehn scheduleResults und zehn moderatorResults. Neue Ablehnungen enthalten validation, business_rule oder ausschließlich bei gültiger abweichender Revision revision_conflict. Fehlende/ungültige erwartete Revision ist validation. Technische Speicherfehler bleiben ohne falsche endgültige Quittung erneut zustellbar. Bekannte Auftragskennungen liefern das gespeicherte Ergebnis; angenommene POSTs bestätigen die übertragenen Belege flüchtig, Neustarts bieten sie erneut an.
 - Native Inhaberaktionen, Minutenzeiten, Rechte, Wunschdaten und automatische Studioeinträge bleiben erhalten. Keine Migration, Gesamtlistenübernahme oder öffentliche Rückprojektion lokaler Inhalte. currentSong/currentArtist werden weiterhin nicht gesendet, auch nicht als null.
 
-## Private Diagnose und Annahmen
+### Private Diagnose und Annahmen
 
-/mischwerk-relay status ergänzt lastFailure mit exakt stage, httpStatus und atUtc. Die Stufen sind prepare, send, timeout, http_response, response_url, response_size, response_json, response_contract und command_storage. HTTP-Code nur, soweit tatsächlich bekannt, sonst null; Zeit als UTC-ISO. Diagnose enthält keine Inhalte, IDs, Nicks, URLs, Geheimnisse oder Exceptions. Der erfolgreiche erste reguläre POST und die bestehenden technischen Zähler bleiben erhalten.
+Der damalige Befehl /mischwerk-relay status ergänzte lastFailure mit exakt stage, httpStatus und atUtc; dieser Chat-Einstieg ist im aktuellen Stand entfernt. Die interne Diagnose bleibt erhalten. Die Stufen sind prepare, send, timeout, http_response, response_url, response_size, response_json, response_contract und command_storage. HTTP-Code nur, soweit tatsächlich bekannt, sonst null; Zeit als UTC-ISO. Diagnose enthält keine Inhalte, IDs, Nicks, URLs, Geheimnisse oder Exceptions. Der erfolgreiche erste reguläre POST und die bestehenden technischen Zähler bleiben erhalten.
 
 Je eine Zeile zu den verwendeten nativen Annahmen:
 
@@ -34,19 +200,19 @@ Je eine Zeile zu den verwendeten nativen Annahmen:
 - Alte bereits gespeicherte Ablehnungsbelege ohne reason bleiben unverändert; ein historischer Grund wird nicht erfunden. Neue Ablehnungen enthalten den tatsächlichen Grund.
 - Lokale/automatische Studioinhalte werden nicht öffentlich übertragen; die konkrete Titel-/Interpretenquelle ist weiterhin im Firebase-/Homepage-Projekt nachzuweisen und wird durch diesen Build nicht ersetzt.
 
-## Lokaler Nachweis
+### Lokaler Nachweis
 
 475/475 Nodefälle bestanden, darunter 35 gezielte Plan-/Team-/Diagnosefälle. Zwei neue Gegenfälle scheiterten vor der Umsetzung am bisherigen Build 307 und bestehen jetzt. Beide verifizierten echten Rhino-Engines 1.7.7.2 und 1.9.1 bestehen jeweils 1160 Prüfungen einschließlich nativer Java-Strings/-Integer am HTTP-Port. Architektur, API-Signaturen, Quellen-/Runtimegleichheit und Grenzen sind geprüft.
 
 Die Oberfläche ist gegenüber dem Beginn dieses Auftrags per SHA-256 **85/85 Dateien bytegleich**. Der bestehende Appbestand enthält 151 Dateien mit 64 Backendmodulen. Das eine fertige Paket liegt unter **C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/**: 133 Laufzeitdateien, davon 126 Texte, höchstens 9485 UTF-16-Zeichen; fünf konsistente Manifeste. Am fertigen Paket bestehen zusätzlich 5/5 Edge-Emulatorfälle für K3/STAPP-Wünsche, Audio/Entwürfe/Neustart, Parserstart, zwei Nutzer und Team-Popup. Details im [Prüfbericht](../pruefung/PRUEFBERICHT.md).
 
-## Übergabe und gemeinsame Abnahme
+### Übergabe und gemeinsame Abnahme
 
 Die Anforderungen zu Reihenfolge, Konfliktzähler, Wochenwechsel, ID-Lebenszyklus, Revisionspriorität, offenen Befehlen und Ausgangsbestand gelten gemäß 03:10-Fassung als Firebase-seitig abgesichert. Keine erneute Vertragsklärung oder weitere Freigabe ist dafür nötig. Die zuvor genannten Risiken sind Knuddels-seitig durch eindeutige dauerhafte Bindungen, atomare Commits, Fachregeln und präzise Ergebnisse abgesichert.
 
 Nach Installation dieses Pakets gemeinsam den echten Datenfluss prüfen:
 
-1. Privater Knuddels-Status nennt Build 330, aktiven Publisher und reguläre HTTP-200-/accepted-Annahme. Bestehende Schlüssel und Aktivierung nicht unnötig erneut speichern.
+1. Privater Knuddels-Status nennt den tatsächlich installierten Build, aktiven Publisher und reguläre HTTP-200-/accepted-Annahme. Bestehende Schlüssel und Aktivierung nicht unnötig erneut speichern.
 2. Tatsächliche native Revisionen kommen bei Firebase an. Eine beabsichtigte Homepageänderung liefert genau einen Auftrag und wird genau einmal nativ angewandt oder mit tatsächlichem Grund abgelehnt.
 3. Passende Ergebnisquittung erreicht Firebase im nächsten regulären POST; ein offener Auftrag wird erst damit abgeschlossen. Eine erneute Zustellung erzeugt weder Dublette noch zusätzliche Fachrevision.
 4. Homepage und Android zeigen den von Firebase geführten öffentlichen Zustand. Eine native Fachablehnung bleibt dort erkennbar und wird nicht allein wegen HTTP 200 als erfolgreiche Übernahme dargestellt.
@@ -58,7 +224,7 @@ Es wurden keine Live-POSTs, Cloudabfragen, FTP-Übertragung, native Installation
 
 ## Frühere Nachweise und Prüfstände
 
-Die folgenden Abschnitte dokumentieren frühere Prüfstände. Maßgeblich ist ausschließlich der Abschluss zu Build 308 oben. Frühere Fragen und Aussagen über eine ausstehende Implementierung sind historisch und werden nicht erneut gestellt.
+Die folgenden Abschnitte dokumentieren frühere Prüfstände. Maßgeblich für den aktuellen Bestand ist der Abgleich zu Build 368 oben; der Implementierungsabschluss zu Build 308 dokumentiert den bestehenden Vertrag. Frühere Fragen und Aussagen über eine ausstehende Implementierung sind historisch und werden nicht erneut gestellt.
 
 ## Nachgereichter Logbefund und Vertragsklärung geprüft
 
@@ -120,7 +286,7 @@ Die Fassung 00:53 enthält keine Antwort auf den unten dokumentierten Logauftrag
 
 Prüfergebnis: Die neue Zuständigkeit und die vorgesehenen Felder sind nachvollziehbar. Für eine sichere vollständige Umsetzung fehlen insbesondere der eindeutige ID-Vertrag und die Festlegung zum Umgang mit vorhandenen Bedienwegen und Beständen. In diesem Prüfschritt wurden ausschließlich diese Rückantwort und der Prüfbericht aktualisiert. Kein neuer Build, keine Datenmigration und keine Änderung am laufenden Relay oder an vorhandenen Knuddels-Daten.
 
-## Aktueller nativer Fehler in Build 303 – Prüfauftrag an Firebase
+## Historischer nativer Fehler in Build 303 – damaliger Prüfauftrag an Firebase
 
 Vom Betreiber am 07.11.2026 gemeldeter damaliger Fehlerstand. Genaue Uhrzeit und Trace-ID wurden nicht mitgeliefert. Inzwischen liegen sowohl der Firebase-Logbericht als auch der oben dokumentierte erfolgreiche native Statusabruf vor.
 
@@ -187,9 +353,9 @@ Die aktualisierte Datei `Knuddels-Anforderungen-Homepage-Sendeplan.md` klärt di
 
 Die bisherige zusätzliche Prüfung auf `authorization.role === "admin"` wurde deshalb aus `src/backend/android/commands.js` entfernt. Der Gegenfall ohne Rollenfelder scheitert am bisherigen Build 301 und besteht nach der Anpassung. Die Annahme von Sendeplan- und Teamaufträgen hängt weiterhin ausschließlich an einer passenden, frischen und angenommenen regulären HTTP-Antwort des vorhandenen Publishers; Wochen-/Teamrevisionen, Nickauflösung, volle Stunden und alle Fachregeln werden weiterhin geprüft. Native Knuddels-Clientaktionen behalten ihre bisherigen Rechteprüfungen. Die Rollenfrage ist damit geklärt.
 
-## Bisheriger Anbindungsvertrag bis Build 304 – noch implementiert
+## Historischer Anbindungsvertrag bis Build 304 – durch Build 308 ersetzt
 
-Die folgende Beschreibung dokumentiert den bisherigen Code. Die neue Fassung 00:53 verlangt stattdessen Revisionsmetadaten und Einzelbefehle wie oben beschrieben; die darin geforderte Umstellung ist noch nicht umgesetzt.
+Die folgende Beschreibung dokumentiert den damaligen Code. Die Fassung 00:53 verlangte stattdessen Revisionsmetadaten und Einzelbefehle; die Umstellung ist seit Build 308 umgesetzt, siehe oben.
 
 - Ausschließlich der bestehende signierte POST an `https://radio-mischwerk.web.app/api/publishKnuddelsState`, mit demselben Sync-Schlüssel und Transport. Keine neuen URLs, Schlüssel, WebHooks, Callables oder Timer.
 - `scheduleUpdates`: öffentliche Wochen-Seiten direkt aus `runtime.publicWebsitePlan(week, page)`, höchstens vier je POST; zuverlässige Seitennachlieferung im bestehenden Takt.

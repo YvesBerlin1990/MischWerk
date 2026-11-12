@@ -7,7 +7,7 @@ MischWerkUI.define('model', function (dependencies) {
   var lastStateAt = 0;
   var retiredWishGenerations = [];
   var initialView = bridge && bridge.pageData && bridge.pageData.view;
-  var view = initialView === 'wishes' || initialView === 'studio' || initialView === 'team' ? initialView : 'radio';
+  var view = initialView === 'wishes' || initialView === 'studio' || initialView === 'team' || initialView === 'schedule' ? initialView : 'radio';
   document.documentElement.setAttribute('data-view', view);
   function connected() { return !!state && Date.now() - lastStateAt < 65000 && !state.shuttingDown; }
   
@@ -23,9 +23,9 @@ MischWerkUI.define('model', function (dependencies) {
       if (retiredWishGenerations.indexOf(nextPositions.generation) !== -1 ||
           (previousPositions.generation === nextPositions.generation && nextPositions.revision < previousPositions.revision)) {
         next.wishPositions = previousPositions;
-        next.queue = next.user.canModerate ? state.queue : []; next.queueTotal = next.user.canModerate ? state.queueTotal : 0;
-        next.queueWindow = next.user.canModerate ? state.queueWindow : []; next.queueStart = next.user.canModerate ? state.queueStart : 0;
-        next.page = next.user.canModerate ? state.page : 0; next.pages = next.user.canModerate ? state.pages : 1;
+        next.queue = next.user.canUseModeration === true ? state.queue : []; next.queueTotal = next.user.canUseModeration === true ? state.queueTotal : 0;
+        next.queueWindow = next.user.canUseModeration === true ? state.queueWindow : []; next.queueStart = next.user.canUseModeration === true ? state.queueStart : 0;
+        next.page = next.user.canUseModeration === true ? state.page : 0; next.pages = next.user.canUseModeration === true ? state.pages : 1;
       } else if (previousPositions.generation !== nextPositions.generation) {
         retiredWishGenerations.push(previousPositions.generation);
         if (retiredWishGenerations.length > 8) { retiredWishGenerations.shift(); }
@@ -37,6 +37,9 @@ MischWerkUI.define('model', function (dependencies) {
     next.radioModeratorPages = typeof next.radioModeratorPages === 'number' ? next.radioModeratorPages : 1;
     next.radioModeratorRevision = typeof next.radioModeratorRevision === 'number' ? next.radioModeratorRevision : 0;
     next.user.showModerationButton = next.user.showModerationButton === true && next.user.canModerate === true;
+    next.user.canUseModeration = next.user.canUseModeration === true && next.user.canModerate === true && next.user.isOnAir === true;
+    if (!next.user.canUseModeration) { next.queue=[]; next.queueWindow=[]; next.queueTotal=0; next.queueStart=0; next.page=0; next.pages=1; }
+    next.user.canToggleRequests = next.user.canToggleRequests === true;
     next.user.canManageRadioModerators = next.user.canManageRadioModerators === true;
     state = next; lastStateAt = Date.now();
     signals.emit('snapshot', { previousStation: oldStation, refreshRequestId: next.refreshRequestId });

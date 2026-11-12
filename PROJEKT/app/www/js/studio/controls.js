@@ -8,6 +8,7 @@ MischWerkUI.define('studio', function (dependencies) {
   var signals = dependencies.signals;
   var topicDirty = false;
   var topicRequest = null;
+  var requestsError = '';
   function releaseTopicSpace() { dom.el('notice').removeAttribute('data-topic-reserved'); }
   function refreshControls() { signals.emit('controls'); }
   function topicFeedback(message, error) {
@@ -27,19 +28,22 @@ MischWerkUI.define('studio', function (dependencies) {
     var live = model.connected();
     dom.setText('studio-schedule-note', model.current().scheduleSyncPending ?
       'Moderation bestätigt. Der Sendeplaneintrag steht noch aus. Bitte die Moderation erneut öffnen.' :
-      'An- und Abmeldung werden automatisch im Sendeplan vermerkt.');
+      'Im Sendeplan automatisch vermerkt.');
     dom.el('studio-schedule-note').classList.toggle('error', !!model.current().scheduleSyncPending);
     document.body.classList.toggle('moderator-on-air', live && !!model.current().moderator);
     dom.setText('studio-host', !live ? 'Moderation unbestätigt' : model.current().moderator ? model.current().moderator.nick + ' ist am Mikrofon' : 'Keine Moderation angemeldet');
     var limits = model.current().limits || { maxTopicLength: 80 };
-    dom.el('studio-topic').disabled = !live || !!commands.pending() || !model.current().user.canModerate;
+    dom.el('studio-topic').disabled = !live || !!commands.pending() || !model.current().user.canUseModeration;
     dom.el('studio-topic').maxLength = limits.maxTopicLength || 80;
     dom.el('save-topic').disabled = dom.el('studio-topic').disabled || !topicDirty;
     dom.el('save-topic').setAttribute('aria-busy', String(!!topicRequest));
     dom.el('reset-topic').hidden = !topicDirty;
     dom.el('reset-topic').disabled = dom.el('studio-topic').disabled;
     dom.setText('studio-topic-count', dom.el('studio-topic').value.length + ' / ' + dom.el('studio-topic').maxLength);
-    ['on-air', 'off-air', 'toggle-wishes'].forEach(function (id) { dom.el(id).disabled = !!commands.pending() || !live || !model.current().user.canModerate; });
+    ['on-air', 'off-air'].forEach(function (id) { dom.el(id).disabled = !!commands.pending() || !live || !model.current().user.canModerate; });
+    // Beim Speichern fokussierbar halten; der Ereignisweg weist weitere Klicks ab.
+    dom.el('toggle-wishes').disabled = !live || !model.current().user.canToggleRequests;
+    dom.el('toggle-wishes').setAttribute('aria-disabled', String(dom.el('toggle-wishes').disabled || commands.pending()));
     dom.el('off-air').disabled = dom.el('off-air').disabled || !model.current().user.canEndModeration;
     dom.el('on-air').hidden = !!model.current().moderator;
     dom.el('on-air').disabled = dom.el('on-air').disabled || !!model.current().moderator;
@@ -47,9 +51,19 @@ MischWerkUI.define('studio', function (dependencies) {
     dom.setText('off-air', model.current().moderator && !model.current().user.isOnAir ? 'Moderation beenden' : 'Abmelden');
     dom.el('on-air').title = 'Als Moderation anmelden';
     dom.el('off-air').title = !model.current().moderator ? 'Keine Moderation angemeldet' : model.current().user.canEndModeration ? 'Studio-Anmeldung beenden' : 'Nur aktive Moderation oder Channel-Besitzer dürfen abmelden';
+    var requestsPending = commands.pending('mw:setRequests');
+    if (!model.current().user.canToggleRequests) { requestsError = ''; }
+    dom.el('toggle-wishes').setAttribute('aria-busy', String(requestsPending));
     dom.el('toggle-wishes').setAttribute('aria-checked', String(model.current().requestsEnabled));
     dom.setText('toggle-label', model.current().requestsEnabled ? 'Ein' : 'Aus');
-    dom.setText('studio-wish-state', model.current().requestsEnabled ? 'Musikwünsche sind offen' : 'Musikwünsche sind geschlossen');
+    var error = !!requestsError && !requestsPending;
+    var status = dom.el('studio-wish-state');
+    status.classList.toggle('error', error);
+    status.setAttribute('role', error ? 'alert' : 'status');
+    status.setAttribute('aria-live', error ? 'assertive' : 'polite');
+    dom.setText('studio-wish-state', requestsPending ? 'Änderung wird gespeichert …' : error ? requestsError :
+      !live ? 'Verbindung fehlt' : model.current().requestsEnabled ?
+      (model.current().moderator ? 'Musikwünsche sind offen' : 'Nur für den Channelinhaber geöffnet') : 'Musikwünsche sind geschlossen');
   
   }
   function start() {
@@ -57,7 +71,7 @@ MischWerkUI.define('studio', function (dependencies) {
       var notice=dom.el('notice');
       if (!notice.hidden && dom.el('studio-controls').contains(notice)) { notice.setAttribute('data-topic-reserved',''); }
     });
-    ['on-air','off-air','toggle-wishes','handover-open','studio-programme-tab','studio-queue-tab','studio-history-tab'].forEach(function(id){
+    ['on-air','off-air','toggle-wishes','handover-open','studio-programme-tab','studio-queue-tab'].forEach(function(id){
       dom.el(id).addEventListener('click',releaseTopicSpace);
     });
     signals.on('studio-selection',function(selection){if(selection.tab!=='programme')releaseTopicSpace();});
@@ -74,7 +88,11 @@ MischWerkUI.define('studio', function (dependencies) {
       }
     });
     dom.el('on-air').addEventListener('click', function () {
-      if (!dom.el('on-air').disabled) { commands.send('mw:onAir', {}, true); }
+      if (this.disabled) { return; }
+      var revision = model.current().revision;
+      commands.send('mw:onAir', {}, true, function (state) {
+        return state.revision > revision && state.user.canUseModeration && state.user.isOnAir;
+      });
     });
     dom.el('off-air').addEventListener('click', function () { commands.send('mw:offAir', {}, true); });
     dom.el('studio-topic').addEventListener('input', function () {
@@ -91,13 +109,20 @@ MischWerkUI.define('studio', function (dependencies) {
       if (dom.el('save-topic').disabled || !this.reportValidity()) { return; }
       commands.send('mw:setTopic', { topic: dom.el('studio-topic').value }, true);
     });
-    dom.el('toggle-wishes').addEventListener('click', function () { commands.send('mw:setRequests', { enabled: !model.current().requestsEnabled }, true); });
+    dom.el('toggle-wishes').addEventListener('click', function () {
+      if (this.disabled || commands.pending()) { return; }
+      commands.send('mw:setRequests', { enabled: !model.current().requestsEnabled }, true);
+    });
   
     signals.on('topic-started', function (request) {
       topicRequest = request; topicFeedback('Thema wird gespeichert …', false);
     });
     signals.on('studio-topic-reset', function () { topicDirty = false; topicRequest = null; renderTopic(); topicFeedback('',false); });
     signals.on('topic-error', function (message) { topicFeedback(message, true); });
+    signals.on('requests-feedback', function (feedback) {
+      requestsError = feedback.error ? feedback.message || 'Wunschbox konnte nicht gespeichert werden.' : '';
+      availability(); layout.resizeDialog();
+    });
     signals.on('command-result', function (response) {
       if (response.action === 'mw:setTopic') {
         if (response.ok && topicRequest && topicRequest.value === dom.el('studio-topic').value) { topicDirty = false; }

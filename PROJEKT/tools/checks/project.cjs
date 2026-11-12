@@ -4,6 +4,7 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const { checkBackend, modules } = require('../build/backend.cjs');
 const { frontendFiles, operatorFiles } = require('../lib/frontend-files.cjs');
+const { withoutUpdatePlan } = require('../lib/update-plan.cjs');
 const { runtimeFiles, isBinary, checkRuntime } = require('./lengths.cjs');
 const { checkArchitecture } = require('./architecture.cjs');
 const root = path.resolve(__dirname, '../..');
@@ -28,12 +29,13 @@ for (const name of ['Client.sendEvent', 'Client.addEventListener', 'Client.inclu
 }
 // Vollstaendiges Inventar der zusaetzlichen verwendeten Hooks und Instanzmethoden.
 for (const [type, names] of Object.entries({
-  App: ['onAppStart', 'onPrepareShutdown', 'onShutdown', 'onUserJoined', 'onUserLeft', 'onUserDeleted', 'onEventReceived'],
-  User: ['getNick', 'getUserId', 'getUserType', 'hasProfilePhoto', 'getProfilePhoto', 'isOnlineInChannel', 'isAppManager', 'equals', 'canSendAppContent', 'sendAppContent', 'sendPrivateMessage'],
+  App: ['onAppStart', 'onPrepareShutdown', 'onShutdown', 'onUserJoined', 'onUserLeft', 'onUserDeleted', 'onEventReceived', 'onPrivateMessage'],
+  Message: ['getAuthor', 'getRawText', 'getText'],
+  User: ['getNick', 'getUserId', 'getUserType', 'hasProfilePhoto', 'getProfilePhoto', 'isOnlineInChannel', 'isAppManager', 'equals', 'canSendAppContent', 'sendAppContent', 'sendPrivateMessage', 'getPersistence', 'addNicklistIcon', 'removeNicklistIcon'],
   AppContentSession: ['getUser', 'remove'],
   AppContent: ['setResponsive', 'addCloseListener'],
   WebHookAccess:['registerWebHook','unregisterWebHook','getWebHookUrl'], WebHookRequest:['getMethod','getPath','getHeaders','getBody','getQueryString','getRemoteAddress'], WebHookResponse:['send'],
-  ExternalServerAccess: ['postURL', 'canAccessURL', 'getAllAccessibleDomains'], ExternalServerResponse: ['getResponseCode', 'getURLString'],
+  ExternalServerAccess: ['getURL', 'postURL', 'canAccessURL', 'getAllAccessibleDomains'], ExternalServerResponse: ['getResponseCode', 'getURLString'],
   ServerInfo: ['getVersion', 'getServerId'], Domain: ['getDomainName'],
   BotUser: ['sendPublicMessage'], String: ['escapeKCode'],
   Channel: ['getChannelConfiguration'], ChannelConfiguration: ['getChannelInformation'], ChannelInformation: ['getTopic', 'setTopic'],
@@ -44,6 +46,8 @@ for (const [type, names] of Object.entries({
   }
 }
 assert.ok(backendApi.includes('KnuddelsServer.getAppAccess = function'), 'Fehlende AppAccess-Signatur');
+assert.ok(backendApi.includes('KnuddelsServer.listFiles = function listFiles(path)'), 'Fehlende dokumentierte Runtime-Dateiliste');
+assert.ok(backendApi.includes('KnuddelsServer.getFullImagePath = function getFullImagePath(imageName)'), 'Fehlende eigene Bildauflösung');
 assert.ok(backendApi.includes('KnuddelsServer.getDefaultBotUser = function'), 'Fehlende BotUser-Signatur');
 assert.ok(backendApi.includes('KnuddelsServer.getWebHookAccess = function'), 'Fehlende WebHook-Signatur');
 assert.ok(backendApi.includes('KnuddelsServer.getExternalServerAccess = function'), 'Fehlende ExternalServerAccess-Signatur');
@@ -63,7 +67,8 @@ for (const file of runtimeFiles.filter(file => !isBinary(file)).map(file => 'app
   assert.ok(!/laut\.fm|lautfm|stationSlug|streamplus/i.test(read(file)), 'Entfernte Radioanbindung in Laufzeitdatei: ' + file);
 }
 for (const match of js.matchAll(/(?:el|setText)\('([^']+)'/g)) { assert.ok(ids.includes(match[1]), 'Fehlendes UI-Element: ' + match[1]); }
-assert.ok(!/\b(?:fetch|process|module\.exports|document|window)\b/.test(backend), 'Browser-/Node-Funktion im Backend');
+// Der erzeugte Dateiplan enthält reine Dateinamen wie studio/window.js, keine Browseraufrufe.
+assert.ok(!/\b(?:fetch|process|module\.exports|document|window)\b/.test(withoutUpdatePlan(backend)), 'Browser-/Node-Funktion im Backend');
 assert.ok(!backend.includes('.isChannelModerator('), 'Channelmoderatoren dürfen nicht automatisch Studiozugriff erhalten');
 assert.ok(!js.includes('innerHTML'), 'Fremde Texte mit textContent ausgeben');
 assert.ok(!js.includes('MischWerkDemo'), 'Demo-Code darf nicht im Produktions-Frontend liegen');

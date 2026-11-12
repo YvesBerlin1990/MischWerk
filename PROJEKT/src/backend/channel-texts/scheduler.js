@@ -27,7 +27,7 @@ MischWerkModules.attachChannelTextScheduler = function (runtime) {
                 next.nextAt = runtime.now() + next.interval * 60000;
                 // Bei unsicherem Sendeergebnis darf ein Neustart denselben Termin nicht erneut ausgeben.
                 runtime.storeChannelTexts(next);
-                try { KnuddelsServer.getDefaultBotUser().sendPublicMessage(message.escapeKCode()); }
+                try { KnuddelsServer.getDefaultBotUser().sendPublicMessage(runtime.formatChannelText(message, next.smileys)); }
                 catch (error) { runtime.warn('CHANNEL_TEXTS_SEND'); }
             } catch (error) {
                 runtime.warn('CHANNEL_TEXTS_TICK');

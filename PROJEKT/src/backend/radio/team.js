@@ -56,6 +56,9 @@ MischWerkModules.attachRadioTeam = function (runtime, config) {
             if (next.radioModeratorUserIds.length >= 50) {
                 throw runtime.failure('Es können höchstens 50 Radiomoderatoren ernannt werden.');
             }
+            if (!KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).some(function (person) {
+                return runtime.userId(person) === userId && runtime.canAdminister(person);
+            })) { delete next.moderatorPins['u' + userId]; }
             next.radioModeratorUserIds.push(userId);
             nick = String(access.getNick(userId));
         } else if (type === 'mw:removeRadioModerator') {
@@ -67,17 +70,23 @@ MischWerkModules.attachRadioTeam = function (runtime, config) {
                 throw runtime.failure('Dieser Nutzer ist kein Radiomoderator mehr.');
             }
             next.radioModeratorUserIds = next.radioModeratorUserIds.filter(function (id) { return id !== userId; });
-            ownOwnerEntry = user ? userId === runtime.userId(user) :
-                String(KnuddelsServer.getUserAccess().getNick(userId)).toLowerCase() === config.ownerNick.toLowerCase();
+            ownOwnerEntry = KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).some(function (person) {
+                return runtime.userId(person) === userId && runtime.canAdminister(person);
+            });
+            if (!ownOwnerEntry) { delete next.moderatorPins['u' + userId]; }
             if (next.moderator && next.moderator.userId === userId && !ownOwnerEntry) {
                 next.moderator = null;
+                next.requestsEnabled = false;
+                delete next.requestsOwnerId;
             }
         } else { throw runtime.failure('Unbekannte Radio-Team-Aktion.'); }
         next.radioModeratorRevision = runtime.state.radioModeratorRevision + 1;
         if (commandId) { runtime.addRelayResult(next, 'moderatorRelayResults', {
             commandId: commandId, state: 'applied', revision: next.radioModeratorRevision }); }
         runtime.persist(next);
-        if (type === 'mw:removeRadioModerator' && !ownOwnerEntry) { runtime.dropWebsiteUser(userId); }
+        if (type === 'mw:removeRadioModerator' && !ownOwnerEntry) {
+            runtime.cancelModerationPin(userId); runtime.dropWebsiteUser(userId);
+        }
         return nick;
     }
 

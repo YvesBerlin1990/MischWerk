@@ -13,7 +13,7 @@ function fixture() {
 function at(f, utc) { f.h.advance(Date.parse(utc) - f.h.state(f.owner,f.os).serverTime); }
 
 test('Studio-Anmeldung bleibt ohne Zeitlimit aktiv und veröffentlicht keine End- oder Restzeit',()=>{
- const f=fixture();f.h.event(f.owner,f.os,'mw:onAir');f.h.event(f.owner,f.os,'mw:setTopic',{topic:'Sendung ohne Zeitlimit'});
+ const f=fixture();f.h.event(f.owner,f.os,'mw:onAir', {});f.h.event(f.owner,f.os,'mw:setTopic',{topic:'Sendung ohne Zeitlimit'});
  f.h.event(f.a,f.as,'mw:wish.submit',{text:'Bleibt erhalten'});
  const before=f.h.state(f.owner,f.os),messages=f.h.bot.messages.length;
  assert.deepEqual(Object.keys(before.moderator).sort(),['nick','sessionKey','since']);
@@ -23,7 +23,7 @@ test('Studio-Anmeldung bleibt ohne Zeitlimit aktiv und veröffentlicht keine End
 });
 
 test('Erneutes Anmelden und alte Verlängerungsdaten verändern eine aktive eigene Anmeldung nicht',()=>{
- const f=fixture();f.h.event(f.owner,f.os,'mw:onAir');const before=f.h.state(f.owner,f.os);
+ const f=fixture();f.h.event(f.owner,f.os,'mw:onAir', {});const before=f.h.state(f.owner,f.os);
  f.h.event(f.owner,f.os,'mw:handover.request',{nick:f.dj.nick,expectedModerator:before.moderator.sessionKey});
  const handover=f.h.state(f.owner,f.os).handover,messages=f.h.bot.messages.length;
  for(const data of [{},{endMode:'fixed',endLocal:'2026-11-07T23:00'},{endMode:'openEnd'},{expiresAt:1,openEnd:false}]){
@@ -32,12 +32,12 @@ test('Erneutes Anmelden und alte Verlängerungsdaten verändern eine aktive eige
   assert.deepEqual(after.handover,handover);
  }
  assert.equal(f.h.bot.messages.length,messages);
- assert.equal(result(f.h.event(f.dj,f.ds,'mw:onAir')).ok,false,'Fremde Anmeldung verlangt weiterhin bestätigte Übergabe');
- assert.equal(result(f.h.event(f.a,f.as,'mw:onAir')).ok,false);
+ assert.equal(result(f.h.event(f.dj,f.ds,'mw:onAir', {})).ok,false,'Fremde Anmeldung verlangt weiterhin bestätigte Übergabe');
+ assert.equal(result(f.h.event(f.a,f.as,'mw:onAir', {})).ok,false);
 });
 
 test('Alte gespeicherte Endzeiten werden entfernt; anwesende berechtigte Moderation bleibt ohne neue Beginnmeldung angemeldet',()=>{
- const f=fixture();f.h.event(f.owner,f.os,'mw:onAir');const key='mischwerk.state.v1',before=f.h.store.getObject(key);
+ const f=fixture();f.h.event(f.owner,f.os,'mw:onAir', {});const key='mischwerk.state.v1',before=f.h.store.getObject(key);
  before.moderator.expiresAt=f.h.now()-3600000;before.moderator.openEnd=false;f.h.store.setObject(key,before);
  const reboot=createHarness(f.h.store,{users:[{id:f.owner.id,nick:f.owner.nick,role:'owner'}]});
  const owner=reboot.user(f.owner.id,f.owner.nick,'owner'),session=reboot.open(owner),state=reboot.state(owner,session);
@@ -48,8 +48,8 @@ test('Alte gespeicherte Endzeiten werden entfernt; anwesende berechtigte Moderat
 
 test('Anmelden und Abmelden bleiben atomar; veraltete Anmeldung und Speicherfehler verändern keinen bestätigten Zustand',()=>{
  const f=fixture(),write=f.h.store.setObject;f.h.store.setObject=()=>{throw Error('private');};
- assert.equal(result(f.h.event(f.owner,f.os,'mw:onAir')).ok,false);assert.equal(f.h.state(f.owner,f.os).moderator,null);
- f.h.store.setObject=write;f.h.event(f.owner,f.os,'mw:onAir');f.h.event(f.owner,f.os,'mw:setTopic',{topic:'Noch aktiv'});
+ assert.equal(result(f.h.event(f.owner,f.os,'mw:onAir', {})).ok,false);assert.equal(f.h.state(f.owner,f.os).moderator,null);
+ f.h.store.setObject=write;f.h.event(f.owner,f.os,'mw:onAir', {});f.h.event(f.owner,f.os,'mw:setTopic',{topic:'Noch aktiv'});
  const before=f.h.state(f.owner,f.os);
  assert.equal(result(f.h.event(f.owner,f.os,'mw:offAir',{expectedModerator:'alt'})).ok,false);
  f.h.store.setObject=()=>{throw Error('private');};assert.equal(result(f.h.event(f.owner,f.os,'mw:offAir')).ok,false);
@@ -66,7 +66,7 @@ function schedule(f, date, start, end, nick, topic = 'Geplantes Thema') {
 }
 
 test('Wunschregie zeigt Status privat, erhält Plätze bis Abschluss und speichert Wünsche getrennt vom Senderzustand',()=>{
-  const f=fixture(),{h,owner,a,b,os,as,bs}=f;
+  const f=fixture(),{h,owner,a,b,os,as,bs}=f;h.event(owner,os,'mw:onAir',{});
   h.event(a,as,'mw:wish.submit',{text:'Erster Song'});h.event(b,bs,'mw:wish.submit',{text:'Zweiter Song'});
   const state=h.state(owner,os), id=state.queue[0].id, before=JSON.stringify(h.store.data['mischwerk.state.v1']);
   for(const [previousStage,stage] of [['queued','preparing'],['preparing','playing']]){
@@ -90,7 +90,7 @@ test('Wunschregie zeigt Status privat, erhält Plätze bis Abschluss und speiche
 });
 
 test('Wunschregie verwirft veraltete, fremde und ungültige Aktionen; nur Platz 1 kann laufen',()=>{
-  const {h,owner,dj,a,os,ds,as}=fixture();
+  const {h,owner,dj,a,os,ds,as}=fixture();h.event(owner,os,'mw:onAir',{});
   for(const text of ['Eins','Zwei'])h.event(a,as,'mw:wish.submit',{text});
   const first=h.state(owner,os).queue[0].id, second=h.state(owner,os,1).queue[0].id;
   const change=(id,stage,previousStage='queued',user=owner,session=os)=>result(h.event(user,session,'mw:setWishStage',{id,stage,previousStage}));
@@ -107,7 +107,7 @@ test('Wunschregie verwirft veraltete, fremde und ungültige Aktionen; nur Platz 
 });
 
 test('Dreizeilige Wunschliste bleibt privat, begrenzt und verändert weder Einzelauswahl noch Empfangsschutz',()=>{
-  const {h,owner,a,os,as}=fixture();
+  const {h,owner,a,os,as}=fixture();h.event(owner,os,'mw:onAir',{});
   for(let i=0;i<8;i++)h.event(a,as,'mw:wish.submit',{text:'Listenwunsch '+i});
   const first=h.state(owner,os),middle=h.state(owner,os,4),last=h.state(owner,os,7);
   assert.equal(first.queueWindow.length,3);assert.equal(first.queueStart,0);assert.equal(first.queue.length,1);
@@ -125,7 +125,7 @@ test('Dreizeilige Wunschliste bleibt privat, begrenzt und verändert weder Einze
 
 test('Übergabenotizen bleiben privat, überstehen fehlgeschlagene Annahme und bleiben während der übernommenen Sendung lesbar',()=>{
   const f=fixture(),{h,owner,dj,a,os,ds,as}=f;
-  h.event(owner,os,'mw:onAir'); const key=h.state(owner,os).moderator.sessionKey;
+  h.event(owner,os,'mw:onAir', {}); const key=h.state(owner,os).moderator.sessionKey;
   const notes='Nach dem nächsten Song bitte die Geburtstagsgrüße vorlesen.';
   assert.equal(result(h.event(owner,os,'mw:handover.request',{nick:dj.nick,expectedModerator:key,notes})).ok,true);
   const incoming=h.state(dj,ds).handover.incoming;
@@ -140,7 +140,7 @@ test('Übergabenotizen bleiben privat, überstehen fehlgeschlagene Annahme und b
   assert.equal(h.state(owner,os).handover.receivedNotes,null);
   owner.online=false;h.app.onUserLeft(owner);
   assert.equal(h.state(dj,ds).handover.receivedNotes,notes,'Vorherige Moderation darf den Channel verlassen');
-  h.advance(1000);h.event(dj,ds,'mw:onAir');
+  h.advance(1000);h.event(dj,ds,'mw:onAir', {});
   assert.equal(h.state(dj,ds).handover.receivedNotes,notes,'Verlängerung erhält Hinweise');
   assert.equal(JSON.stringify(h.store.data).includes(notes),false);
   assert.equal(h.bot.messages.some(x=>x.includes(notes)),false);
@@ -148,7 +148,7 @@ test('Übergabenotizen bleiben privat, überstehen fehlgeschlagene Annahme und b
 });
 
 test('Übergabenotizen prüfen Länge, verhindern stilles Überschreiben und verschwinden bei Abbruch, Löschung und Neustart',()=>{
-  const {h,owner,dj,os,ds}=fixture();h.event(owner,os,'mw:onAir');
+  const {h,owner,dj,os,ds}=fixture();h.event(owner,os,'mw:onAir', {});
   const expectedModerator=h.state(owner,os).moderator.sessionKey;
   const request=notes=>result(h.event(owner,os,'mw:handover.request',{nick:dj.nick,expectedModerator,notes}));
   assert.equal(request('x'.repeat(501)).ok,false);assert.equal(h.state(dj,ds).handover.incoming,null);

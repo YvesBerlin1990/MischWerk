@@ -34,7 +34,7 @@ MischWerkModules.attachAndroidIncoming = function (runtime) {
                     valid = valid && !runtime.containsWishLink(value) && (data.displayName === null ||
                         (typeof data.displayName === 'string' && data.displayName.length <= 50));
                 } catch (invalidText) { valid = false; }
-                if (!valid || runtime.shuttingDown || runtime.state.requestsEnabled !== true) {
+                if (!valid || runtime.shuttingDown || !runtime.requestsAvailable()) {
                     runtime.requeueAndroidReceipt(data.submissionId, 'discarded', null); totals.discarded += 1; return;
                 }
                 if (!runtime.androidReceiptCapacity()) { throw new Error('ANDROID_RECEIPT_CAPACITY'); }

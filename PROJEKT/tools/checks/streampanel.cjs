@@ -53,10 +53,10 @@ async function main() {
     URL, AbortController, fetch, setTimeout, clearTimeout,
     window: { fetch, AbortController }, MischWerkUI: { define(name, value) { factories[name] = value; } }
   };
-  for (const file of ['metadata.js', 'api.js']) {
+  for (const file of ['metadata.js', 'requests.js', 'api.js']) {
     vm.runInNewContext(fs.readFileSync('app/www/js/radio/' + file, 'utf8'), scope);
   }
-  const api = factories.radioApi({ metadata: factories.songMetadata() }), urls = api.streamUrls(station);
+  const api = factories.radioApi({ metadata: factories.songMetadata(), requests: factories.radioRequests() }), urls = api.streamUrls(station);
   if (!urls) { throw new Error('Öffentliche Konfiguration ungültig.'); }
   const report = { status: 'checked', version: h.config.version, checkedAt: new Date().toISOString(),
     scope: 'HTTP-Anschlussprüfung; kein Hörtest und keine K3-/Browser-CORS-Abnahme.', stream: {}, data: {} };
@@ -70,19 +70,7 @@ async function main() {
     try { report.data[name] = { status: 'received', value: await read() }; }
     catch (error) { report.data[name] = { status: 'failed', reason: 'HTTP, JSON, Identität oder Feldzuordnung prüfen.' }; process.exitCode = 1; }
   }
-  if (station.historyUrl) {
-    let historyFactory;
-    vm.runInNewContext(fs.readFileSync('app/www/js/history/data.js', 'utf8'), {
-      URL, AbortController, fetch, setTimeout, clearTimeout,
-      window:{ fetch, AbortController }, MischWerkUI:{ define(name, value) { historyFactory = value; } }
-    });
-    const history = historyFactory();
-    try {
-      const rows = await history.load(station).promise;
-      report.data.history = { status:'received', returnedEntries:rows.length,
-        usableToday:history.parse(rows, Date.now(), station).length, day:history.day(Date.now()), timeZone:'Europe/Berlin' };
-    } catch (error) { report.data.history = { status:'failed', reason:'Historienquelle, CORS, TLS oder Datenformat prüfen.' }; process.exitCode = 1; }
-  }
+
   console.log(JSON.stringify(report, null, 2));
 }
 if (require.main === module) {

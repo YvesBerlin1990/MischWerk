@@ -4,22 +4,26 @@ const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const { readRelease, checkAppConfig, checkBackendConfig } = require('../lib/release-identity.cjs');
+const { renderUpdatePlan } = require('../lib/update-plan.cjs');
 const root = path.resolve(__dirname, '../..');
 const sourceRoot = path.join(root, 'src', 'backend');
 const appRoot = path.join(root, 'app');
 const modules = [
   'config.js', 'core/runtime.js', 'core/diagnostics.js', 'core/changes.js', 'core/relay-results.js', 'users/identity.js',
   'core/validation.js', 'state/persistence.js', 'radio/station.js', 'radio/team.js',
-  'radio/moderation.js', 'radio/announcements.js', 'radio/ticker.js', 'users/greetings.js', 'channel-texts/storage.js', 'channel-texts/scheduler.js', 'channel-texts/transport.js',
-  'radio/handover.js', 'state/initialization.js', 'radio/show.js', 'radio/curtain.js', 'wishes/storage.js', 'wishes/queue.js', 'wishes/transport.js',
-  'schedule/calendar.js', 'schedule/storage.js', 'schedule/programme.js', 'schedule/commands.js', 'schedule/relay.js', 'schedule/overview.js', 'schedule/broadcasts.js', 'schedule/transport.js',
-  'ui/snapshot.js', 'ui/session-state.js', 'transport/views.js', 'ui/loading.js', 'ui/content.js', 'ui/sessions.js', 'ui/wish-surface.js', 'ui/overlays.js', 'ui/administration.js', 'maintenance.js',
+  'core/pin-constants-1.js', 'core/pin-constants-2.js', 'core/pin-bcrypt.js', 'radio/pin-work.js', 'radio/pin.js', 'radio/moderation.js', 'radio/announcements.js', 'radio/ticker.js', 'radio/ticker-command.js', 'users/greetings.js', 'channel-texts/format.js', 'channel-texts/storage.js', 'channel-texts/smileys.js', 'channel-texts/scheduler.js', 'channel-texts/transport.js',
+  'radio/handover.js', 'state/initialization.js', 'radio/show.js', 'wishes/storage.js', 'wishes/queue.js', 'wishes/transport.js',
+  'schedule/calendar.js', 'schedule/storage.js', 'schedule/programme.js', 'schedule/commands.js', 'schedule/relay.js', 'schedule/overview.js', 'schedule/public-data.js', 'schedule/public.js', 'schedule/day.js', 'schedule/broadcasts.js', 'schedule/transport.js',
+  'ui/snapshot.js', 'ui/session-state.js', 'transport/views.js', 'ui/loading.js', 'ui/content.js', 'ui/sessions.js', 'users/nicklist-storage.js', 'users/nicklist.js', 'ui/wish-surface.js', 'ui/overlays.js', 'ui/administration.js', 'ui/commands.js', 'maintenance.js',
   'channel-texts/settings.js', 'wishes/website.js', 'website/access.js', 'website/public.js', 'website/commands.js', 'website/transport.js',
-  'android/signing.js', 'android/failures.js', 'android/connection.js', 'android/diagnostics.js', 'android/settings.js', 'android/receipts.js', 'android/incoming.js', 'android/projection.js', 'android/commands.js', 'android/publisher.js', 'android/verification.js', 'android/relay.js', 'android/operation.js',
-  'lifecycle.js', 'transport/events.js', 'app.js'
+  'android/signing.js', 'android/failures.js', 'android/connection.js', 'android/diagnostics.js', 'android/settings-access.js', 'android/settings.js', 'android/receipts.js', 'android/incoming.js', 'android/projection.js', 'android/commands.js', 'android/publisher.js', 'android/verification.js', 'android/relay.js', 'android/operation.js',
+  'lifecycle.js', 'transport/events.js', 'core/composition.js', 'app.js'
 ];
 function source(file) {
-  const value = fs.readFileSync(path.join(sourceRoot, file), 'utf8');
+  let value = fs.readFileSync(path.join(sourceRoot, file), 'utf8');
+  if (file === 'app.js') {
+    value = renderUpdatePlan(value, require('../checks/lengths.cjs').runtimeFiles, readRelease(root));
+  }
   assert.ok(!value.startsWith('\uFEFF'), 'UTF-8-BOM: ' + file);
   new vm.Script(value, { filename: 'server/' + file });
   return value.trimEnd() + '\n';
@@ -59,10 +63,10 @@ function checkBackend() {
   assert.deepEqual(listFiles(path.join(appRoot, 'server')).sort(), [...modules].sort(), 'Fehlende oder fremde Servermodule');
   assert.deepEqual(listFiles(sourceRoot).sort(), [...modules].sort(), 'Fehlende oder ungenutzte Backend-Quellen');
 }
+module.exports = { modules, entry, buildBackend, checkBackend };
 if (require.main === module) {
   try {
     if (process.argv.includes('--check')) { checkBackend(); console.log('Backend-Einstieg und Servermodule aktuell.'); }
     else { buildBackend(); console.log('Backend erzeugt: kurzer main.js-Einstieg, ' + modules.length + ' Servermodule.'); }
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }
-module.exports = { modules, entry, buildBackend, checkBackend };

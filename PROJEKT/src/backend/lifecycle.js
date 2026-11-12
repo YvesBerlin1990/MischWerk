@@ -6,6 +6,7 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
     runtime.start = function () {
         runtime.load();
         runtime.loadWishes();
+        runtime.startNicklist();
         runtime.initializeUserGreetings();
         runtime.startChannelTexts();
         runtime.startWebsite();
@@ -20,12 +21,16 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
     };
 
     runtime.userJoined = function (user) {
-        try { runtime.open(user, true); } catch (error) { runtime.warn(); }
         runtime.greetUser(user);
+        runtime.joinNicklist(user);
+        try { runtime.open(user, true); } catch (error) { runtime.warn(); }
     };
 
     runtime.prepareShutdown = function () {
         runtime.shuttingDown = true;
+        runtime.stopPublicSchedule();
+        runtime.stopNicklist();
+        runtime.cancelModerationPin();
         runtime.clearUserGreetings();
         runtime.clearAndroidSettings();
         runtime.stopAndroidRelay();
@@ -36,6 +41,9 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
 
     runtime.shutdown = function () {
         runtime.shuttingDown = true;
+        runtime.stopPublicSchedule();
+        runtime.stopNicklist();
+        runtime.cancelModerationPin();
         runtime.clearUserGreetings();
         runtime.clearAndroidSettings();
         runtime.stopAndroidRelay();
@@ -43,18 +51,25 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
     };
 
     runtime.userLeft = function (user) {
+        runtime.leaveNicklist(null, user);
         var changed = false;
         try {
             var userId = runtime.userId(user);
+            runtime.cancelModerationPin(userId);
             runtime.forgetUserGreeting(userId);
             runtime.clearAndroidSettings(userId);
             runtime.load();
             runtime.dropWebsiteUser(userId);
+            if (!runtime.state.moderator && runtime.state.requestsOwnerId === userId) {
+                var closed = runtime.copy(runtime.state); closed.requestsEnabled = false; delete closed.requestsOwnerId; runtime.persist(closed); changed = true;
+            }
             if (runtime.state.moderator && runtime.state.moderator.userId === userId) {
                 runtime.invalidateModerator();
                 changed = true;
                 var next = runtime.copy(runtime.state);
                 next.moderator = null;
+                next.requestsEnabled = false;
+                delete next.requestsOwnerId;
                 runtime.persist(next);
             }
         } catch (error) { runtime.warn(); }
@@ -64,6 +79,8 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
     };
 
     runtime.userDeleted = function (userId) {
+        runtime.leaveNicklist(userId);
+        runtime.cancelModerationPin(runtime.numericUserId(userId));
         runtime.forgetUserGreeting(userId);
         runtime.clearAndroidSettings(runtime.numericUserId(userId));
         runtime.load();
@@ -74,7 +91,8 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         runtime.dropWebsiteUser(userId);
         runtime.dropHandoverForUser(userId, true);
         var next = runtime.copy(runtime.state);
-        if (next.moderator && next.moderator.userId === userId) { next.moderator = null; }
+        delete next.moderatorPins['u' + userId];
+        if (next.moderator && next.moderator.userId === userId) { next.moderator = null; next.requestsEnabled = false; delete next.requestsOwnerId; }
         if (next.radioModeratorUserIds.indexOf(userId) !== -1) {
             next.radioModeratorUserIds = next.radioModeratorUserIds.filter(function (id) { return id !== userId; });
             next.radioModeratorRevision += 1;

@@ -112,13 +112,17 @@ test('/settopic übergibt Lieblings-MyChannel, Readme und Channelinfo als drei v
   assert.equal(f.h.bot.messages.length, 0, 'Buttons werden beim Setzen nicht als zusätzliche Botnachricht ausgeführt');
 });
 
-test('/settopic --buttons baut die drei Aktionen serverseitig mit dokumentierten Button-Eigenschaften auf', () => {
+test('/settopic --buttons erhält zwei Aktionen und Homepage als inaktiven Button ohne Readme-Befehl', () => {
   const f = fixture(); f.run('--buttons');
   assert.equal(f.calls.length, 1);
   const raw = f.calls[0].text;
   assert.equal((raw.match(/°>\{button\}/g) || []).length, 3);
+  assert.ok(raw.includes('guter Laune!°#r°°#r°°>CENTER<°°>{button}'), 'Abstand und eigene zentrierte Buttonzeile');
   assert.ok(raw.includes('°>{button}Lieblings-MyChannel||call|/edit setlmc|color|'));
-  assert.ok(raw.includes('°>{button}Readme setzen||call|/readme Ich höre Radio MischWerk.|color|'));
+  assert.ok(raw.includes('°>{button}Homepage||enabled|0|color|'));
+  const homepage=raw.match(/°>\{button\}Homepage\|[^°]*<°/)[0];
+  assert.doesNotMatch(homepage,/\|call\|/);
+  assert.doesNotMatch(raw,/Readme setzen|\/readme\b/);
   assert.ok(raw.includes('°>{button}Channelinfo||call|/info|color|'));
   assert.equal(f.calls[0].showMessage, true);
   assert.match(f.owner.messages.at(-1), /unverändert.*3 von 3/);

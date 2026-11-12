@@ -24,7 +24,8 @@ class EmulatorHub {
     this.sourceMonitor.unref();
   }
   log(kind, data = {}) {
-    const item = { ...copy(data), sequence: ++this.sequence, at: this.runtime?.clock.now() || Date.now(), realAt: Date.now(), kind };
+    const safe = JSON.parse(JSON.stringify(data, (key, value) => /^(pin|pinConfirmation)$/i.test(key) ? '[entfernt]' : value));
+    const item = { ...safe, sequence: ++this.sequence, at: this.runtime?.clock.now() || Date.now(), realAt: Date.now(), kind };
     this.trace.push(item); if (this.trace.length > 500) this.trace.shift();
     this.broadcast({ type: 'trace', item }); return item;
   }
@@ -34,7 +35,6 @@ class EmulatorHub {
       status: { url: '', valueField: '', onlineValue: null, offlineValue: null, identityField: '', identityValue: '' } };
     const origin = 'https://emulator.mischwerk.invalid';
     return { streamUrl: origin + '/fixture/audio.wav', allowedHosts: ['emulator.mischwerk.invalid'],
-      historyUrl: origin + '/fixture/history',
       metadata: { url: origin + '/fixture/metadata', titleField: 'title', artistField: 'artist', liveField: 'live' },
       status: { url: origin + '/fixture/status', valueField: 'status', onlineValue: 'started',
         offlineValue: 'stopped', identityField: '', identityValue: '' } };

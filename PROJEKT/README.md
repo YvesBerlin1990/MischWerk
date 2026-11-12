@@ -1,12 +1,34 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.330 · Build 330 · Website 0.2.7** · Stand: 09.11.2026.
+**App 0.1.382 · Build 382 · Website 0.2.11** · Stand: 12.11.2026.
 
-MischWerk verbindet Radio, dauerhafte Musikwünsche, Moderation, Lauftext und Sendeplan in einer Knuddels-UserApp. Die eigenständige Website und der Android-Rückkanal verwenden vorbereitete Appverträge. Funktionen und aktuelle Bilder stehen in der [GitHub-Übersicht](../.github/README.md); fachliche Regeln und Prüfvorgaben zentral in [AGENTS.md](AGENTS.md).
+Die Lautstärke steht auf allen Breiten waagerecht und mittig unter Thema und Moderationsname. Vinyl-Player und Original-Logo behalten ihre bisherige Gestaltung und Position. Der goldene Regler bietet eine längere Spur; Prozentanzeige, Stummschaltung, Tastaturbedienung und die rote Markierung über 60 % bleiben erhalten. [Breite Leiste](docs/pruefung/oberflaeche/radio/radio-lautstaerke-desktop.png) · [Live mit eigenem Wunsch](docs/pruefung/oberflaeche/radio/radio-lautstaerke-1280.png).
 
-![Radioleiste aus Build 330 mit großer goldener Playtaste, Titel über Interpret und kompakten Aktionen](docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
+Die öffentliche Begrüßung fordert den ersten Satz einschließlich des klickbaren Nicks in RobotoBold und Gold an. Vor „Viel Spaß beim Zuhören.“ wird die Formatierung für normale Channelschrift zurückgesetzt. Die native Schriftwirkung beim eigenen und fremden Nick bleibt nach Installation abzunehmen.
 
-[Mittlere Breite](docs/pruefung/oberflaeche/radio/radio-harmonie-mittel.png) · [Mobilansicht](docs/pruefung/oberflaeche/radio/radio-harmonie-schmal.png) · [Lauftext](docs/pruefung/oberflaeche/radio/lauftext-1280.png) · [Moderation](docs/pruefung/oberflaeche/moderation/moderation-780.png). Die drei Radioübersichten und der Lauftext stammen aus dem fertigen lokalen Build 330 mit Beispieldaten; Menübilder behalten ihren dokumentierten Stand 322. Das native Sendeplan-Overlay ist vollständig zurückgesetzt; seine erhaltene Taste bleibt für alle Nutzer auf „In Kürze“ gesperrt. Homepage-Sendeplan und gespeicherte Wochen bleiben erhalten.
+Der Wunschboxbutton erscheint für Hörer erst mit angemeldeter Live-Moderation und freigegebener Wunschannahme. Im AutoDJ sowie nach Sperren oder Abmelden ist er ausgeblendet; die übrigen Aktionen nutzen den frei werdenden Platz. [AutoDJ](docs/pruefung/oberflaeche/radio/radio-wunschbox-autodj.png) · [Live-Moderation](docs/pruefung/oberflaeche/radio/radio-wunschbox-live.png).
+
+`/update` prüft vor dem Neustart die benötigten Dateien des neu übertragenen Builds. Fehlende Dateien werden privat mit Pfad gemeldet; auch eine nicht zuverlässig durchführbare Prüfung sperrt den Neustart. Nach dem Nachliefern ist ein erneuter `/update`-Versuch möglich. Die Absicherung gilt nach Installation von Build 370; vollständige Übertragung bleibt erforderlich.
+
+Die native Nickliste erhält das Teamzeichen für berechtigte Radiomoderatoren und den echten Inhaber. Kopfhörer zeigen fortschreitende Wiedergabe mit Ton; das Mikrofon kennzeichnet die bestätigte aktive Moderation und ersetzt dann die Kopfhörer. Die neuen Originalbilder bleiben unverändert: MW-Teamzeichen 32 × 24 Pixel, Kopfhörer und Mikrofon jeweils 24 × 24 Pixel. Die angeforderten Breiten betragen passend 32 beziehungsweise 24 Pixel. Technischer Vertrag und offene native Sichtprüfung: [API-Nachweis](docs/api/API-NACHWEIS.md#native-nicklisten-icons--11112026) und [LIVE-Abnahme](docs/betrieb/LIVE-ABNAHME.md#offene-nicklisten-abnahme).
+
+Beim Channelbeitritt erhält jeder Mensch zuerst eine private Willkommensgrafik mit dem vollständigen Channelthema und iOS-Hinweis. Lieblings-MyChannel und Channelinfo sind als Bildlinks mit den bisherigen Befehlen verknüpft; Der mittlere Button heißt Website und führt nach Klick zu https://radio-mischwerk.web.app/. Die Nachricht fordert für den Absender LEFT und für Banner/Buttons jeweils CENTER auf eigenen, durch °#r° getrennten KCode-Zeilen an. Außerhalb von Banner und Bildbuttons steht kein normaler Text; die große Überschrift ist vollständig gold. Direkt danach folgt die bisherige öffentliche Textbegrüßung. [Gestaltung](medien/mychannel/willkommen-vorschau-v1.png) · [Native Abnahme](docs/betrieb/LIVE-ABNAHME.md#offene-private-willkommensnachricht).
+
+`/mw` zeigt eine kurze Übersicht; `/mw admin` öffnet Radio-Team, Bot-Texte und Verbindungseinstellungen. Der Homepage-Code steht nicht mehr in der allgemeinen Übersicht. `/mw verbindung` samt Unterbefehlen ist entfernt; Verbindungseinstellungen sind über `/mw admin` erreichbar. Die Radioleiste öffnet automatisch. `/settopic` und `/lauftext` behalten ihren bisherigen Vertrag; `/update` erhält die Dateiprüfung.
+
+Die Appleiste nutzt verkleinerte Fenster gleichmäßig: Bei 701–1199 px stehen Logo, Playtaste, Musik und Sendungsinfo nebeneinander; bis 700 px erhält das Thema unter der Musik die volle Breite. Aktionen bleiben in einer gemeinsamen unteren Zeile. Angemeldete Moderation erscheint mittig mit kräftigem Thema, Mikrofon, „Es moderiert“ und goldenem Namen. Lange Themen bleiben vollständig lesbar.
+
+Die Verwaltung verwendet denselben ruhigen flachen Stil wie die neuen Menüs. Radio-Team zeigt eine kompakte Mitgliederliste; Bot-Texte lassen sich einzeln auswählen. Im Reiter Verbindung bleiben der gespeicherte Schlüssel und die laufende Firebase-Verbindung beim Öffnen und Aktualisieren erhalten. Kurze Inhalte passen ohne Scrollleiste. [Radio-Team](docs/pruefung/oberflaeche/verwaltung/verwaltung-560.png) · [Bot-Texte](docs/pruefung/oberflaeche/verwaltung/verwaltung-bottexte-560.png) · [Verbindung](docs/pruefung/oberflaeche/verwaltung/verwaltung-verbindung-560.png).
+
+Das native Moderationsmenü ist neu aufgebaut: Sendung und Wünsche auf einer einfachen flachen Fläche ohne Scrollen. Anmelden startet direkt ohne persönliche PIN. Wunschbox, An-/Abmeldung, Thema, Wunschregie und private Übergabe bleiben erhalten. Bei kleinen Fenstern und langen Texten führen Vor-/Zurück-Tasten durch den Inhalt. Die separate Website und deren PIN bleiben unverändert.
+
+MischWerk verbindet Radio, dauerhafte Musikwünsche, Moderation, Lauftext per /lauftext und Sendeplan in einer Knuddels-UserApp. Die eigenständige Website und der Android-Rückkanal verwenden vorbereitete Appverträge. Funktionen und aktuelle Bilder stehen in der [GitHub-Übersicht](../.github/README.md); fachliche Regeln und Prüfvorgaben zentral in [AGENTS.md](AGENTS.md).
+
+![Radioleiste aus Build 382 mit großer goldener Playtaste, Titel über Interpret und kompakten Aktionen](docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
+
+[Mittlere Breite](docs/pruefung/oberflaeche/radio/radio-harmonie-mittel.png) · [Mobilansicht](docs/pruefung/oberflaeche/radio/radio-harmonie-schmal.png) · [Lauftext](docs/pruefung/oberflaeche/radio/lauftext-1280.png) · [Tagesplan](docs/pruefung/oberflaeche/sendeplan/sendeplan-tag-640.png). Alle 35 Appbilder wurden am 12.11.2026 aus Build 382 erneuert, einschließlich Radio, Wunschbox, Verwaltung und Sendeplan. Sie zeigen lokale Emulatormodelle mit Beispieldaten; neue native Moderationsbilder bleiben ausschließlich im System-Tempverzeichnis. Der Sendeplan öffnet für alle verbundenen Hörer ein eigenes, rein lesendes Tagesfenster mit 640 × 320 px Anfangsgröße und dynamischer Höhe bis 600 px. Thema, Moderation und Uhrzeit stehen in einer ruhigen anthrazitfarbenen Liste; die laufende geplante Sendung trägt eine goldene Linie. Davor und danach sind unmittelbar zugeordnet. Pfeile wechseln den Tag, die Datumsmitte führt zu Heute. Die Tagesliste liest direkt das öffentliche Homepage-JSON über den Knuddels-Server, einschließlich dort gelieferter generierter AutoDJ-Zeilen. Sie benötigt keine aktivierte Statusverbindung und keinen Schlüssel. Titel, Namen und Zeitdarstellung folgen der Homepage; ein Abruffehler bleibt sichtbar. [Datenweg und Abnahme](docs/betrieb/SENDEPLAN.md).
+
+`/lauftext` zeigt der Radiomoderation den aktuellen Status und alle Befehle: Text setzen, `--an`, `--aus` und `--tempo langsam|normal|schnell`. [Bedienung](docs/betrieb/INBETRIEBNAHME.md#lauftext-unter-der-appleiste).
 
 ## Zuständigkeiten der Ordner
 
@@ -24,7 +46,7 @@ Alle folgenden Pfade liegen innerhalb von `PROJEKT/`.
 | [tests/](tests) | Node-, Browser- und Rhino-Prüfungen mit Fixtures und Support |
 | [website/](website/README.md) | Homepage mit eigenem Server, Abhängigkeiten und Prüfungen |
 | [docs/](docs) | Architektur, API-Nachweise, Betrieb und Prüfberichte |
-| [docs/pruefung/oberflaeche/](docs/pruefung/oberflaeche) | Aktuelle Appbilder in sechs Themenordnern |
+| [docs/pruefung/oberflaeche/](docs/pruefung/oberflaeche) | Aktuelle Appbilder in vier Themenordnern |
 | [deployment/](deployment) | Zielkonfiguration und fünf Auslieferungsmanifeste |
 | [references/api/](references/api) | Zwei unveränderte offizielle Dokumentationsstubs |
 
@@ -71,7 +93,7 @@ Der signierte Android-Statusweg überträgt Senderdaten und Lauftext und überni
 
 ## Bereitstellung und Nachweise
 
-`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Beide Rhino-Engines prüfen auch das fertige Paket; die Browserrunde läuft separat. Der App-Arbeitsbestand umfasst **154 Dateien und 64 Backendmodule**, das aktuelle Paket **109 Dateien mit 101 Texten und 37 Serverdateien**. Ganze benachbarte Module werden reproduzierbar gebündelt; Quellen bleiben lesbar erhalten. Fünf Manifeste belegen die tatsächlichen Auslieferungsbytes. Alle Laufzeittexte und Manifeste bleiben strikt unter 9500 UTF-16-Zeichen.
+`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Beide Rhino-Engines prüfen auch das fertige Paket; die Browserrunde läuft separat. Der App-Arbeitsbestand umfasst **165 Dateien und 79 Backendmodule**, das aktuelle Paket **119 Dateien mit 106 Texten und 48 Serverdateien**. Ganze benachbarte Module werden reproduzierbar gebündelt; Quellen bleiben lesbar erhalten. Der Dateibedarf wird im zugehörigen Server-Ladeplan erzeugt und auf den tatsächlichen Auslieferungsbestand angepasst. Fünf Manifeste belegen die tatsächlichen Auslieferungsbytes. Alle Laufzeittexte und Manifeste bleiben strikt unter 9500 UTF-16-Zeichen.
 
 Die einzige fertige Auslieferung liegt unter **C:/Users/Yves/Desktop/MischWerk/UPLOAD/MischWerk/** und bleibt außerhalb des Gitbestands. Paketbau und GitHub-Push installieren die App nicht auf Knuddels. Den Ablauf beschreibt die [Uploadanleitung](docs/betrieb/INBETRIEBNAHME.md#installation-und-upload).
 

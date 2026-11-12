@@ -18,6 +18,7 @@
         MischWerkModules.attachSessionState(runtime);
         MischWerkModules.attachContent(runtime);
         MischWerkModules.attachSessions(runtime, MischWerkConfig);
+        MischWerkModules.attachAndroidSettingsAccess(runtime);
         MischWerkModules.attachAndroidSettings(runtime, MischWerkConfig);
         operator = person(90001, 'Synthetischer Betreiber', true);
         runtime.androidRelayCommand(operator, 'einrichten');

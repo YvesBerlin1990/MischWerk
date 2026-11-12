@@ -1,103 +1,62 @@
-/* Vinyl Deck in tatsächlichen schmalen Rahmen; die native Höhensteuerung bleibt erhalten. */
+/* Breites Deck erhalten; schmale Leisten verwenden natürliche Zeilen ohne innere Textclips. */
+/* Anzeigezustände statt :has(): auch ältere Android-WebViews behalten das gesamte Raster. */
 @media (min-width:1200px) and (max-width:1499px) {
+  .radio-bar:not(.has-wishes) { grid-template-columns:170px 120px minmax(300px,1fr) 94px 94px; }
   .radio-bar { --radio-action-gap:8px; grid-template-columns:170px 120px minmax(300px,1fr) 196px 94px; gap:0 8px; }
-  .wish-button { --action-font:13px; --action-icon:24px; min-height:76px; flex-direction:column; padding:6px 2px; gap:4px; border-radius:22px; }
+  .wish-button { --action-font:13px; --action-icon:24px; --action-caption-space:16px; min-height:76px; flex-direction:column; padding:6px 2px; gap:4px; border-radius:22px; }
   .wish-button-copy { text-align:center; }
 }
 @media (max-width:1199px) {
-  .radio-bar { --radio-action-gap:10px; grid-template-columns:120px 100px minmax(0,1fr) 92px; gap:14px; padding-bottom:30px; }
-  .radio-brand { width:100px; }
+  .radio-bar { --play-size:72px; --play-symbol-size:28px; --radio-action-gap:6px; height:auto; min-height:160px; grid-template-columns:92px 100px minmax(0,1fr); grid-template-rows:auto 44px; gap:6px 12px; padding:8px 18px 12px; align-content:start; }
+  .radio-deck { --deck-top:8px; --deck-x:12px; --deck-radius:20px; }
+  .radio-panel-face { inset:8px 12px; border-radius:20px; }
+  .radio-program-face::before { width:100px; height:100px; left:109px; top:49px; }
+  .radio-brand { grid-column:1; grid-row:1; align-self:start; width:92px; padding:10px 11px 0 0; }
   .bar-logo { width:80px; height:80px; }
-  .transport { align-self:start; margin-top:22px; }
-  .radio-program-face::before { width:160px; height:160px; left:-24px; top:62px; }
-  .radio-metadata { max-height:none; grid-column:3; gap:0; grid-template-columns:minmax(0,7fr) minmax(176px,3fr); }
-  .radio-metadata:has(.own-wish-position:not([hidden])) { grid-template-columns:minmax(0,2.75fr) minmax(176px,1.25fr) minmax(110px,1fr); }
-  .radio-actions-panel { grid-column:2 / 5; grid-row:2; min-height:64px; }
-  .wish-button { --action-font:14px; --action-icon:24px; padding:8px 6px; gap:8px; }
-  .radio-bar:has(.bar-utility-links:not([hidden])) .radio-actions-panel { padding-right:calc((100% + var(--radio-action-gap)) / 3); }
-  .bar-utility-links { grid-column:2 / 5; grid-row:2; justify-self:end; width:calc((100% - 2 * var(--radio-action-gap)) / 3); max-width:none; }
-  .radio-listener-brand { display:none; }
-}
-@media (max-width:900px) {
-  .radio-metadata,.radio-metadata:has(.own-wish-position:not([hidden])) { grid-template-columns:minmax(176px,1.15fr) minmax(110px,1fr); grid-template-rows:auto auto 44px; min-height:124px; }
-  .radio-metadata .now-playing { grid-column:1 / -1; grid-row:1; }
-  .radio-context { grid-column:1; grid-row:2; min-height:0; padding:12px 8px 0; border:0; }
-  .radio-metadata .volume-control { grid-column:1; grid-row:3; border-left:0; }
-  .own-wish-position { grid-column:2; grid-row:2 / 4; min-height:0; margin:0; padding:12px 8px 0; }
-  .radio-metadata:not(:has(.own-wish-position:not([hidden]))) .radio-context,
-  .radio-metadata:not(:has(.own-wish-position:not([hidden]))) .volume-control { grid-column:1 / -1; }
-  #track-title { white-space:normal; overflow-wrap:anywhere; }
-}
-@media (max-width:700px) {
-  .radio-bar { --play-size:72px; --play-symbol-size:28px; --radio-action-gap:6px; grid-template-columns:80px minmax(0,1fr); gap:12px; padding:18px 18px 24px; }
-  .radio-panel-face { inset:18px 12px; }
-  .radio-brand { display:none; }
-  .transport { grid-column:1; justify-self:center; margin:26px 0 0; }
-  .radio-program-face::before { width:100px; height:100px; left:-5px; }
-  .radio-metadata { grid-column:2; }
-  .radio-metadata,.radio-metadata:has(.own-wish-position:not([hidden])) { grid-template-columns:minmax(0,1fr); }
-  .radio-context,.radio-metadata:not(:has(.own-wish-position:not([hidden]))) .radio-context { grid-column:1; grid-row:2; }
-  .radio-metadata .volume-control { grid-column:1; grid-row:3; }
-  .own-wish-position { grid-column:1; grid-row:4; border-left:0; padding-top:16px; }
-  #track-title { font-size:24px; }
-  #track-artist { font-size:17px; }
-  #show-topic { font-size:20px; }
-  .radio-context .presenter { font-size:15px; }
-  .own-wish-rank { font-size:16px; }
-  .radio-actions-panel { grid-column:1 / 3; grid-row:2; }
-  .bar-utility-links { grid-column:1 / 3; grid-row:2; }
-  .radio-listener-brand { display:none; }
-}
-/* K3 und ignorierte STAPP-Höhen: alle Informationen in einer direkt erreichbaren nativen Scrollfläche. */
-@media (max-width:1199px) {
-  .radio-constrained .radio-bar { --play-size:72px; --play-symbol-size:28px; --radio-action-gap:6px; height:160px; min-height:160px; grid-template-columns:86px minmax(0,1fr) 52px; grid-template-rows:96px 44px; gap:0 8px; padding:8px 18px 8px 12px; }
-  .radio-constrained .radio-bar:not(:has(.bar-utility-links:not([hidden]))) { grid-template-columns:86px minmax(0,1fr); }
-  .radio-constrained .radio-panel-face { inset:8px 12px; border-radius:20px; }
-  .radio-constrained .radio-program-face::before { width:112px; height:112px; left:64px; top:36px; }
-  .radio-constrained .radio-brand { grid-column:1; grid-row:1 / 3; display:block; width:80px; padding:0; border:0; }
-  .radio-constrained .bar-logo { width:80px; height:80px; }
-  .radio-constrained .transport { grid-area:auto; position:absolute; left:96px; top:8px; margin:0; }
-  .radio-constrained .radio-metadata { grid-column:2; grid-row:1; align-self:stretch; min-height:0; height:96px; display:flex; flex-direction:column; align-items:stretch; gap:0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; padding:0 8px 0 120px; }
-  .radio-constrained .radio-metadata:has(.own-wish-position:not([hidden])) { min-height:0; }
-  .radio-constrained .radio-metadata > * { flex-shrink:0; }
-  .radio-constrained .radio-metadata .now-playing { order:0; padding:0; }
-  .radio-constrained .track-copy { gap:0; }
-  .radio-constrained .artist-copy { margin-top:5px; }
-  .radio-constrained .track-eyebrow { font-size:11px; }
-  .radio-constrained #track-title { line-height:23px; font-size:20px; white-space:normal; overflow-wrap:anywhere; }
-  .radio-constrained #track-artist { font-size:15px; line-height:20px; }
-  .radio-constrained .radio-metadata .volume-control { order:2; margin:0 auto; padding:0; border:0; width:100%; max-width:200px; gap:4px; }
-  .radio-constrained .radio-context { order:1; display:flex; flex-direction:column; gap:4px; min-height:0; margin-top:8px; padding:0; border:0; }
-  .radio-constrained .own-wish-position { order:3; min-height:0; margin:0; padding:0; border:0; }
-  .radio-constrained .radio-status-row { padding-top:10px; }
-  .radio-constrained .topic-label,.radio-constrained .own-wish-label { line-height:14px; }
-  .radio-constrained #show-topic { font-size:18px; line-height:22px; }
-  .radio-constrained .own-wish-rank { font-size:16px; line-height:20px; }
-  .radio-constrained .presenter { font-size:14px; line-height:18px; }
-  .radio-constrained .radio-actions-panel { grid-column:2; grid-row:2; min-height:44px; padding:0; }
-  .radio-constrained .radio-bar:has(.bar-utility-links:not([hidden])) .radio-actions-panel { grid-column:2 / 4; padding-right:calc((100% + var(--radio-action-gap)) / 3); }
-  .radio-constrained .wish-button { --action-font:13px; --action-icon:20px; min-height:44px; flex-direction:row; padding:3px 4px; gap:6px; border-radius:12px; }
-  .radio-constrained .bar-utility-links { grid-column:2 / 4; grid-row:2; width:calc((100% - 2 * var(--radio-action-gap)) / 3); max-width:none; gap:0; }
-  .radio-constrained .radio-bar .studio-link { justify-content:center; min-height:44px; width:100%; padding:0; }
-  .radio-constrained .bar-utility-links .action-label { display:flex; }
-}
-@media (max-width:700px) {
-  .radio-constrained .radio-bar,.radio-constrained .radio-bar:not(:has(.bar-utility-links:not([hidden]))) { grid-template-columns:minmax(0,1fr); padding:8px 16px; }
-  .radio-constrained .radio-panel-face { inset:8px 10px; }
-  .radio-constrained .radio-program-face::before { left:-16px; }
-  .radio-constrained .radio-brand { display:none; }
-  .radio-constrained .transport { left:14px; }
-  .radio-constrained .radio-metadata { grid-column:1; padding-left:120px; }
-  .radio-constrained .radio-actions-panel { grid-column:1; }
-  .radio-constrained .bar-utility-links { position:relative; grid-column:1; grid-row:2; align-self:end; z-index:2; }
-  .radio-constrained .radio-bar:has(.bar-utility-links:not([hidden])) .radio-actions-panel { grid-column:1; }
-  .radio-constrained .radio-bar:has(.bar-utility-links:not([hidden])) .wish-button { --action-font:clamp(12px,3.3vw,13px); gap:4px; padding-inline:1px; }
-}
-@media (max-width:499px) {
-  .wish-button { min-height:76px; flex-direction:column; padding:6px 2px; gap:4px; border-radius:22px; }
+  .transport { grid-column:2; grid-row:1; justify-self:center; align-self:start; margin:14px 0 0; }
+  .radio-metadata,.has-own-wish .radio-metadata { grid-column:3; grid-row:1; grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(68px,auto) 44px; height:auto; min-height:112px; max-height:none; margin:0; padding:0; overflow:visible; }
+  .radio-information { display:contents; }
+  .radio-metadata .now-playing { grid-column:1; grid-row:1 / 3; min-height:112px; padding:0 8px; }
+  .track-copy { gap:0; }
+  .artist-copy { margin-top:5px; }
+  #track-title { font-size:22px; line-height:26px; white-space:normal; overflow-wrap:anywhere; }
+  #track-artist { font-size:16px; line-height:21px; }
+  .radio-context { grid-column:2; grid-row:1; min-height:68px; padding:2px 8px 0; border:0; gap:2px; }
+  .radio-context .topic-label { margin-bottom:2px; }
+  .radio-context .radio-status-row { padding-top:0; }
+  #show-topic { font-size:18px; line-height:22px; }
+  .radio-context .presenter { font-size:14px; line-height:18px; }
+  .moderator-on-air #show-topic { font-size:18px; line-height:22px; }
+  .moderator-on-air .radio-context { gap:0; }
+  .moderator-on-air .radio-context .radio-status-row { padding-top:3px; }
+  .moderator-on-air .radio-context .on-air-sign,.moderator-on-air .radio-context #host-name { line-height:18px; }
+  .radio-metadata .volume-control { grid-column:2; grid-row:2; justify-self:center; align-self:center; width:100%; max-width:240px; height:44px; margin:0; padding:0; gap:4px; border:0; }
+  .radio-metadata .volume-control input { max-width:136px; }
+  /* Mobile Leisten zeigen keine Wunschplatzierung und reservieren dafür keine Fläche. */
+  .radio-bar .own-wish-position { display:none !important; }
+  .radio-actions-panel { grid-column:1 / -1; grid-row:2; min-height:44px; padding:0; }
+  .radio-bar.has-moderation .radio-actions-panel { padding-right:calc((100% + var(--radio-action-gap)) / 3); }
+  .radio-bar.has-moderation:not(.has-wishes) .radio-actions-panel { padding-right:calc((100% + var(--radio-action-gap)) / 2); }
+  .radio-bar.has-moderation:not(.has-wishes) .bar-utility-links { width:calc((100% - var(--radio-action-gap)) / 2); }
+  .radio-bar .wish-button { --action-font:13px; --action-icon:20px; --action-caption-space:0px; min-height:44px; flex-direction:row; padding:3px 4px; gap:6px; border-radius:12px; }
   .wish-button-copy { text-align:center; }
-  .radio-constrained .wish-button-copy { text-align:center; }
+  .radio-bar #wish-button-caption { display:none; }
+  .bar-utility-links { grid-column:1 / -1; grid-row:2; justify-self:end; width:calc((100% - 2 * var(--radio-action-gap)) / 3); max-width:none; }
+  .radio-listener-brand { display:none; }
+}
+@media (max-width:700px) {
+  .radio-bar { grid-template-columns:100px minmax(0,1fr); padding-inline:16px; }
+  .radio-deck { --deck-x:10px; }
+  .radio-panel-face { inset-inline:10px; }
+  .radio-program-face::before { left:5px; }
+  .radio-brand { display:none; }
+  .transport { grid-column:1; }
+  .radio-metadata,.has-own-wish .radio-metadata { grid-column:1 / -1; grid-template-columns:100px minmax(0,1fr); grid-template-rows:minmax(100px,auto) auto 44px; gap:4px 0; }
+  .radio-metadata .now-playing { grid-column:2; grid-row:1; min-height:100px; padding:0 0 0 4px; }
+  .radio-context { grid-column:1 / -1; grid-row:2; min-height:0; padding:2px 0 0; }
+  .radio-metadata .volume-control { grid-column:1 / -1; grid-row:3; }
+  .radio-bar.has-moderation .wish-button { --action-font:clamp(12px,3.3vw,13px); gap:4px; padding-inline:1px; }
 }
 @media (max-width:359px) {
-  .radio-constrained .wish-button { --action-icon:18px; }
+  .radio-bar .wish-button { --action-icon:18px; }
 }

@@ -16,13 +16,13 @@
         runtime.send=function(session,type,data){session.sendEvent(type,data);};
         runtime.isChannelOwner=function(user){return user===operator&&ownerAllowed;};
         runtime.online=function(user){return user.isOnlineInChannel();};runtime.userId=function(user){return user.getUserId();};
-        runtime.state={requestsEnabled:false,topic:'',moderator:null};runtime.moderatorIsActive=function(){return false;};
+        runtime.state={requestsEnabled:false,topic:'',moderator:null};runtime.moderatorIsActive=function(){return false;};runtime.requestsAvailable=function(){return runtime.state.requestsEnabled;};
         runtime.pendingAndroidUpdates=function(){return [];};runtime.confirmAndroidUpdates=function(){};
         runtime.startAndroidReceipts=function(){};runtime.androidReceiptsReady=function(){return true;};
         MischWerkModules.attachTicker(runtime);
         MischWerkModules.attachSessionState(runtime);MischWerkModules.attachContent(runtime);MischWerkModules.attachSessions(runtime,MischWerkConfig);
         MischWerkModules.attachAndroidFailures(runtime); MischWerkModules.attachAndroidSigning(runtime);MischWerkModules.attachAndroidConnection(runtime);MischWerkModules.attachAndroidIncoming(runtime);MischWerkModules.attachAndroidPublisher(runtime);
-        MischWerkModules.attachAndroidRelay(runtime);MischWerkModules.attachAndroidOperation(runtime,MischWerkConfig);MischWerkModules.attachAndroidSettings(runtime,MischWerkConfig);
+        MischWerkModules.attachAndroidRelay(runtime);MischWerkModules.attachAndroidOperation(runtime,MischWerkConfig);MischWerkModules.attachAndroidSettingsAccess(runtime);MischWerkModules.attachAndroidSettings(runtime,MischWerkConfig);
         operator=person(99021,'Synthetischer Betreiber',true);runtime.androidRelayCommand(operator,'einrichten');var session=operator.sessions[0],sequence=0;
         function action(name,extra){var data={revision:saved[key].revision,requestId:'operation-'+(++sequence)};Object.keys(extra||{}).forEach(function(k){data[k]=extra[k];});runtime.handleAndroidSettingsEvent(operator,'mw:androidSettings.'+name,data,session);return session.events.length ? session.events[session.events.length-1].data : null;}
         check(sends.length===0&&!saved[key].enabled,'Keine implizite Aktivierung durch Öffnen');

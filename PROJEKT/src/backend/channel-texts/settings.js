@@ -3,15 +3,15 @@ MischWerkModules.attachChannelTextSettings = function (runtime) {
     'use strict';
     function buttonCount(text) { return (text.match(/°>\{button\}/g) || []).length; }
     function topicButton(label, command) {
-        return '°>{button}' + label + '||call|' + command +
+        return '°>{button}' + label + '|' + (command ? '|call|' + command : '|enabled|0') +
             '|color|44,44,44~26,26,26~36,36,36|width|170|height|30<°';
     }
     function radioTopic() {
         // Das native Thema ist bereits fett; Unterstriche würden diese Vorgabe umschalten.
-        // Der KCode-Zeilenumbruch trennt den anschließenden Links-Reset von der Themenzeile.
-        return '°>CENTER<°°[230,199,123]°Radio MischWerk°[232,232,232]° – Dein Mix aus Musik und guter Laune! ' +
+        // Sendertext und Buttonzeile getrennt zentrieren; ein leerer Absatz schafft Abstand.
+        return '°>CENTER<°°[230,199,123]°Radio MischWerk°[232,232,232]° – Dein Mix aus Musik und guter Laune!°#r°°#r°°>CENTER<°' +
             topicButton('Lieblings-MyChannel', '/edit setlmc') + ' ' +
-            topicButton('Readme setzen', '/readme Ich höre Radio MischWerk.') + ' ' +
+            topicButton('Homepage') + ' ' +
             topicButton('Channelinfo', '/info') + '°#r°°>LEFT<°';
     }
     function verifyButtons(information, expected, reply) {
@@ -36,7 +36,7 @@ MischWerkModules.attachChannelTextSettings = function (runtime) {
         }
         var valid = runtime.validateChannelTexts(data);
         var next = { version:1, revision:previous.revision + 1, enabled:valid.enabled, interval:valid.interval,
-            texts:valid.texts, cursor:0, nextAt:valid.enabled ? runtime.now() + valid.interval * 60000 : 0 };
+            texts:valid.texts, smileys:previous.smileys, cursor:0, nextAt:valid.enabled ? runtime.now() + valid.interval * 60000 : 0 };
         runtime.storeChannelTexts(next);
         runtime.restartChannelTexts();
         return next.enabled ? 'Bot-Texte gespeichert. Erste Ausgabe in ' + next.interval + ' Minuten.' :

@@ -21,12 +21,12 @@ MischWerkUI.define('team', function (dependencies) {
     closeRemoval();
     var box = dom.element('div', 'team-member-confirm');
     box.id = 'team-removal-confirm';
-    box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Studiozugriff entziehen');
-    box.appendChild(dom.element('p', '', item.nick + ' den Studiozugriff entziehen? Eine aktive Moderation dieser Person wird beendet.'));
+    box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Mitglied entfernen');
+    box.appendChild(dom.element('p', '', item.nick + ' aus dem Radio-Team entfernen?' + (model.current().moderator && model.current().moderator.nick === item.nick && model.current().user.nick !== item.nick ? ' Die laufende Moderation wird beendet.' : '')));
     var actions = dom.element('div', 'button-row');
     var feedback = dom.element('p', 'team-removal-feedback');
     feedback.setAttribute('role', 'status'); feedback.hidden = true;
-    var confirm = dom.element('button', 'primary-button', 'Zugriff entziehen');
+    var confirm = dom.element('button', 'primary-button', 'Entfernen');
     var cancel = dom.element('button', 'secondary-button', 'Abbrechen');
     confirm.type = cancel.type = 'button';
     confirm.dataset.confirmRemoval = String(item.userId);
@@ -57,7 +57,7 @@ MischWerkUI.define('team', function (dependencies) {
     list.textContent = '';
     if (!model.current().user.canManageRadioModerators) { return; }
     if (!model.current().radioModerators.length) {
-      list.appendChild(dom.element('p', 'empty-copy', 'Noch keine Radiomoderatoren ernannt.'));
+      list.appendChild(dom.element('p', 'empty-copy', 'Dein Radio-Team ist noch leer.'));
       if (hadFocus) { dom.el('team-list-heading').focus(); }
       return;
     }
@@ -66,12 +66,11 @@ MischWerkUI.define('team', function (dependencies) {
       row.dataset.memberId = String(item.userId);
       var copy = dom.element('div', 'team-member-copy');
       copy.appendChild(dom.element('strong', '', item.nick));
-      copy.appendChild(dom.element('span', 'team-member-role', 'Radiomoderation'));
       row.appendChild(copy);
       var button = dom.element('button', 'secondary-button', 'Entfernen');
       button.type = 'button';
       button.dataset.radioModeratorId = String(item.userId);
-      button.title = 'Studiozugriff entziehen';
+      button.title = 'Aus dem Radio-Team entfernen';
       button.setAttribute('aria-label', item.nick + ' entfernen');
       button.setAttribute('aria-expanded', 'false');
       button.addEventListener('click', function () {

@@ -1,4 +1,3 @@
-const {previewCurtain}=require('../../../tests/support/preview-command.cjs');
 // Lokale Website mit echtem Appplayer; Anbieterantworten und Testton bleiben synthetisch.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -24,7 +23,7 @@ async function setup(t) {
   context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
   await context.route('https://**/*', route => {
     const url = new URL(route.request().url());
-    if (url.hostname === 'mischwerk.spcast.eu' && url.pathname === '/currentSong.txt') return route.fulfill({contentType:'text/plain',body:'Testinterpret - Prüftitel mit vollständiger Anzeige'});
+    if (url.hostname === 'mischwerk.sp.radio.fm' && url.pathname === '/currentsong') return route.fulfill({contentType:'text/plain',body:'Testinterpret - Prüftitel mit vollständiger Anzeige'});
     if (url.hostname === 'scripts.streampanel.net') return route.fulfill({json:{currentSong:'Prüftitel mit vollständiger Anzeige',currentArtist:'Testinterpret'}});
     if (url.hostname === 'mischwerk.spcast.eu' && url.pathname === '/sp/cache/history/history.json') return route.fulfill({json:[{timestamp:Math.floor(Date.now()/1000)-5,metadata:{song:'Testinterpret - Prüftitel mit vollständiger Anzeige'}}]});
     if (url.hostname === 'mischwerk.sp.radio.fm' && url.pathname === '/statistics') return route.fulfill({json:spcastStatistics()});
@@ -104,11 +103,11 @@ test('Testansichten: neutrale Rollen und Beschriftungen auch in Wunschbox, Sende
     await radio.locator('html.mw-ready').waitFor();
     await cleanText(page);
     if (role === 'moderator') {
-      await previewCurtain(radio);
-      for (const [id,view] of [['open-wishes','wishes'],['studio-tab','studio'],['team-tab','team']]) {
+
+      for (const [id,view] of [['open-wishes','wishes'],['open-schedule','schedule'],['studio-tab','studio'],['team-tab','team']]) {
         if (view === 'team') {
           assert.equal(await radio.locator('#team-tab').count(),0);
-          await radio.locator('html').evaluate(() => window.MischWerkPreviewCommand('/MW Verwaltung'));
+          await radio.locator('html').evaluate(() => window.MischWerkPreviewCommand('/mw admin'));
         } else { await radio.locator('#' + id).click(); }
         await page.frameLocator('#overlay-frame').locator('html.mw-ready[data-view="' + view + '"]').waitFor();
         await cleanText(page);

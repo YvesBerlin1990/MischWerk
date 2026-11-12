@@ -38,6 +38,7 @@ MischWerkUI.define('channelTextsLayout', function (dependencies) {
       if (active) { position = pane.scrollTop; replacing = true; }
     });
     signals.on('channel-texts-fields', fit);
+    signals.on('channel-texts-selected', function () { position = 0; pane.scrollTop = 0; replacing = true; fit(); });
     pane.addEventListener('scroll', function () { if (active) { position = pane.scrollTop; } }, { passive:true });
     pane.addEventListener('input', function (event) {
       if (!active || event.target.tagName !== 'TEXTAREA') { return; }

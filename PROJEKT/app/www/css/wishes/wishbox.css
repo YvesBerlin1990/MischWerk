@@ -1,4 +1,4 @@
-/* Silbernes Wunschformular; Versandcontroller und 300-Zeichen-Vertrag bleiben unverändert. */
+/* Gemeinsame Formularbasis; native Gestaltung am Ende, Versand und 300-Zeichen-Vertrag bleiben erhalten. */
 .wish-compose { margin:0; padding:0; border:0; border-radius:0; background:transparent; }
 .wish-label-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; }
 .wish-label-row label { color:#e9eaec; font-size:13px; font-weight:600; }
@@ -43,4 +43,34 @@ html[data-wish-surface].mw-ready .dialog-shell > .dialog-header { display:none; 
  .wish-drawer .wish-send { min-height:48px; }
  .wish-drawer > .wish-feedback,.wish-drawer > #wish-hint { margin:12px 14px 0; }
  .wish-drawer #wish-compose-open { width:calc(100% - 28px); margin:12px 14px 14px; }
+}
+/* Native Wunschbox im flachen Moderationsstil; Radioformular und Website bleiben getrennt. */
+html[data-view=wishes] { --surface:#17191c; --input:#111316; --line:#33373d; --text:#f1f2f3; --muted:#a6adb6; --gold:#e6c77b; --gold-ink:#e6c77b; }
+html[data-view=wishes] :is(.dialog-shell,.wish-drawer) { border-radius:12px; background:var(--surface); }
+html[data-view=wishes] .dialog-header { border-radius:11px 11px 0 0; background:var(--surface); }
+html[data-view=wishes] .dialog-header::before { display:none; }
+html[data-view=wishes] :is(.dialog-header h1,.wish-drawer .dialog-heading h2) { margin:0; font-family:Outfit,"Segoe UI",system-ui,sans-serif; font-size:23px; font-weight:600; letter-spacing:0; }
+html[data-view=wishes] .wish-drawer .wish-compose { padding:16px 20px; }
+html[data-view=wishes] .wish-label-row { margin-bottom:8px; }
+html[data-view=wishes] .wish-label-row label { color:var(--text); font-size:14px; font-weight:500; }
+html[data-view=wishes] .wish-note { color:var(--gold); }
+html[data-view=wishes] .wish-editor { border-radius:6px; border-color:#424851; background:var(--input); }
+html[data-view=wishes] .wish-editor:focus-within { border-color:var(--gold); outline:2px solid var(--gold); outline-offset:-2px; }
+html[data-view=wishes] #wish-text { min-height:80px; border-radius:5px 5px 0 0; padding:10px 12px; font-size:16px; }
+html[data-view=wishes] .wish-rules { margin:8px 0 12px; font-size:12px; line-height:1.5; }
+html[data-view=wishes] :is(.primary-button,.secondary-button,.icon-button) { min-height:44px; border-radius:6px; box-shadow:none; text-shadow:none; font-size:13px; }
+html[data-view=wishes] .primary-button { background:var(--gold); color:#191b1e; border-color:var(--gold); font-weight:600; }
+html[data-view=wishes] .primary-button:hover:enabled { background:#f2d997; border-color:#f2d997; }
+html[data-view=wishes] .primary-button:active:enabled { background:#cfad60; border-color:#cfad60; }
+html[data-view=wishes] .secondary-button { background:transparent; border-color:#424851; font-weight:500; }
+html[data-view=wishes] :is(button,input,textarea):focus-visible { outline:3px solid var(--gold); outline-offset:-3px; }
+html[data-view=wishes] .wish-drawer > :is(.wish-feedback,#wish-hint) { margin:12px 20px 0; border-radius:6px; }
+html[data-view=wishes] .wish-feedback::before { background:var(--gold); }
+html[data-view=wishes] .wish-feedback.pending::before { background:#41464e; }
+html[data-view=wishes] .wish-feedback.error::before { background:var(--error); }
+html[data-view=wishes] .wish-drawer #wish-compose-open { width:calc(100% - 40px); min-height:44px; margin:12px 20px 16px; }
+@media (max-width:420px) {
+ html[data-view=wishes] .wish-drawer .wish-compose { padding:14px 16px; }
+ html[data-view=wishes] .wish-drawer > :is(.wish-feedback,#wish-hint) { margin-inline:16px; }
+ html[data-view=wishes] .wish-drawer #wish-compose-open { width:calc(100% - 32px); margin-inline:16px; margin-bottom:14px; }
 }

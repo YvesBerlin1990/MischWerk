@@ -23,7 +23,18 @@ var store = { data: {},
 };
 var KnuddelsServer = {
     execute: function (file) { load(mischWerkAppRoot + '/' + file); },
+    listFiles: function (folder) {
+        var directory = new java.io.File(mischWerkAppRoot + '/' + (String(folder) === '/' ? '.' : String(folder)));
+        var entries = directory.listFiles();
+        if (entries === null) { throw new Error('Missing test directory'); }
+        var result = [];
+        for (var index = 0; index < entries.length; index += 1) {
+            result.push(new java.lang.String(String(entries[index].getName()) + (entries[index].isDirectory() ? '/' : '')));
+        }
+        return result;
+    },
     getPersistence: function () { return store; },
+    getFullImagePath: function (name) { return new java.lang.String('https://mischwerk.invalid/' + name); },
     getDefaultBotUser: function () { return { sendPublicMessage: function (message) { publicMessages.push(message); } }; },
     getDefaultLogger: function () {
         return { info: function () {}, warn: function (message) { warnings.push(message); } };
@@ -45,7 +56,7 @@ var KnuddelsServer = {
     }; } }; }
 };
 var UserType = { Human: 'human' };
-var RandomOperations = { getRandomString: function (length, alphabet) { return alphabet.slice(0, length); } };
+var RandomOperations = { getRandomString: function (length, alphabet) { var value='';while(value.length<length)value+=alphabet;return value.slice(0,length); } };
 function HTMLFile(asset, data) { this.data = copy(data); }
 var Color = { fromHexString: function (hex) { return { asHexString: function () { return hex; } }; } };
 function content(html, mode) {
@@ -68,7 +79,14 @@ var AppContent = {
     overlayContent: function (html) { return content(html, 'Overlay'); }
 };
 function person(id, nick, owner) {
-    var user = { sessions: [], getUserId: function () { return id; }, getNick: function () { return nick; },
+    var userStore = {};
+    var user = { sessions: [], nicklistIcons:{}, getUserId: function () { return id; }, getNick: function () { return nick; },
+        getPersistence:function () { return {
+            getObject:function (key, fallback) { return Object.prototype.hasOwnProperty.call(userStore,key) ? copy(userStore[key]) : fallback; },
+            setObject:function (key,value) { userStore[key]=copy(value); }
+        }; },
+        addNicklistIcon:function (path,width) { check(width === (String(path).split('?')[0].slice(-9) === '/team.png' ? 32 : 24), 'Nicklistenbreite passend zum Originalbild'); user.nicklistIcons[String(path)]=width; },
+        removeNicklistIcon:function (path) { delete user.nicklistIcons[String(path)]; },
         getUserType: function () { return UserType.Human; },
         hasProfilePhoto: function () { return false; },
         getProfilePhoto: function () { return ''; },
@@ -101,15 +119,41 @@ function latest(session, type) {
     }
     return null;
 }
+var pinTimers = [], pinTimerSequence = 0;
+function setTimeout(callback, delay) { var entry = {id:++pinTimerSequence, callback:callback}; pinTimers.push(entry); return entry.id; }
+function clearTimeout(id) { pinTimers = pinTimers.filter(function (entry) { return entry.id !== id; }); }
+function flushPinTimers() {
+    for (var count = 0; count < 2048; count += 1) {
+        var entry = pinTimers.filter(function (item) { return item.callback.name === 'moderationPinStep'; })[0];
+        if (entry) { pinTimers = pinTimers.filter(function (item) { return item.id !== entry.id; }); }
+        else if (typeof channelTextTasks !== 'undefined') {
+            Object.keys(channelTextTasks).some(function (id) {
+                if (channelTextTasks[id].callback.name !== 'moderationPinStep') { return false; }
+                entry = channelTextTasks[id]; delete channelTextTasks[id]; return true;
+            });
+        }
+        if (!entry) { return; }
+        entry.callback();
+    }
+    throw new Error('PIN-Arbeit wurde nicht beendet');
+}
+function drainPinEvents(app) {
+    var receive = app.onEventReceived;
+    app.onEventReceived = function () { receive.apply(app, arguments); flushPinTimers(); };
+    return app;
+}
 load(mischWerkAppRoot + '/main.js');
+var createTestApp = MischWerkModules.createApp;
+MischWerkModules.createApp = function (config) { return drainPinEvents(createTestApp(config)); };
+App = drainPinEvents(App);
 App.onAppStart();
 check(cacheInvalidations === 1, 'Oberflaechen-Cache beim Start erneuert');
 var listener = person(1, 'Musikfreund', false);
 var owner = person(2, 'Otterchen', true);
 App.onUserJoined(listener); App.onUserJoined(owner);
 check(publicMessages.length === 2 &&
-    publicMessages[0] === "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Musikfreund|/w Musikfreund<°._°r° Viel Spaß beim Zuhören." &&
-    publicMessages[1] === "°16°°[230,199,123]°_Willkommen bei Radio MischWerk, °>Otterchen|/w Otterchen<°._°r° Viel Spaß beim Zuhören.",
+    publicMessages[0] === "°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, °>Musikfreund|/w Musikfreund<°.§°r° Viel Spaß beim Zuhören." &&
+    publicMessages[1] === "°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, °>Otterchen|/w Otterchen<°.§°r° Viel Spaß beim Zuhören.",
     'Einheitliche Channelbegrüßungen getrennt von Studio-Meldungen');
 publicMessages = [];
 var listenerSession = listener.sessions[0];
@@ -127,6 +171,8 @@ check(latest(ownerSession, 'mw:state').user.showModerationButton === false, 'Nic
 owner.isChannelOwner = ownerAccessMethod;
 App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
 check(latest(ownerSession, 'mw:state').user.showModerationButton === true, 'Echtes Inhaberrecht stellt den automatischen Zugriff wieder her');
+App.onEventReceived(owner,'mw:onAir',{},ownerSession);
+check(latest(ownerSession,'mw:result').ok,'Direkte native Anmeldung ohne PIN');
 var writesBeforeWishTransport = persistenceWrites;
 App.onEventReceived(owner, 'mw:openStudio', {}, ownerSession);
 var studio = owner.sessions[owner.sessions.length - 1];
@@ -195,13 +241,13 @@ check(positions.items[0].position === 125, 'Letzte Queuepositionen vollstaendig'
 App.onPrepareShutdown(); App.onShutdown();
 var rebootedWishes = MischWerkModules.createApp(MischWerkConfig);
 var beforeRebootSession = owner.sessions[owner.sessions.length - 1];
-rebootedWishes.chatCommands.mischwerk(owner, '');
+rebootedWishes.onAppStart();
 var restoredWishes = owner.sessions[owner.sessions.length - 1].getAppContent().html.data;
 check(owner.sessions[owner.sessions.length - 1] !== beforeRebootSession, 'Neustart erzeugt frische Sitzung');
 check(restoredWishes.queueTotal === 125, 'Alle Wünsche überstehen Shutdown und neue App');
 check(restoredWishes.queue[0].text === titles[0], 'Erster Wunsch nach Neustart unverändert');
 App = rebootedWishes; ownerSession = owner.sessions[owner.sessions.length - 1];
-App.chatCommands.mischwerk(listener, ''); listenerSession = listener.sessions[listener.sessions.length - 1];
+App.onUserJoined(listener); listenerSession = listener.sessions[listener.sessions.length - 1];
 App.onEventReceived(owner, 'mw:openStudio', {}, ownerSession); studio = owner.sessions[owner.sessions.length - 1];
 // Kalender und Wochenpersistenz ebenfalls unter der echten Rhino-Engine ausführen.
 store = { data: {}, getObjectKeys: function () { return Object.keys(this.data); }, deleteObject: function (key) { delete this.data[key]; }, getObject: function (key, fallback) { return this.data[key] ? copy(this.data[key]) : fallback; },
@@ -211,9 +257,26 @@ KnuddelsServer.getUserAccess = function () { return {
     getUserId: function (nick) { return nick === 'Otterchen' ? 2 : 1; },
     getNick: function (id) { return id === 2 ? 'Otterchen' : 'Musikfreund'; }
 }; };
-App.onEventReceived(owner, 'mw:openSchedule', {}, ownerSession);
-check(!latest(ownerSession, 'mw:result').ok, 'Alter Sendeplan-Aufruf bleibt nach dem Reset gesperrt');
-check(owner.sessions.indexOf(studio) !== -1, 'Reset-Aufruf erhält das offene Studio');
+var dailyCalendar = {now:function () { return new Date().getTime(); }};
+MischWerkModules.attachScheduleCalendar(dailyCalendar);
+var previousDailyAccess = KnuddelsServer.getExternalServerAccess;
+KnuddelsServer.getExternalServerAccess = function () { return {
+    canAccessURL:function () { return true; },
+    getURL:function (url, callbacks) {
+        var week = url.split('week=')[1], days = [];
+        for (var i = 0; i < 7; i += 1) { days.push(dailyCalendar.scheduleDay(week, i)); }
+        callbacks.onSuccess(new java.lang.String(JSON.stringify({version:1, ok:true, ready:true, week:week,
+            today:dailyCalendar.scheduleToday(), days:days, entries:[]})), {
+            getResponseCode:function () { return new java.lang.Integer(200); },
+            getURLString:function () { return new java.lang.String(url); }
+        });
+    }
+}; };
+App.onEventReceived(owner, 'mw:schedule.day', {requestId:'rhino-day', date:''}, ownerSession);
+var daily = latest(ownerSession, 'mw:schedule.data');
+check(daily.source === 'homepage' && daily.entries.length === 0, 'Tagesansicht liest öffentliche GET-Antwort mit Java-Wrappern');
+check(!store.data['mischwerk.schedule.v1.weeks'], 'Leerer Tag erzeugt weder AutoDJ-Eintrag noch Kalenderpersistenz');
+KnuddelsServer.getExternalServerAccess = previousDailyAccess;
 var scheduleSession = ownerSession;
 App.onEventReceived(owner, 'mw:schedule.get', { requestId: 'schedule-read', week: '2026-10-26' }, scheduleSession);
 var programme = latest(scheduleSession, 'mw:schedule.data');
@@ -258,13 +321,14 @@ check(latest(scheduleSession, 'mw:schedule.result').ok, 'Folgesendung begrenzt O
 App.onEventReceived(owner, 'mw:schedule.get', { requestId: 'schedule-open-bound', week: '2026-11-09' }, scheduleSession);
 check(latest(scheduleSession, 'mw:schedule.data').entries[1].until === Date.UTC(2026, 10, 16) / 60000,
     'Open-End-Grenze über die Woche in Rhino korrekt');
-check(publicMessages.length === 0, 'Keine Studio-Meldung beim Start oder Wunschversand');
+check(publicMessages.length === 2, 'Nur die ausdrücklich abgeschlossene PIN-Anmeldung erzeugt eine Studio-Meldung');
+App.onEventReceived(owner,'mw:offAir',{},ownerSession);publicMessages=[];
 App.onEventReceived(owner, 'mw:onAir', {}, ownerSession);
 check(publicMessages.length === 1 && publicMessages[0].indexOf('Otterchen betritt das Studio') !== -1, 'ON AIR im Nick-Bot');
 App.onEventReceived(owner, 'mw:onAir', {}, ownerSession);
 check(publicMessages.length === 1, 'Erneutes Anmelden ohne doppelte Meldung');
 var ownKey = latest(ownerSession, 'mw:state').moderator.sessionKey;
-App.onEventReceived(owner, 'mw:onAir', { expectedModerator:ownKey, endMode:'openEnd' }, ownerSession);
+App.onEventReceived(owner, 'mw:onAir', {expectedModerator:ownKey, endMode:'openEnd' }, ownerSession);
 check(latest(ownerSession, 'mw:result').ok, 'Alter Auftrag bleibt idempotente eigene Anmeldung');
 var currentModerator = latest(ownerSession, 'mw:state').moderator;
 check(!('expiresAt' in currentModerator) && !('openEnd' in currentModerator), 'Keine Endzeitdaten in Rhino');
@@ -282,7 +346,7 @@ App.onEventReceived(owner, 'mw:handover.request', { nick: 'Musikfreund', expecte
 var incoming = latest(listenerSession, 'mw:state').handover.incoming;
 check(incoming && publicMessages.length === 3, 'Uebergabe wartet ohne oeffentliche Meldung');
 check(incoming.notes === 'Bitte die Geburtstagsgruesse vorlesen.', 'Private Uebergabenotiz in Rhino');
-App.onEventReceived(listener, 'mw:handover.accept', { id: incoming.id, topic: 'Neue Sendung' }, listenerSession);
+App.onEventReceived(listener, 'mw:handover.accept', {id: incoming.id, topic: 'Neue Sendung' }, listenerSession);
 check(latest(listenerSession, 'mw:result').ok, 'Uebergabe angenommen');
 check(latest(listenerSession, 'mw:state').moderator.nick === 'Musikfreund', 'Neuer Moderator in Rhino');
 check(latest(listenerSession, 'mw:state').topic === 'Neue Sendung', 'Neues Thema gemeinsam gespeichert');
@@ -313,6 +377,8 @@ check(latest(ownerSession, 'mw:result').ok, 'Doppelte Wunschbox-Anfrage sicher b
 App.onEventReceived(owner, 'mw:wishes.edit', { text:'Entwurf aus dem Overlay', sequence:1 }, surfaceSession);
 check(latest(ownerSession, 'mw:wishes.input').text === 'Entwurf aus dem Overlay', 'UI-Eingabe erreicht ausschliesslich Radio');
 check(warnings.length === 0, 'Overlay ohne Rhino-Warnungen');
+App.onEventReceived(listener,'mw:offAir',{},listenerSession);
+App.onEventReceived(owner,'mw:onAir',{pin:'0123'},ownerSession);
 App.onEventReceived(owner, 'mw:refresh', { page: 0 }, ownerSession);
 var firstWish = latest(ownerSession, 'mw:state').queue[0];
 var totalBeforeStage = latest(ownerSession, 'mw:state').queueTotal;
@@ -335,33 +401,44 @@ App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
 check(latest(ownerSession, 'mw:state').refreshRequestId === undefined, 'Automatische Aktualisierung ohne fremde Quittung');
 App.onEventReceived(owner, 'mw:refresh', { requestId: '<invalid>' }, ownerSession);
 check(!latest(ownerSession, 'mw:result').ok, 'Ungueltige Aktualisierungs-ID abgewiesen');
-App.chatCommands.vorhang(owner, 'öffnen');
-check(latest(listenerSession, 'mw:state').curtain.closed === false, 'Vorhang oeffnen per Chat in Rhino');
-App.chatCommands.vorhang(listener, 'schließen');
+check(typeof App.chatCommands.vorhang === 'undefined', 'Entfernter Vorhangbefehl ist nicht registriert');
 App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
-check(latest(ownerSession, 'mw:state').curtain.closed === false, 'Hoerer darf Vorhang nicht schliessen');
-App.chatCommands.vorhang(owner, 'schließen');
-check(latest(listenerSession, 'mw:state').curtain.closed === true, 'Vorhang schliessen per Chat in Rhino');
-App.chatCommands.vorhang(owner, 'toggle');
-App.onEventReceived(owner, 'mw:refresh', {}, ownerSession);
-check(latest(ownerSession, 'mw:state').curtain.closed === true, 'Ungueltige Chatangabe erhaelt Vorhang');
+check(!Object.prototype.hasOwnProperty.call(latest(ownerSession, 'mw:state'), 'curtain'), 'Snapshot enthält keinen Vorhangzustand');
 (function () {
     var app = MischWerkModules.createApp(MischWerkConfig), user = person(9991, 'Otterchen', true), replies = [];
     user.sendPrivateMessage = function (message) { replies.push(message); };
-    app.chatCommands.mw(user, 'Verwaltung');
+    check(Object.keys(app.chatCommands).sort().join(',') === 'lauftext,mw,settopic,update', 'Nur einheitlicher mw-Einstieg und drei erhaltene Befehle');
+    app.chatCommands.mw(user, '');
+    check(user.sessions.length === 0 && replies[0].indexOf('/mw admin') !== -1 && replies[0].indexOf('/mw homepage') === -1, 'Hilfe ohne Homepage-Code, Fenster oder Radio-Neustart');
+    var privateBefore = JSON.stringify(store.data), writesBefore = persistenceWrites;
+    ['', 'hilfe', 'einrichten', 'status', 'pruefen', 'http-pruefen', 'auth-pruefen'].forEach(function (argument) {
+        replies.length = 0; app.chatCommands.mw(user, '  VeRbInDuNg  ' + argument);
+        check(user.sessions.length === 0 && replies.length === 1 && replies[0].indexOf('Diesen Aufruf gibt es nicht.') !== -1, 'Verbindungsbefehl samt Unterbefehlen entfernt');
+        check(JSON.stringify(store.data) === privateBefore && persistenceWrites === writesBefore, 'Entfernter Aufruf erhält gespeicherte Verbindung');
+    });
+    replies.length = 0;
+    app.chatCommands.mw(user, 'verwaltung');
+    check(user.sessions.length === 0 && replies[0].indexOf('/mw') !== -1, 'Entfernter Verwaltungsbefehl öffnet kein Fenster');
+    replies.length = 0;
+    app.chatCommands.mw(user, 'admin');
     check(user.sessions.length === 2, 'Verwaltungsbefehl öffnet Radio und Overlay in Rhino');
     check(user.sessions[1].getAppContent().html.data.view === 'team', 'Verwaltung als bestehendes natives Overlay');
+    app.onEventReceived(user, 'mw:androidSettings.status', {}, user.sessions[1]);
+    check(latest(user.sessions[1], 'mw:androidSettings.status').ok === true, 'Private Verbindungseinstellungen direkt im Verwaltungsfenster');
     var other = person(9992, 'Anderer Inhaber', true);
     other.sendPrivateMessage = function (message) { replies.push(message); };
-    app.chatCommands.mw(other, 'Verwaltung');
+    app.chatCommands.mw(other, 'admin');
     check(other.sessions.length === 0 && replies.length === 1, 'Anderer Inhaber ohne Verwaltungszugriff');
     user.isChannelOwner = function () { return false; };
-    app.chatCommands.mw(user, 'Verwaltung');
+    app.chatCommands.mw(user, 'admin');
     check(replies.length === 2 && replies[1].indexOf('Nur Otterchen') !== -1, 'Nick allein verleiht kein Inhaberrecht');
 }());
 load('tests/rhino/channel-topic.js');
+load('tests/rhino/public-schedule.js');
 load('tests/rhino/channel-texts.js');
 load('tests/rhino/greetings.js');
+load('tests/rhino/nicklist.js');
+load('tests/rhino/update.js');
 load('tests/rhino/ticker.js');
 load('tests/rhino/website.js');
 load('tests/rhino/android-signing.js');
@@ -376,8 +453,13 @@ load('tests/rhino/android-operation.js');
         setObject:function(key,value){this.data[key]=copy(value);}};
     var tester=person(9901,'Otterchen',true); people=[tester];
     var app=MischWerkModules.createApp(MischWerkConfig);
-    app.chatCommands.mischwerk(tester,''); var session=tester.sessions[tester.sessions.length-1];
+    app.onUserJoined(tester); var session=tester.sessions[tester.sessions.length-1];
+    app.onEventReceived(tester,'mw:pin.login',{pin:'0123',pinConfirmation:'0123'},session);
+    check(!latest(session,'mw:result').ok && latest(session,'mw:state').moderator === null,'Entfernte native PIN-Anfrage mutiert nichts');
     app.onEventReceived(tester,'mw:onAir',{},session);
+    check(latest(session,'mw:result').ok && latest(session,'mw:state').user.canUseModeration,'Native Anmeldung ohne PIN');
+    check(latest(session,'mw:state').requestsEnabled,'Native Anmeldung öffnet die Wunschbox');
+    check(!('pinSetupRequired' in latest(session,'mw:state').user),'Kein nativer PIN-Einrichtungszustand');
     app.onEventReceived(tester,'mw:schedule.get',{requestId:'broadcast-rhino'},session);
     var plan=latest(session,'mw:schedule.data');
     check(plan.entries.length===1 && plan.entries[0].actualStart && !plan.entries[0].actualEnd,'Automatische Studio-Anmeldung in Rhino');
@@ -395,7 +477,7 @@ load('tests/rhino/android-operation.js');
     check(overview.weeks.length>=2 && overview.weeks.length<=3,'Vorschau verbindet vorhandene Wochenadapter');
     check(JSON.stringify(overview).length<9500,'Vorschaupaket bleibt unter der Transportgrenze');
     check(JSON.stringify(overview).indexOf('userId')===-1,'Vorschau enthält keine privaten Nutzerkennungen');
-    var listener=person(9902,'Hörer',false);people.push(listener);app.chatCommands.mischwerk(listener,'');
+    var listener=person(9902,'Hörer',false);people.push(listener);app.onUserJoined(listener);
     var listenerSession=listener.sessions[listener.sessions.length-1];
     app.onEventReceived(listener,'mw:schedule.get',{requestId:'brief-hidden-rhino',week:plan.week},listenerSession);
     check(latest(listenerSession,'mw:schedule.data').total===0,'Kurze Anmeldung bleibt für Hörer verborgen');

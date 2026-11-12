@@ -1,4 +1,3 @@
-const {previewCurtain}=require('../support/preview-command.cjs');
 // Channel und natives Overlay getrennt modellieren: kein zusätzlicher Headerbereich.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -31,7 +30,7 @@ async function setup(t,{width=1200,surfaceK3=true}={}){
   const errors=[],sent=[];
   context.on('page',page=>{page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().endsWith('/api/event'))sent.push(r.postDataJSON());});});
   const owner=await context.newPage();await owner.goto(base+'/preview?role=moderator');
-  await previewCurtain(owner);
+
   const page=await context.newPage();await page.goto(base+'/channel.html');
   const radio=await(await page.locator('#radio-frame').elementHandle()).contentFrame();
   await radio.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));
@@ -215,7 +214,7 @@ test('Wunschregie überträgt Vorbereitung und laufenden Song privat an den Hör
   assert.deepEqual(errors,[]);
 });
 
-test('Deaktivierte Annahme und Vorhang erhalten Entwurf und geben den Tastaturfokus an die Radioleiste zurück',async t=>{
+test('Deaktivierte Annahme und Wiederöffnung erhalten Entwurf und geben den Tastaturfokus an die Radioleiste zurück',async t=>{
   const {page,owner,radio,open,errors}=await setup(t);let surface=await open();
   await surface.locator('#wish-text').fill('Mein gespeicherter Entwurf');
   await radio.waitForFunction(()=>document.getElementById('wish-text').value==='Mein gespeicherter Entwurf');
@@ -225,9 +224,10 @@ test('Deaktivierte Annahme und Vorhang erhalten Entwurf und geben den Tastaturfo
   assert.equal(await radio.locator('#mute-button').evaluate(n=>document.activeElement===n),true);
   await action(owner,'mw:setRequests',{enabled:true,previousEnabled:false});surface=await open();
   assert.equal(await surface.locator('#wish-text').inputValue(),'Mein gespeicherter Entwurf');
-  await previewCurtain(owner,'schließen');
+
+  await surface.locator('#close-wishes').click();
   await page.locator('#overlay-frame').waitFor({state:'hidden'});
-  assert.equal(await radio.locator('#curtain-ad').evaluate(n=>document.activeElement===n),true);
+  assert.equal(await radio.locator('#open-wishes').evaluate(n=>document.activeElement===n),true);
   assert.equal(await radio.locator('#wish-text').inputValue(),'Mein gespeicherter Entwurf');assert.deepEqual(errors,[]);
 });
 
@@ -251,13 +251,23 @@ test('Verzögertes Overlay-CSS erhält den langen Entwurf und misst das Textfeld
   assert.equal(await radio.locator('#wishes-panel').isVisible(),false);assert.deepEqual(errors,[]);
 });
 
-test('STAPP-Wunschoberfläche passt nach Bestätigung ihre native Höhe vollständig an',async t=>{
+test('STAPP-Wunschoberfläche passt vom Öffnen bis zur nächsten Eingabe ihre native Höhe vollständig an',async t=>{
   const {page,open,errors}=await setup(t,{surfaceK3:false});const surface=await open();
+  await surface.waitForFunction(()=>__overlayHostCalls.length>0);
+  await surface.waitForFunction(()=>Math.abs(document.getElementById('wishes-panel').getBoundingClientRect().height-innerHeight)<=1);
+  const initialHeight=await surface.evaluate(()=>innerHeight);
+  assert.ok(initialHeight<340,'Das normale Formular braucht keine leere Höhenreserve');
   await surface.locator('#wish-text').fill('Test im STAPP-Overlay');await surface.locator('#submit-wish').click();
   await surface.locator('#wish-feedback.success').waitFor();
   await surface.waitForFunction(()=>document.getElementById('wishes-panel').getBoundingClientRect().height<=innerHeight&&document.body.scrollHeight<=document.body.clientHeight+1);
   const calls=await surface.evaluate(()=>__overlayHostCalls);
   assert.ok(calls.length>0);assert.ok(calls.every(c=>c.method==='setSize'&&c.width>0&&c.height>0));
   assert.equal(await surface.locator('#wish-compose-open').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),true);
+  const confirmationHeight=await surface.evaluate(()=>innerHeight);
+  assert.ok(confirmationHeight<initialHeight,'Die kurze Bestätigung verkleinert das Fenster');
+  await surface.locator('#wish-compose-open').click();
+  await surface.locator('#wish-text').fill('Langer Interpret und ausführlicher Titel '.repeat(8).slice(0,300));
+  await surface.waitForFunction(h=>innerHeight>h&&document.body.scrollHeight<=innerHeight+1,confirmationHeight);
+  assert.equal(await surface.locator('#wish-text').evaluate(n=>n.scrollHeight<=n.clientHeight+1),true);
   assert.equal((await page.locator('#radio-frame').boundingBox()).height,160);assert.deepEqual(errors,[]);
 });

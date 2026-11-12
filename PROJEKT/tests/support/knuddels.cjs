@@ -76,13 +76,14 @@ function createHarness(existingPersistence, options = {}) {
       addCloseListener(callback) { this.closeListeners.push(callback); } };
     contents.push(content); return content;
   }
+  const appRoot = path.resolve(options.appDir || process.env.MISCHWERK_TEST_UPLOAD || path.resolve(__dirname, '../../app'));
   const context = vm.createContext({
     escapeKCodeMock(value) {
       escapedNicks.push(value);
       return value.replace(/[_°<>\\]/g, character => '\\' + character);
     },
     Date: FakeDate,
-    RandomOperations: { getRandomString: (length, alphabet) => (options.nonce || alphabet.slice(0,length)) },
+    RandomOperations: { getRandomString: (length, alphabet) => (options.nonce || Array.from(require('node:crypto').randomBytes(length), value => alphabet[value % alphabet.length]).join('')) },
     ...(options.random ? { Math: Object.assign(Object.create(Math), { random: options.random }) } : {}),
     setTimeout(callback, delay) { const id = ++timerSequence; timers.set(id, { callback, at:timestamp + delay }); return id; },
     clearTimeout(id) { timers.delete(id); },
@@ -94,6 +95,12 @@ function createHarness(existingPersistence, options = {}) {
       info(message) { logs.push({ level: 'info', message }); }
     }),
       getChannel: () => ({ getOnlineUsers: () => [...users.values()].filter(user => user.online) }),
+      listFiles(folder) {
+        const directory = path.resolve(appRoot, folder === '/' ? '.' : String(folder));
+        if (directory !== appRoot && !directory.startsWith(appRoot + path.sep)) throw Error('Dateiliste außerhalb der App');
+        return fs.readdirSync(directory,{withFileTypes:true}).map(entry=>entry.name+(entry.isDirectory()?'/':''));
+      },
+      getFullImagePath: name => 'https://mischwerk.invalid/' + name,
       ...(options.serverMethods || {}),
       getAppAccess: () => ({ getOwnInstance: () => ({ getRootInstance: () => rootInstance }) }),
       getUserAccess: () => ({
@@ -115,17 +122,34 @@ function createHarness(existingPersistence, options = {}) {
   });
   vm.runInContext('String.prototype.escapeKCode = function () { return escapeKCodeMock(String(this)); };', context);
   const loadedFiles = [];
+  let openRadio, appRuntime;
   function runFile(file) {
-    const appRoot = path.resolve(options.appDir || process.env.MISCHWERK_TEST_UPLOAD || path.resolve(__dirname, '../../app'));
     const target = path.resolve(appRoot, file);
     if (!target.startsWith(appRoot + path.sep)) { throw new Error('Loader ausserhalb der App'); }
     loadedFiles.push(file);
-    const result = vm.runInContext(fs.readFileSync(target, 'utf8'), context, { filename: file });
-    if (file === 'server/app.js' && options.configureModules) { options.configureModules(context); }
+    const probing = typeof context.MischWerkUpdateProbe === 'function';
+    const original = fs.readFileSync(target, 'utf8');
+    const source = options.readFile ? options.readFile(file, original, probing) : original;
+    const result = vm.runInContext(source, context, { filename: file });
+    if (file === 'server/app.js' && !probing) {
+      if (options.configureModules) { options.configureModules(context); }
+      const attach = context.MischWerkModules.attachSessions;
+      context.MischWerkModules.attachSessions = function(runtime,config) {
+        attach(runtime,config); appRuntime = runtime; openRadio = person => runtime.open(person,false);
+      };
+    }
     return result;
   }
   runFile('main.js');
   const app = context.App;
+  function flushPin() {
+    for (let count = 0; count < 2048; count++) {
+      const entry = [...timers].find(([, task]) => task.callback.name === 'moderationPinStep');
+      if (!entry) return;
+      const [id, task] = entry; timers.delete(id); task.callback();
+    }
+    throw Error('PIN-Arbeit wurde nicht begrenzt beendet');
+  }
   let sessionSequence = 0;
   function user(id, nick, role = 'listener') {
     if (users.has(id)) { return users.get(id); }
@@ -145,6 +169,15 @@ function createHarness(existingPersistence, options = {}) {
       isChannelModerator() { return this.role === 'moderator'; },
       equals(other) { return !!other && this.id === other.id; },
       getPersistence() { return this.persistence; },
+      nicklistIcons: new Map(), iconCalls: [],
+      addNicklistIcon(imagePath, imageWidth) {
+        if (typeof imagePath !== 'string' || !/^https?:\/\/.*\.(png|gif)(?:\?.*)?$/.test(imagePath) || !Number.isInteger(imageWidth) || imageWidth < 1 || imageWidth > 100) throw Error('Ungültiges Nicklistenbild');
+        this.iconCalls.push({ operation:'add', path:imagePath, width:imageWidth }); this.nicklistIcons.set(imagePath,imageWidth);
+      },
+      removeNicklistIcon(imagePath) {
+        if (typeof imagePath !== 'string') throw Error('Absoluter Bildpfad erforderlich');
+        this.iconCalls.push({ operation:'remove', path:imagePath }); this.nicklistIcons.delete(imagePath);
+      },
       canSendAppContent() { return this.capable; },
       sendPrivateMessage(message) { this.messages.push(message); },
       sendAppContent(content) {
@@ -178,8 +211,8 @@ function createHarness(existingPersistence, options = {}) {
   for (const person of options.users || []) { user(person.id, person.nick, person.role); }
   app.onAppStart();
   return {
-    app, config: context.MischWerkConfig, store, user, contents, logs, bot, escapedNicks, updateCalls, updateFileCalls, cacheInvalidations, rootInstance, loadedFiles,
-    timers,
+    app, runtime: appRuntime, config: context.MischWerkConfig, store, user, contents, logs, bot, escapedNicks, updateCalls, updateFileCalls, cacheInvalidations, rootInstance, loadedFiles,
+    timers, flushPin,
     now() { return timestamp; },
     advance(ms) {
       timestamp += ms;
@@ -188,13 +221,15 @@ function createHarness(existingPersistence, options = {}) {
         timers.delete(id); task.callback();
       }
     },
-    open(person) { app.chatCommands.mischwerk(person); return person.sessions[0]; },
+    open(person) { openRadio(person); return person.sessions[0]; },
     event(person, session, type, data = {}) {
       if (/^mw:overlay\./.test(type)) { data = { view:session.activeView, viewRevision:session.viewRevision, ...data }; }
       if (type === 'mw:wish.submit' && data.submissionId === undefined) {
         data = { ...data, submissionId: 'test-wish-' + (++submissionSequence) };
       }
-      session.events = []; app.onEventReceived(person, type, data, session); return session.events;
+      session.events = []; app.onEventReceived(person, type, data, session);
+      if (options.autoPin !== false) { flushPin(); }
+      return session.events;
     },
     finishOverlay(person, surface, state = {}, error = false, revision = 1) {
       const prepare = surface.events.findLast(event => event.type === 'mw:overlay.prepare');

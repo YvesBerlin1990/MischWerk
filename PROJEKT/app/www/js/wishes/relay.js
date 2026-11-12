@@ -55,10 +55,6 @@ MischWerkUI.define('wishRelay', function (dependencies) {
     });
     dom.el('wish-text').addEventListener('input', function () { mirror(); });
     window.addEventListener('pagehide', function () { clearTimeout(mirrorTimer); observer.disconnect(); });
-    signals.on('snapshot', function () {
-      var curtain = model.current() && model.current().curtain;
-      if (opened && curtain && curtain.closed && !curtain.exempt) { commands.send('mw:overlay.close', { view:'wishes', surfaceId:surfaceId, viewRevision:surfaceRevision }, false); }
-    });
   }
   return { start:function () { if (bridge) { radioStart(); } } };
 });

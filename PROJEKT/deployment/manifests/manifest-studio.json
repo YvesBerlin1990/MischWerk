@@ -1,6 +1,6 @@
 {
-  "version": "0.1.330",
-  "buildNumber": 330,
+  "version": "0.1.382",
+  "buildNumber": 382,
   "files": [
     {
       "path": "MischWerk/server/android/signing.js",
@@ -14,13 +14,13 @@
     },
     {
       "path": "MischWerk/server/android/diagnostics.js",
-      "bytes": 6255,
-      "sha256": "38763AE1FFFD484C51ED864A08BA5AC7122449D65CDAC33B5AAAA05124A275A0"
+      "bytes": 7418,
+      "sha256": "01557DD7E468ED361AEB8D4C75D11EC771D4E7A3E2456D286FA082230D5AE86B"
     },
     {
       "path": "MischWerk/server/android/settings.js",
-      "bytes": 8537,
-      "sha256": "587874BE75F000E7085B06236D35ED9AAD9383F3B92EED082714D826B4D46DBE"
+      "bytes": 9223,
+      "sha256": "B18FEB294B66BBD977F6DD88E2B9238BD9EED8AB7F653A203F8420A26B65B1C8"
     },
     {
       "path": "MischWerk/server/android/receipts.js",
@@ -29,8 +29,8 @@
     },
     {
       "path": "MischWerk/server/android/incoming.js",
-      "bytes": 4278,
-      "sha256": "8DE9CD7C5A331EB062F4D20BF0BF5554E2733A2316EF5D41103C828918920C54"
+      "bytes": 4268,
+      "sha256": "4FE9E29173875214259633CA9612321D571C7A67F80559943E43610F799C1CAE"
     },
     {
       "path": "MischWerk/server/android/commands.js",
@@ -39,8 +39,8 @@
     },
     {
       "path": "MischWerk/server/android/publisher.js",
-      "bytes": 8518,
-      "sha256": "77CA62D59D48CD5DE41EF7410A498759B3FB2F98BA4552FB7B7920393059A7AB"
+      "bytes": 8482,
+      "sha256": "907D06DD5E00A750170C8764C4E77202E35704C2539D2B60F1BD9AFA394B72D9"
     },
     {
       "path": "MischWerk/server/android/verification.js",
@@ -54,33 +54,33 @@
     },
     {
       "path": "MischWerk/www/js/studio/markup.js",
-      "bytes": 8367,
-      "sha256": "22633DFB7DCDEF88E323598C232BD4AFFC7CCADA6ED52A40A88C70CCFAB15C8C"
+      "bytes": 7068,
+      "sha256": "F24DAD16C8641ACF62EA2072EA3F89C2EF2130F3FC50AFCB88A7B885FC4B5AE1"
     },
     {
       "path": "MischWerk/www/js/team/markup.js",
-      "bytes": 7478,
-      "sha256": "642D07FADE3E9B6E915611BB06F80402498758DFD785B7B9106124CC73B94380"
+      "bytes": 6877,
+      "sha256": "4020157944DA0E1735C7AD10577608E3E16F46F253AC059663579C71B768CBCA"
+    },
+    {
+      "path": "MischWerk/www/js/team/layout.js",
+      "bytes": 2751,
+      "sha256": "4C660C579D000EC0514CD9B0FA870CF96FDCD30EDEFA9D09D36BEDC5988A306C"
     },
     {
       "path": "MischWerk/www/js/studio/controls.js",
-      "bytes": 6794,
-      "sha256": "8FCAEF6B943DA7D5FED15EDBF0FF02E5A3A2C4DF2FC6C0EEA9981DA1CF4F85D6"
-    },
-    {
-      "path": "MischWerk/www/js/studio/ticker.js",
-      "bytes": 7463,
-      "sha256": "8E3B81ABB22DF7AFB3D47ECC4112444CBA002A3E05CF527F9B8FEC8E3C74F4FE"
+      "bytes": 8199,
+      "sha256": "6C36A37F406287E4595FDB2C36F9C67E82717D94871E8A894C1CBA750E3C152B"
     },
     {
       "path": "MischWerk/www/js/studio/handover.js",
-      "bytes": 8649,
-      "sha256": "865EE1D17A6F32EEDB99147477403A208710E2E974FC2E2B719687D5A1C774A6"
+      "bytes": 8819,
+      "sha256": "23ECD773771A52B37F89EF9A28295966FE1457C82BE888B66598FAB6C059476E"
     },
     {
       "path": "MischWerk/www/js/studio/workspace.js",
-      "bytes": 9488,
-      "sha256": "D0B3CCB340BB9746F259E90BDDCC533984F846506288B8A79A120122C35DE285"
+      "bytes": 8358,
+      "sha256": "CD6363B52EC8E88A3FAC95A2A10E7F826085A6F23D9CAC89DD00CAA5B47074B3"
     },
     {
       "path": "MischWerk/www/js/studio/reader.js",
@@ -89,48 +89,48 @@
     },
     {
       "path": "MischWerk/www/js/studio/queue.js",
-      "bytes": 9050,
-      "sha256": "5F22A293C241B9DB05EFA5340E3A35D06D1376198E2AE291AC94F68B4FEBF8F6"
+      "bytes": 8429,
+      "sha256": "E014ACF7CC9A329878A8AE925818D4182C3151D6EC04F5F5A73DA2ADAC03716C"
     },
     {
       "path": "MischWerk/www/js/team/management.js",
-      "bytes": 8556,
-      "sha256": "2157B41B26FF72EE45A33BDF8681FEE10409981038E67EE9A47F0545F3223BE0"
+      "bytes": 8721,
+      "sha256": "712B38E737DD0E26138090AAC12847AC354CFAA5DF0CCD6047167625054350E9"
     },
     {
       "path": "MischWerk/www/js/team/channel-texts.js",
-      "bytes": 7952,
-      "sha256": "955B8F8BC423979BD560CBFA9F862E25C0D7944F88C9677B13C29C6933992A66"
+      "bytes": 7806,
+      "sha256": "A4CC130440A0A76E94AC463F8CAA0E8B173A81ADD326D7AD744ABCACAB6A93E0"
     },
     {
-      "path": "MischWerk/www/css/studio/ticker.css",
-      "bytes": 1647,
-      "sha256": "2ABBA0590294C8FF5B2C80651EA281E127F8A1E42017CD82AB008C6672DEB8BF"
+      "path": "MischWerk/www/js/operator/relay-settings.js",
+      "bytes": 8376,
+      "sha256": "1BFC94B47CE5575EAF1857108ABCAB82F25370600B44FA6C76AAF62D19A53CE5"
+    },
+    {
+      "path": "MischWerk/www/js/team/navigation.js",
+      "bytes": 2046,
+      "sha256": "E28E8EB56ED6EDA5BEFFB1C53F7EE05C796E9FB02923AC1D17AB76B63EF93670"
     },
     {
       "path": "MischWerk/www/css/studio/studio.css",
-      "bytes": 7350,
-      "sha256": "C37C2BC4A3A63D5C4F2F6FF7E00CAE9E37DF697185C1716C772D5CEE32625A59"
+      "bytes": 6725,
+      "sha256": "8FAE39192AC0C9F256462CD406D614855FF9C702245E90A18618D4EB4DD67047"
     },
     {
       "path": "MischWerk/www/css/studio/studio-queue.css",
-      "bytes": 6334,
-      "sha256": "36096AE8D2E8F6B41C27C7B4F879C403A10BB8B2F8B376FD82D4D2B9ED6261D1"
+      "bytes": 5223,
+      "sha256": "6C5A87DE5DE37AF8A8482275EF564A68348A7B8669C62215941AF5B9A8F84924"
     },
     {
       "path": "MischWerk/www/css/team/team.css",
-      "bytes": 7924,
-      "sha256": "42F34C1FCFF6C2CDD78A77F6577308D454B89DA12348DD5CDDFD7D3C2C536EC8"
+      "bytes": 8703,
+      "sha256": "20A20694320A3A7DBF42B6E7239C26A931FE55AF8D0346934FCF87A709F054B5"
     },
     {
       "path": "MischWerk/www/relay-settings.html",
       "bytes": 3170,
       "sha256": "39DEE39707C9FF830593468627D7A3D6646B1C9055FE743359081C6E52305D66"
-    },
-    {
-      "path": "MischWerk/www/js/operator/relay-settings.js",
-      "bytes": 4927,
-      "sha256": "65D3A015F4F36E3FFA6219D9021CE5EA4C43A098C5248A086E6B977FC6923340"
     }
   ]
 }

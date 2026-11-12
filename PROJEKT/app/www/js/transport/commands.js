@@ -49,7 +49,7 @@ MischWerkUI.define('commands', function (dependencies) {
   function nextId(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + (++requestSequence) + '-' + Math.random().toString(36).slice(2, 10); }
   function refreshControls() { signals.emit('controls'); }
   function send(type, data, mutation, confirmed) {
-    if (!bridge || (mutation && !model.connected())) { layout.notify('Die Verbindung zum Channel fehlt. Bitte öffne MischWerk erneut.', true); return; }
+    if (!bridge || (mutation && !model.connected())) { layout.notify('Die Verbindung zum Channel fehlt. Bitte öffne MischWerk erneut.', true, type); return; }
     if (mutation && (pending || manualRefresh)) { return; }
     data = data || {};
     if (model.view !== 'radio' && model.current()) { data.view = model.view; data.viewRevision = model.current().viewRevision; }
@@ -104,6 +104,7 @@ MischWerkUI.define('commands', function (dependencies) {
     signals.on('snapshot', function (change) {
       var state = model.current();
       if (pending && typeof pending.confirmed === 'function' && model.connected() && pending.confirmed(state)) {
+        if (pending.type === 'mw:onAir') { layout.notify('',false,pending.type); }
         pending = null; clearTimeout(pendingTimer); refreshControls();
       }
       if (!manualRefresh || change.refreshRequestId !== manualRefresh.requestId) { return; }
@@ -116,7 +117,7 @@ MischWerkUI.define('commands', function (dependencies) {
       if (manualRefresh) { finishRefresh('Bitte aktualisieren', false); }
     });
     if (model.view !== 'radio') { return; }
-    [['open-wishes','mw:openWishes'],
+    [['open-wishes','mw:openWishes'], ['open-schedule','mw:openSchedule'],
       ['studio-tab','mw:openStudio']].forEach(function (action) {
       document.getElementById(action[0]).addEventListener('click', function () {
         if (!this.disabled && !this.hidden && model.connected()) { send(action[1], {}, true); }
@@ -124,5 +125,5 @@ MischWerkUI.define('commands', function (dependencies) {
     });
   }
   return { start: start, send: send, result: result, nextId: nextId, bindRefresh: bindRefresh,
-    pending: function () { return !!pending || !!manualRefresh; } };
+    pending: function (type) { return type ? !!pending && pending.type === type : !!pending || !!manualRefresh; } };
 });

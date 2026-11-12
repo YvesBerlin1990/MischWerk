@@ -4,7 +4,7 @@ function createPublicPlayer(root,bridge){
  const scope={MischWerkModules:{}};vm.createContext(scope);
  for(const file of ['config.js','radio/station.js'])vm.runInContext(fs.readFileSync(path.join(root,'src/backend',file),'utf8'),scope);
  const runtime={};scope.MischWerkModules.attachStation(runtime,scope.MischWerkConfig);
- const station=JSON.parse(JSON.stringify(runtime.station()));delete station.historyUrl;delete station.historyIgnoredTitles;
+ const station=JSON.parse(JSON.stringify(runtime.station()));
  let cached=null,pending=null;
  async function data(){
   let radio=null;
@@ -14,7 +14,7 @@ function createPublicPlayer(root,bridge){
   }
   return {view:'radio',station,user:{nick:'',canModerate:false,canManageRadioModerators:false,isOnAir:false,canEndModeration:false},
    topic:radio?.topic||'',moderator:radio?.moderator||null,revision:Date.now(),serverTime:Date.now(),shuttingDown:false,
-   curtain:{closed:false,canManage:false},requestsEnabled:false,myRequests:[],queue:[],queueWindow:[],queueTotal:0,
+   requestsEnabled:false,myRequests:[],queue:[],queueWindow:[],queueTotal:0,
    page:0,pages:1,limits:{maxTextLength:300,maxTopicLength:80},wishPositions:{available:false,items:[],total:0,nextPosition:null}};
  }
  async function html(){const state=await data();const injection='<base href="/app/www/"><link rel="stylesheet" href="/radio-site.css"><script>window.MischWerkPublicState='+JSON.stringify(state).replace(/</g,'\\u003c')+';</script><script src="/public-player.js"></script>';

@@ -40,10 +40,14 @@
         check(topic === maximum && replies[replies.length - 1].indexOf('konnte gerade nicht') !== -1, 'Native Ausnahme ohne falschen Erfolg');
         check(replies.join(' ').indexOf('Private native Details') === -1, 'Keine privaten API-Details in Antworten');
         app.chatCommands.settopic(user, new java.lang.String('--buttons'));
+        check(topic.indexOf('guter Laune!°#r°°#r°°>CENTER<°°>{button}') !== -1,
+            'Themenbuttons mit leerer Zeile unter dem Sendertext erneut zentriert');
         check(topic.indexOf('°>{button}Lieblings-MyChannel||call|/edit setlmc|color|') !== -1,
             'Serverseitiger Lieblings-MyChannel-Button mit dokumentierten Eigenschaften');
-        check(topic.indexOf('°>{button}Readme setzen||call|/readme Ich höre Radio MischWerk.|color|') !== -1,
-            'Serverseitiger Readme-Button');
+        check(topic.indexOf('°>{button}Homepage||enabled|0|color|') !== -1,
+            'Homepage bleibt als deaktivierter Button erhalten');
+        check(topic.indexOf('/readme') === -1 && topic.indexOf('Readme setzen') === -1,
+            'Erzeugte Vorlage enthält keinen Readme-Befehl');
         check(topic.indexOf('°>{button}Channelinfo||call|/info|color|') !== -1, 'Serverseitiger Infobutton');
         check(replies[replies.length - 1].indexOf('3 von 3') !== -1, 'Rücklesen bestätigt drei gespeicherte Button-Elemente');
         var savedCalls = calls;

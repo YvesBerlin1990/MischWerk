@@ -7,9 +7,10 @@ MischWerkUI.define('overlays', function (dependencies) {
   var enabled = bridge && bridge.pageData && (bridge.pageData.overlay || bridge.pageData.wishSurface);
   var revision = 0, restored = false, restoring = false, timer, saveTimer, closeTimer;
   var lockedToken = null, lastToken = 0, lockedFocus = null;
-  var entries = { wishes:'open-wishes', studio:'studio-tab', team:'studio-tab' };
-  function capture() {
+  var entries = { wishes:'open-wishes', studio:'studio-tab', team:'studio-tab', schedule:'open-schedule' };
+  function capture(discardPrivate) {
     var state = {};
+    if (discardPrivate) { signals.emit('overlay-discard-private'); }
     signals.emit('overlay-capture', state);
     return state;
   }
@@ -18,18 +19,20 @@ MischWerkUI.define('overlays', function (dependencies) {
     try { bridge.sendEvent(type, data); return true; }
     catch (error) { layout.notify('Die Verbindung antwortet nicht. Deine Eingabe bleibt hier erhalten.', true); return false; }
   }
-  function save() {
+  function privateInput(event) { return event && event.target && event.target.closest && event.target.closest('[data-private]'); }
+  function save(event) {
+    if (privateInput(event)) { return; }
     if (!enabled || !restored || restoring || lockedToken !== null || model.view === 'wishes') { return; }
     send('mw:overlay.draft', { state:capture(), revision:++revision });
   }
-  function queueSave() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 0); }
+  function queueSave(event) { if (privateInput(event)) { return; } clearTimeout(saveTimer); saveTimer = setTimeout(save, 0); }
   function prepare(token) {
     if (!Number.isInteger(token) || token <= lastToken) { return; }
     lastToken = token;
     clearTimeout(timer);
     var started = Date.now();
     function attempt() {
-      var state = capture();
+      var state = capture(true);
       var waiting = !!commands.pending() || !!state.busy ||
         (model.view === 'wishes' && wishDrawer && !wishDrawer.isSynced());
       if (waiting && Date.now() - started < 6000) { timer = setTimeout(attempt, 50); return; }
@@ -45,7 +48,7 @@ MischWerkUI.define('overlays', function (dependencies) {
   }
   function dismiss() {
     if (lockedToken !== null) { send('mw:overlay.cancel', { token:lockedToken }); return; }
-    var state = capture();
+    var state = capture(true);
     if (commands.pending() || state.busy) { layout.notify('Die letzte Aktion wird noch bestätigt. Bitte kurz warten.', true); return; }
     if (send('mw:overlay.dismiss', { state:state, revision:++revision })) {
       clearTimeout(closeTimer);
@@ -65,8 +68,7 @@ MischWerkUI.define('overlays', function (dependencies) {
     if (!bridge) { return; }
     if (model.view === 'radio') {
       function restoreEntry(data) {
-        var curtain = model.current() && model.current().curtain;
-        var target = dom.el(curtain && curtain.closed && !curtain.exempt ? 'curtain-ad' : entries[data.kind] || 'mute-button');
+        var target = dom.el(entries[data.kind] || 'mute-button');
         if (data.kind === 'wishes' && target.disabled) { target = dom.el('mute-button'); }
         if (target.disabled || !target.getClientRects().length) { target = dom.el('mute-button'); }
         target.focus({ preventScroll:true });

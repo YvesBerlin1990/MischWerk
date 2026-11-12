@@ -1,4 +1,4 @@
-/* Öffentliche Begrüßung beim Channelbeitritt; keine Studioanmeldung oder Rechtevergabe. */
+/* Öffentlicher Text und private Willkommensgrafik beim echten Channelbeitritt. */
 MischWerkModules.attachUserGreetings = function (runtime) {
     'use strict';
     var present = {};
@@ -34,9 +34,32 @@ MischWerkModules.attachUserGreetings = function (runtime) {
         var label = nick.replace(/(\\*)\|/g, function (match, slashes) {
             return slashes + (slashes.length % 2 ? '' : '\\') + '|';
         });
-        // Goldton #e6c77b aus der Appleiste; danach mit normaler Schrift in derselben Zeile fortsetzen.
-        return '°16°°[230,199,123]°_Willkommen bei Radio MischWerk, ' + profileLink(user, label, nick) +
-            '._°r° Viel Spaß beim Zuhören.' + photo(user);
+        // Fester fetter Schriftschnitt statt eigener Bold-Umschaltung um den nativen Nicklink.
+        // Vollständiger Formatreset vor dem zweiten Satz; Goldton und Größe danach zurücksetzen.
+        return '°>{font}RobotoBold<°°16°°[230,199,123]°Willkommen bei Radio MischWerk, ' + profileLink(user, label, nick) +
+            '.§°r° Viel Spaß beim Zuhören.' + photo(user);
+    }
+
+    function welcomeImage(name, target, banner) {
+        var url = String(KnuddelsServer.getFullImagePath('img/welcome/' + name + '.png'));
+        if (url.length > 2000 || !/^https?:\/\/[^/?#\s]+\/[^\s]*\.png(?:[?#][^\s]*)?$/.test(url) || /[\s°<>|\\]/.test(url)) {
+            throw new Error('Welcome image path');
+        }
+        // Dokumentierte Bild-/Containermaße; Original-PNG und Seitenverhältnis erhalten.
+        if (banner) { url = url.replace(/\.png(?=$|[?#])/, '...w_534.h_178.mw_534.mh_178.png'); }
+        // Bild und Klickziel bleiben ein nativer KCode-Link; erst der Nutzerklick öffnet das Ziel.
+        return '°>' + url + (target ? '<>--<>|' + target : '') + '<°';
+    }
+
+    function privateWelcome() {
+        try {
+            // Ausrichtung gilt je KCode-Zeile: Absender links, Bilder erst nach dem nativen Umbruch zentrieren.
+            return '°>LEFT<°°#r°°>CENTER<°' + welcomeImage('banner', null, true) + '°#r°°>CENTER<°' +
+                welcomeImage('lieblingschannel', '/edit setlmc') + ' ' +
+                welcomeImage('mitmachen', 'https://radio-mischwerk.web.app/') + ' ' + welcomeImage('channelinfo', '/info') + '°#r°°>LEFT<°';
+        } catch (error) { runtime.warn('USER_WELCOME_ASSET'); }
+        // Ohne vollständige Bildauflösung keine leere oder zusätzliche Textnachricht senden.
+        return null;
     }
 
     runtime.initializeUserGreetings = function () {
@@ -56,8 +79,14 @@ MischWerkModules.attachUserGreetings = function (runtime) {
             if (present[userId]) { return; }
             // Vor dem Versand merken: auch bei ungewissem Botfehler nicht erneut senden.
             present[userId] = true;
-            var text = message(user);
-            KnuddelsServer.getDefaultBotUser().sendPublicMessage(text);
+            // Die Grafik zuerst senden; beide Versandwege bleiben unabhängig gegen Fehler abgesichert.
+            try {
+                var welcome = privateWelcome();
+                if (welcome) { user.sendPrivateMessage(welcome); }
+            }
+            catch (privateError) { runtime.warn('USER_WELCOME'); }
+            try { KnuddelsServer.getDefaultBotUser().sendPublicMessage(message(user)); }
+            catch (publicError) { runtime.warn('USER_GREETING'); }
         } catch (error) { runtime.warn('USER_GREETING'); }
     };
 

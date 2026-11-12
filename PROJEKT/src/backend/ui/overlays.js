@@ -2,7 +2,7 @@
 MischWerkModules.attachOverlays = function (runtime) {
     'use strict';
     var sequence = 0;
-    var actions = { 'mw:openWishes':'wishes', 'mw:openStudio':'studio', 'mw:openRadioTeam':'team' };
+    var actions = { 'mw:openWishes':'wishes', 'mw:openStudio':'studio', 'mw:openRadioTeam':'team', 'mw:openSchedule':'schedule' };
     function find(user, session) {
         return runtime.getViews().filter(function (view) {
             return view.userId === runtime.userId(user) && view.content === session.getAppContent();
@@ -59,9 +59,7 @@ MischWerkModules.attachOverlays = function (runtime) {
         var radio = find(user, session), kind = actions[action];
         if (!radio || radio.kind !== 'radio' || !kind) { throw runtime.failure('Bitte öffne die Ansicht in der Radioleiste.'); }
         if (!allowed(user, kind)) { throw runtime.failure('Diese Ansicht ist für dich nicht verfügbar.'); }
-        if (kind === 'wishes' && !runtime.state.requestsEnabled) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
-        var curtain = runtime.curtainState(user);
-        if (kind === 'wishes' && curtain.closed && !curtain.exempt) { throw runtime.failure('Die Wunschbox ist momentan nicht verfügbar.'); }
+        if (kind === 'wishes' && !runtime.requestsAvailable(user)) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
         var previous = requestId && (radio.overlayRequests || []).filter(function (entry) { return entry.id === requestId; })[0];
         if (previous) {
             if (previous.action !== action) { throw runtime.failure('Diese Anfrage wurde bereits verwendet. Bitte erneut öffnen.'); }

@@ -4,8 +4,8 @@ MischWerkModules.attachPersistence = function (runtime, config) {
     runtime.state = null;
 
     runtime.initialState = function () {
-        return { version: 1, revision: 0, topic: '', requestsEnabled: true, curtainClosed: true, moderator: null, requests: [], cooldowns: {},
-            nextId: 1, radioModeratorUserIds: config.radioModeratorUserIds.slice(0, 50), radioModeratorRevision: 0 };
+        return { version: 1, revision: 0, topic: '', requestsEnabled: false, moderator: null, requests: [], cooldowns: {},
+            nextId: 1, moderatorPins: {}, radioModeratorUserIds: config.radioModeratorUserIds.slice(0, 50), radioModeratorRevision: 0 };
     };
 
     runtime.compactCooldowns = function (state, maximum) {
@@ -80,8 +80,11 @@ MischWerkModules.attachPersistence = function (runtime, config) {
             throw new Error('Unbekanntes MischWerk-Datenformat. Persistenz vor Migration sichern.');
         }
         runtime.state = saved || runtime.initialState();
+        if (runtime.state.moderatorPins === undefined) { runtime.state.moderatorPins = {}; }
+        if (!runtime.state.moderatorPins || typeof runtime.state.moderatorPins !== 'object' || Array.isArray(runtime.state.moderatorPins)) { throw new Error('Ungültiger PIN-Speicher.'); }
         runtime.state.topic = typeof runtime.state.topic === 'string' ? runtime.state.topic : '';
-        runtime.state.curtainClosed = typeof runtime.state.curtainClosed === 'boolean' ? runtime.state.curtainClosed : true;
+        // Das entfernte Vorhangflag beim nächsten regulären Commit nicht erneut speichern.
+        delete runtime.state.curtainClosed;
         runtime.compactCooldowns(runtime.state, runtime.maxReplayEntries);
         runtime.state.revision = typeof runtime.state.revision === 'number' ? runtime.state.revision : 0;
         var configuredIds = Array.isArray(runtime.state.radioModeratorUserIds) ? runtime.state.radioModeratorUserIds :
