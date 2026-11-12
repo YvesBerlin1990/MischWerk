@@ -7,7 +7,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
 function fixture(options = {}) {
   const store = options.store || persistence({ [privateKey]: { enabled: true, runtimeVerified: true, syncSecret: 's'.repeat(64), syncUrl: url } });
   const calls = []; let runtime;
-  const h = createHarness(store, { users: [{ id: 1, nick: 'Otterchen', role: 'owner' }, { id: 2, nick: 'DJ Test' }],
+  const h = createHarness(store, { now: options.now, users: [{ id: 1, nick: 'Otterchen', role: 'owner' }, { id: 2, nick: 'DJ Test' }],
     serverMethods: { getExternalServerAccess: () => ({ canAccessURL: () => true, postURL(target, p) { calls.push({ target, p }); } }) },
     configureModules(c) {
       if (options.nullNick) {
@@ -82,7 +82,7 @@ test('Unveränderte Webtexte überschreiten keine Grenzen und übernehmen keine 
 
 test('Stabile ID ändert und löscht genau denselben nativen Eintrag nach Neustart', () => {
   const f = fixture(), row = command(f); f.schedule(row); f.h.app.onShutdown();
-  const reboot = fixture({ store: f.store });
+  const reboot = fixture({ store: f.store, now: f.h.now() });
   reboot.schedule({ ...row, commandId: 'edit', expectedRevision: 1, entry: { ...row.entry, topic: 'Neu' } });
   assert.equal(reboot.saved().entries.length, 1); assert.equal(reboot.saved().entries[0].id, 1);
   assert.equal(reboot.saved().entries[0].topic, 'Neu');
@@ -148,7 +148,7 @@ test('Zuordnungen und Löschmarker überleben die Kürzung des 64er-Quittungscac
   f.tick({ scheduleCommands: [{ ...row, commandId: 'deleted', expectedRevision: 1, operation: 'delete', entry: null }] });
   for (let i = 0; i < 70; i++) f.tick({ scheduleCommands: [command(f, { commandId: 'empty-' + i, id: 'empty-id-' + i, expectedRevision: 2, operation: 'delete', entry: null })] });
   assert.equal(f.saved().relayResults.length, 64); assert.equal(f.saved().relayBindings.length, 71);
-  f.h.app.onShutdown(); const reboot = fixture({ store: f.store });
+  f.h.app.onShutdown(); const reboot = fixture({ store: f.store, now: f.h.now() });
   reboot.schedule(command(reboot, { commandId: 'late-old-save', expectedRevision: 2 }));
   assert.equal(result(reboot).reason, 'business_rule'); assert.equal(reboot.saved().entries.length, 0);
 });
@@ -284,7 +284,7 @@ test('Vorgeprüfter Relayauftrag ohne Rollenfelder speichert ohne anwesenden Inh
   assert.equal(f.saved().revision, 1); assert.equal(f.saved().entries.length, 1); assert.equal(f.calls.length, 1);
   f.h.advance(20000); assert.deepEqual(f.body().scheduleResults, [{ commandId: 'plan-1', state: 'applied', revision: 1 }]);
   f.schedule({ ...row, entry: { ...row.entry, topic: 'Darf nicht geändert werden' } }); assert.equal(f.saved().entries[0].topic, 'Sendung');
-  f.h.app.onShutdown(); const reboot = fixture({ store: f.store }); reboot.schedule(row);
+  f.h.app.onShutdown(); const reboot = fixture({ store: f.store, now: f.h.now() }); reboot.schedule(row);
   assert.equal(reboot.saved().revision, 1); assert.equal(reboot.saved().entries.length, 1);
   reboot.h.advance(20000); assert.equal(reboot.body().scheduleResults[0].state, 'applied');
 });
@@ -325,12 +325,12 @@ test('Leere Auftragsarrays erhalten die bisherige Nachlieferung großer Wunschqu
   const f = fixture(); f.reply(); const at = f.h.now() - 120000;
   f.store.setObject('mischwerk.android.receipts.v1', { version: 1, entries: Array.from({ length: 205 }, (_, i) => ({
     submissionId: 'old-' + i, state: 'done', position: null, createdAt: at, at, committed: true, dirty: true, revision: 1 })) });
-  f.h.app.onShutdown(); const reboot = fixture({ store: f.store });
+  f.h.app.onShutdown(); const reboot = fixture({ store: f.store, now: f.h.now() });
   for (let i = 0; i < 3; i++) reboot.reply({ scheduleCommands: [], moderatorCommands: [] });
   assert.deepEqual(reboot.calls.map(call => JSON.parse(call.p.data.payload).wishUpdates.length), [100, 100, 5]);
 });
 test('Teamwiederholung nach Neustart verändert weder Revision noch die ursprüngliche Quittung', () => {
-  const f = fixture(), row = teamCommand(); f.team(row); f.h.app.onShutdown(); const reboot = fixture({ store: f.store }); reboot.team(row);
+  const f = fixture(), row = teamCommand(); f.team(row); f.h.app.onShutdown(); const reboot = fixture({ store: f.store, now: f.h.now() }); reboot.team(row);
   assert.equal(reboot.runtime.state.radioModeratorRevision, 1); assert.deepEqual(plain(reboot.runtime.state.radioModeratorUserIds), [2]);
   reboot.h.advance(20000); assert.deepEqual(reboot.body().moderatorResults, [{ commandId: 'team-1', state: 'applied', revision: 1 }]);
 });

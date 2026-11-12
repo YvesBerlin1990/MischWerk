@@ -22,9 +22,11 @@
         runtime.state = { requestsEnabled: true, topic: '', moderator: null };runtime.requestsAvailable=function(){return runtime.state.requestsEnabled;};
         MischWerkModules.attachChanges(runtime); MischWerkModules.attachValidation(runtime);
         MischWerkModules.attachTicker(runtime);
-        MischWerkModules.attachWishStorage(runtime); MischWerkModules.attachWishQueue(runtime);
+        MischWerkModules.attachWishExportState(runtime); MischWerkModules.attachWishStorage(runtime); MischWerkModules.attachWishQueue(runtime);
+        MischWerkModules.attachWebsiteWishes(runtime);
         MischWerkModules.attachAndroidFailures(runtime); MischWerkModules.attachAndroidSigning(runtime); MischWerkModules.attachAndroidConnection(runtime);
         MischWerkModules.attachAndroidReceipts(runtime); MischWerkModules.attachAndroidIncoming(runtime);
+        MischWerkModules.attachAndroidStudioWishes(runtime);
         MischWerkModules.attachAndroidPublisher(runtime); MischWerkModules.attachAndroidRelay(runtime);
         function answer(rows, status) {
             var c = nativeCalls[nativeCalls.length - 1], reply = { accepted: true, serverTime: clock, wishes: rows };
@@ -49,10 +51,18 @@
         ticker = JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload).station.ticker;
         check(ticker.enabled === false && ticker.text.length === 300 && ticker.speed === 72 && ticker.direction === 'right', 'Ausgeschalteter Lauftext mit erhaltenen Werten im Android-Payload');
         answer([]);
-        for (var i = 0; i < 3; i += 1) { runtime.submitWish({ getNick: function () { return 'Nativ'; }, getUserId: function () { return 1; } }, { submissionId: 'native-' + i, text: 'Band' }); }
+        for (var i = 0; i < 3; i += 1) {
+            runtime.submitWish({ getNick: function () { return 'Nativ'; }, getUserId: function () { return 1; } }, { submissionId: 'native-' + i, text: 'Band' });
+            var nativeBody = JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload), nativeRow = nativeBody.studioWishUpdates[0];
+            check(nativeBody.wishMetadataVersion === 1 && nativeRow.position === i + 1 && nativeRow.text === 'Band' &&
+                nativeRow.origin === 'knuddels' && nativeRow.displayName === 'Nativ' && /^knuddels:[A-Za-z0-9_-]{1,84}$/.test(nativeRow.submissionId),
+                'Native Projektion mit stabiler ID und echtem Platz in Rhino');
+            answer([]);
+        }
         var incoming = [{ submissionId: 'android', text: 'M.I.A. – Song', displayName: 'Untrusted' }];
         tick(); answer(incoming); check(runtime.wishItems().length === 4, 'Android aus Antwort in derselben Queue auf Platz 4');
         check(runtime.wishItems()[3].nick === 'Android', 'Name wird keine behauptete Knuddelsidentität');
+        check(runtime.wishItems()[3].displayName === 'Untrusted' && runtime.wishItems()[3].origin === undefined, 'Legacyname erhalten, unbekannte Herkunft nicht geraten');
         tick(); check(JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload).wishUpdates[0].position === 4, 'Nächster POST quittiert echten Platz');
         tick(); answer(incoming); check(runtime.wishItems().length === 4, 'Antwortwiederholung ist idempotent');
         runtime.resolveWish(1, 'done'); answer([]);
@@ -67,7 +77,10 @@
         check(runtime.androidReceipt('invalid').state === 'discarded', 'Ungültiger Text wird verworfen und quittiert');
         tick(); var longRows = [];
         for (i = 0; i < 10; i += 1) { longRows.push({ submissionId: 'long-' + i, text: new Array(301).join('Ä'), displayName: new Array(51).join('名') }); }
+        longRows[0].origin = 'web'; longRows[1].origin = 'android';
         answer(longRows); check(runtime.wishItems().length === 10, 'Zehn Unicode-Wünsche über alter 4096-Byte-Grenze in Rhino');
+        check(runtime.wishItems()[0].origin === 'web' && runtime.wishItems()[1].origin === 'android' &&
+            runtime.wishItems()[0].displayName.length === 50, 'Web-/Android-Herkunft und Anzeigename verlustfrei in Rhino');
         check(JSON.stringify(data['mischwerk.android.receipts.v1']).indexOf('Untrusted') === -1, 'Technische Marker ohne Wunschtext oder Namen');
         runtime.stopAndroidRelay(); runtime.stopAndroidRelay();
         check(hookCalls === 0 && Object.keys(channelTextTasks).length === 0, 'Stop beendet Timer ohne WebHook-Zugriff');

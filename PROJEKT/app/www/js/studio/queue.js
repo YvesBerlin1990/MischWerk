@@ -1,128 +1,137 @@
-/* Sichtbarer Moderationswunsch, Empfangsquittung und Erledigt-/Verwerfen-Aktionen. */
+/* Eine private Wunschliste: vollständige Texte, echte Absender und Empfangszeiten. */
 MischWerkUI.define('queue', function (dependencies) {
   'use strict';
-  var model = dependencies.model;
-  var dom = dependencies.dom;
-  var commands = dependencies.commands;
-  var signals = dependencies.signals;
-  var reader = dependencies.reader;
-  var receiptAttempts = {};
-  var queueKey = null;
-  function items(){var state=model.current();return Array.isArray(state.queueWindow)&&state.queueWindow.some(function(item){return state.queue[0]&&item.id===state.queue[0].id;})?state.queueWindow:state.queue;}
-  function requestText(item) {
-    return typeof item.text === 'string' ? item.text :
-      [item.artist, item.title].filter(Boolean).join(' – ') + (item.message ? ' · ' + item.message : '');
+  var model=dependencies.model,dom=dependencies.dom,commands=dependencies.commands;
+  var signals=dependencies.signals,bridge=dependencies.bridge;
+  var rows=[],stamp=null,complete=null,pending=null,buffer=[],renderKey=null,attempts={},disposed=false,loadError=false;
+  function requestText(item){
+    return typeof item.text==='string'?item.text:
+      [item.artist,item.title].filter(Boolean).join(' – ')+(item.message?' · '+item.message:'');
   }
-  
-  function acknowledgeQueue() {
-    if (model.view !== 'studio' || !document.documentElement.classList.contains('mw-ready') ||
-        !model.current() || !model.current().user.canUseModeration || !model.connected() || document.hidden) { return; }
-    requestAnimationFrame(function () {
-      var list = dom.el('request-queue');
-      var visible=list.querySelector('.queue-item.selected .request-text');
-      if (!visible || !visible.getClientRects().length || document.hidden) { return; }
-      model.current().queue.forEach(function (item) {
-        if (item.delivery || (receiptAttempts[item.id] && Date.now() - receiptAttempts[item.id] < 15000)) { return; }
-        receiptAttempts[item.id] = Date.now();
-        commands.send('mw:ackRequest', { id: item.id }, false);
-      });
-    });
+  function sender(item){
+    if(item.origin===undefined||item.origin==='knuddels')return item.nick;
+    var source=item.origin==='web'?'Web':item.origin==='android'?'Android':'Extern';
+    return item.displayName?item.displayName+' · '+source:source;
   }
-  
-  function renderQueue() {
-    var list = dom.el('request-queue');
-    var key = JSON.stringify([!!model.current().user.canUseModeration,model.current().page, model.current().user.canUseModeration ? items().map(function (item) {
-      return [item.id, item.nick, item.createdAt, requestText(item), item.stage || 'queued'];
-    }) : []]);
-    dom.setText('queue-count', model.current().queueTotal);
-    dom.setText('page-label', 'Wunsch ' + (model.current().page + 1) + ' / ' + model.current().pages);
-    dom.el('queue-pagination').classList.toggle('single-page', model.current().pages <= 1);
-    dom.el('queue-pagination').hidden = !model.current().queueTotal || !model.current().user.canUseModeration;
-    // Gleiche sichtbare Angaben nicht alle 20 Sekunden neu erstellen: Tastaturfokus bleibt erhalten.
-    if (key === queueKey) { return; }
-    queueKey = key;
-    var hadFocus = list.contains(document.activeElement);
-    var stageFocus = hadFocus && document.activeElement.hasAttribute('data-stage');
-    if(!model.current().user.canUseModeration||!model.current().queue.length)reader.clear('wish');
-    list.textContent = '';
-    if (!model.current().user.canUseModeration) { return; }
-    if (!model.current().queue.length) { list.appendChild(dom.element('p', 'empty-copy queue-group', 'Noch keine Musikwünsche eingegangen.')); }
-    items().forEach(function (item,index) {
-      var row = dom.element('article', 'queue-item');
-      row.setAttribute('role','listitem');
-      var selected=model.current().queue[0]&&item.id===model.current().queue[0].id;
-      row.classList.toggle('selected',!!selected);
-      row.dataset.wishId=String(item.id);
-      if(!selected){
-        row.classList.add('queue-group');
-        var pick=dom.element('button','request-pick');pick.type='button';
-        var position=(model.current().queueStart||0)+index;
-        pick.append(dom.element('span','request-number',String(position+1)),dom.element('span','request-preview',requestText(item)),dom.element('span','request-preview-sender',item.nick));
-        pick.setAttribute('aria-label','Wunsch '+(position+1)+' von '+item.nick+' vollständig ansehen und bearbeiten');
-        pick.dataset.position=position;
-        pick.addEventListener('click',function(){commands.send('mw:refresh',{page:position});});
-        row.appendChild(pick);list.appendChild(row);return;
+  function allowed(){return !disposed&&model.current()&&model.current().user.canUseModeration;}
+  function visible(){return allowed()&&!document.hidden&&dom.el('queue-body').getClientRects().length>0;}
+  function identity(){
+    var state=model.current(),positions=state.wishPositions||{};
+    return JSON.stringify([state.user.nick,state.viewRevision,positions.generation,positions.revision,state.queueTotal]);
+  }
+  function draw(){
+    var list=dom.el('request-queue'),body=dom.el('queue-body');
+    var key=JSON.stringify(rows.map(function(item){return [item.id,sender(item),item.createdAt,requestText(item)];}));
+    if(key===renderKey)return;
+    renderKey=key;
+    var scroll=body.scrollTop,old={};
+    Array.from(list.children).forEach(function(node){old[node.dataset.wishId]=node;});
+    var fragment=document.createDocumentFragment();
+    rows.forEach(function(item){
+      var row=old[item.id]||dom.element('article','queue-item');
+      row.setAttribute('role','listitem');row.dataset.wishId=String(item.id);
+      if(!row.firstChild){
+        var meta=dom.element('div','queue-meta');
+        meta.append(dom.element('span','request-sender'),dom.element('time','request-time'));
+        row.append(meta,dom.element('p','request-text'));
       }
-      var copy = dom.element('div', 'queue-copy queue-group');
-      copy.id='queue-copy';
-      var text=dom.element('h3','request-text',requestText(item));copy.appendChild(text);
-      var meta=dom.element('div','queue-meta queue-group');
-      meta.appendChild(dom.element('p', 'request-sender', 'Von ' + item.nick + ' · ' + dom.time(item.createdAt) + ' Uhr'));
-      var stage = item.stage || 'queued';
-      var status = dom.element('p', 'request-stage', stage === 'playing' ? 'Läuft gerade' : stage === 'preparing' ? 'In Vorbereitung' : 'Wartet');
-      status.dataset.stageValue = stage;
-      meta.appendChild(status);
-      var stageActions = dom.element('div', 'queue-stage-actions queue-group');
-      var stages = stage === 'queued' ? ['preparing'] : stage === 'preparing' ? ['playing', 'queued'] : ['queued'];
-      stages.forEach(function (nextStage) {
-        var button = dom.element('button', 'secondary-button', nextStage === 'preparing' ? 'Vorbereiten' : nextStage === 'playing' ? 'Läuft gerade' : 'Zurückstellen');
-        button.type = 'button'; button.dataset.stage = nextStage;
-        button.dataset.firstOnly = nextStage === 'playing' ? 'true' : 'false';
-        button.title = nextStage === 'playing' ? 'Als laufend markieren – nur Platz 1' :
-          nextStage === 'preparing' ? 'Wunsch vorbereiten' : 'Markierung zurücknehmen';
-        button.addEventListener('click', function () {
-          if (!this.disabled) { commands.send('mw:setWishStage', { id: item.id, stage: nextStage, previousStage: stage }, true); }
-        });
-        stageActions.appendChild(button);
-      });
-      var actions = dom.element('div', 'queue-actions queue-group');
-      ['Gespielt', 'Verwerfen'].forEach(function (label, i) {
-        var button = dom.element('button', i === 0 ? 'primary-button' : 'secondary-button', label);
-        button.type = 'button'; button.dataset.resolve = String(item.id);
-        button.dataset.outcome = i === 0 ? 'done' : 'discarded';
-        button.title = i === 0 ? 'Als gespielt abschließen und nachrücken' : 'Wunsch verwerfen';
-        button.addEventListener('click', function () { commands.send('mw:resolveRequest', { id: item.id, outcome: button.dataset.outcome }, true); });
-        actions.appendChild(button);
-      });
-      var toolbar=dom.element('div','queue-toolbar');toolbar.id='queue-actions';toolbar.append(stageActions,actions);
-      row.append(copy,meta,toolbar);list.appendChild(row);
-      reader.set('wish',text,requestText(item),item.id);
+      row.querySelector('.request-sender').textContent=sender(item);
+      var time=row.querySelector('.request-time'),date=new Date(item.createdAt);
+      time.textContent=dom.time(item.createdAt)+' Uhr';
+      if(Number.isFinite(date.getTime()))time.dateTime=date.toISOString();
+      row.querySelector('.request-text').textContent=requestText(item);
+      fragment.appendChild(row);
     });
-    signals.emit('studio-layout');
-    if (hadFocus) { (stageFocus ? list.querySelector('[data-stage]') || dom.el('queue-heading') : dom.el('queue-heading')).focus({ preventScroll:true }); }
+    list.textContent='';list.appendChild(fragment);
+    if(!rows.length)list.appendChild(dom.element('p','empty-copy','Noch keine Musikwünsche eingegangen.'));
+    body.scrollTop=scroll;signals.emit('studio-layout');
   }
-  
-  function availability() {
-    if (!model.current()) { return; }
-    var live = model.connected();
-    dom.setText('studio-queue-tab', 'Wünsche (' + model.current().queueTotal + ')');
-    dom.el('studio-queue-tab').setAttribute('aria-label', 'Musikwünsche, ' + model.current().queueTotal + ' offen');
-    dom.el('prev-page').disabled = !!commands.pending() || !live || !model.current().user.canUseModeration || model.current().page <= 0;
-    dom.el('next-page').disabled = !!commands.pending() || !live || !model.current().user.canUseModeration || model.current().page >= model.current().pages - 1;
-    document.querySelectorAll('[data-resolve]').forEach(function (button) { button.disabled = !!commands.pending() || !live || !model.current().user.canUseModeration; });
-    document.querySelectorAll('.request-pick').forEach(function(button){button.disabled=!!commands.pending()||!live||!model.current().user.canUseModeration;});
-    document.querySelectorAll('[data-stage]').forEach(function (button) {
-      button.disabled = !!commands.pending() || !live || !model.current().user.canUseModeration ||
-        (button.dataset.firstOnly === 'true' && model.current().page !== 0);
+  function read(){
+    if(!visible()||!model.connected()||pending||complete===stamp||!bridge)return;
+    var positions=model.current().wishPositions;
+    if(!positions||!positions.generation)return;
+    pending={id:commands.nextId('queue'),at:Date.now(),stamp:stamp,offset:buffer.length};
+    dom.el('queue-body').setAttribute('aria-busy','true');
+    commands.send('mw:queue.read',{requestId:pending.id,generation:positions.generation,
+      revision:positions.revision,offset:pending.offset});
+  }
+  function failed(){
+    loadError=true;
+    pending=null;buffer=[];dom.el('queue-body').removeAttribute('aria-busy');
+    dom.el('queue-refresh-feedback').textContent='Liste nicht vollständig geladen. Bitte aktualisieren.';
+    dom.el('queue-refresh-feedback').classList.add('refresh-error');
+  }
+  function receive(event){
+    var data=event.data;
+    if(!allowed()||!pending||!data||data.requestId!==pending.id||pending.stamp!==stamp||
+        data.viewRevision!==model.current().viewRevision)return;
+    if(data.reset){pending=null;buffer=[];commands.send('mw:refresh');return;}
+    var positions=model.current().wishPositions;
+    if(data.generation!==positions.generation||data.revision!==positions.revision||data.offset!==pending.offset||
+        !Array.isArray(data.items)||data.next!==data.offset+data.items.length||data.total!==model.current().queueTotal||
+        data.next>data.total||(data.next<data.total&&!data.items.length)){failed();return;}
+    pending=null;buffer=buffer.concat(data.items);
+    if(data.next<data.total){read();return;}
+    rows=buffer;buffer=[];complete=stamp;
+    if(loadError){
+      dom.el('queue-refresh-feedback').textContent='In Eingangsreihenfolge';
+      dom.el('queue-refresh-feedback').classList.remove('refresh-error');loadError=false;
+    }
+    dom.el('queue-body').removeAttribute('aria-busy');draw();acknowledgeQueue();
+  }
+  function acknowledgeQueue(){
+    if(!visible()||!model.connected()||complete!==stamp||!document.documentElement.classList.contains('mw-ready'))return;
+    requestAnimationFrame(function(){
+      if(!visible()||complete!==stamp)return;
+      var body=dom.el('queue-body'),bounds=body.getBoundingClientRect(),positions=model.current().wishPositions;
+      rows.forEach(function(item){
+        var node=body.querySelector('[data-wish-id="'+item.id+'"] .request-text');
+        if(!node||item.delivery||(attempts[item.id]&&Date.now()-attempts[item.id]<15000))return;
+        var box=node.getBoundingClientRect();
+        if(box.bottom<=bounds.top||box.top>=bounds.bottom)return;
+        attempts[item.id]=Date.now();
+        commands.send('mw:ackRequest',{id:item.id,generation:positions.generation,revision:positions.revision});
+      });
     });
-  
   }
-  function start() {
-    dom.el('prev-page').addEventListener('click', function () { commands.send('mw:refresh', { page: model.current().page - 1 }); });
-    dom.el('next-page').addEventListener('click', function () { commands.send('mw:refresh', { page: model.current().page + 1 }); });
-    commands.bindRefresh('refresh-queue', 'queue-refresh-feedback');
-  
-    signals.on('queue-visible', acknowledgeQueue);
+  function clear(){
+    rows=[];buffer=[];pending=null;stamp=null;complete=null;renderKey=null;attempts={};
+    loadError=false;
+    dom.el('request-queue').textContent='';dom.el('queue-body').removeAttribute('aria-busy');
   }
-  return { start: start, render: renderQueue, acknowledge: acknowledgeQueue, availability: availability, text:requestText };
+  function renderQueue(){
+    var state=model.current();dom.setText('queue-count',state.queueTotal);
+    if(!allowed()){clear();return;}
+    var next=identity();
+    if(next!==stamp){
+      var previous=stamp&&JSON.parse(stamp),current=JSON.parse(next);
+      if(previous&&(previous[0]!==current[0]||previous[1]!==current[1]||previous[2]!==current[2]))clear();
+      stamp=next;pending=null;buffer=[];complete=null;
+      if(!state.queueTotal)rows=[];
+      else if(!rows.length)rows=Array.isArray(state.queueWindow)&&state.queueWindow.length?state.queueWindow:state.queue;
+      if(!state.queueTotal)complete=stamp;
+      draw();
+    }
+    if(pending&&Date.now()-pending.at>15000)failed();
+    read();
+  }
+  function availability(){
+    if(!model.current())return;
+    dom.setText('studio-queue-tab','Wünsche ('+model.current().queueTotal+')');
+    dom.el('studio-queue-tab').setAttribute('aria-label','Musikwünsche, '+model.current().queueTotal+' offen');
+  }
+  function start(){
+    commands.bindRefresh('refresh-queue','queue-refresh-feedback');
+    if(bridge){
+      bridge.addEventListener('mw:queue.page',receive);
+      bridge.addEventListener('mw:result',function(event){
+        var result=event.data;
+        if(pending&&result&&result.action==='mw:queue.read'&&result.requestId===pending.id&&!result.ok)failed();
+      });
+    }
+    dom.el('queue-body').addEventListener('scroll',acknowledgeQueue,{passive:true});
+    signals.on('queue-visible',function(){read();acknowledgeQueue();});
+    window.addEventListener('pagehide',function(){disposed=true;clear();});
+  }
+  return {start:start,render:renderQueue,acknowledge:acknowledgeQueue,availability:availability,text:requestText};
 });

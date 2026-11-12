@@ -28,6 +28,7 @@ MischWerkModules.createApp = function (config, androidWire) {
     MischWerkModules.attachHandover(runtime);
     MischWerkModules.attachStateInitialization(runtime, config);
     MischWerkModules.attachShow(runtime, config);
+    MischWerkModules.attachWishExportState(runtime);
     MischWerkModules.attachWishStorage(runtime);
     MischWerkModules.attachWishQueue(runtime, config);
     MischWerkModules.attachWishTransport(runtime, config);
@@ -67,6 +68,7 @@ MischWerkModules.createApp = function (config, androidWire) {
     MischWerkModules.attachAndroidSettings(runtime, config);
     MischWerkModules.attachAndroidReceipts(runtime);
     MischWerkModules.attachAndroidIncoming(runtime);
+    MischWerkModules.attachAndroidStudioWishes(runtime);
     MischWerkModules.attachRelayProjection(runtime);
     MischWerkModules.attachRelayCommands(runtime);
     MischWerkModules.attachAndroidPublisher(runtime);

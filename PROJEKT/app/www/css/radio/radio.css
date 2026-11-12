@@ -1,9 +1,11 @@
 /* Vinyl Deck: vorhandene Radiobedienung in einer gemeinsamen dunklen Fläche. */
 html[data-view=radio] .radio-bar { display:grid; }
-.radio-bar { --play-size:80px; --play-symbol-size:32px; --text:#f5f5f2; --muted:#b4b4b0; --gold:#e9eaec; --gold-ink:#cfd2d6; --line:#3a3a3a; --live:#ff9a8f; position:relative; isolation:isolate; width:100%; min-width:0; min-height:160px; margin:0; padding:18px 32px 18px 20px; grid-template-columns:170px 120px minmax(300px,1fr) 322px 156px; gap:0 10px; align-items:center; font-family:Outfit,system-ui,sans-serif; }
+.radio-bar { --play-size:80px; --play-symbol-size:32px; --vinyl-size:112px; --text:#f5f5f2; --muted:#b4b4b0; --gold:#e9eaec; --gold-ink:#cfd2d6; --line:#3a3a3a; --live:#ff9a8f; position:relative; isolation:isolate; width:100%; min-width:0; min-height:160px; margin:0; padding:18px 32px 18px 20px; grid-template-columns:170px 120px minmax(300px,1fr) 322px 156px; gap:0 10px; align-items:center; font-family:Outfit,system-ui,sans-serif; }
 .radio-program { display:contents; }
 .radio-panel-face { position:absolute; inset:18px 20px; z-index:-1; pointer-events:none; }
-.radio-brand { grid-column:2; grid-row:1; width:120px; min-width:0; padding-right:19px; border-right:1px solid var(--line); }
+/* Der Trenner gehört zur ganzen Rasterzeile, unabhängig von der Höhe des Logos. */
+.radio-bar::after { content:""; position:absolute; grid-column:2 / 3; grid-row:1 / 2; top:0; right:0; bottom:0; width:1px; background:var(--line); pointer-events:none; }
+.radio-brand { grid-column:2; grid-row:1; align-self:stretch; display:flex; align-items:center; width:120px; min-width:0; padding-right:19px; }
 .radio-brand > span { display:none; }
 .bar-logo { display:block; width:100px; height:100px; object-fit:contain; background:transparent; mix-blend-mode:lighten; }
 .transport { position:relative; grid-column:1; grid-row:1; justify-self:start; margin-left:16px; display:flex; align-items:center; justify-content:center; width:var(--play-size); min-width:0; z-index:1; }

@@ -29,16 +29,22 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
     function projection() { return runtime.androidStationProjection(); }
     function publish(force) {
         if (!running || runtime.shuttingDown || active || processingReply) { return; }
-        var updates, body, startedAt, relayProjection = null, relayResults = null;
+        var updates, studio, body, startedAt, relayProjection = null, relayResults = null;
         try {
-            updates = runtime.pendingAndroidUpdates();
-            if (!force && !dirty && !updates.length) { return; }
+            studio = runtime.pendingStudioWishUpdates();
+            updates = runtime.pendingAndroidUpdates().slice(0, 100 - studio.length);
+            if (!force && !dirty && !updates.length && !studio.length) { return; }
             var current = projection();
             startedAt = clock(); lastProjection = JSON.stringify(current);
-            current.updatedAt = runtime.nextAndroidProjectionTimestamp();
-            body = { station: current, wishUpdates: updates.map(function (row) {
+            current.updatedAt = runtime.reserveStudioWishTimestamp(runtime.nextAndroidProjectionTimestamp()); lastStamp = current.updatedAt;
+            body = { station: current, wishMetadataVersion: 1, wishUpdates: updates.map(function (row) {
                 return { submissionId: row.submissionId, state: row.state, position: row.position };
             }) };
+            if (studio.length) { body.studioWishUpdates = studio.map(function (row) {
+                var entry = { submissionId: row.submissionId, state: row.state, position: row.position };
+                if (row.text !== undefined) { entry.text = row.text; entry.origin = row.origin; entry.displayName = row.displayName; }
+                return entry;
+            }); }
             if (typeof runtime.prepareRelayProjection === 'function') {
                 relayProjection = runtime.prepareRelayProjection();
                 Object.keys(relayProjection.body).forEach(function (field) { body[field] = relayProjection.body[field]; });
@@ -66,6 +72,7 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
                         wishesReceived: reply.wishes.length }; }
                     processingReply = true;
                     runtime.confirmAndroidUpdates(updates);
+                    runtime.confirmStudioWishUpdates(studio);
                     if (relayProjection) { runtime.confirmRelayResults(relayResults); }
                     confirmedUpdates += updates.length;
                     healthy = true; confirmedAt = now;

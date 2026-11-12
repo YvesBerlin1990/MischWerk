@@ -22,6 +22,9 @@ MischWerkModules.attachWishStorage = function (runtime) {
                         item.delivery.nick.length > 50 || !integer(item.delivery.at, 0) ||
                         (item.delivery.senderKey !== undefined && (typeof item.delivery.senderKey !== 'string' ||
                             item.delivery.senderKey.length > 100)))) ||
+                    (item.displayName !== undefined && item.displayName !== null && (typeof item.displayName !== 'string' ||
+                        item.displayName.length > 50 || /[\u0000-\u001f\u007f-\u009f]/.test(item.displayName))) ||
+                    (item.origin !== undefined && (item.source !== 'Android' || ['web', 'android'].indexOf(item.origin) < 0)) ||
                     (item.source !== undefined && (item.source !== 'Android' ||
                         item.submissionId !== 'android:' + item.externalSubmissionId))) { invalid(); }
             previous = item.id; ids['$' + item.id] = true; submissions['$' + item.submissionId] = true;
@@ -33,6 +36,7 @@ MischWerkModules.attachWishStorage = function (runtime) {
                     ['done', 'discarded'].indexOf(row.outcome) < 0) { invalid(); }
             submissions['$' + row.submissionId] = true;
         });
+        runtime.validateStudioWishState(value);
         value.submissionIds = {};
         value.items.concat(value.replays).forEach(function (row) { value.submissionIds['$' + row.submissionId] = row.id; });
         return value;
@@ -66,7 +70,8 @@ MischWerkModules.attachWishStorage = function (runtime) {
     runtime.saveWishes = function (queue) {
         if (!loaded) { throw new Error('WISH_STORAGE_NOT_LOADED'); }
         var store = KnuddelsServer.getPersistence(), bank = head ? 1 - head.bank : 0;
-        var value = { version: 1, nextId: queue.nextId, revision: queue.revision, items: queue.items, replays: queue.replays };
+        var value = { version: 1, nextId: queue.nextId, revision: queue.revision, items: queue.items, replays: queue.replays,
+            studioNamespace: queue.studioNamespace, studioStamp: queue.studioStamp, studioExports: queue.studioExports };
         validate(value);
         var text = JSON.stringify(value, function (name, entry) { return name === 'submissionIds' ? undefined : entry; });
         var next = { version: 1, bank: bank, pages: Math.ceil(text.length / 10000) };

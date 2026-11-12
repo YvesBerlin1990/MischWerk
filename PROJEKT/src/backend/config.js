@@ -1,7 +1,7 @@
 /* MischWerk Backend-Konfiguration. Keine Zugangsdaten oder Clientwerte. */
 var MischWerkConfig = {
-    version: '0.1.383',
-    buildNumber: 383,
+    version: '0.1.391',
+    buildNumber: 391,
     stationName: 'MischWerk',
     ownerNick: 'Otterchen',
     // Öffentliche SPCast-Anschlüsse; schneller currentsong-Anschluss geprüft am 10.11.2026.

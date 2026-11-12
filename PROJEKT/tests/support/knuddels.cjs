@@ -47,7 +47,7 @@ function createHarness(existingPersistence, options = {}) {
     updateApp(message, logMessage) { updateCalls.push({ message, logMessage }); return 30; }
   };
   let submissionSequence = 0;
-  let timestamp = Date.now();
+  let timestamp = options.now === undefined ? Date.now() : options.now;
   const timers = new Map();
   let timerSequence = 0;
   class FakeDate extends Date {

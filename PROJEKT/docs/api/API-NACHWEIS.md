@@ -1,4 +1,16 @@
-# MischWerk – API-Nachweis 0.1.383 · Build 383
+# MischWerk – API-Nachweis 0.1.391 · Build 391
+
+## Gemeinsame Wunschweiterleitung · 12.11.2026
+
+Grundlage ist der vom Betreiber zur Umsetzung freigegebene Übergabevertrag MischWerk-Knuddels-Wunschweiterleitung.md vom 12.11.2026. Der bestehende feste Status-POST /api/publishKnuddelsState, seine vier signierten Strings payload/ts/nonce/sig, HMAC-SHA256 und vorhandener Schlüssel bleiben erhalten. Es werden keine neuen Plattformmethoden, HTTP-Endpunkte oder WebHooks benötigt.
+
+Reguläre Statuskörper tragen zusätzlich wishMetadataVersion:1. Der Empfänger nimmt weiterhin genau submissionId/text/displayName an, ergänzend optional origin mit ausschließlich web/android. displayName bleibt string|null bis 50 Zeichen ohne Steuerzeichen. Altdaten ohne nachweisbare Herkunft werden nicht nachträglich Web oder Android zugeordnet. Anzeigenamen bleiben Daten und vergeben weder Channelidentität noch Rechte. Bei gültiger Wiederzustellung werden nur fehlende Altmetadaten aus nachgewiesenen Angaben ergänzt; bestehende Namen, Herkunft, Wunschtext und Reihenfolge werden nicht überschrieben.
+
+Native aktive Änderungen erscheinen ergänzend als studioWishUpdates mit submissionId nach knuddels:[A-Za-z0-9_-]{1,84}, state, tatsächlicher position, text bis 300 Zeichen, origin knuddels und öffentlichem displayName. Die stabile Kennung verwendet einen persistierten Queue-Namensraum und die unveränderliche Wunsch-ID. Sie enthält keine Nutzerkennung und ändert sich beim Vorrücken nicht. Tatsächliche Zustände sind queued/received/preparing/playing sowie done/discarded; vor dem dauerhaften Queuecommit wird keine Annahme exportiert. Endzustände enthalten nur Kennung, Zustand und position:null. Ausgelassene Teilupdates löschen nichts.
+
+station.updatedAt ist die gemeinsame monotone Änderungsfassung. Der Hochstand wird vor dem regulären Versand im vorhandenen Queueadapter gespeichert; eine verlorene Antwort oder ein Neustart erzeugt eine höhere Version. Antwortquittungen bestätigen nur die tatsächlich gesendeten internen Revisionen. Ein später geänderter Eintrag bleibt ausstehend. Insgesamt höchstens 100 native/externe Updates je POST; die native Teilmenge umfasst höchstens zehn. Native Endmarker bleiben bis zur Annahme erhalten, auch jenseits des begrenzten Replaycaches. Wunschtexte und Namen werden ausschließlich aus aktiven echten Queueeinträgen gelesen.
+
+Lokale Node-, Browser- und beide echten Rhino-Engines prüfen Vertrag, Metadaten, gemeinsame Reihenfolge, Schutz, Versionen, Fehler und Wiederholungen. Die Übergabe erklärt die Firebase-Annahme dieses Zusatzes für verfügbar; eine tatsächliche native Installation und unabhängige Firestore-/Live-Studio-Abnahme dieses Builds werden daraus nicht abgeleitet.
 
 ## RobotoBold in der öffentlichen Begrüßung · 12.11.2026
 

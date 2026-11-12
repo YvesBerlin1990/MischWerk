@@ -3,7 +3,7 @@ async function settle(page){await page.evaluate(()=>new Promise(resolve=>request
 async function reveal(page,selector){
  await settle(page);const target=page.locator(selector);assert.ok(await target.count(),selector+' existiert');
  if(!await target.isVisible()){
-  const id=await target.evaluate(n=>n.closest('#handover-panel')?'handover-paging':n.closest('#studio-requests')?'queue-view-paging':'studio-paging');
+  const id=await target.evaluate(n=>n.closest('#handover-panel')?'handover-paging':'studio-paging');
   const nav=page.locator('#'+id),buttons=nav.locator('button');let guard=0;
   async function turn(button){
    try{await button.focus();await button.press('Enter',{timeout:2000});}catch(error){
@@ -38,4 +38,13 @@ async function login(page){
  await reveal(page,'#on-air');await page.locator('#on-air').click();
  await page.locator('#off-air:not([disabled])').waitFor();return true;
 }
-module.exports={reveal,readText,fits,settle,login};
+// Bestehende Backendverträge unabhängig von der jetzt rein lesenden Wunschliste prüfen.
+async function resolveRequest(page,outcome='done',id){
+ await page.evaluate(({outcome,id})=>Client.sendEvent('mw:resolveRequest',{
+  id:id||Number(document.querySelector('.queue-item').dataset.wishId),outcome}),{outcome,id});
+}
+async function stageRequest(page,stage,previousStage='queued'){
+ await page.evaluate(({stage,previousStage})=>Client.sendEvent('mw:setWishStage',{
+  id:Number(document.querySelector('.queue-item').dataset.wishId),stage,previousStage}),{stage,previousStage});
+}
+module.exports={reveal,readText,fits,settle,login,resolveRequest,stageRequest};

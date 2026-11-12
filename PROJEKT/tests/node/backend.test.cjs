@@ -208,6 +208,30 @@ function fixture(active=true) {
   return { h, listener, owner, ls:h.open(listener), os };
 }
 
+test('Scrollliste liest alle Wünsche in begrenzten, revisionsgebundenen Paketen nur im aktuellen Studio', () => {
+  const {h,owner,os,listener,ls}=fixture();
+  for(let i=0;i<23;i++)h.event(listener,ls,'mw:wish.submit',{text:('Wunsch '+i+' 🎵 ').padEnd(300,'W'),submissionId:'scroll-'+i});
+  h.event(owner,os,'mw:openStudio');
+  const studio=owner.sessions.find(s=>s.content.viewMode==='Overlay');
+  const state=h.state(owner,studio),stamp=state.wishPositions;
+  const request={view:'studio',viewRevision:state.viewRevision,requestId:'list-1',generation:stamp.generation,revision:stamp.revision,offset:0};
+  function read(session,data=request,user=owner){return h.event(user,session,'mw:queue.read',data).find(e=>e.type==='mw:queue.page')?.data;}
+  assert.equal(read(os),undefined);assert.equal(read(ls,request,listener),undefined);
+  assert.equal(read(studio,{...request,viewRevision:state.viewRevision-1}),undefined);
+  const all=[];let page;
+  do{page=read(studio,{...request,offset:all.length,requestId:'list-'+all.length});assert.ok(page,'Listenpaket fehlt');
+    assert.ok(JSON.stringify({type:'mw:queue.page',data:page}).length<10000);assert.ok(page.items.length<=10);all.push(...page.items);
+  }while(page.next<page.total);
+  assert.equal(all.length,23);assert.deepEqual(all.map(x=>x.id),Array.from({length:23},(_,i)=>i+1));
+  assert.equal(all[22].nick,listener.nick);assert.equal(all[22].text.length,300);assert.ok(all[22].createdAt);
+  assert.equal(lastResult(h.event(owner,studio,'mw:ackRequest',{id:all[0].id,generation:'veraltet',revision:stamp.revision})).ok,false);
+  h.event(owner,studio,'mw:ackRequest',{id:all[22].id,generation:stamp.generation,revision:stamp.revision});
+  assert.equal(read(studio,{...request,offset:20}).items[2].delivery.nick,owner.nick);
+  h.event(listener,ls,'mw:wish.submit',{text:'Neu angekommen',submissionId:'scroll-new'});
+  const stale=read(studio,{...request,offset:10});assert.equal(stale.reset,true);assert.deepEqual(stale.items,[]);
+  h.event(owner,studio,'mw:offAir');assert.equal(read(studio),undefined);
+});
+
 test('Manuelles Aktualisieren bestätigt nur den angeforderten Snapshot und erhält alte Clients', () => {
   const {h,owner,os,listener,ls}=fixture();
   const response=h.event(owner,os,'mw:refresh',{requestId:'refresh-owner-1'});
@@ -283,7 +307,7 @@ test('main.js bleibt ein kurzer Einstieg und lädt die Serverdateien des gewähl
 });
 test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
   const result = require('../../tools/checks/architecture.cjs').checkArchitecture();
-  assert.equal(result.backendModules, 79);
+  assert.equal(result.backendModules, 81);
   assert.equal(result.frontendComponents, 44);
 });
 

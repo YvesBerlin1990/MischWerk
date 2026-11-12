@@ -109,6 +109,11 @@ MischWerkModules.attachAndroidReceipts = function (runtime) {
             row = find(value.item.externalSubmissionId);
             if (row) { changed = change(row, value.outcome === 'done' ? 'done' : 'discarded', null); }
         } else if (kind === 'wishes') {
+            entries.forEach(function (entry) {
+                if (!entry.committed || terminal(entry.state)) { return; }
+                var outcome = runtime.wishOutcome('android:' + entry.submissionId);
+                if (outcome) { changed = change(entry, outcome, null) || changed; }
+            });
             runtime.wishItems().forEach(function (item, index) {
                 if (item.source !== 'Android') { return; }
                 row = find(item.externalSubmissionId);

@@ -25,11 +25,6 @@ MischWerkUI.define('studioWindow',function(dependencies){
   function height(node){var style=getComputedStyle(node);return node.getBoundingClientRect().height+parseFloat(style.marginTop)+parseFloat(style.marginBottom);}
   function fitArea(area){
     if(!area.node.getClientRects().length)return;
-    if(area.node.id==='queue-body'){
-      var selected=area.node.querySelector('.queue-item.selected');
-      var identity=selected&&selected.dataset.wishId;
-      if(identity!==area.identity){area.anchor=null;area.index=0;area.identity=identity;}
-    }
     var focus=document.activeElement;
     area.groups=Array.from(area.node.querySelectorAll(area.selector));
     area.groups.forEach(function(group){group.removeAttribute('data-page-hidden');group.classList.remove('page-first');});
@@ -57,18 +52,12 @@ MischWerkUI.define('studioWindow',function(dependencies){
     if(disposed||document.hidden||!bridge||!model.current()||!model.current().user.canModerate)return;
     var queue=dom.el('studio-requests'),target=originalHeight;
     if(!queue.hidden){
-      var area=areas[2],shell=document.querySelector('.dialog-shell');
+      var shell=document.querySelector('.dialog-shell'),body=dom.el('queue-body');
       var chrome=shell.getBoundingClientRect().height-queue.getBoundingClientRect().height;
-      var hidden=area.groups.map(function(group){return group.hasAttribute('data-page-hidden');});
-      // Natürliche Höhe unabhängig von Textseite, Bereichsseite und zuvor verkleinertem Host.
-      try{
-        queue.classList.add('studio-sizing');
-        area.groups.forEach(function(group){group.removeAttribute('data-page-hidden');});
-        target=Math.ceil(chrome+queue.getBoundingClientRect().height+8);
-      }finally{
-        area.groups.forEach(function(group,index){group.toggleAttribute('data-page-hidden',hidden[index]);});
-        queue.classList.remove('studio-sizing');
-      }
+      var padding=getComputedStyle(body);
+      // Die vollständige Liste messen, ohne die Scrollfläche oder laufende Tastaturnavigation zu verändern.
+      target=Math.ceil(chrome+queue.getBoundingClientRect().height-body.getBoundingClientRect().height+
+        dom.el('request-queue').getBoundingClientRect().height+parseFloat(padding.paddingTop)+parseFloat(padding.paddingBottom)+8);
       target=Math.max(320,Math.min(580,target));
     }else if(!sized)return;
     var width=Math.ceil(innerWidth),key=width+':'+target;
@@ -76,7 +65,7 @@ MischWerkUI.define('studioWindow',function(dependencies){
     requested=key;
     if(target===innerHeight)return;
     sized=true;
-    try{bridge.getHostFrame().setSize(width,target);}catch(ignored){/* Begrenzte Hosts behalten die scrollfreien Bereichsseiten. */}
+    try{bridge.getHostFrame().setSize(width,target);}catch(ignored){/* Liste und Bereichsseiten bleiben im begrenzten Host bedienbar. */}
   }
   function fit(){
     if(disposed||fitting||document.hidden||!model.current()||!model.current().user.canModerate)return;
@@ -92,7 +81,6 @@ MischWerkUI.define('studioWindow',function(dependencies){
     originalHeight=Math.max(320,Math.min(1000,innerHeight));
     create('studio-setup','.studio-section','studio-paging','Weitere Sendungsbereiche');
     create('handover-body','.handover-group','handover-paging','Weitere Übergabebereiche');
-    create('queue-body','.queue-group','queue-view-paging','Weitere Wunschbereiche');
     signals.on('studio-fit',fit);signals.on('initial-layout',fit);
     window.addEventListener('pagehide',function(){disposed=true;if(frameRequest!==null)cancelAnimationFrame(frameRequest);});
   }

@@ -22,6 +22,8 @@
         r.androidReceiptsReady = function () { return true; };
         MischWerkModules.attachChanges(r); MischWerkModules.attachRelayResults(r);
         MischWerkModules.attachIdentity(r, MischWerkConfig); MischWerkModules.attachValidation(r);
+        MischWerkModules.attachWishExportState(r); MischWerkModules.attachWishStorage(r); MischWerkModules.attachWishQueue(r);
+        MischWerkModules.attachAndroidStudioWishes(r);
         MischWerkModules.attachPersistence(r, MischWerkConfig); MischWerkModules.attachRadioTeam(r, MischWerkConfig);
         MischWerkModules.attachTicker(r); MischWerkModules.attachScheduleCalendar(r); MischWerkModules.attachScheduleStorage(r);
         MischWerkModules.attachScheduleProgramme(r, MischWerkConfig); MischWerkModules.attachScheduleCommands(r, MischWerkConfig);
@@ -29,6 +31,7 @@
         MischWerkModules.attachAndroidFailures(r); MischWerkModules.attachAndroidSigning(r); MischWerkModules.attachAndroidConnection(r); MischWerkModules.attachAndroidIncoming(r);
         MischWerkModules.attachRelayProjection(r); MischWerkModules.attachRelayCommands(r); MischWerkModules.attachAndroidPublisher(r);
         r.readState();
+        r.startStudioWishExports();
         var settings = { runtimeVerified: true, syncSecret: new Array(65).join('s'), syncUrl: url };
         r.startAndroidPublisher(settings, r.createAndroidWire(settings));
         return r;

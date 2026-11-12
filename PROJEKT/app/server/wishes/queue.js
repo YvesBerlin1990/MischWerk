@@ -31,6 +31,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
     }
 
     function commit(next, quiet) {
+        runtime.updateStudioWishState(queueState(), next);
         runtime.saveWishes(next);
         wishQueue = next;
         if (!quiet) { runtime.changed('wishes'); }
@@ -55,6 +56,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
     }
 
     runtime.commitWebsiteWishes = commit;
+    runtime.commitWishMetadata = function (next) { runtime.saveWishes(next); wishQueue = next; };
     runtime.loadWishes = function () { return queueState(); };
     runtime.wishItems = function () { return queueState().items; };
     runtime.wishPositions = function (user, page) {
@@ -90,7 +92,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
             throw runtime.failure('Die Wunschbox ist deaktiviert.');
         }
         runtime.wishPhase = 'WISH_TEXT';
-        var wishText = runtime.text(data.text, 300, true);
+        var wishText = runtime.text(runtime.text(data.text, 300, true).replace(/[\u007f-\u009f]/g, ' '), 300, true);
         runtime.wishPhase = 'WISH_LINK_CHECK';
         if (runtime.containsWishLink(wishText)) { throw runtime.failure('Nur Interpret + Titel. Keine Links.'); }
         runtime.wishPhase = 'WISH_ENTRY';
@@ -104,24 +106,6 @@ MischWerkModules.attachWishQueue = function (runtime) {
         queue.revision += 1;
         commit(queue);
         return { duplicate: false, item: item };
-    };
-    runtime.enqueueAndroidWish = function (data, remember, confirm) {
-        var queue = queueState();
-        if (runtime.shuttingDown || !runtime.state || !runtime.requestsAvailable()) {
-            throw new Error('ANDROID_CLOSED');
-        }
-        var value = runtime.text(data.text, 300, true);
-        if (!validSubmissionId(data.submissionId) || runtime.containsWishLink(value)) { throw new Error('ANDROID_INVALID'); }
-        var item = { id: queue.nextId, senderKey: '', nick: 'Android', text: value,
-            source: 'Android', externalSubmissionId: data.submissionId, submissionId: 'android:' + data.submissionId,
-            createdAt: runtime.now(), delivery: null };
-        remember(item, queue.items.length + 1);
-        queue = runtime.copy(queue);
-        queue.items.push(item); queue.submissionIds['$' + item.submissionId] = item.id;
-        queue.nextId += 1; queue.revision += 1;
-        commit(queue, true);
-        try { confirm(item); } catch (error) { runtime.warn('ANDROID_RECEIPTS_WRITE'); }
-        runtime.changed('wishes');
     };
     runtime.deliverWish = function (id, moderator) {
         var queue = runtime.copy(queueState()), item = itemById(queue, id);

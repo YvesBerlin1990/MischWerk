@@ -34,9 +34,9 @@ MischWerkUI.define('studioMarkup',function(dependencies){
     <div id="handover-placeholder"></div>
   </section>
   <section id="studio-requests" class="studio-pane studio-queue" role="tabpanel" aria-labelledby="studio-queue-tab" hidden>
-    <div class="studio-queue-heading"><div><h2 id="queue-heading" tabindex="-1">Musikwünsche <span id="queue-count" class="count-badge">0</span></h2><span id="queue-refresh-feedback" class="form-hint" role="status" aria-live="polite" aria-atomic="true">Aus dem Channel</span></div><button id="refresh-queue" class="icon-button" type="button" aria-label="Musikwünsche aktualisieren" title="Musikwünsche aktualisieren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-12-2L4 11m2 4a7 7 0 0 0 12 2l2-4"/></svg></button></div>
-    <div id="queue-body"><div id="queue-notice" class="queue-group"></div><div id="request-queue" class="queue" role="list" aria-label="Musikwünsche in Eingangsreihenfolge"></div></div>
-    <nav id="queue-pagination" class="pagination" aria-label="Musikwünsche auswählen"><button id="prev-page" class="secondary-button" type="button">Zurück</button><span id="page-label">Wunsch 1 / 1</span><button id="next-page" class="secondary-button" type="button">Weiter</button></nav>
+    <div class="studio-queue-heading"><div><h2 id="queue-heading" tabindex="-1">Musikwünsche <span id="queue-count" class="count-badge">0</span></h2><span id="queue-refresh-feedback" class="form-hint" role="status" aria-live="polite" aria-atomic="true">In Eingangsreihenfolge</span></div><button id="refresh-queue" class="icon-button" type="button" aria-label="Musikwünsche aktualisieren" title="Musikwünsche aktualisieren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-12-2L4 11m2 4a7 7 0 0 0 12 2l2-4"/></svg></button></div>
+    <div id="queue-notice"></div>
+    <div id="queue-body" tabindex="0" role="region" aria-label="Eingegangene Musikwünsche"><div id="request-queue" class="queue" role="list" aria-label="Musikwünsche in Eingangsreihenfolge"></div></div>
   </section>
 </section>`);
 });

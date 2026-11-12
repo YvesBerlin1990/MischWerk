@@ -20,6 +20,8 @@
         runtime.pendingAndroidUpdates=function(){return [];};runtime.confirmAndroidUpdates=function(){};
         runtime.startAndroidReceipts=function(){};runtime.androidReceiptsReady=function(){return true;};
         MischWerkModules.attachTicker(runtime);
+        MischWerkModules.attachValidation(runtime); MischWerkModules.attachWishExportState(runtime);
+        MischWerkModules.attachWishStorage(runtime); MischWerkModules.attachWishQueue(runtime); MischWerkModules.attachAndroidStudioWishes(runtime);
         MischWerkModules.attachSessionState(runtime);MischWerkModules.attachContent(runtime);MischWerkModules.attachSessions(runtime,MischWerkConfig);
         MischWerkModules.attachAndroidFailures(runtime); MischWerkModules.attachAndroidSigning(runtime);MischWerkModules.attachAndroidConnection(runtime);MischWerkModules.attachAndroidIncoming(runtime);MischWerkModules.attachAndroidPublisher(runtime);
         MischWerkModules.attachAndroidRelay(runtime);MischWerkModules.attachAndroidOperation(runtime,MischWerkConfig);MischWerkModules.attachAndroidSettingsAccess(runtime);MischWerkModules.attachAndroidSettings(runtime,MischWerkConfig);

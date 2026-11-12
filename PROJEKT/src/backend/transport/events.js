@@ -55,6 +55,9 @@ MischWerkModules.attachEvents = function (runtime, config) {
             if (runtime.shuttingDown) {
                 throw runtime.failure('MischWerk wird gerade neu gestartet. Bitte öffne die App gleich erneut.');
             }
+            if (type === 'mw:queue.read') {
+                operation = 'QUEUE_READ'; runtime.sendQueuePage(user, data, session); return;
+            }
             if (type === 'mw:openWishes' || type === 'mw:openStudio' || type === 'mw:openRadioTeam' || type === 'mw:openSchedule') {
                 operation = 'OPEN_OVERLAY';
                 runtime.openOverlay(user, session, type, requestId); return;

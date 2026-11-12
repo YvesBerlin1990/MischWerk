@@ -74,6 +74,23 @@ for(const k3 of [true,false])test('Musik im Fokus zentriert die Informationsbere
     const clip=await page.evaluate(()=>({x:0,y:0,width:innerWidth,height:Math.min(innerHeight,Math.ceil(document.getElementById('radio-deck').getBoundingClientRect().bottom)+16)}));
     await page.screenshot({path:path.join(pictures,name+'.png'),clip});
   }
+  async function visibleSeparator(selector){
+    const music=await page.locator('.now-playing').boundingBox();
+    const zone=await page.locator(selector).boundingBox();
+    const shot=await page.screenshot({clip:{x:Math.floor(zone.x+zone.width)-3,y:Math.ceil(music.y)+2,width:6,height:Math.floor(music.height)-4},scale:'css'});
+    const missing=await page.evaluate(async base64=>{
+      const img=new Image();img.src='data:image/png;base64,'+base64;await img.decode();
+      const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;
+      const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const pixels=ctx.getImageData(0,0,img.width,img.height).data;
+      let missing=0;for(let y=0;y<img.height;y++){
+        let visible=false;for(let x=0;x<img.width;x++){const i=(y*img.width+x)*4;
+          const rgb=[pixels[i],pixels[i+1],pixels[i+2]];
+          if(Math.min(...rgb)>=38&&Math.max(...rgb)-Math.min(...rgb)<=4)visible=true;
+        }if(!visible)missing++;
+      }return missing;
+    },shot.toString('base64'));
+    assert.equal(missing,0,'Der Trenner an '+selector+' ist auf voller Informationshöhe durchgehend neutralgrau');
+  }
   for(const width of [3840,2290,1920,1500,1280,1100,960,700,560,390,320]){
     await resizeViewport(page,{width,height:width>=1200?220:650});await snapshot(true);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'Keine Überbreite bei '+width);
@@ -93,14 +110,20 @@ for(const k3 of [true,false])test('Musik im Fokus zentriert die Informationsbere
     }
     const ticker=await page.locator('#radio-ticker').boundingBox(),bar=await page.locator('#radio-panel').boundingBox();
     assert.ok(ticker.y>=bar.y+bar.height-19,'Lauftext bleibt unter der Appleiste');
+    if([2290,1920,1280,1100,960].includes(width))for(const selector of ['.now-playing','.radio-brand'])await visibleSeparator(selector);
     if([2290,1280,390].includes(width))await captureFocus('Fokus-'+(k3?'k3':'stapp')+'-'+width);
     if(process.env.MISCHWERK_BALANCE_CAPTURE&&k3&&width===2290)await page.locator('#radio-metadata').screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/radio/radio-bereiche-mit-wunsch.png'),animations:'disabled'});
     await snapshot(false);assert.equal(await page.locator('#own-wish-position').isVisible(),false);
+    if([2290,1920,1280,1100,960].includes(width))for(const selector of ['.now-playing','.radio-brand'])await visibleSeparator(selector);
     if(process.env.MISCHWERK_BALANCE_CAPTURE&&k3&&width===2290)await page.locator('#radio-metadata').screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/radio/radio-bereiche-ohne-wunsch.png'),animations:'disabled'});
     if(width>=1200)assert.ok(await page.locator('.now-playing').evaluate((n,before)=>n.getBoundingClientRect().width>before+10,before),'Ohne Wunsch wächst die Musikfläche');
     assert.equal(await page.locator('#radio-audio').evaluate(n=>n===window.__focusAudio&&!n.paused&&n.volume===.38),true);
   }
   await resizeViewport(page,{width:1920,height:220});await snapshot(true);
+  // Eine auf Bildhöhe verkürzte Logofläche darf die 124-px-Linie nicht kürzen.
+  await page.locator('.radio-brand').evaluate(n=>n.style.alignSelf='center');
+  await visibleSeparator('.radio-brand');
+  await page.locator('.radio-brand').evaluate(n=>n.style.removeProperty('align-self'));
   await page.evaluate(()=>{document.getElementById('track-title').textContent='I Still Haven’t Found What I’m Looking For – Live';document.getElementById('track-artist').textContent='U2';});
   assert.ok(await page.locator('#radio-metadata').evaluate(n=>{const box=n.getBoundingClientRect();return ['.track-eyebrow','#track-title','#track-artist'].every(selector=>{const r=n.querySelector(selector).getBoundingClientRect();return r.top>=box.top-.5&&r.bottom<=box.bottom+.5;});}),'Zweizeiliger Musiktitel und Interpret passen gemeinsam vollständig in die Informationshöhe');
   await captureFocus('Fokus-'+(k3?'k3':'stapp')+'-lang');
@@ -590,11 +613,11 @@ test('Schmale Ansichten trennen sichtbare Texte, Dekoration und Bedienflächen a
    for(const selector of view==='studio'?['#studio-queue-tab','#studio-programme-tab']:view==='team'?['#team-texts-tab','#team-members-tab']:[]){
     await page.locator(selector).click();await check();
     if(selector==='#studio-queue-tab'&&await page.locator('#queue-detail-toggle').isVisible()){
-     assert.ok(await page.locator('.queue-copy h3').evaluate(n=>n.clientHeight>=24),'Der Wunschtext behält sichtbare Lesefläche');
+     assert.ok(await page.locator('.request-text').evaluate(n=>n.clientHeight>=24),'Der Wunschtext behält sichtbare Lesefläche');
      await page.locator('#queue-detail-toggle').click();await check();
      for(const button of await page.locator('.queue-toolbar button').all())if(await button.isVisible()){await button.scrollIntoViewIfNeeded();await check();assert.equal(await button.evaluate(n=>{const b=n.getBoundingClientRect();return document.elementFromPoint(b.left+b.width/2,b.top+b.height/2)?.closest('button')===n;}),true);}
      await page.locator('#queue-detail-toggle').click();await check();
-     for(const button of await page.locator('.queue-copy button').all())if(await button.isVisible()){await button.scrollIntoViewIfNeeded();await check();assert.equal(await button.evaluate(n=>{const b=n.getBoundingClientRect();return document.elementFromPoint(b.left+b.width/2,b.top+b.height/2)?.closest('button')===n;}),true);}
+     for(const button of await page.locator('.queue-item button').all())if(await button.isVisible()){await button.scrollIntoViewIfNeeded();await check();assert.equal(await button.evaluate(n=>{const b=n.getBoundingClientRect();return document.elementFromPoint(b.left+b.width/2,b.top+b.height/2)?.closest('button')===n;}),true);}
     }
    }
   }
@@ -691,7 +714,8 @@ async function setup(t, { moderation = true, nativeSizing = false, hostSteps = f
       return nativeSizing&&window.__sizes.length?innerHeight:(screenHeight??1080);
     }});
     window.__slashCommands = []; window.__sent = []; window.__handlers = {}; window.__rejects = [];   window.__sizes = []; window.__inclusions = [];
-    window.__emit = (type, data) => (window.__handlers[type] || []).forEach(callback => callback({ type, data }));
+    window.__queueState=state;
+    window.__emit = (type,data) => { if(type==='mw:state')window.__queueState=data; (window.__handlers[type]||[]).forEach(callback=>callback({type,data})); };
     window.Client = {
       pageData: state,
       includeCSS(file) {
@@ -704,7 +728,11 @@ async function setup(t, { moderation = true, nativeSizing = false, hostSteps = f
         if(parserIncludes){document.write('<script src="'+file+'"></scr'+'ipt>');return;}
         const script = document.createElement('script'); script.src = file; (document.body||document.head).appendChild(script);
       },
-      sendEvent(type, data) { window.__sent.push({ type, data }); },
+      sendEvent(type,data) { window.__sent.push({type,data});
+        if(type==='mw:queue.read')queueMicrotask(()=>{const s=window.__queueState,p=s.wishPositions||{},rows=s.queueWindow?.length?s.queueWindow:s.queue;
+          window.__emit('mw:queue.page',{requestId:data.requestId,viewRevision:s.viewRevision,generation:p.generation,revision:p.revision,
+          offset:data.offset,next:Math.min(data.offset+10,rows.length),total:s.queueTotal,items:rows.slice(data.offset,data.offset+10)});});
+      },
       executeSlashCommand(command) { window.__slashCommands.push({command,at:Date.now()}); },
       addEventListener(type, callback) { (window.__handlers[type] || (window.__handlers[type] = [])).push(callback); },
       getHostFrame() { return { setTitle() {}, setResizable() {}, setSize(width, height) { window.__sizes.push([width, height]);
@@ -886,43 +914,17 @@ async function validDialogSizes(page) {
   if(await page.locator('html').getAttribute('data-view')==='studio'){assert.ok(sizes.every(([w,h])=>w>0&&h>=20&&h<=1000));}else assert.deepEqual(sizes,[], 'Andere Verwaltungsfenster behalten ihre festen Maße');
 }
 
-test('Moderation erhält den scrollfreien Rahmen und bleibt beim Lesen langer Textseiten stabil',async t=>{
-  for(const k3 of [true,false]){
-    const {page,state,errors}=await setup(t,{view:'studio',k3,nativeSizing:true,hostSteps:true,viewport:{width:780,height:730}});
-    await page.waitForTimeout(250);assert.equal(page.viewportSize().height,730);assert.deepEqual(await page.evaluate(()=>__sizes),[]);
-    const active={...state,revision:2,moderator:{nick:'Otterchen',since:state.serverTime,expiresAt:state.serverTime+3600000,sessionKey:'compact'},user:{...state.user,isOnAir:true,canUseModeration:true,canEndModeration:true}};
-    await page.evaluate(s=>__emit('mw:state',s),active);await page.waitForTimeout(250);
-    assert.ok(page.viewportSize().height>0&&page.viewportSize().height<=730,'Die angemeldete Bediengruppe bleibt im kompakten Rahmen');
-    for(const id of ['off-air','handover-open'])assert.ok(await page.locator('#'+id).evaluate(n=>{const r=n.getBoundingClientRect();return r.height>=44&&r.top>=0&&r.bottom<=innerHeight+1;}),'Vollständige Kernaktion: '+id);
-    const text=('Ein vollständiger Musikwunsch mit Originaltext 🎵. ').repeat(7).slice(0,300);
-    const item={id:71,text,nick:'Hörer',createdAt:state.serverTime,stage:'queued'};
-    await page.evaluate(({s,item})=>__emit('mw:state',{...s,revision:3,queue:[item],queueWindow:[item],queueStart:0,queueTotal:1,page:0,pages:1}),{s:active,item});
-    await page.locator('#studio-queue-tab').click();await page.waitForTimeout(250);
-    const initialGap=await page.evaluate(()=>document.getElementById('queue-pagination').getBoundingClientRect().top-document.querySelector('.queue-actions').getBoundingClientRect().bottom);
-    assert.ok(initialGap>=0&&initialGap<=12,'Überflüssige Leerfläche unter den Aktionen entfernen: '+initialGap);
-    await page.setViewportSize({width:320,height:page.viewportSize().height});await page.waitForTimeout(250);
-    await page.evaluate(()=>document.fonts.ready);
-    await page.waitForFunction(()=>__sizes.length>0&&innerHeight===__sizes.at(-1)[1]);await studioSettle(page);
-    const gap=await page.evaluate(()=>document.getElementById('queue-pagination').getBoundingClientRect().top-document.querySelector('.queue-actions').getBoundingClientRect().bottom);
-    assert.ok(gap>=0&&gap<=12,'Nur ein kleiner Abstand vor der Wunschwahl: '+gap);
-    const height=page.viewportSize().height,requests=await page.evaluate(()=>__sizes.length);assert.equal(await readStudioText(page,'.request-text'),text);
-    const spacing=await page.locator('.queue-item.selected').evaluate(node=>{
-      const copy=node.querySelector('.queue-copy').getBoundingClientRect(),meta=node.querySelector('.queue-meta').getBoundingClientRect(),nav=node.querySelector('.text-pagination');
-      return {copyBottom:copy.bottom,metaTop:meta.top,pagerBottom:nav&&!nav.hidden?nav.getBoundingClientRect().bottom:copy.bottom};
-    });
-    assert.ok(spacing.copyBottom<=spacing.metaTop+1&&spacing.pagerBottom<=spacing.metaTop+1,'Auch lange Textseiten überdecken keinen Absender: '+JSON.stringify(spacing));
-
-    assert.equal(await page.evaluate(()=>__sizes.length),requests,'Lesen erzeugt keinen neuen Größenauftrag');
-    await page.waitForTimeout(250);assert.equal(page.viewportSize().height,height,'Kurze letzte Textseite verkürzt das Fenster nicht weiter');
-    await studioFits(page);assert.deepEqual(errors,[]);
-    await page.evaluate(s=>__emit('mw:state',{...s,revision:4,queue:[],queueWindow:[],queueTotal:0,page:0,pages:1}),active);
-    await page.waitForFunction(()=>innerHeight===320);await studioSettle(page);
-    const emptyRequests=await page.evaluate(()=>__sizes.length);await page.waitForTimeout(200);
-    assert.equal(await page.evaluate(()=>__sizes.length),emptyRequests,'Die leere Wunschregie erzeugt keine Schrumpfkaskade');
-    await page.evaluate(({s,item})=>__emit('mw:state',{...s,revision:5,queue:[item],queueWindow:[item],queueStart:0,queueTotal:1,page:0,pages:1}),{s:active,item});
-    await page.waitForFunction(h=>innerHeight===h,height);await studioFits(page);
-    await page.locator('#studio-programme-tab').click();await page.waitForFunction(()=>innerHeight===730);
-  }
+test('Moderation begrenzt die Wunschliste auf eine Scrollfläche und erhält ihre Höhe beim Lesen',async t=>{
+ for(const k3 of [true,false]){
+  const {page,state,errors}=await setup(t,{view:'studio',k3,nativeSizing:true,hostSteps:true,initialRequest:true,viewport:{width:780,height:730}});
+  await page.locator('#studio-queue-tab').click();await page.waitForTimeout(300);
+  await page.setViewportSize({width:320,height:400});await page.waitForTimeout(300);await studioSettle(page);
+  assert.equal(await page.locator('#studio-requests nav').count(),0);
+  assert.equal(await page.locator('#queue-body').evaluate(n=>getComputedStyle(n).overflowY),'auto');
+  assert.equal(await page.locator('.request-text').textContent(),state.queue[0].text);
+  const before=page.viewportSize().height;await page.locator('#queue-body').focus();await page.keyboard.press('End');await studioSettle(page);
+  assert.equal(page.viewportSize().height,before);await studioFits(page);assert.deepEqual(errors,[]);
+ }
 });
 
 test('Themenbearbeitung behält beim Tippen, Speichern, Fehler und Verwerfen dieselbe Overlaygeometrie',async t=>{
@@ -1028,8 +1030,8 @@ test('Fensteröffnung: Moderation ist vor Sichtbarkeit eingeteilt, auch wenn das
   assert.equal(await page.locator('#studio-programme-tabs [role=tab]').count(),2);
   assert.equal(await page.locator('#studio-programme-tab').isVisible(),true);
   await page.locator('#studio-queue-tab').click();
-  await revealStudio(page,'[data-outcome=done]');
-  assert.equal(await page.locator('[data-outcome=done]').isVisible(),true);
+  await revealStudio(page,'.request-text');
+  assert.equal(await page.locator('.request-text').isVisible(),true);
   assert.deepEqual(errors,[]);
 });
 
@@ -1336,10 +1338,12 @@ test('Jedes Fenster lädt nur seine Module und Styles; erneuter Einstieg verdopp
     const actual = requests.filter(url => url.startsWith('http://mischwerk.test/') && /\.(js|css)$/.test(url));
     assert.deepEqual(actual.map(url => url.replace('http://mischwerk.test/','')).sort(), [...files].sort(), view);
     assert.equal(requests.some(url => url === 'http://mischwerk.test/js/app.js'), false);
+    const hooks=await page.evaluate(()=>Object.fromEntries(Object.entries(__handlers).map(([type,list])=>[type,list.length])));
     await page.addScriptTag({ url: 'http://mischwerk.test/js/start.js' });
     await page.waitForFunction(() => document.querySelectorAll('script[src$="js/start.js"]').length === 2);
     assert.equal(await page.evaluate(() => window.__sent.filter(event => event.type === 'mw:ready').length), 1);
-    assert.equal(await page.evaluate(() => Object.values(window.__handlers).every(handlers => handlers.length === 1)), true);
+    assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(__handlers).map(([type,list])=>[type,list.length]))),hooks,'Wiederholter Einstieg registriert keinen Hook erneut');
+    assert.equal(Object.entries(hooks).every(([type,count])=>count===(view==='studio'&&type==='mw:result'?2:1)),true);
     assert.deepEqual(errors, []);
   }
 });
@@ -2177,11 +2181,11 @@ test('Fehlende Musikdaten erfinden keine Titel und zeigen einen neutralen Status
 test('Neue Moderation hält beim Verkleinern den per Tastatur bedienten Arbeitsbereich offen', async t=>{
   const {page,state,errors}=await setup(t,{view:'studio',viewport:{width:960,height:900},initialRequest:true});
   await showStudioPane(page,true);
-  await page.locator('[data-outcome=done]').focus();
+  await page.locator('#queue-body').focus();
   await resizeViewport(page,{width:390,height:360});
   assert.equal(await page.locator('#studio-queue-tab').getAttribute('aria-selected'),'true');
-  assert.equal(await page.locator('[data-outcome=done]').isVisible(),true);
-  assert.equal(await page.locator('[data-outcome=done]').evaluate(n=>n===document.activeElement),true);
+  assert.equal(await page.locator('.request-text').isVisible(),true);
+  assert.equal(await page.locator('#queue-body').evaluate(n=>n===document.activeElement),true);
   await page.locator('#studio-programme-tab').click();await revealStudio(page,'#studio-topic');
   await page.locator('#studio-topic').fill('Mein Entwurf');await page.locator('#studio-topic').focus();
   await resizeViewport(page,{width:780,height:360});
@@ -2294,7 +2298,7 @@ test('Studio zeigt Anmeldung ohne Zeitfelder und echte Abmelderechte; Verbindung
   assert.equal(await page.locator('#studio-host').textContent(),'Moderation unbestätigt');
   assert.equal(await page.locator('#studio-session').count(),0);
   assert.equal(await page.locator('body').evaluate(n=>n.classList.contains('moderator-on-air')),false);
-  for(const id of ['on-air','off-air','toggle-wishes','save-topic','prev-page','next-page'])assert.equal(await page.locator('#'+id).isDisabled(),true,id);
+  for(const id of ['on-air','off-air','toggle-wishes','save-topic'])assert.equal(await page.locator('#'+id).isDisabled(),true,id);
   assert.equal(await page.locator('#studio-queue-tab').isDisabled(),true);
   await page.locator('#refresh-queue').evaluate(n=>n.click());
   assert.match(await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:refresh').data.requestId),/^refresh-/);
@@ -2304,41 +2308,18 @@ test('Studio zeigt Anmeldung ohne Zeitfelder und echte Abmelderechte; Verbindung
   assert.deepEqual(errors,[]);
 });
 
-test('Studio-Warteschlange behält Tastaturfokus und sperrt Seitenwechsel während bestätigungspflichtiger Bearbeitung',async t=>{
-  const {page,state,errors}=await setup(t,{view:'studio'});
-  const item={id:17,text:'a-ha – Take On Me',nick:'Musikfreund',createdAt:Date.now(),delivery:null};
-  const next={...state,revision:2,queue:[item],queueTotal:2,pages:2,page:0};
-  await page.evaluate(s=>window.__emit('mw:state',s),next);
-  await showStudioPane(page,true);
-  await page.locator('[data-outcome="done"]').evaluate(node=>{window.__focusedWish=node;node.focus();});
-  await page.evaluate(s=>window.__emit('mw:state',{...s,revision:3,queue:[{...s.queue[0],delivery:{nick:'Otterchen',at:Date.now()}}]}),next);
-  assert.equal(await page.evaluate(()=>document.activeElement===window.__focusedWish),true,'Empfangsquittung ersetzt keine bediente Schaltfläche');
-  await page.evaluate(s=>window.__emit('mw:state',{...s,revision:4}),next);
-  assert.equal(await page.evaluate(()=>document.activeElement===window.__focusedWish),true,'Statusaktualisierung erhält Fokus');
-  await page.locator('#refresh-queue').click();
-  const refreshId=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:refresh').data.requestId);
-  assert.match(refreshId,/^refresh-/);
-  await page.evaluate(({s,id})=>window.__emit('mw:state',{...s,revision:4,refreshRequestId:id}),{s:next,id:refreshId});
-  await page.locator('[data-outcome="discarded"]').click();
-  const discard=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:resolveRequest'));
-  assert.equal(discard.data.id,17);assert.equal(discard.data.outcome,'discarded');
-  assert.equal(await page.locator('#next-page').isDisabled(),true);
-  await page.evaluate(s=>window.__emit('mw:result',{ok:false,action:s.type,requestId:s.data.requestId,message:'Speichern fehlgeschlagen.'}),discard);
-  assert.equal(await page.locator('.request-text').textContent(),item.text);
-  assert.equal(await page.locator('#next-page').isDisabled(),false);
-  await page.locator('[data-outcome="done"]').click();
-  const done=await page.evaluate(()=>window.__sent.findLast(e=>e.type==='mw:resolveRequest'));
-  assert.equal(done.data.id,17);assert.equal(done.data.outcome,'done');
-  await page.evaluate(s=>window.__emit('mw:result',{ok:true,action:s.type,requestId:s.data.requestId,message:'Wunsch als erledigt entfernt.'}),done);
-  assert.match(await page.locator('#notice').textContent(),/erledigt/);
-  await page.evaluate(s=>window.__emit('mw:state',{...s,revision:5,queue:[],queueTotal:0,pages:1}),next);
-  assert.equal(await page.locator('#queue-pagination').isVisible(),false);
-  assert.match(await page.locator('#request-queue').textContent(),/keine Musikwünsche/);
-  await page.evaluate(s=>window.__emit('mw:state',{...s,revision:6,user:{nick:'Hoerer',canModerate:false}}),next);
-  assert.equal(await page.locator('#request-queue').textContent(),'');
-  await page.evaluate(s=>window.__emit('mw:state',{...s,revision:7,queue:[],queueTotal:0,pages:1}),next);
-  assert.match(await page.locator('#request-queue').textContent(),/keine Musikwünsche/);
-  assert.deepEqual(errors,[]);
+test('Wunschliste erhält Tastaturfokus bei Refresh und leert private Inhalte bei Rechteverlust',async t=>{
+ const {page,state,errors}=await setup(t,{view:'studio',initialRequest:true});await showStudioPane(page,true);
+ await page.locator('#queue-body').focus();await page.evaluate(s=>__emit('mw:state',{...s,revision:2}),state);
+ assert.equal(await page.locator('#queue-body').evaluate(n=>n===document.activeElement),true);
+ assert.equal(await page.locator('#studio-requests nav,.queue-item button,.request-stage').count(),0);
+ await page.locator('#refresh-queue').click();const refreshId=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:refresh').data.requestId);
+ await page.evaluate(({s,refreshId})=>__emit('mw:state',{...s,revision:3,refreshRequestId:refreshId}),{s:state,refreshId});
+ assert.match(await page.locator('#queue-refresh-feedback').textContent(),/Aktualisiert/);
+ await page.evaluate(s=>__emit('mw:state',{...s,revision:4,queue:[],queueWindow:[],queueTotal:0}),state);
+ assert.match(await page.locator('#request-queue').textContent(),/keine Musikwünsche/);
+ await page.evaluate(s=>__emit('mw:state',{...s,revision:5,user:{nick:'Hörer',canModerate:false}}),state);
+ assert.equal(await page.locator('#request-queue').textContent(),'');assert.deepEqual(errors,[]);
 });
 
 test('Studio sendet erwartete Werte und erhält den Themenentwurf bei paralleler Änderung und Zeitüberschreitung',async t=>{
@@ -2365,9 +2346,9 @@ test('Studio und maximale Wunschtexte sind bei knappen Fenstermaßen ohne horizo
     const {page,state,errors}=await setup(t,{view:'studio',viewport:{width,height:568}});
     await page.evaluate(state=>window.__emit('mw:state',{...state,revision:2,moderator:{nick:'LangerModeratorNickname',expiresAt:Date.now()+3600000},queue:[{id:1,nick:'Hörer',text:'W'.repeat(300),createdAt:Date.now()}],queueTotal:1,pages:1}),state);
     await page.locator('#studio-queue-tab').waitFor({state:'visible'});await page.locator('#studio-queue-tab').click();
-    await revealStudio(page,'[data-outcome=done]');assert.equal(await page.locator('[data-outcome=done]').isVisible(),true);
-    assert.equal(await readStudioText(page,'.queue-copy h3'),'W'.repeat(300));
-    assert.equal(await page.locator('#queue-pagination button').first().isVisible(),false,'Einzelner Wunsch braucht keine Vor/Zurück-Aktionen');
+    await revealStudio(page,'.request-text');assert.equal(await page.locator('.request-text').isVisible(),true);
+    assert.equal(await page.locator('.request-text').first().textContent(),'W'.repeat(300));
+    assert.equal(await page.locator('#studio-requests nav').count(),0,'Einzelner Wunsch braucht keine Vor/Zurück-Aktionen');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
   }
 });
@@ -2414,13 +2395,8 @@ test('Moderation und Radio-Team erhalten bei Inhalt und Rückmeldungen ihre nati
     if (view === 'studio') {
       if (await page.locator('#studio-queue-tab').isVisible()) { await page.locator('#studio-queue-tab').click(); }
       await page.clock.runFor(100);
-      await page.locator('#next-page').click();
-      assert.equal(await page.evaluate(() => window.__sent.findLast(event => event.type === 'mw:refresh').data.page), 1);
-      await revealStudio(page,'[data-outcome=done]');
-      await page.locator('[data-outcome=done]').click();
-      const sent = await page.evaluate(() => window.__sent.findLast(event => event.type === 'mw:resolveRequest'));
-      await page.evaluate(sent => window.__emit('mw:result', { ok: true, action: sent.type,
-        requestId: sent.data.requestId, message: 'Wunsch als erledigt entfernt.' }), sent);
+      assert.equal(await page.locator('.request-text').textContent(),'W'.repeat(300));
+      assert.equal(await page.locator('#studio-requests nav').count(),0);
     } else {
       await page.locator('[data-radio-moderator-id="5"]').scrollIntoViewIfNeeded();
       assert.equal(await page.locator('[data-radio-moderator-id="5"]').isVisible(), true);
@@ -2458,8 +2434,8 @@ test('Niedrige STAPP-Verwaltungsfenster halten alle Aktionen mit Reitern und Scr
     if (view === 'studio') {
       await page.locator('#studio-queue-tab').waitFor({ state: 'visible' });
       await page.locator('#studio-queue-tab').click();
-      await revealStudio(page,'[data-outcome=done]');
-      assert.equal(await page.locator('[data-outcome=done]').isVisible(), true);
+      await revealStudio(page,'.request-text');
+      assert.equal(await page.locator('.request-text').isVisible(), true);
       await page.locator('#studio-programme-tab').click();
     }
     for (const selector of view === 'studio' ? ['#off-air', '#toggle-wishes', '#studio-topic'] :
@@ -2493,9 +2469,8 @@ test('Feste K3-Popups halten Rückmeldungen und Aktionen auch unterhalb ihrer In
       await page.locator('#studio-programme-tab').waitFor();
       await page.locator('#studio-queue-tab').click();
       assert.equal(await page.locator('#on-air').isVisible(), false);
-      await revealStudio(page,'[data-outcome=done]');
-      await page.locator('[data-outcome=done]').click();
-      assert.equal(await page.evaluate(() => window.__sent.findLast(event => event.type === 'mw:resolveRequest').data.outcome), 'done');
+      await revealStudio(page,'.request-text');
+      assert.match(await page.locator('.request-text').textContent(),/Langer Wunsch/);
       await page.locator('#studio-programme-tab').click();
     }
     const selectors = view === 'team' ? ['#radio-moderator-nick', '#add-radio-moderator', '#refresh-radio-team'] :
@@ -2532,12 +2507,12 @@ test('Schmale Popups halten maximale Texte und Aktionen mit Reitern und nativem 
       assert.ok(await naturalContentHeight(page)<=1000);
       await page.locator('#studio-queue-tab').click();
       assert.equal(await page.locator('#on-air').isVisible(),false);
-      await revealStudio(page,'[data-outcome=done]');
-      assert.equal(await page.locator('[data-resolve]').first().isVisible(),true);
+      await revealStudio(page,'.request-text');
+      assert.equal(await page.locator('.request-text').first().isVisible(),true);
     }
     if (view === 'studio') {
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-      for (const selector of ['[data-outcome=done]', '[data-outcome=discarded]', '#next-page']) {
+      for (const selector of ['#queue-body', '#refresh-queue']) {
         await page.locator(selector).scrollIntoViewIfNeeded();
         assert.ok(await page.locator(selector).evaluate(n=>{const r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight+1;}));
       }
@@ -2654,14 +2629,10 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   await listener.locator('#submit-wish').click();
   await listener.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
   await mod.goto(base+'/preview?role=moderator&view=studio');
-  for(let i=0;i<2;i++){
-    await showStudioPane(mod,true);
-    await mod.locator('#next-page:not([disabled])').waitFor();
-    await mod.locator('#next-page').click();
-    await mod.locator('#page-label').filter({hasText:'Wunsch '+(i+2)+' /'}).waitFor();
-  }
+  await showStudioPane(mod,true);
+  await mod.locator('.request-text').filter({hasText:'Browser-Roundtrip'}).scrollIntoViewIfNeeded();
   await mod.locator('.request-text').filter({hasText:'Browser-Roundtrip'}).waitFor();
-  assert.match(await mod.locator('.request-sender').textContent(),new RegExp(nick.replace(/[.*+?^$()|[\]\\]/g,'\\$&')));
+  assert.match(await mod.locator('.queue-item').filter({hasText:'Browser-Roundtrip'}).locator('.request-sender').textContent(),new RegExp(nick.replace(/[.*+?^$()|[\]\\]/g,'\\$&')));
   await mod.waitForTimeout(150);
   await listener.evaluate(()=>Client.sendEvent('mw:refresh',{page:0}));
   await listener.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
@@ -2711,10 +2682,11 @@ test('Vollständiger Browser-Roundtrip liefert Wünsche, Thema und Wunschbox-Ste
   assert.equal(await mod.locator('#studio-queue-tab').isDisabled(),true);await require('../support/studio-browser.cjs').login(mod);await mod.locator('#off-air:not([disabled])').waitFor();
   await showStudioPane(mod,true);await mod.evaluate(()=>Client.sendEvent('mw:refresh',{page:2}));
   await mod.locator('.request-text').filter({hasText:'Browser-Roundtrip'}).waitFor();
-  await mod.locator('[data-outcome="discarded"]').click();
-  await mod.locator('#notice').filter({hasText:'Wunsch verworfen.'}).waitFor();
+  await mod.evaluate(()=>Client.addEventListener('mw:result',event=>{if(event.data.action==='mw:resolveRequest')window.__resolution=event.data;}));
+  await require('../support/studio-browser.cjs').resolveRequest(mod,'discarded',Number(await mod.locator('.queue-item').filter({hasText:'Browser-Roundtrip'}).getAttribute('data-wish-id')));
+  await mod.waitForFunction(()=>window.__resolution?.ok===true&&__resolution.message==='Wunsch verworfen.');
   await mod.locator('#queue-count').filter({hasText:'2'}).waitFor();
-  assert.equal((await mod.locator('.request-text').textContent()).includes('Browser-Roundtrip'),false);
+  assert.equal((await mod.locator('#request-queue').textContent()).includes('Browser-Roundtrip'),false);
 });
 async function waitRadioPlaying(page) {
   await page.waitForFunction(()=>document.getElementById('stream-label').textContent==='LIVE' &&
@@ -3275,13 +3247,13 @@ test('Wunschplätze rücken im vollständigen Versand- und Moderations-Roundtrip
   await mod.setViewportSize({width:780,height:740});
   for(const [outcome,rank] of [['done',2],['discarded',1]]){
     await showStudioPane(mod,true);
-    await mod.locator('[data-outcome="'+outcome+'"]').click();
+    await require('../support/studio-browser.cjs').resolveRequest(mod,outcome);
     await mod.locator('#queue-count').filter({hasText:String(rank)}).waitFor();
     await radio.locator('#own-wish-rank').filter({hasText:'Platz '+rank}).waitFor();
   }
   await showStudioPane(mod,true);
   await mod.locator('.request-text').filter({hasText:'Ein Song mit sichtbarem Platz'}).waitFor();
-  await mod.locator('[data-outcome="done"]').click();
+  await require('../support/studio-browser.cjs').resolveRequest(mod);
   await mod.locator('#queue-count').filter({hasText:'0'}).waitFor();
   await radio.locator('#own-wish-position').waitFor({state:'hidden'});
   assert.equal(await listener.locator('#wish-text').isEnabled(),true);
@@ -3484,56 +3456,67 @@ test('Moderation enthält keine eigenen Sendezeiten oder Kalenderabrufe und erh�
   await studioFits(page);assert.deepEqual(errors,[]);
 });
 
-test('Flache Sendefläche und kompakte Wünsche nutzen klare Hierarchie; alle Texte bleiben ohne Scrollen erreichbar',async t=>{
+test('Flache Sendefläche und scrollbare Wünsche nutzen klare Hierarchie; alle Texte bleiben vollständig erreichbar',async t=>{
   const {page,state,errors}=await setup(t,{view:'studio',initialRequest:true,viewport:{width:780,height:730}});
   assert.equal(await page.locator('#studio-setup .card').count(),0);
   assert.equal(await page.locator('.studio-session').evaluate(n=>getComputedStyle(n).backgroundImage),'none');
   await showStudioPane(page,true);
-  assert.ok((await page.locator('.queue-copy').boundingBox()).height<=112);
-  assert.ok((await page.locator('[data-outcome=done]').boundingBox()).width<150);
+  assert.equal(await page.locator('#queue-body').evaluate(n=>getComputedStyle(n).overflowY),'auto');
+  assert.equal(await page.locator('.queue-item button').count(),0);
   const text=('Musikwunsch 🎵 mit vollständigem Originaltext. ').repeat(8).slice(0,300);
-  await page.evaluate(({s,text})=>__emit('mw:state',{...s,revision:2,queue:[{...s.queue[0],text}]}),{s:state,text});
+  await page.evaluate(({s,text})=>__emit('mw:state',{...s,revision:2,wishPositions:{...s.wishPositions,revision:2},queue:[{...s.queue[0],text}]}),{s:state,text});
   for(const [width,height] of [[3840,580],[780,730],[390,560],[320,560],[780,360],[320,400]]){
     await resizeViewport(page,{width,height});await studioSettle(page);
-    assert.equal(await readStudioText(page,'.request-text'),text);
+    assert.equal(await page.locator('.request-text').first().textContent(),text);
     await studioFits(page);
   }
   assert.deepEqual(errors,[]);
 });
 
-test('Wunschliste zeigt mehrere Einträge, wählt über bestehende Seiten und quittiert ausschließlich die sichtbare Auswahl',async t=>{
-  const {page,state,errors}=await setup(t,{view:'studio',viewport:{width:780,height:730}});
-  const rows=[1,2,3].map(id=>({id,text:'Listenwunsch '+id,nick:'Hörer '+id,stage:id===2?'preparing':'queued',createdAt:state.serverTime,delivery:null}));
-  const next={...state,revision:2,queue:[rows[0]],queueWindow:rows,queueStart:0,queueTotal:5,page:0,pages:5,wishPositions:{...state.wishPositions,revision:3}};
-  await page.evaluate(s=>__emit('mw:state',s),next);await studioSettle(page);
-  assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:ackRequest')),false);
-  await showStudioPane(page,true);await studioSettle(page);
-  assert.equal(await page.locator('.queue-item').count(),3);assert.equal(await page.locator('.request-pick').count(),2);
-  assert.deepEqual(await page.evaluate(()=>__sent.filter(e=>e.type==='mw:ackRequest').map(e=>e.data.id)),[1]);
-  await page.locator('[data-position="1"]').click();
-  assert.equal(await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:refresh').data.page),1);
-  const selected={...next,revision:3,queue:[rows[1]],page:1};await page.evaluate(s=>__emit('mw:state',s),selected);await studioSettle(page);
-  assert.equal(await page.locator('.request-text').textContent(),'Listenwunsch 2');
-  assert.equal(await page.locator('[data-stage=playing]').isDisabled(),true,'Weiterhin darf ausschließlich Platz 1 laufen');
-  assert.deepEqual(await page.evaluate(()=>__sent.filter(e=>e.type==='mw:ackRequest').map(e=>e.data.id)),[1,2]);
-  await page.evaluate(s=>__emit('mw:state',{...s,queueWindow:s.queueWindow.map(row=>({...row,text:'Veraltete Vorschau'})),wishPositions:{...s.wishPositions,revision:2}}),selected);
-  assert.doesNotMatch(await page.locator('#request-queue').textContent(),/Veraltete Vorschau/);
-  await studioFits(page);
-  await page.evaluate(s=>__emit('mw:state',{...s,revision:4,user:{...s.user,canModerate:false},queue:[],queueWindow:[]}),selected);
-  assert.equal(await page.locator('#request-queue').textContent(),'');assert.deepEqual(errors,[]);
+test('Wunschliste erhält nach einem Lesefehler die Texte und lädt nach passendem Refresh vollständig',async t=>{
+ const {page,state,errors}=await setup(t,{view:'studio',initialRequest:true});
+ await page.evaluate(()=>{
+  const send=Client.sendEvent;window.__dropList=true;
+  Client.sendEvent=(type,data)=>{if(type==='mw:queue.read'&&__dropList){__sent.push({type,data});return;}send(type,data);};
+ });
+ await showStudioPane(page,true);
+ const request=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:queue.read').data);
+ await page.evaluate(request=>__emit('mw:result',{action:'mw:queue.read',requestId:request.requestId,ok:false}),request);
+ assert.match(await page.locator('#queue-refresh-feedback').textContent(),/nicht vollständig geladen/);
+ assert.equal(await page.locator('.request-text').textContent(),state.queue[0].text);
+ await page.evaluate(()=>{__dropList=false;});await page.locator('#refresh-queue').click();
+ const refreshId=await page.evaluate(()=>__sent.findLast(e=>e.type==='mw:refresh').data.requestId);
+ await page.evaluate(({state,refreshId})=>__emit('mw:state',{...state,revision:2,refreshRequestId:refreshId}),{state,refreshId});
+ await studioSettle(page);
+ assert.equal(await page.locator('.queue-item').count(),1);
+ assert.equal(await page.locator('#queue-refresh-feedback').evaluate(n=>n.classList.contains('refresh-error')),false);
+ assert.equal(await page.locator('#queue-body').getAttribute('aria-busy'),null);
+ assert.deepEqual(errors,[]);
 });
 
-test('Verspäteter Queue-Stand setzt weder Wunschstatus noch Hörerposition zurück',async t=>{
-  const {page,state,errors}=await setup(t,{view:'studio',initialRequest:true,viewport:{width:780,height:900}});
-  const base={...state,revision:2,wishPositions:{...state.wishPositions,revision:10},queue:[{...state.queue[0],stage:'preparing'}]};
-  await page.evaluate(s=>__emit('mw:state',s),base);
-  assert.equal(await page.locator('.request-stage').textContent(),'In Vorbereitung');
-  const old={...base,wishPositions:{...base.wishPositions,revision:9},queue:[{...base.queue[0],stage:'queued'}]};
-  await page.evaluate(s=>__emit('mw:state',s),old);
-  assert.equal(await page.locator('.request-stage').textContent(),'In Vorbereitung');
-  await page.evaluate(s=>__emit('mw:state',{...s,user:{...s.user,canModerate:false}}),base);
-  assert.equal(await page.locator('#studio-panel').isVisible(),false);
-  assert.deepEqual(errors,[]);
+test('Wunschliste zeigt alle Einträge ohne Auswahl und ignoriert veraltete Listenstände',async t=>{
+ const {page,state,errors}=await setup(t,{view:'studio',viewport:{width:780,height:730}});
+ const rows=[1,2,3].map(id=>({id,text:'Listenwunsch '+id,nick:'Hörer '+id,createdAt:state.serverTime}));
+ const next={...state,revision:2,queue:[rows[0]],queueWindow:rows,queueTotal:3,wishPositions:{...state.wishPositions,revision:3}};
+ await page.evaluate(s=>__emit('mw:state',s),next);assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:ackRequest')),false);
+ await showStudioPane(page,true);await studioSettle(page);
+ assert.equal(await page.locator('.queue-item').count(),3);assert.equal(await page.locator('.queue-item button,#studio-requests nav').count(),0);
+ assert.deepEqual(await page.locator('.request-text').allTextContents(),rows.map(row=>row.text));
+ await page.evaluate(s=>__emit('mw:state',{...s,queueWindow:s.queueWindow.map(row=>({...row,text:'Veraltet'})),wishPositions:{...s.wishPositions,revision:2}}),next);
+ assert.doesNotMatch(await page.locator('#request-queue').textContent(),/Veraltet/);
+ await page.evaluate(s=>__emit('mw:state',{...s,revision:4,user:{...s.user,canModerate:false}}),next);
+ assert.equal(await page.locator('#request-queue').textContent(),'');assert.deepEqual(errors,[]);
+});
+
+test('Verspäteter Queue-Stand setzt weder Wunschtext noch Hörerposition zurück',async t=>{
+ const {page,state,errors}=await setup(t,{view:'studio',initialRequest:true});
+ const base={...state,revision:2,wishPositions:{...state.wishPositions,revision:10},queue:[{...state.queue[0],text:'Aktueller Wunsch'}]};
+ await page.evaluate(s=>__emit('mw:state',s),base);await showStudioPane(page,true);await studioSettle(page);
+ assert.equal(await page.locator('.request-text').textContent(),'Aktueller Wunsch');
+ await page.evaluate(s=>__emit('mw:state',{...s,wishPositions:{...s.wishPositions,revision:9},queue:[{...s.queue[0],text:'Veralteter Wunsch'}]}),base);
+ assert.equal(await page.locator('.request-text').textContent(),'Aktueller Wunsch');
+ await page.evaluate(s=>__emit('mw:state',{...s,user:{...s.user,canModerate:false}}),base);
+ assert.equal(await page.locator('#studio-panel').isVisible(),false);assert.deepEqual(errors,[]);
 });
 
 

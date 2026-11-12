@@ -8,7 +8,7 @@ const settings=()=>({enabled:true,runtimeVerified:true,syncSecret:'s'.repeat(64)
 function setup(options={}){
  const calls=[],store=options.store||persistence({[privateKey]:{...settings(),...options.config}});let runtime,hookCalls=0;
  const external={canAccessURL:()=>options.allowed!==false,postURL(url,p){calls.push({url,p});if(options.throwPost)throw Error('private-network-details');}};
- const h=createHarness(store,{serverMethods:{getExternalServerAccess:()=>external,getWebHookAccess(){hookCalls++;throw Error('WEBHOOK-MUST-NOT-BE-CALLED');},...options.serverMethods},configureModules(c){const attach=c.MischWerkModules.attachAndroidPublisher;c.MischWerkModules.attachAndroidPublisher=r=>{attach(r);runtime=r;};const lifecycle=c.MischWerkModules.attachLifecycle;c.MischWerkModules.attachLifecycle=(r,cfg)=>{lifecycle(r,cfg);const start=r.start;r.start=()=>{const saved=r.startAndroidRelay;r.startAndroidRelay=()=>{};start();r.startAndroidRelay=saved;};};}});
+ const h=createHarness(store,{now:options.now,serverMethods:{getExternalServerAccess:()=>external,getWebHookAccess(){hookCalls++;throw Error('WEBHOOK-MUST-NOT-BE-CALLED');},...options.serverMethods},configureModules(c){const attach=c.MischWerkModules.attachAndroidPublisher;c.MischWerkModules.attachAndroidPublisher=r=>{attach(r);runtime=r;};const lifecycle=c.MischWerkModules.attachLifecycle;c.MischWerkModules.attachLifecycle=(r,cfg)=>{lifecycle(r,cfg);const start=r.start;r.start=()=>{const saved=r.startAndroidRelay;r.startAndroidRelay=()=>{};start();r.startAndroidRelay=saved;};};}});
  const owner=h.user(1,'Otterchen','owner'),listener=h.user(2,'Privater Nick');const radio=h.open(owner),listenerRadio=h.open(listener);
  h.event(owner,radio,'mw:onAir',{});
  runtime.startAndroidRelay();
@@ -21,6 +21,132 @@ function setup(options={}){
  };
 }
 const wish=(id='android-one',text='Band – Song',displayName=null)=>({submissionId:id,text,displayName});
+
+test('Gemeinsamer Firebase-Vertrag exportiert native Wünsche und erhält Web-/Android-Metadaten',()=>{
+ const f=setup();f.reply();f.channel('Nativer Wunsch','native-contract');
+ const payload=()=>JSON.parse(f.calls.at(-1).p.data.payload),native=payload().studioWishUpdates;
+ assert.equal(payload().wishMetadataVersion,1);assert.equal(native.length,1);
+ assert.match(native[0].submissionId,/^knuddels:[A-Za-z0-9_-]{1,84}$/);
+ assert.deepEqual({...native[0],submissionId:'stable'},{submissionId:'stable',state:'queued',position:1,text:'Nativer Wunsch',origin:'knuddels',displayName:'Privater Nick'});
+ f.reply();f.poll([{...wish('from-web','Webwunsch','Webname'),origin:'web'},{...wish('from-android','Androidwunsch','Appname'),origin:'android'}]);
+ assert.deepEqual(f.items().map(r=>r.text),['Nativer Wunsch','Webwunsch','Androidwunsch']);
+ assert.deepEqual(f.items().slice(1).map(r=>[r.displayName,r.origin,r.senderKey]),[['Webname','web',''],['Appname','android','']]);
+ assert.equal(f.h.state(f.listener,f.listenerRadio).wishPositions.total,1);
+ f.h.advance(20000);assert.deepEqual(f.updates().map(r=>r.position),[2,3]);
+ assert.doesNotMatch(JSON.stringify(payload()),/senderKey|userId|visitorId|authentication/);
+});
+
+test('Native Studiostatus und Endzustände verwenden dieselbe stabile ID und die echte Position',()=>{
+ const f=setup();f.reply();f.channel('Native Regie','native-stage');
+ const row=()=>JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0],id=row().submissionId;f.reply();
+ f.runtime.deliverWish(1,f.owner);assert.equal(row().state,'received');assert.equal(row().submissionId,id);f.reply();
+ for(const [stage,previousStage] of [['preparing','queued'],['playing','preparing']]){
+  f.runtime.changeWishStage(f.owner,{id:1,stage,previousStage});assert.equal(row().state,stage);assert.equal(row().position,1);f.reply();
+ }
+ f.resolve(1);assert.deepEqual(row(),{submissionId:id,state:'done',position:null});f.reply();
+ assert.equal(f.runtime.pendingStudioWishUpdates().length,0);assert.equal(f.runtime.loadWishes().studioExports.length,0);
+});
+
+test('Gemischte Vorgängerentfernung aktualisiert native und externe Plätze im selben POST',()=>{
+ const f=setup();f.reply([wish('web-first','Web zuerst','Webname')]);f.h.advance(20000);f.reply();
+ f.channel('Native danach','native-position');const native=JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0];
+ assert.equal(native.position,2);f.reply();f.resolve(1);
+ const body=JSON.parse(f.calls.at(-1).p.data.payload);
+ assert.equal(body.wishUpdates[0].state,'done');assert.equal(body.studioWishUpdates[0].position,1);
+ assert.equal(body.studioWishUpdates[0].submissionId,native.submissionId);
+});
+
+test('Eine alte HTTP-Quittung löscht keinen neueren nativen Endzustand',()=>{
+ const f=setup();f.reply();f.channel('Kurzer Wunsch','native-old-ack');
+ const first=JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0];f.resolve(1,'discarded');f.reply();
+ const body=JSON.parse(f.calls.at(-1).p.data.payload);
+ assert.deepEqual(body.studioWishUpdates,[{submissionId:first.submissionId,state:'discarded',position:null}]);
+ f.reply();assert.equal(f.runtime.pendingStudioWishUpdates().length,0);
+});
+
+test('Neustart erhält Metadaten und native IDs und erhöht die persistierte Projektionsversion',()=>{
+ const f=setup();f.reply();f.channel('Bleibt erhalten','native-reboot');
+ const before=JSON.parse(f.calls.at(-1).p.data.payload);f.reply();
+ f.poll([{...wish('web-reboot','Aus Web','Name <Web>'),origin:'web'},{...wish('app-reboot','Aus App','Name App'),origin:'android'}]);
+ const lastStamp=JSON.parse(f.calls.at(-1).p.data.payload).station.updatedAt;
+ f.h.app.onShutdown();const reboot=setup({store:f.store,now:f.h.now()});
+ const after=JSON.parse(reboot.calls[0].p.data.payload);
+ assert.equal(after.studioWishUpdates[0].submissionId,before.studioWishUpdates[0].submissionId);
+ assert.ok(after.station.updatedAt>lastStamp,'Auch beim Neustart in derselben Millisekunde steigt die Version');
+ assert.deepEqual(reboot.items().slice(1).map(r=>[r.displayName,r.origin]),[['Name <Web>','web'],['Name App','android']]);
+ const views=reboot.items().map(r=>reboot.runtime.requestView(r));assert.deepEqual(views.map(r=>r.nick),['Privater Nick','Name <Web>','Name App']);
+ assert.deepEqual(views.map(r=>r.origin),['knuddels','web','android']);
+});
+
+test('Native Queue- und Endmarkercommits sind atomar; verlorene HTTP-Erfolge werden erneut gesendet',()=>{
+ const f=setup();f.reply();const write=f.store.setObject;
+ f.channel('\u009f','control-only-native');assert.equal(f.items().length,0,'Steuerzeichen allein werden nicht als Wunsch angenommen');
+ f.store.setObject=(key,value)=>{if(key==='mischwerk.wishes.v3')throw Error('disk unavailable');write(key,value);};
+ const count=f.calls.length;f.channel('Noch nicht gespeichert','native-commit');assert.equal(f.items().length,0);assert.equal(f.calls.length,count);
+ f.store.setObject=write;f.channel('Noch nicht gespeichert','native-commit');assert.equal(f.items().length,1);
+ const pending=JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0];f.reply([],{failure:true,status:503});
+ f.h.advance(20000);assert.equal(JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0].submissionId,pending.submissionId);f.reply();
+ f.store.setObject=(key,value)=>{if(key==='mischwerk.wishes.v3')throw Error('disk unavailable');write(key,value);};
+ f.resolve(1);assert.equal(f.items().length,1);assert.equal(f.runtime.loadWishes().studioExports[0].state,'queued');
+ f.store.setObject=write;f.resolve(1);assert.equal(f.items().length,0);assert.equal(f.runtime.loadWishes().studioExports[0].state,'done');
+});
+
+test('Unbestätigte native Endmarker überleben die 256er-Replaygrenze und einen Neustart',()=>{
+ const f=setup();f.reply();f.runtime.stopAndroidRelay();
+ for(let i=0;i<270;i++){f.channel('Temporärer Text '+i,'native-many-'+i);f.resolve(i+1,i%2?'discarded':'done');}
+ assert.equal(f.items().length,0);assert.equal(f.runtime.loadWishes().replays.length,256);
+ assert.equal(f.runtime.loadWishes().studioExports.length,270);
+ assert.doesNotMatch(JSON.stringify(f.runtime.loadWishes().studioExports),/Temporärer Text|Privater Nick|senderKey/);
+ f.h.app.onShutdown();const reboot=setup({store:f.store,now:f.h.now()}),sent=[];
+ while(reboot.runtime.pendingStudioWishUpdates().length){
+  const body=JSON.parse(reboot.calls.at(-1).p.data.payload);assert.ok(body.wishUpdates.length+body.studioWishUpdates.length<=100);
+  sent.push(...body.studioWishUpdates);reboot.reply();
+ }
+ assert.equal(sent.length,270);assert.equal(new Set(sent.map(r=>r.submissionId)).size,270);
+ assert.ok(sent.every(r=>['done','discarded'].includes(r.state)&&r.position===null&&!('text' in r)));
+});
+
+test('Native und externe Quittungen teilen die gemeinsame Obergrenze von 100 pro POST',()=>{
+ const at=Date.now()-120000,entries=Array.from({length:205},(_,i)=>({submissionId:'mixed-'+i,state:'done',position:null,createdAt:at,at,committed:true,dirty:true,revision:1}));
+ const f=setup({store:persistence({[privateKey]:settings(),[journalKey]:{version:1,entries}})});
+ for(let i=0;i<12;i++)f.channel('Native '+i,'native-mix-'+i);
+ f.reply();f.reply();f.reply();const bodies=f.calls.map(c=>JSON.parse(c.p.data.payload));
+ assert.deepEqual(bodies.map(b=>b.wishUpdates.length+(b.studioWishUpdates||[]).length),[100,100,17]);
+ assert.equal(bodies.flatMap(b=>b.studioWishUpdates||[]).length,12);
+});
+
+test('Legacyherkunft bleibt unbekannt; optionale Metadaten verleihen keine Channelidentität',()=>{
+ const f=setup();f.reply([wish('legacy-metadata','Legacy','Name <img onerror=evil>')]);
+ const view=f.runtime.requestView(f.items()[0]);assert.equal(view.origin,null);assert.equal(view.nick,'Name <img onerror=evil>');
+ assert.equal(f.items()[0].senderKey,'');assert.equal(f.h.state(f.listener,f.listenerRadio).wishPositions.total,0);
+ f.h.advance(20000);f.reply([{...wish('forged-origin'),origin:'knuddels'},{...wish('control-name'),displayName:'Name\u0000X'}]);
+ assert.equal(f.items().length,1);f.h.advance(20000);
+ for(const id of ['forged-origin','control-name'])assert.equal(f.updates().find(r=>r.submissionId===id).state,'discarded');
+});
+
+test('Wiederholungen ergänzen nachgewiesene fehlende Altmetadaten ohne bestehende Angaben zu überschreiben',()=>{
+ const f=setup();f.reply([wish('legacy-enrich','Originaltext','Alter Name')]);
+ const old=f.runtime.copy(f.runtime.loadWishes());delete old.items[0].displayName;f.runtime.commitWishMetadata(old);
+ f.poll([{...wish('legacy-enrich','Anderer Text','Nachgewiesener Name'),origin:'web'}]);
+ assert.equal(f.items().length,1);assert.equal(f.items()[0].text,'Originaltext');assert.equal(f.items()[0].displayName,'Nachgewiesener Name');assert.equal(f.items()[0].origin,'web');
+ f.poll([{...wish('legacy-enrich','Noch ein Text','Späterer Name'),origin:'android'}]);
+ assert.equal(f.items()[0].displayName,'Nachgewiesener Name');assert.equal(f.items()[0].origin,'web');assert.equal(f.items()[0].senderKey,'');
+});
+
+test('Ein Uhrzeitrücksprung sendet keine ältere Projektion und erhält offene native Updates',()=>{
+ const f=setup();f.reply();f.channel('Uhrschutz','clock-native');f.reply();
+ const count=f.calls.length,stamp=JSON.parse(f.calls.at(-1).p.data.payload).station.updatedAt,now=f.runtime.now;
+ f.runtime.now=()=>f.h.now()-100000;f.runtime.state.topic='Geändert';f.runtime.changed('station');assert.equal(f.calls.length,count);
+ f.runtime.now=now;f.runtime.changed('station');assert.ok(JSON.parse(f.calls.at(-1).p.data.payload).station.updatedAt>stamp);
+ assert.equal(f.items()[0].text,'Uhrschutz');
+});
+
+test('Nutzerlöschung meldet native Wünsche ausdrücklich als discarded ohne Namen oder Text',()=>{
+ const f=setup();f.reply();f.channel('Löschen','native-purge');const id=JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0].submissionId;f.reply();
+ f.h.app.onUserDeleted(f.listener.id);assert.equal(f.items().length,0);
+ assert.deepEqual(JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates,[{submissionId:id,state:'discarded',position:null}]);
+ assert.equal(f.runtime.loadWishes().replays.length,0);
+});
 test('Sync allein startet nativen signierten Publisher ohne WebHook-Zugriff oder Relay-Schlüssel',()=>{
  const f=setup();assert.equal(f.calls.length,1);assert.equal(f.hookCalls,0);assert.equal(f.runtime.androidPublisherStatus().publisherActive,true);
  const c=f.calls[0];assert.deepEqual(Object.keys(c.p.data).sort(),['nonce','payload','sig','ts']);assert.equal(c.p.header,undefined);
@@ -70,9 +196,11 @@ test('Wunschtext wird normalisiert; fremde Namen werden weder als Identität noc
  const f=setup();f.reply([wish('safe',' \u0000  M.I.A.   – Song \n ','°>evil<°')]);assert.equal(f.items()[0].text,'M.I.A. – Song');assert.equal(f.items()[0].nick,'Android');
  assert.doesNotMatch(JSON.stringify([f.h.logs,f.h.bot.messages,f.store.data[journalKey]]),/evil|M\.I\.A\./);
 });
-test('Bestätigte Nutzlasten enthalten nur technische Androidstatusfelder, keine Wunschtexte oder Namen',()=>{
+test('Nur geschützte native Studioupdates enthalten Wunschtext und öffentlichen Nick; externe Quittungen bleiben technisch',()=>{
  const f=setup();f.channel('Privater Channeltext');f.reply([wish('private','Privater Androidtext','Privater Androidname')]);f.h.advance(20000);
- const outgoing=JSON.stringify(f.calls.map(c=>c.p.data));assert.doesNotMatch(outgoing,/Privater Channeltext|Privater Androidtext|Privater Androidname|Privater Nick|senderKey|userId/);
+ const outgoing=f.calls.map(c=>JSON.parse(c.p.data.payload));
+ assert.ok(outgoing.some(body=>body.studioWishUpdates?.some(row=>row.text==='Privater Channeltext'&&row.displayName==='Privater Nick')));
+ assert.doesNotMatch(JSON.stringify(outgoing),/Privater Androidtext|Privater Androidname|senderKey|userId/);
  for(const row of f.updates())assert.deepEqual(Object.keys(row).sort(),['position','state','submissionId']);
  assert.doesNotMatch(JSON.stringify(f.store.data[journalKey]),/Privater Androidtext|Privater Androidname/);
 });
@@ -95,10 +223,10 @@ test('Queuecommitfehler bestätigt keine Annahme; dieselbe Kennung kann nach Erh
 });
 test('Abgestürzte Quittung nach dauerhaftem Queuecommit wird nach Neustart ohne Dublette repariert',()=>{
  const f=setup(),write=f.store.setObject;f.store.setObject=(k,v)=>{if(k===journalKey&&v.entries.some(r=>r.committed))throw Error('receipt offline');write(k,v);};
- f.reply([wish()]);assert.equal(f.items().length,1);f.store.setObject=write;f.h.app.onShutdown();const reboot=setup({store:f.store});reboot.reply([wish()]);assert.equal(reboot.items().length,1);reboot.h.advance(20000);assert.equal(reboot.updates()[0].state,'queued');
+ f.reply([wish()]);assert.equal(f.items().length,1);f.store.setObject=write;f.h.app.onShutdown();const reboot=setup({store:f.store,now:f.h.now()});reboot.reply([wish()]);assert.equal(reboot.items().length,1);reboot.h.advance(20000);assert.equal(reboot.updates()[0].state,'queued');
 });
 test('Fehlender Quittungsmarker wird aus der dauerhaft vorhandenen Queue wiederhergestellt',()=>{
- const f=setup();f.reply([wish()]);f.h.app.onShutdown();f.store.data[journalKey]={version:1,entries:[]};const reboot=setup({store:f.store});reboot.reply([wish()]);assert.equal(reboot.items().length,1);reboot.h.advance(20000);assert.equal(reboot.updates()[0].position,1);
+ const f=setup();f.reply([wish()]);f.h.app.onShutdown();f.store.data[journalKey]={version:1,entries:[]};const reboot=setup({store:f.store,now:f.h.now()});reboot.reply([wish()]);assert.equal(reboot.items().length,1);reboot.h.advance(20000);assert.equal(reboot.updates()[0].position,1);
 });
 test('Verlorene/verspätete Antwort und Shutdown führen keine alten Wünsche aus',()=>{
  const f=setup();f.h.advance(20000);const before=f.calls.length;f.reply([wish()],{index:0});assert.equal(f.items().length,0);assert.equal(f.calls.length,before);
@@ -153,7 +281,7 @@ test('Station überträgt bestätigten Lauftext einschließlich Aus mit Studiozu
  }
  for(const call of f.calls){const data=call.p.data;assert.deepEqual(Object.keys(data).sort(),['nonce','payload','sig','ts']);
   assert.equal(data.sig,require('node:crypto').createHmac('sha256',settings().syncSecret).update('v1.'+data.ts+'.'+data.nonce+'.'+data.payload).digest('hex'));}
- f.h.app.onShutdown();const reboot=setup({store:f.store});
+ f.h.app.onShutdown();const reboot=setup({store:f.store,now:f.h.now()});
  assert.deepEqual(JSON.parse(reboot.calls[0].p.data.payload).station.ticker,station().ticker,'Ausgeschalteter gespeicherter Lauftext bleibt nach Neustart übertragen');
 });
 

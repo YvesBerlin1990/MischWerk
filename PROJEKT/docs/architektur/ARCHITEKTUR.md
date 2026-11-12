@@ -1,6 +1,16 @@
-# MischWerk – Architektur 0.1.383 · Build 383
+# MischWerk – Architektur 0.1.391 · Build 391
 
-Stand 11.11.2026. Diese Übersicht beschreibt den aktuellen Aufbau; verbindliche Fach- und Entwicklungsregeln stehen ausschließlich in [AGENTS.md](../../AGENTS.md).
+Stand 12.11.2026. Diese Übersicht beschreibt den aktuellen Aufbau; verbindliche Fach- und Entwicklungsregeln stehen ausschließlich in [AGENTS.md](../../AGENTS.md).
+
+## Gemeinsame Wunschweiterleitung
+
+Die bestehende Knuddels-Queue bleibt für native, Web- und Android-Wünsche maßgeblich. wishes/export-state leitet ausschließlich technische Sendemarker für den bestehenden Queuecommit ab: stabiler Namensraum und Wunsch-ID, Zustand, Position, Revision und Sendebedarf. Aktive Texte/Namen stehen nur an den Queueeinträgen; unbestätigte Endmarker werden ohne Text/Namen bis zur passenden Quittung aufbewahrt. Auch Nutzerlöschungen erzeugen ausdrücklich discarded. Die persistierte Projektionshöchstzeit verhindert nach Neustart die Wiederverwendung einer Statusversion. wishes/storage verwendet weiterhin denselben paginierten Adapter und atomaren Indexwechsel.
+
+android/studio-wishes projiziert ausschließlich native Einträge nach studioWishUpdates und bestätigt passende Revisionen. android/publisher verwendet denselben signierten POST, denselben Heartbeat und insgesamt höchstens 100 native/externe Updates. Native Blöcke umfassen bis zehn Einträge; der verbleibende Platz gehört den bisherigen technischen wishUpdates. wishes/website bündelt die beiden bestehenden externen Queue-Einstiege. Der Firebase-Empfänger erhält displayName und optional origin web/android kompatibel; alte unbekannte Herkünfte bleiben unbekannt. wishMetadataVersion:1 signalisiert den erweiterten Empfänger. Native Nutzeridentitäten und Rechte bleiben unabhängig von externen Anzeigenamen. Bei gültiger Wiederzustellung werden nur fehlende Altmetadaten aus nachgewiesenen Angaben ergänzt; bestehende Namen, Herkunft, Wunschtext und Reihenfolge werden nicht überschrieben. In der privaten Liste steht die Herkunft in der bisherigen Absenderzeile. Die Firebase-Projektion ist für das geschützte Live Studio bestimmt; eine öffentliche Vollwunschliste entsteht nicht.
+
+## Lesende Wunschliste
+
+Die native Moderation zeigt Wünsche als eine flache scrollbare Liste mit vollständigem Text in #e6c77b, nativem Nick beziehungsweise externem Anzeigenamen mit Herkunft und Empfangsuhrzeit. Der vorhandene Snapshot bleibt klein; mw:queue.read liest den gesamten bestätigten Queue-Stand sequenziell über mw:queue.page in Paketen mit höchstens zehn Einträgen und unter 9500 UTF-16-Zeichen. Anfrage-ID, Studiositzung, Ansichtsrevision, Generation und Queuerevision werden geprüft. Der Client übernimmt erst den vollständigen Paketstand und erhält beim Aktualisieren seine Scrollposition. Ein flüchtiger sitzungsgebundener Lesebereich erlaubt Empfangsquittungen ausschließlich für ausgelieferte IDs; der Client quittiert nur tatsächlich im sichtbaren Listenausschnitt liegende Texte. Rechteverlust, Quellwechsel und Schließen leeren den privaten Browsercache. Es gibt keine zusätzliche Queuepersistenz oder Polltimer. Vorhandene Fachverträge für Regiestatus und Abschluss bleiben für die übrigen bestehenden Integrationen erhalten; die neue Liste besitzt keine Regieaktionen.
 
 ## Zusammensetzung und Start
 
@@ -134,7 +144,7 @@ android/connection erzeugt den nativen HTTPS-Port nur nach privater Freigabe und
 | Radio | 176 px ohne / 220 px mit normaler Lauftextzeile | `radio/viewport` passt ausschließlich die benötigte Höhe an; kompakter und scrollbar erreichbarer Fallback bei Clientgrenzen |
 | Sendeplan | 640 × 320 px | Natürliche Inhaltshöhe bis 600 px, danach Listen-Scrollfläche; Tagesnavigation bleibt fest |
 | Wunschbox | 480 × 340 px | `wishes/window` passt die benötigte Inhaltshöhe an |
-| Moderation | 640 × 580 px | `studio/window` hält den Rahmen scrollfrei; ganze Bediengruppen und Textseiten über Vor/Zurück, stabile Themengeometrie |
+| Moderation | 640 × 580 px | `studio/window` misst die Wunschliste ohne Eingriff in den Scrollzustand: natürliche Höhe 320–580 px, danach genau eine Listen-Scrollfläche. Sendung und Übergabe behalten Bediengruppen/Textseiten über Vor/Zurück; stabile Themengeometrie |
 | Verwaltung | 500 × 560 px | Fester flacher Rahmen, Radio-Team-Pagination und einzelne Bot-Text-Auswahl; Inhalt scrollt nur bei Überlauf |
 
 `schedule/public-data` validiert die öffentliche Wochenantwort; `schedule/public` liest sie über natives ExternalServerAccess.getURL von der festen Homepageadresse. Ein laufender Auftrag je Woche bündelt wartende Ansichten, ein 10-Sekunden-Timeout verwirft späte Ergebnisse. Höchstens drei flüchtige Cachewochen gelten 15 Sekunden; beide Shutdown-Hooks bereinigen sie. `schedule/day` projiziert ausschließlich diese JSON-Intervalle in den gewählten Berliner Tag, einschließlich generierter Zeilen, Ganztags- und vom Endpunkt aufgelöster Open-End-Zeiten. Der bestehende 20-Sekunden-Lifecycle aktualisiert nur offene Tagesansichten. `mw:schedule.day` prüft die Sitzung vor Abruf und asynchroner Zustellung, begrenzt Datum/Pakete und hält Seiten über eine inhaltsabhängige Snapshotkennung zusammen. Kein direkter Browserabruf, Schlüssel, Import, Persistenzcommit oder Rückfall auf den nativen Wochenbestand. Native Wochen-/Studio- und signierte Relay-Schreibverträge bleiben getrennt erhalten. Das Overlay weist Schreibaufträge mit Homepagehinweis ab.

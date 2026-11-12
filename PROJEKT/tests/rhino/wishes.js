@@ -491,4 +491,37 @@ load('tests/rhino/android-operation.js');
     check(latest(session,'mw:schedule.result').ok===true,'Inhaber darf abgeschlossenen Studioeintrag entfernen');
     store=previousStore;people=previousPeople;
 }());
+(function () {
+    var queue = { generation: 'rhino-list', revision: 1, items: [] }, packets = [], authorized = true;
+    for (var index = 0; index < 23; index += 1) {
+        queue.items.push({ id: index + 1, nick: 'Hörer ' + index, text: 'Wunsch ' + index, createdAt: index + 1 });
+    }
+    var content = {}, view = { kind: 'studio', content: content, viewRevision: 4, page: 0 };
+    var session = { getAppContent: function () { return content; } };
+    var runtime = { canUseModeration: function () { return authorized; }, getViews: function () { return [view]; },
+        loadWishes: function () { return queue; }, wishItems: function () { return queue.items; }, pageSize: 1,
+        requestView: function (item) { return item; }, failure: function (message) { return new Error(message); },
+        send: function (target, type, data) { packets.push(data); }, deliverWish: function (id) { return id; } };
+    MischWerkModules.attachWishTransport(runtime);
+    var request = { requestId: 'rhino-queue', view: 'studio', viewRevision: 4,
+        generation: queue.generation, revision: queue.revision, offset: 0 }, received = [];
+    do {
+        request.offset = received.length; runtime.sendQueuePage({}, request, session);
+        var page = packets[packets.length - 1];
+        check(page.items.length <= 10 && JSON.stringify({ type: 'mw:queue.page', data: page }).length < 9500, 'Begrenztes Listenpaket in Rhino');
+        received = received.concat(page.items);
+    } while (page.next < page.total);
+    check(received.length === 23 && received[22].id === 23, 'Alle Listenwuensche in unveraenderter Reihenfolge in Rhino');
+    var staleAck = false;
+    try { runtime.acknowledgeRequest({}, { id: 1, generation: 'alt', revision: queue.revision }, session); }
+    catch (error) { staleAck = true; }
+    check(staleAck, 'Auch erster Listeneintrag akzeptiert keine alte Generation in Rhino');
+    check(runtime.acknowledgeRequest({}, { id: 23, generation: queue.generation, revision: queue.revision }, session) === 23,
+        'Gelesener Listeneintrag ausserhalb der alten Dreier-Vorschau in Rhino');
+    queue.revision += 1; runtime.sendQueuePage({}, request, session);
+    check(packets[packets.length - 1].reset && packets[packets.length - 1].items.length === 0, 'Keine gemischten Listenrevisionen in Rhino');
+    authorized = false; var denied = false;
+    try { runtime.sendQueuePage({}, request, session); } catch (error) { denied = true; }
+    check(denied, 'Listenrechte bei jedem Abruf in Rhino pruefen');
+}());
 print('Rhino-Wunschweg OK: ' + assertions + ' Pruefungen, 125 Wuensche, ' + links.length + ' abgewiesene Links; Sendeplan, Studio-Meldungen und Bot-Texte ebenfalls geprueft.');

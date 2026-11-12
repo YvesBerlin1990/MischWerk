@@ -1,42 +1,25 @@
-/* Wunschwahl, vollständiger Text und Regie ohne Scrollfläche. */
-.studio-queue { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; padding:16px 24px; }
-.studio-queue-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; flex:none; }
+/* Flache Wunschliste mit genau einer Scrollfläche und vollständigen Texten. */
+.studio-queue { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; padding:16px 24px 0; }
+.studio-queue-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding-bottom:14px; flex:none; }
 .studio-queue-heading h2 { margin:0; font-size:19px; line-height:1.4; }
 #queue-refresh-feedback { display:block; margin:4px 0 0; font-size:12px; }
 #queue-count { background:transparent; border:0; color:var(--gold); padding:0; min-width:18px; margin-left:4px; font-weight:500; }
-#queue-body { flex:1; min-height:0; overflow:hidden; }
-#request-queue,.queue-toolbar { display:contents; }
-.queue-item { display:block; min-width:0; }
-.queue-copy { display:flex; flex-direction:column; min-width:0; height:112px; }
-.queue-copy h3 { flex:1; min-height:0; margin:0; font-size:17px!important; line-height:1.5!important; font-weight:400!important; }
-.queue-meta { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 14px; margin:8px 0; }
-.request-sender { margin:0; color:var(--muted); font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
-.request-stage { margin:0; color:var(--gold); font-size:12px; }
-.queue-stage-actions,.queue-actions { display:flex; flex-wrap:wrap; gap:8px; }
-.queue-actions { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }
-.request-pick { display:grid; grid-template-columns:22px minmax(0,1fr) 96px; gap:10px; align-items:center; width:100%; min-height:58px; padding:10px 0; border:0; border-top:1px solid var(--line); border-radius:0; background:transparent; text-align:left; }
-.request-pick:hover:enabled { background:#ffffff06; }
-.request-number { font-size:12px; color:var(--gold); }
-.request-preview { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; overflow-wrap:anywhere; font-size:14px; line-height:1.45; }
-.request-preview-sender { font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
-.queue > .empty-copy { padding:20px 0; margin:0; border:0; font-size:14px; line-height:1.6; }
+#queue-body { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; overflow-anchor:none; scrollbar-width:thin; scrollbar-color:#53565a transparent; padding-bottom:16px; }
+#queue-body:focus-visible { outline:2px solid var(--gold); outline-offset:-2px; }
+#request-queue { display:block; }
+.queue-item { min-width:0; padding:16px 8px 18px 0; border-top:1px solid var(--line); }
+.queue-meta { display:flex; align-items:baseline; justify-content:space-between; gap:8px 16px; margin-bottom:7px; }
+.request-sender { min-width:0; overflow-wrap:anywhere; color:var(--text); font-size:14px; font-weight:500; line-height:1.5; }
+.request-time { flex:none; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.request-text { margin:0; color:var(--gold); font-size:16px; font-weight:500; line-height:1.55; overflow-wrap:anywhere; white-space:pre-wrap; }
+.queue > .empty-copy { padding:24px 0; margin:0; border-top:1px solid var(--line); font-size:14px; line-height:1.6; color:var(--muted); }
 #queue-notice:empty { display:none; }
-#queue-pagination { flex:none; margin:0; padding-top:8px; border-top:1px solid var(--line); }
-.pagination.single-page { justify-content:center; }
-.pagination.single-page button { display:none; }
-#queue-view-paging { padding:8px 0; }
-.studio-queue.studio-sizing { flex:none; height:auto; }
-.studio-sizing #queue-body { flex:none; height:auto; }
-.studio-sizing #queue-view-paging { display:none!important; }
 @media (max-width:420px) {
- .studio-queue { padding:14px 16px; }
- .request-pick { grid-template-columns:20px minmax(0,1fr); gap:4px 8px; }
- .request-preview-sender { grid-column:2; }
+ .studio-queue { padding:14px 16px 0; }
+ .queue-meta { gap:8px 12px; }
+ .queue-item { padding-block:14px 16px; }
 }
 @media (max-height:460px) {
- .studio-queue:not(.studio-sizing) { padding:10px 16px; }
- .studio-queue:not(.studio-sizing) .studio-queue-heading { margin-bottom:6px; }
- .studio-queue:not(.studio-sizing) .studio-queue-heading h2 { font-size:15px; }
- /* Aktualisieren und seine Statuszeile bleiben auch beim ausgewählten Wunsch erreichbar. */
- .studio-queue:not(.studio-sizing) .queue-copy { height:104px; }
+ .studio-queue { padding-top:10px; }
+ .studio-queue .studio-queue-heading { padding-bottom:10px; }
 }

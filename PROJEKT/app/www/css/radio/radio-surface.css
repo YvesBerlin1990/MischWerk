@@ -53,7 +53,7 @@ html[data-view=radio] body::after {
   opacity:.7;
 }
 .radio-program-face { overflow:hidden; border:1px solid #3a3a3a; border-radius:24px; background:#141414; box-shadow:none; }
-.radio-program-face::before { content:""; position:absolute; left:-44px; top:50%; width:200px; height:200px; transform:translateY(-50%); border:2px solid #827354; border-radius:50%; background:radial-gradient(circle,#171817 0 calc(var(--play-size) / 2 + 9px),transparent calc(var(--play-size) / 2 + 10px)),repeating-radial-gradient(circle,#050505 0 9px,#262626 10px 11px,#050505 12px 20px); }
+.radio-program-face::before { content:""; position:absolute; left:0; top:50%; width:var(--vinyl-size); height:var(--vinyl-size); transform:translateY(-50%); border:2px solid #827354; border-radius:50%; background:radial-gradient(circle,#171817 0 calc(var(--play-size) / 2 + 9px),transparent calc(var(--play-size) / 2 + 10px)),repeating-radial-gradient(circle,#050505 0 9px,#262626 10px 11px,#050505 12px 20px); }
 .radio-program-face::after {
   content:"";
   position:absolute;

@@ -173,7 +173,7 @@ test('Wunschplätze rücken im echten Overlay-Roundtrip nach; Radio und Moderati
   const mod=await context.newPage();await mod.goto(base+'/preview?role=moderator&view=studio');
   await mod.locator('#studio-queue-tab').click();
   for(const [outcome,rank] of [['done',2],['discarded',1]]){
-    await mod.locator('[data-outcome='+outcome+']').click();
+    await require('../support/studio-browser.cjs').resolveRequest(mod,outcome);
     await radio.locator('#own-wish-rank').filter({hasText:'Platz '+rank}).waitFor();
   }
   await mod.locator('.request-text').filter({hasText:'Unser Song im Channel-Overlay'}).waitFor();
@@ -181,7 +181,7 @@ test('Wunschplätze rücken im echten Overlay-Roundtrip nach; Radio und Moderati
   const reopened=await open();await radio.locator('#own-wish-rank').filter({hasText:'Platz 1'}).waitFor();
   assert.equal(await reopened.locator('#wish-positions').count(),0);
   await reopened.locator('#wish-compose-open').focus();
-  await mod.locator('[data-outcome=done]').click();
+  await require('../support/studio-browser.cjs').resolveRequest(mod,'done');
   await radio.locator('#own-wish-position').waitFor({state:'hidden'});
   await reopened.waitForFunction(()=>document.activeElement===document.getElementById('wish-text'),{},{timeout:2000});
   assert.equal(await reopened.locator('#wish-text').evaluate(n=>document.activeElement===n),true,'Nach Bearbeitung des letzten Wunsches bleibt ein sichtbares Fokusziel');
@@ -196,20 +196,20 @@ test('Wunschregie überträgt Vorbereitung und laufenden Song privat an den Hör
   const mod=await context.newPage();await mod.goto(base+'/preview?role=moderator&view=studio');
   await mod.locator('#studio-queue-tab').click();
   for(const rank of [2,1]){
-    await mod.locator('[data-outcome=done]').click();
+    await require('../support/studio-browser.cjs').resolveRequest(mod,'done');
     await radio.locator('#own-wish-rank').filter({hasText:'Platz '+rank}).waitFor();
   }
   await surface.locator('#wish-compose-open').click();
   await surface.locator('#wish-text').fill('Mein nächster Entwurf bleibt');
-  await mod.locator('[data-stage=preparing]').click();
+  await require('../support/studio-browser.cjs').stageRequest(mod,'preparing');
   await radio.locator('#own-wish-stage').filter({hasText:'In Vorbereitung'}).waitFor();
   assert.equal(await radio.locator('#own-wish-rank').textContent(),'Platz 1');
-  await mod.locator('[data-stage=playing]').click();
+  await require('../support/studio-browser.cjs').stageRequest(mod,'playing','preparing');
   await radio.locator('#own-wish-stage').filter({hasText:'Läuft gerade'}).waitFor();
   assert.equal(await radio.locator('#own-wish-rank').textContent(),'Platz 1');
   assert.equal(await surface.locator('#wish-text').inputValue(),'Mein nächster Entwurf bleibt');
   assert.equal(sent.filter(e=>e.type==='mw:wish.submit').length,1);
-  await mod.locator('[data-outcome=done]').click();
+  await require('../support/studio-browser.cjs').resolveRequest(mod,'done');
   await radio.locator('#own-wish-position').waitFor({state:'hidden'});
   assert.equal(await surface.locator('#wish-text').inputValue(),'Mein nächster Entwurf bleibt');
   assert.deepEqual(errors,[]);

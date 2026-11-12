@@ -2,8 +2,8 @@
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
   "schema": 1,
-  "version": "0.1.383",
-  "buildNumber": 383,
+  "version": "0.1.391",
+  "buildNumber": 391,
   "directories": {
     "": [
       "main.js",
@@ -57,6 +57,7 @@ if (typeof MischWerkUpdateProbe === 'function') {
       "settings.js"
     ],
     "server/wishes": [
+      "export-state.js",
       "storage.js",
       "queue.js",
       "transport.js",
@@ -105,6 +106,7 @@ if (typeof MischWerkUpdateProbe === 'function') {
       "settings.js",
       "receipts.js",
       "incoming.js",
+      "studio-wishes.js",
       "projection.js",
       "commands.js",
       "publisher.js",
@@ -271,6 +273,7 @@ KnuddelsServer.execute('server/channel-texts/transport.js');
 KnuddelsServer.execute('server/radio/handover.js');
 KnuddelsServer.execute('server/state/initialization.js');
 KnuddelsServer.execute('server/radio/show.js');
+KnuddelsServer.execute('server/wishes/export-state.js');
 KnuddelsServer.execute('server/wishes/storage.js');
 KnuddelsServer.execute('server/wishes/queue.js');
 KnuddelsServer.execute('server/wishes/transport.js');
@@ -312,6 +315,7 @@ KnuddelsServer.execute('server/android/settings-access.js');
 KnuddelsServer.execute('server/android/settings.js');
 KnuddelsServer.execute('server/android/receipts.js');
 KnuddelsServer.execute('server/android/incoming.js');
+KnuddelsServer.execute('server/android/studio-wishes.js');
 KnuddelsServer.execute('server/android/projection.js');
 KnuddelsServer.execute('server/android/commands.js');
 KnuddelsServer.execute('server/android/publisher.js');

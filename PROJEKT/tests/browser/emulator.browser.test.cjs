@@ -9,6 +9,84 @@ const {reveal:revealStudio}=require('../support/studio-browser.cjs');
 const studioPictures=path.join(require('node:os').tmpdir(),'MischWerk-Pruefbilder','moderation-neu');fs.mkdirSync(studioPictures,{recursive:true});
 let browser;
 
+for(const client of ['k3','stapp'])test('Gemeinsame Wunschweiterleitung erhält Namen Herkunft und private Reihenfolge in '+client,async t=>{
+ const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client,640),listener=await lab.join('Polaroid',client,640);
+ await listener.radio.evaluate(()=>Client.sendEvent('mw:wish.submit',{submissionId:'metadata-native',text:'Nativer Wunsch'}));
+ await owner.radio.locator('#studio-tab').click();const studio=await overlayView(owner.page,'studio');
+ await studio.locator('#studio-queue-tab').click();await studio.waitForFunction(()=>document.querySelectorAll('.queue-item').length===1);
+ const runtime=lab.hub.runtime,key='mischwerk.android.private.v1',bodies=[];
+ let incoming=[{submissionId:'metadata-web',text:'Wunsch aus Web',displayName:'Web <img src=x onerror=evil>',origin:'web'},
+  {submissionId:'metadata-app',text:'Wunsch aus Android',displayName:'Appname',origin:'android'},
+  {submissionId:'metadata-legacy',text:'Wunsch ohne Herkunft',displayName:'Altname'}];
+ runtime.persistence.api().setObject(key,{enabled:true,runtimeVerified:true,syncSecret:'s'.repeat(64),syncUrl:'https://radio-mischwerk.web.app/api/publishKnuddelsState'});
+ runtime.context.KnuddelsServer.getExternalServerAccess=()=>({canAccessURL:()=>true,postURL:(url,p)=>{
+  bodies.push(JSON.parse(p.data.payload));const wishes=incoming;incoming=[];
+  p.onSuccess(JSON.stringify({accepted:true,serverTime:runtime.clock.now(),wishes}),{getResponseCode:()=>200,getURLString:()=>url});
+ }});
+ runtime.invokeFunction(runtime.app.onAppStart,[]);
+ await studio.waitForFunction(()=>document.querySelectorAll('.queue-item').length===4);
+ assert.deepEqual(await studio.locator('.request-text').allTextContents(),['Nativer Wunsch','Wunsch aus Web','Wunsch aus Android','Wunsch ohne Herkunft']);
+ assert.deepEqual(await studio.locator('.request-sender').allTextContents(),['Polaroid','Web <img src=x onerror=evil> · Web','Appname · Android','Altname · Extern']);
+ assert.equal(await studio.locator('.request-sender img').count(),0,'Anzeigenamen bleiben wörtlicher Text');
+ assert.ok(bodies.every(b=>b.wishMetadataVersion===1));
+ assert.ok(bodies.some(b=>b.studioWishUpdates?.some(r=>r.text==='Nativer Wunsch'&&r.displayName==='Polaroid'&&r.origin==='knuddels'&&r.position===1)));
+ const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','wunschweiterleitung');fs.mkdirSync(folder,{recursive:true});
+ for(const width of [640,320,900]){
+  await owner.page.locator('#width').fill(String(width));await owner.page.locator('#width').dispatchEvent('change');
+  await require('../support/studio-browser.cjs').settle(studio);
+  assert.deepEqual((await require('../support/layout-browser.cjs').inspectLayout(studio)).issues,[]);
+  if(width!==900)await owner.page.locator('#overlays iframe').screenshot({path:path.join(folder,'wuensche-'+client+'-'+width+'.png')});
+ }
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp','android'])test('Scrollbare Wunschliste zeigt Nick Uhrzeit und Goldtext ohne Seiteneinteilung in '+client,async t=>{
+ const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,640);
+ await radio.locator('#play-button').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+ await radio.evaluate(()=>{window.__listAudio=document.getElementById('radio-audio');__listAudio.loop=true;});
+ const texts=['a-ha – Take On Me','Queen – Radio Ga Ga','Depeche Mode – Enjoy the Silence',('Ein langer Wunsch mit Grüßen für alle im Channel. ').repeat(7).slice(0,300).trim()];
+ for(let i=0;i<23;i++)await radio.evaluate(({text,id})=>Client.sendEvent('mw:wish.submit',{text,submissionId:'scroll-ui-'+id}),{text:texts[i%texts.length],id:i});
+ await radio.locator('#studio-tab').click();const studio=await overlayView(page,'studio');
+ assert.equal(await studio.locator('#studio-queue-tab').isDisabled(),false);
+ await studio.locator('#studio-queue-tab').click();await studio.waitForFunction(()=>document.querySelectorAll('.queue-item').length===23);
+ const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','wuensche-liste');fs.mkdirSync(folder,{recursive:true});
+ const captured=new Set();
+ for(const width of [640,390,320,1280,3840,640]){
+  await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');
+  await studio.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const geometry=await studio.evaluate(()=>{
+   const body=document.getElementById('queue-body'),text=document.querySelector('.request-text'),meta=document.querySelector('.queue-meta');
+   return {width:innerWidth,bodyWidth:body.clientWidth,over:document.documentElement.scrollWidth>innerWidth+1,scroll:getComputedStyle(body).overflowY,
+    color:getComputedStyle(text).color,clamp:getComputedStyle(text).webkitLineClamp,meta:meta.textContent,nav:document.querySelectorAll('#studio-requests nav').length,
+    actions:document.querySelectorAll('.queue-item button').length,font:getComputedStyle(text).fontFamily};
+  });
+  assert.equal(geometry.over,false,JSON.stringify(geometry));assert.equal(geometry.scroll,'auto');assert.equal(geometry.color,'rgb(230, 199, 123)');
+  assert.equal(geometry.nav,0);assert.equal(geometry.actions,0);assert.match(geometry.meta,/Otterchen.*\d{2}:\d{2} Uhr/);assert.match(geometry.font,/Outfit/);
+  assert.equal(await studio.locator('.queue-item').nth(3).locator('.request-text').textContent(),texts[3]);
+  assert.equal(await studio.locator('.queue-item').nth(3).locator('.request-text').evaluate(n=>n.scrollHeight<=n.clientHeight+1),true);
+  assert.equal(await studio.locator('#queue-body').evaluate(n=>n.scrollHeight>n.clientHeight),true);
+  if([640,320].includes(width)&&!captured.has(width)){
+   await studio.locator('#queue-body').evaluate(n=>{n.scrollTop=0;});
+   await page.locator('#overlays iframe').screenshot({path:path.join(folder,'liste-oben-'+client+'-'+width+'.png')});captured.add(width);
+  }
+  await studio.locator('#queue-body').focus();await studio.locator('#queue-body').press('Control+End');
+  await studio.waitForFunction(()=>{const n=document.getElementById('queue-body');return n.scrollTop+n.clientHeight>=n.scrollHeight-1;});
+  assert.equal(await studio.locator('.queue-item').last().locator('.request-text').textContent(),texts[22%texts.length]);
+  if([640,320].includes(width))await page.locator('#overlays iframe').screenshot({path:path.join(folder,'liste-'+client+'-'+width+'.png')});
+ }
+ const scroll=await studio.locator('#queue-body').evaluate(n=>n.scrollTop);
+ await studio.locator('#refresh-queue').click();await studio.locator('#queue-refresh-feedback').filter({hasText:'Aktualisiert'}).waitFor();
+ assert.equal(await studio.locator('#queue-body').evaluate(n=>n.scrollTop),scroll);
+ await radio.evaluate(()=>Client.sendEvent('mw:wish.submit',{text:'Neu am Ende der Liste',submissionId:'scroll-ui-latest'}));
+ await studio.waitForFunction(()=>document.querySelectorAll('.queue-item').length===24);
+ assert.equal(await studio.locator('#queue-body').evaluate(n=>n.scrollTop),scroll);
+ assert.equal(await studio.locator('.queue-item').last().locator('.request-text').textContent(),'Neu am Ende der Liste');
+ await studio.locator('#studio-programme-tab').click();await studio.locator('#off-air').click();
+ await studio.waitForFunction(()=>document.getElementById('request-queue').textContent==='');
+ assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__listAudio&&!__listAudio.paused),true);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);assert.deepEqual(lab.hub.runtime.errors,[]);
+});
+
 for(const client of ['k3','stapp','android'])test('Wunschbox wird für Hörer erst nach Moderationsanmeldung sichtbar und erhält Entwurf und Audio in '+client,async t=>{
  const lab=await setup(t,{provider:'online',authenticationTest:true});
  const owner=await lab.join('Otterchen',client,1280,false),guest=await lab.join('Testhoerer',client,1280);
@@ -74,36 +152,93 @@ for(const client of ['k3','stapp','android'])test('Private Willkommensgrafik ble
  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);assert.deepEqual(lab.hub.runtime.errors,[]);
 });
 
-for(const client of ['k3','stapp','android'])test('Verkleinerte Appleiste hält Musik und Sendung im gemeinsamen Raster in '+client,async t=>{
- const lab=await setup(t,{provider:'online',authenticationTest:true}),{page,radio}=await lab.join('Otterchen',client,900,false);
+for(const [client,density] of [['k3',1],['stapp',1.25],['k3',1.5],['android',2]])test('Verkleinerte Appleiste hält Musik und Sendung im gemeinsamen Raster in '+client+' bei Pixeldichte '+density,async t=>{
+ const lab=await setup(t,{provider:'online',authenticationTest:true},false,{deviceScaleFactor:density}),{page,radio}=await lab.join('Otterchen',client,900,false);
  const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','radio-fenster');fs.mkdirSync(folder,{recursive:true});
+ const captureClient=client+(density===1?'':'-dpr-'+density),measurements=[];
+ async function checkLines(targetPage,targetRadio,phase){
+  await targetRadio.evaluate(()=>window.scrollTo(0,0));await require('../support/studio-browser.cjs').settle(targetRadio);
+  const geometry=await targetRadio.evaluate(()=>{
+   const music=document.querySelector('.now-playing'),brand=document.querySelector('.radio-brand'),line=getComputedStyle(document.getElementById('radio-panel'),'::after');
+   return {width:innerWidth,music:music.getBoundingClientRect().toJSON(),brand:brand.getBoundingClientRect().toJSON(),
+    logo:document.querySelector('.bar-logo').getBoundingClientRect().toJSON(),play:document.getElementById('play-button').getBoundingClientRect().toJSON(),
+    logoHeight:parseFloat(line.height),logoDisplay:line.display,musicBorder:getComputedStyle(music).borderRightWidth};
+  });
+  if(geometry.width<=700){
+   assert.equal(geometry.logoDisplay,'none');assert.equal(geometry.musicBorder,'0px','Beide Trenner entfallen gemeinsam in der gestapelten Ansicht');
+   measurements.push({phase,width:geometry.width,hidden:true});return;
+  }
+  assert.ok(Math.abs(geometry.logoHeight-geometry.music.height)<=1,'Beide Linien besitzen dieselbe vollständige Informationshöhe: '+JSON.stringify(geometry));
+  assert.ok(Math.abs((geometry.logo.top+geometry.logo.bottom-geometry.play.top-geometry.play.bottom)/2)<=1,'Logo und Playbutton teilen denselben Höhenmittelpunkt: '+JSON.stringify(geometry));
+  const png=await targetPage.locator('#headerbars iframe').screenshot({scale:'css',animations:'disabled'});
+  const pixels=await targetRadio.evaluate(async ({base64,geometry})=>{
+   const img=new Image();img.src='data:image/png;base64,'+base64;await img.decode();const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;
+   const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const data=ctx.getImageData(0,0,img.width,img.height).data;
+   const top=Math.ceil(geometry.music.top)+2,bottom=Math.floor(geometry.music.bottom)-2;
+   return {top,bottom,imageHeight:img.height,missing:[geometry.brand.right,geometry.music.right].map(edge=>{
+    let missing=0;for(let y=top;y<bottom;y++){
+     let visible=false;for(let x=Math.floor(edge)-3;x<=Math.ceil(edge)+1;x++){
+      const i=(y*img.width+x)*4,rgb=[data[i],data[i+1],data[i+2]];
+      if(Math.min(...rgb)>=38&&Math.max(...rgb)-Math.min(...rgb)<=4)visible=true;
+     }if(!visible)missing++;
+    }return missing;
+   })};
+  },{base64:png.toString('base64'),geometry});
+  assert.ok(pixels.top>=0&&pixels.bottom<=pixels.imageHeight,'Die vollständige Informationszeile ist sichtbar');
+  assert.deepEqual(pixels.missing,[0,0],'Beide Linien bleiben durchgehend sichtbar: '+JSON.stringify({client,density,phase,geometry,pixels}));
+  measurements.push({phase,width:geometry.width,height:geometry.music.height,logoHeight:geometry.logoHeight,...pixels});
+ }
  await radio.evaluate(()=>document.fonts.ready);
- await page.locator('#headerbars iframe').screenshot({path:path.join(folder,'appleiste-'+lab.hub.runtime.context.MischWerkConfig.buildNumber+'-'+client+'-900.png'),scale:'css'});
+ await page.locator('#headerbars iframe').screenshot({path:path.join(folder,'appleiste-'+lab.hub.runtime.context.MischWerkConfig.buildNumber+'-'+captureClient+'-900.png'),scale:'css'});
  await radio.locator('#play-button').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
  await radio.evaluate(()=>{window.__resizeAudio=document.getElementById('radio-audio');__resizeAudio.loop=true;});
- for(const width of [900,701,780,1024,1199,700,640,390,320,1200,1280,1499,1500,1920,2560,3840,900]){
+ for(const width of [900,1014,1152,701,702,780,850,1024,1199,700,699,640,390,320,1200,1280,1499,1500,1920,2560,3840,900]){
   await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');
   await radio.waitForFunction(w=>innerWidth===w,width);await page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
   await require('../support/studio-browser.cjs').settle(radio);
   const layout=await radio.evaluate(()=>{
    const box=s=>document.querySelector(s).getBoundingClientRect(),music=box('.now-playing'),topic=box('.radio-context'),play=box('#play-button'),volume=box('.volume-control'),actions=box('#radio-actions');
-   return {music:music.toJSON(),topic:topic.toJSON(),play:play.toJSON(),logo:box('.bar-logo').toJSON(),volume:volume.toJSON(),range:box('#volume').toJSON(),orientation:getComputedStyle(document.getElementById('volume')).writingMode,actions:actions.toJSON(),height:box('#radio-panel').height,overflow:document.documentElement.scrollWidth>innerWidth};
+   const face=box('.radio-program-face'),disc=getComputedStyle(document.querySelector('.radio-program-face'),'::before');
+   return {music:music.toJSON(),topic:topic.toJSON(),play:play.toJSON(),logo:box('.bar-logo').toJSON(),volume:volume.toJSON(),range:box('#volume').toJSON(),orientation:getComputedStyle(document.getElementById('volume')).writingMode,actions:actions.toJSON(),height:box('#radio-panel').height,overflow:document.documentElement.scrollWidth>innerWidth,
+    separator:getComputedStyle(document.querySelector('.now-playing')).borderRightWidth,
+    separatorColor:getComputedStyle(document.querySelector('.now-playing')).borderRightColor,brand:box('.radio-brand').toJSON(),
+    brandLine:{height:parseFloat(getComputedStyle(document.getElementById('radio-panel'),'::after').height),width:getComputedStyle(document.getElementById('radio-panel'),'::after').width,display:getComputedStyle(document.getElementById('radio-panel'),'::after').display},discCenter:face.left+parseFloat(disc.left)+parseFloat(disc.width)/2,
+    face:face.toJSON(),disc:{top:face.top+document.querySelector('.radio-program-face').clientTop+parseFloat(disc.top)-parseFloat(disc.height)/2,
+     bottom:face.top+document.querySelector('.radio-program-face').clientTop+parseFloat(disc.top)+parseFloat(disc.height)/2,
+     centerY:face.top+document.querySelector('.radio-program-face').clientTop+parseFloat(disc.top)}};
   });
   assert.equal(layout.overflow,false);
+  if(width>700){
+   assert.ok(Math.abs(layout.brand.top-layout.music.top)<=1&&Math.abs(layout.brand.bottom-layout.music.bottom)<=1,'Logotrenner nutzt die volle Informationshöhe');
+   assert.ok(Math.abs(layout.brandLine.height-layout.music.height)<=1,'Logotrenner reicht unabhängig vom Bild über die gesamte Informationszeile');
+   assert.equal(layout.brandLine.width,'1px');
+   assert.ok(layout.music.bottom>=layout.volume.bottom-1,'Musiktrenner reicht durchgehend bis unter die Lautstärkezeile');
+   assert.equal(layout.separator,'1px');
+   assert.equal(layout.separatorColor,'rgb(58, 58, 58)','Informationstrenner entspricht dem neutralgrauen Screenshot 2');
+  }
+  assert.ok(layout.disc.top>=layout.face.top+1&&layout.disc.bottom<=layout.face.bottom-1,'Alle Kreise passen vollständig in die Leistenhöhe: '+JSON.stringify({width,...layout}));
+  assert.ok(Math.abs(layout.disc.centerY-(layout.play.top+layout.play.height/2))<=1,'Play und Kreise teilen denselben Höhenmittelpunkt');
   assert.equal(layout.orientation,'horizontal-tb','Lautstärke bleibt auch im breiten Deck waagerecht bei '+width);
   assert.ok(layout.range.width>=layout.range.height&&layout.range.height>=44,'Waagerechte Spur und 44-px-Bedienhöhe bei '+width);
   assert.ok(layout.volume.top>=layout.topic.bottom-.5,'Lautstärke folgt unter Thema und Moderationsname bei '+width);
   assert.ok(Math.abs((layout.volume.left+layout.volume.right-layout.topic.left-layout.topic.right)/2)<=1,'Lautstärke und Thema sind gemeinsam zentriert bei '+width);
   if(width>=1200){assert.equal(layout.play.left,36);assert.equal(layout.play.width,80);assert.equal(layout.logo.left,width<1500?198:200);assert.equal(layout.logo.width,100);assert.equal(layout.height,160);}
   if(width>700&&width<1200){
+   assert.ok(Math.abs((layout.play.top+layout.play.bottom-layout.music.top-layout.music.bottom)/2)<=1,'Player mittig in der verfügbaren Musikzeile');
+   assert.ok(layout.play.right<layout.logo.left&&layout.logo.right<layout.music.left,'Wie im Hauptlayout steht Play vor Logo und Musik: '+JSON.stringify({width,...layout}));
+   assert.equal(layout.separator,'1px','Dezenter Trenner zwischen Musik und Thema bei '+width);
+   assert.ok(Math.abs(layout.discCenter-(layout.play.left+layout.play.width/2))<=1,'Vinyl bleibt am Mittelpunkt des Playbuttons');
    assert.ok(Math.abs(layout.music.top-layout.topic.top)<=1&&layout.music.right<=layout.topic.left,'Musik und Sendung stehen nebeneinander statt mit großem Leerraum untereinander: '+JSON.stringify({width,...layout}));
    assert.ok(layout.height<=200,'Kurze Inhalte brauchen keine zusätzliche Informationszeile: '+JSON.stringify({width,...layout}));
   }
   if(width<=700){
+   assert.equal(layout.brandLine.display,'none','Ohne Logo entfällt auch dessen Trenner');
    assert.ok(layout.topic.left<layout.play.left&&layout.topic.right>layout.music.right-1,'Thema nutzt unter der Musik die gesamte Inhaltsbreite');
    assert.ok(layout.topic.top>=layout.play.bottom+6,'Thema bleibt unter der vollständigen Playfläche');
   }
   if(width<1200)assert.ok(layout.actions.top>=Math.max(layout.topic.bottom,layout.volume.bottom,layout.play.bottom),'Aktionen stehen nach dem vollständigen Informationsbereich');
+  if(width<1200)await checkLines(page,radio,'normal');
+  if([1014,1280].includes(width))await page.locator('#headerbars iframe').screenshot({path:path.join(folder,'appleiste-'+lab.hub.runtime.context.MischWerkConfig.buildNumber+'-'+captureClient+'-'+width+'.png'),scale:'css'});
   await radio.locator('#radio-actions').scrollIntoViewIfNeeded();
   assert.deepEqual((await require('../support/layout-browser.cjs').inspectLayout(radio)).issues,[]);
   assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__resizeAudio&&!__resizeAudio.paused),true);
@@ -116,8 +251,9 @@ for(const client of ['k3','stapp','android'])test('Verkleinerte Appleiste hält 
   await radio.locator('.radio-context').scrollIntoViewIfNeeded();await require('../support/studio-browser.cjs').settle(radio);
   assert.deepEqual((await require('../support/layout-browser.cjs').inspectLayout(radio)).issues,[],'Langes Thema bei '+width);
   assert.equal(await radio.locator('#show-topic').evaluate(n=>n.scrollHeight<=n.clientHeight+1),true);
+  await checkLines(page,radio,'langes Thema');
   await radio.evaluate(()=>window.scrollTo(0,0));
-  await page.locator('#headerbars iframe').screenshot({path:path.join(folder,'appleiste-'+lab.hub.runtime.context.MischWerkConfig.buildNumber+'-'+client+'-'+width+'-thema.png'),scale:'css'});
+  await page.locator('#headerbars iframe').screenshot({path:path.join(folder,'appleiste-'+lab.hub.runtime.context.MischWerkConfig.buildNumber+'-'+captureClient+'-'+width+'-thema.png'),scale:'css'});
  }
  const title='Ein langer Musiktitel mit mehreren vollständigen Zeilen für kleine Fenster',artist='Interpret mit einem längeren Namen';
  await lab.context.route('**/fonts/*.woff2',route=>route.abort());
@@ -131,9 +267,11 @@ for(const client of ['k3','stapp','android'])test('Verkleinerte Appleiste hält 
    assert.deepEqual((await require('../support/layout-browser.cjs').inspectLayout(fallback.radio)).issues,[],'Lange Texte mit Ersatzschrift bei '+width);
   }
   assert.equal(await fallback.radio.locator('#track-title').textContent(),title);assert.equal(await fallback.radio.locator('#track-artist').textContent(),artist);
+  await checkLines(fallback.page,fallback.radio,'langer Titel mit Ersatzschrift');
  }
  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__resizeAudio&&!__resizeAudio.paused),true,'Erneutes Öffnen und Ersatzschrift erhalten die laufende Wiedergabe');
  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+ fs.writeFileSync(path.join(folder,'trenner-'+lab.hub.runtime.context.MischWerkConfig.buildNumber+'-'+captureClient+'.json'),JSON.stringify(measurements,null,2));
 });
 
 // Den Tastenhintergrund messen; Text-/Iconkanten enthalten normale Subpixel-Farbsäume.
@@ -289,8 +427,8 @@ for(const client of ['k3','stapp'])for(const width of [320,640])test('Neu aufgeb
  assert.equal(await require('../support/studio-browser.cjs').readText(studio,'.request-text'),text);
  await owner.page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);await require('../support/studio-browser.cjs').settle(studio);
  await studio.locator('.dialog-shell').screenshot({path:path.join(studioPictures,'neu-wuensche-'+client+'-'+width+'.png')});
- for(const stage of ['preparing','playing','queued']){await revealStudio(studio,'[data-stage="'+stage+'"]');await studio.locator('[data-stage="'+stage+'"]').click();await studio.locator('.request-stage').filter({hasText:stage==='preparing'?'In Vorbereitung':stage==='playing'?'Läuft gerade':'Wartet'}).waitFor();}
- await revealStudio(studio,'[data-outcome=done]');await studio.locator('[data-outcome=done]').click();await studio.locator('#queue-count').filter({hasText:'0'}).waitFor({state:'attached'});
+ for(const [stage,previous] of [['preparing','queued'],['playing','preparing'],['queued','playing']]){await require('../support/studio-browser.cjs').stageRequest(studio,stage,previous);await listener.radio.locator('#own-wish-stage').filter({hasText:stage==='preparing'?'In Vorbereitung':stage==='playing'?'Läuft gerade':'Wartet'}).waitFor({state:'attached'});}
+ await revealStudio(studio,'.request-text');await require('../support/studio-browser.cjs').resolveRequest(studio,'done');await studio.locator('#queue-count').filter({hasText:'0'}).waitFor({state:'attached'});
  await studio.locator('#studio-programme-tab').click();await revealStudio(studio,'#off-air');await studio.locator('#off-air').click();await listener.radio.locator('#open-wishes').waitFor({state:'hidden'});
  assert.equal(await owner.radio.evaluate(()=>document.getElementById('radio-audio')===__modernAudio&&!__modernAudio.paused),true);
  const appearance=await studio.locator('#on-air').evaluate(n=>({shadow:getComputedStyle(n).boxShadow,image:getComputedStyle(n).backgroundImage}));assert.deepEqual(appearance,{shadow:'none',image:'none'});
@@ -579,8 +717,8 @@ for (const client of ['k3', 'stapp']) {
     await wishes.locator('#close-wishes').click();
     await radio.locator('#studio-tab').click(); const studio = await overlayView(page, 'studio');
     await studio.locator('#studio-queue-tab').click();
-    await studio.locator('[data-stage="preparing"]').click();
-    await studio.waitForFunction(() => document.getElementById('request-queue').textContent.includes('Vorbereitung'));
+    await require('../support/studio-browser.cjs').stageRequest(studio,'preparing');
+    await radio.locator('#own-wish-stage').filter({hasText:'In Vorbereitung'}).waitFor();
     assert.deepEqual(await radio.evaluate(() => ({ same: __wishAudio === document.getElementById('radio-audio'),
       paused: __wishAudio.paused, loads: __wishLoads })), { same: true, paused: false, loads: 0 });
     const oldSource = await page.locator('#headerbars iframe').getAttribute('src');
@@ -592,7 +730,9 @@ for (const client of ['k3', 'stapp']) {
     await restored.locator('#studio-tab').click(); const reopened = await overlayView(page, 'studio');
     await reopened.locator('#studio-queue-tab').click();
     await reopened.locator('#request-queue').filter({ hasText: 'Erster gespeicherter Wunsch' }).waitFor();
-    assert.match(await reopened.locator('#request-queue').textContent(), /Vorbereitung/);
+    await restored.locator('#own-wish-stage').filter({hasText:'In Vorbereitung'}).waitFor();
+    assert.equal(await reopened.locator('.request-stage,.queue-item button').count(),0);
+    assert.deepEqual(await reopened.locator('.request-text').allTextContents(),['Erster gespeicherter Wunsch','Zweiter gespeicherter Wunsch']);
     assert.deepEqual(lab.errors, []); assert.deepEqual(lab.external, []);
   });
 }
@@ -1624,12 +1764,11 @@ for(const client of ['k3','stapp']) test('Neugestaltete Arbeitsfenster in '+clie
       assert.ok(fit.scroll<=fit.width+1,JSON.stringify(fit));
       assert.ok(fit.tabs.every(button=>button.height>=44&&button.scroll<=button.width+1),JSON.stringify(fit));
       if(panel==='studio-requests'){
-        const rows=await studio.locator('.queue-item.selected').evaluate(node=>{
+        const rows=await studio.locator('.queue-item').first().evaluate(node=>{
           const rect=selector=>{const n=node.querySelector(selector);return n&&n.getClientRects().length?n.getBoundingClientRect().toJSON():null;};
-          return {copy:rect('.queue-copy'),text:rect('.request-text'),pager:rect('.text-pagination'),meta:rect('.queue-meta'),actions:rect('.queue-toolbar')};
+          return {text:rect('.request-text'),meta:rect('.queue-meta')};
         });
-        if(rows.copy&&rows.meta)assert.ok(rows.copy.bottom<=rows.meta.top+1&&(!rows.pager||rows.pager.bottom<=rows.meta.top+1),'Wunschtext und Textseiten liegen vor der Absenderzeile: '+JSON.stringify(rows));
-        if(rows.meta&&rows.actions)assert.ok(rows.meta.bottom<=rows.actions.top+1,'Absender und Aktionen überlappen nicht: '+JSON.stringify(rows));
+        assert.ok(rows.meta.bottom<=rows.text.top+1,'Absender und Zeit stehen oberhalb des vollständigen Wunsches');
       }
 
       if(client==='k3'&&[320,780].includes(width))await page.locator('#overlays iframe').screenshot({path:path.join(studioPictures,name+'-'+width+'.png'),animations:'disabled'});
@@ -1873,7 +2012,7 @@ test('Zwei echte Nutzer: natives Overlay, Entwurf, doppeltes Senden und Erledigt
   await studio.locator('.request-text').filter({ hasText: 'Take On Me' }).waitFor();
   assert.match(await studio.locator('.request-sender').innerText(), /Testhoerer/);
   assert.equal(await studio.locator('#queue-count').innerText(), '1');
-  await studio.locator('[data-outcome=done]').click();
+  await require('../support/studio-browser.cjs').resolveRequest(studio,'done');
   await studio.locator('#queue-count').filter({ hasText: '0' }).waitFor();
   await listener.radio.locator('#own-wish-position').waitFor({ state: 'hidden' });
   assert.deepEqual(lab.errors, []); assert.deepEqual(lab.external, []);
@@ -2021,8 +2160,8 @@ test('Moderationserweiterung im strengen Emulator: private Wunschregie, Themenen
   assert.notEqual(await owner.page.locator('#overlays iframe').getAttribute('src'),oldPopup);
   await require('../support/studio-browser.cjs').login(studio);await studio.locator('#off-air:not([disabled])').waitFor();
   if(await studio.locator('#studio-queue-tab').isVisible())await studio.locator('#studio-queue-tab').click();
-  await studio.locator('[data-stage=preparing]').click();await listener.radio.locator('#own-wish-stage').filter({hasText:'In Vorbereitung'}).waitFor();
-  await studio.locator('[data-stage=playing]').click();await listener.radio.locator('#own-wish-stage').filter({hasText:'Läuft gerade'}).waitFor();
+  await require('../support/studio-browser.cjs').stageRequest(studio,'preparing');await listener.radio.locator('#own-wish-stage').filter({hasText:'In Vorbereitung'}).waitFor();
+  await require('../support/studio-browser.cjs').stageRequest(studio,'playing','preparing');await listener.radio.locator('#own-wish-stage').filter({hasText:'Läuft gerade'}).waitFor();
   assert.equal(await listener.radio.locator('#own-wish-rank').textContent(),'Platz 1');
   if(await studio.locator('#studio-programme-tab').isVisible())await studio.locator('#studio-programme-tab').click();
   const runtime=lab.hub.runtime;
@@ -2039,7 +2178,7 @@ test('Moderationserweiterung im strengen Emulator: private Wunschregie, Themenen
   await revealStudio(target,'#studio-notes-text');await target.locator('#studio-notes-text').filter({hasText:'Geburtstagsgrüße'}).waitFor();
   await target.locator('#studio-queue-tab').waitFor();
   await target.locator('#studio-queue-tab').click();
-  await target.locator('[data-outcome=done]').click();await listener.radio.locator('#own-wish-position').waitFor({state:'hidden'});
+  await require('../support/studio-browser.cjs').resolveRequest(target,'done');await listener.radio.locator('#own-wish-position').waitFor({state:'hidden'});
   assert.equal(runtime.errors.length,0);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
@@ -2074,32 +2213,22 @@ for(const client of ['k3','stapp'])test('Übergabe in '+client+' bleibt bei höc
   assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
-test('Native Wunschliste zeigt drei Einträge, erhält die Auswahl über Fensterseiten und quittiert nur den ausgewählten Wunsch',async t=>{
-  const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen','stapp');
-
-  await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
-  // Der zwölfsekündige Testton darf während des vollständigen Listenablaufs nicht enden.
-  await radio.evaluate(()=>{window.__listAudio=document.getElementById('radio-audio');window.__listAudio.loop=true;});
-  await lab.join('Testhoerer','k3');
-  const runtime=lab.hub.runtime,header=[...runtime.contents.sessions.keys()].find(id=>{const s=runtime.contents.describe(id);return s.nick==='Testhoerer'&&s.mode==='Headerbar';});
-  for(let i=1;i<=5;i++)runtime.event('Testhoerer',header,'mw:wish.submit',{submissionId:'native-list-'+i,text:'Nativer Listenwunsch '+i});
-  await radio.locator('#studio-tab').click();const studio=await overlayView(page,'studio');
-  const acks=()=>lab.hub.trace.filter(e=>e.kind==='clientEvent'&&e.eventType==='mw:ackRequest');
-  assert.equal(acks().length,0);await studio.locator('#studio-queue-tab').click();
-  await assertEventually(()=>acks().length===1);
-  assert.equal(await studio.locator('.queue-item').count(),3);
-  await revealStudio(studio,'[data-position="1"]');await studio.locator('[data-position="1"]').click();await studio.locator('.request-text').filter({hasText:'Listenwunsch 2'}).waitFor();
-  await assertEventually(()=>acks().length===2);
-  assert.notEqual(acks()[0].eventData.id,acks()[1].eventData.id);
-  await studio.locator('#next-page').click();await studio.locator('.request-text').filter({hasText:'Listenwunsch 3'}).waitFor();
-  await studio.locator('#next-page').click();await studio.locator('.request-text').filter({hasText:'Listenwunsch 4'}).waitFor();
-  assert.equal(await studio.locator('.queue-item').count(),2);
-  await studio.locator('#prev-page').click();await studio.locator('.request-text').filter({hasText:'Listenwunsch 3'}).waitFor();
-  assert.equal(await studio.locator('.queue-item').count(),3);
-  await revealStudio(studio,'[data-outcome=done]');await studio.locator('[data-outcome=done]').click();await studio.locator('#queue-count').filter({hasText:'4'}).waitFor();
-  assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===window.__listAudio&&!window.__listAudio.paused),true);
-  assert.equal(lab.hub.trace.filter(e=>e.kind==='contentShow'&&e.mode==='Overlay').length,1);
-  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+test('Native Wunschliste quittiert nur Texte innerhalb der sichtbaren Scrollfläche',async t=>{
+ const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen','stapp');
+ const listener=await lab.join('Testhoerer','k3');
+ for(let i=1;i<=15;i++)await listener.radio.evaluate(i=>Client.sendEvent('mw:wish.submit',{submissionId:'visible-list-'+i,text:('Nativer Listenwunsch '+i+' ').repeat(8).slice(0,300)}),i);
+ await radio.locator('#studio-tab').click();const studio=await overlayView(page,'studio');
+ const acks=()=>lab.hub.trace.filter(e=>e.kind==='clientEvent'&&e.eventType==='mw:ackRequest');
+ assert.equal(acks().length,0);await studio.locator('#studio-queue-tab').click();
+ await studio.waitForFunction(()=>document.querySelectorAll('.queue-item').length===15);
+ await assertEventually(()=>acks().length>0);
+ assert.ok(acks().length<15,'Nicht sichtbare Wünsche bleiben ungelesen');
+ assert.equal(acks().some(e=>e.eventData.id===15),false);
+ await studio.locator('#queue-body').evaluate(n=>{n.scrollTop=n.scrollHeight;});
+ await assertEventually(()=>acks().some(e=>e.eventData.id===15));
+ assert.equal(await studio.locator('#studio-requests nav,.queue-item button').count(),0);
+ assert.equal(lab.hub.trace.filter(e=>e.kind==='contentShow'&&e.mode==='Overlay').length,1);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
 for(const client of ['k3','stapp'])test('Alle nativen Öffnungen in '+client+' behalten getrennte native Anfänge und ausschließlich freigegebene Inhaltshöhen',async t=>{

@@ -10,7 +10,11 @@ MischWerkModules.attachSnapshot = function (runtime, config) {
     };
 
     runtime.requestView = function (item) {
-        return { id: item.id, nick: item.nick, artist: item.artist, title: item.title,
+        var external = item.source === 'Android', website = item.senderKey.indexOf('website:') === 0;
+        var origin = external ? item.origin || null : website ? 'web' : 'knuddels';
+        var name = external ? item.displayName === undefined ? null : item.displayName : website ? null : item.nick;
+        return { id: item.id, nick: external ? name || (origin === 'web' ? 'Web' : origin === 'android' ? 'Android' : 'Extern') : item.nick,
+            displayName: name, origin: origin, artist: item.artist, title: item.title,
             message: item.message, text: runtime.requestText(item), createdAt: item.createdAt,
             delivery: item.delivery ? { nick: item.delivery.nick, at: item.delivery.at } : null,
             stage: item.stage || 'queued' };

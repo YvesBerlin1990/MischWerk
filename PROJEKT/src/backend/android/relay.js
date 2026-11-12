@@ -10,6 +10,7 @@ MischWerkModules.attachAndroidRelay = function (runtime, wire) {
             var connection = wire || runtime.createAndroidWire(settings);
             if (!connection || typeof connection.sendJson !== 'function') { runtime.warn('ANDROID_NOT_AVAILABLE'); return false; }
             runtime.startAndroidReceipts();
+            runtime.startStudioWishExports();
             runtime.startAndroidPublisher(settings, connection); return true;
         } catch (error) { runtime.warn('ANDROID_START'); runtime.stopAndroidRelay(); return false; }
     };

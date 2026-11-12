@@ -3,13 +3,14 @@ MischWerkModules.attachAndroidIncoming = function (runtime) {
     'use strict';
     var totals = { received: 0, adopted: 0, duplicates: 0, discarded: 0, invalid: 0 };
     runtime.androidIncomingStatus = function () { return JSON.parse(JSON.stringify(totals)); };
-    function existing(id) {
+    function existing(id, metadata) {
         var items = runtime.wishItems(), item = null;
         items.some(function (row) {
             if (row.source === 'Android' && row.externalSubmissionId === id) { item = row; return true; }
             return false;
         });
         if (item) {
+            if (metadata) { runtime.enrichExternalWishMetadata(id, metadata); }
             var stage = item.stage || 'queued';
             if (stage === 'queued' && item.delivery) { stage = 'received'; }
             runtime.requeueAndroidReceipt(id, stage, items.indexOf(item) + 1); return true;
@@ -26,20 +27,22 @@ MischWerkModules.attachAndroidIncoming = function (runtime) {
             if (!data || typeof data !== 'object' || Array.isArray(data) || typeof data.submissionId !== 'string' ||
                     !/^[a-zA-Z0-9_-]{1,80}$/.test(data.submissionId)) { totals.invalid += 1; return; }
             try {
-                if (existing(data.submissionId)) { totals.duplicates += 1; return; }
-                var valid = Object.keys(data).sort().join(',') === 'displayName,submissionId,text';
+                var fields = Object.keys(data).sort().join(',');
+                var valid = fields === 'displayName,submissionId,text' ||
+                    (fields === 'displayName,origin,submissionId,text' && ['web', 'android'].indexOf(data.origin) >= 0);
                 var value = '';
                 try {
-                    value = runtime.text(data.text, 300, true);
+                    value = runtime.text(runtime.text(data.text, 300, true).replace(/[\u007f-\u009f]/g, ' '), 300, true);
                     valid = valid && !runtime.containsWishLink(value) && (data.displayName === null ||
-                        (typeof data.displayName === 'string' && data.displayName.length <= 50));
+                        (typeof data.displayName === 'string' && data.displayName.length <= 50 && !/[\u0000-\u001f\u007f-\u009f]/.test(data.displayName)));
                 } catch (invalidText) { valid = false; }
+                if (existing(data.submissionId, valid ? data : null)) { totals.duplicates += 1; return; }
                 if (!valid || runtime.shuttingDown || !runtime.requestsAvailable()) {
                     runtime.requeueAndroidReceipt(data.submissionId, 'discarded', null); totals.discarded += 1; return;
                 }
                 if (!runtime.androidReceiptCapacity()) { throw new Error('ANDROID_RECEIPT_CAPACITY'); }
                 try {
-                    runtime.enqueueAndroidWish({ submissionId: data.submissionId, text: value },
+                    runtime.enqueueAndroidWish({ submissionId: data.submissionId, text: value, displayName: data.displayName, origin: data.origin },
                         runtime.rememberAndroidWish, runtime.confirmAndroidWish);
                     totals.adopted += 1;
                 } catch (queueError) {
