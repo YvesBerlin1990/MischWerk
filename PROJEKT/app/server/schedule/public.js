@@ -3,12 +3,28 @@ MischWerkModules.attachPublicSchedule = function (runtime) {
     'use strict';
     var cache = {}, pending = {}, sequence = 0;
     function unavailable() { return runtime.failure('Der Sendeplan der Homepage ist gerade nicht erreichbar. Bitte erneut laden.'); }
-    runtime.readPublicSchedule = function (week, owner, callback) {
+    function trim() {
         var monday = runtime.scheduleWeek(runtime.scheduleToday());
         var weeks = [-7, 0, 7].map(function (offset) { return runtime.scheduleDay(monday, offset); });
         Object.keys(cache).forEach(function (key) { if (weeks.indexOf(key) === -1) { delete cache[key]; } });
-        if (runtime.shuttingDown || weeks.indexOf(week) === -1) { callback(unavailable()); return; }
-        if (cache[week] && runtime.now() >= cache[week].at && runtime.now() - cache[week].at < 15000) {
+        return weeks;
+    }
+    runtime.cachedPublicSchedule = function (week) {
+        trim();
+        return cache[week] ? { value:cache[week].value, stale:cache[week].invalid || runtime.now() < cache[week].at ||
+            runtime.now() - cache[week].at >= 60000 } : null;
+    };
+    runtime.invalidatePublicSchedule = function (week) {
+        Object.keys(cache).forEach(function (key) {
+            if (!week || Math.abs(runtime.scheduleDate(key) - runtime.scheduleDate(week)) <= 7 * 86400000) { cache[key].invalid = true; }
+        });
+        Object.keys(pending).forEach(function (key) {
+            if (!week || Math.abs(runtime.scheduleDate(key) - runtime.scheduleDate(week)) <= 7 * 86400000) { pending[key].invalid = true; }
+        });
+    };
+    runtime.readPublicSchedule = function (week, owner, callback) {
+        if (runtime.shuttingDown || runtime.scheduleWeek(week) !== week || trim().indexOf(week) === -1) { callback(unavailable()); return; }
+        if (cache[week] && !cache[week].invalid && runtime.now() >= cache[week].at && runtime.now() - cache[week].at < 60000) {
             callback(null, cache[week].value); return;
         }
         var job = pending[week];
@@ -22,11 +38,14 @@ MischWerkModules.attachPublicSchedule = function (runtime) {
             if (pending[week] !== job) { return; }
             delete pending[week]; clearTimeout(job.timer);
             if (runtime.shuttingDown) { return; }
+            if (!error && trim().indexOf(week) === -1) { error = unavailable(); }
             if (!error) {
                 var previous = cache[week] && cache[week].value;
-                value.signature = previous && JSON.stringify(previous.entries) === JSON.stringify(value.entries) ?
+                value.signature = previous && JSON.stringify([previous.entries, previous.revision, previous.previousRevision, previous.boundaryRevision]) ===
+                    JSON.stringify([value.entries, value.revision, value.previousRevision, value.boundaryRevision]) ?
                     previous.signature : String(++sequence);
-                cache[week] = {at:runtime.now(), value:value};
+                value.checkedAt = runtime.now();
+                cache[week] = {at:runtime.now(), value:value, invalid:!!job.invalid}; trim();
             }
             job.waiters.forEach(function (waiter) {
                 try { waiter.callback(error, value); } catch (ignored) { runtime.warn('SCHEDULE_PUBLIC_DELIVERY'); }
@@ -50,7 +69,12 @@ MischWerkModules.attachPublicSchedule = function (runtime) {
         } catch (error) { finish(unavailable()); }
     };
     runtime.stopPublicSchedule = function () {
-        Object.keys(pending).forEach(function (week) { clearTimeout(pending[week].timer); });
+        Object.keys(pending).forEach(function (week) { clearTimeout(pending[week].timer); pending[week].waiters = []; });
         pending = {}; cache = {};
+    };
+    runtime.releasePublicSchedule = function (owner) {
+        Object.keys(pending).forEach(function (week) {
+            pending[week].waiters = pending[week].waiters.filter(function (waiter) { return waiter.owner !== owner; });
+        });
     };
 };

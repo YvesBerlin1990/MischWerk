@@ -1817,7 +1817,14 @@ test('RGB-Lichthof wechselt fließend ohne Farbsprung und folgt nativer Wiederga
       assert.match(texture.image,/repeating-radial-gradient/);assert.equal(texture.pointerEvents,'none');assert.equal(texture.animation,'none');
     }
     const cardBounds=await geometry('.radio-program-face');
-    assert.equal(await page.locator('#radio-panel').evaluate(n=>getComputedStyle(n,'::after').content),'none');
+    const divider=await page.locator('#radio-panel').evaluate(node=>{
+      const style=getComputedStyle(node,'::after');
+      return {content:style.content,display:style.display,width:style.width,color:style.backgroundColor,pointerEvents:style.pointerEvents,animation:style.animationName};
+    });
+    assert.equal(divider.content,'""','Der vorhandene Logotrenner aus Build 389 bleibt erhalten');
+    assert.equal(divider.display,viewport.width<=700?'none':'block');
+    assert.equal(divider.width,'1px');assert.equal(divider.color,'rgb(58, 58, 58)');
+    assert.equal(divider.pointerEvents,'none');assert.equal(divider.animation,'none','Der neutrale Trenner gehört nicht zum animierten Lichthof');
     await page.locator('#play-button').click();await waitRadioPlaying(page);
     await page.mouse.move(0,0);
     await page.locator('#play-button').evaluate(node=>Promise.all(node.getAnimations().map(animation=>animation.finished)));
@@ -1853,7 +1860,11 @@ test('RGB-Lichthof wechselt fließend ohne Farbsprung und folgt nativer Wiederga
     }
     assert.deepEqual(await geometry('#radio-panel'),bounds);
     assert.deepEqual(await geometry('.radio-program-face'),cardBounds);
-    assert.equal(await page.locator('#radio-panel').evaluate(n=>getComputedStyle(n,'::after').content),'none');
+    const playingDivider=await page.locator('#radio-panel').evaluate(node=>{
+      const style=getComputedStyle(node,'::after');
+      return {content:style.content,display:style.display,width:style.width,color:style.backgroundColor,pointerEvents:style.pointerEvents,animation:style.animationName};
+    });
+    assert.deepEqual(playingDivider,divider,'Wiedergabe verändert weder neutralen Trenner noch seine Sichtbarkeit');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     if(viewport.width===1024||viewport.width===390)await captureDesign(page,'Radio-Leuchtrahmen-'+viewport.width+'-Play');
     await page.emulateMedia({reducedMotion:'reduce'});

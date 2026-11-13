@@ -1,11 +1,12 @@
 /* Eigenständiges, paginiertes Sendeplan-Protokoll; Radiozustand bleibt klein. */
 MischWerkModules.attachScheduleTransport = function (runtime) {
     'use strict';
-    runtime.observeChanges(function (kind) {
+    runtime.observeChanges(function (kind, week) {
         if (kind !== 'schedule') { return; }
+        runtime.invalidatePublicSchedule(week);
         runtime.getViews().forEach(function (view) {
             if (view.kind !== 'schedule') { return; }
-            view.content.getSessions().forEach(function (session) { runtime.send(session, 'mw:schedule.changed', {}); });
+            view.content.getSessions().forEach(function (session) { runtime.send(session, 'mw:schedule.changed', {week:week || null}); });
         });
     });
     runtime.handleScheduleEvent = function (user, type, data, session) {
@@ -29,6 +30,9 @@ MischWerkModules.attachScheduleTransport = function (runtime) {
                         }
                         var day = runtime.scheduleDayPage(runtime.scheduleDayContext(context.date), page, snapshot);
                         day.requestId = requestId;
+                        if ((!page || page === 0) && typeof data.signature === 'string' && data.signature === day.signature) {
+                            day.unchanged = true; delete day.entries;
+                        }
                         if (JSON.stringify(day).length >= 9500) { throw new Error('schedule packet'); }
                         runtime.send(session, 'mw:schedule.data', day);
                     } catch (failure) {
@@ -51,7 +55,7 @@ MischWerkModules.attachScheduleTransport = function (runtime) {
             runtime.changeSchedule(user, type, data);
             runtime.send(session, 'mw:schedule.result', { requestId: requestId, ok: true,
                 message: type === 'mw:schedule.delete' ? 'Sendung entfernt.' : 'Sendung gespeichert.' });
-            runtime.changed('schedule');
+            runtime.changed('schedule', data.week);
         } catch (error) {
             if (!error.publicMessage) { runtime.warn('SCHEDULE_ACTION', error); }
             runtime.send(session, 'mw:schedule.result', { requestId: requestId, ok: false,

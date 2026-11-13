@@ -4,6 +4,12 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
     var settings = null, wire = null, running = false, timer = null, generation = 0, requestToken = 0;
     var active = null, healthy = false, confirmedAt = 0, lastClock = 0, dirty = false, lastProjection = null, lastStamp = 0;
     var lastPost = null, firstAcceptedPost = null, processingReply = false, confirmedUpdates = 0;
+    var interval = 20000, failures = 0, retryAt = 0;
+    function failed() {
+        failures = Math.min(4, failures + 1);
+        retryAt = runtime.now() + Math.min(60000, 10000 * Math.pow(2, failures - 1));
+        arm(true);
+    }
     function clock() {
         var now = runtime.now();
         if (typeof now !== 'number' || !isFinite(now) || now < lastClock) { throw new Error('ANDROID_CLOCK'); }
@@ -28,7 +34,7 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
     };
     function projection() { return runtime.androidStationProjection(); }
     function publish(force) {
-        if (!running || runtime.shuttingDown || active || processingReply) { return; }
+        if (!running || runtime.shuttingDown || active || processingReply || runtime.now() < retryAt) { return; }
         var updates, studio, body, startedAt, wishProjection, relayProjection = null, relayResults = null;
         try {
             studio = runtime.pendingStudioWishUpdates();
@@ -46,7 +52,7 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
                 relayResults = runtime.pendingRelayResults();
                 Object.keys(relayResults).forEach(function (field) { body[field] = relayResults[field]; });
             }
-        } catch (error) { healthy = false; runtime.recordAndroidFailure('prepare', null); runtime.warn('ANDROID_PUBLISH_PREPARE'); return; }
+        } catch (error) { healthy = false; failed(); runtime.recordAndroidFailure('prepare', null); runtime.warn('ANDROID_PUBLISH_PREPARE'); return; }
         dirty = false;
         var token = ++requestToken, epoch = generation;
         active = { token: token, at: startedAt, cancel: null };
@@ -71,18 +77,16 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
                     runtime.confirmStudioWishResults(wishProjection.results);
                     if (relayProjection) { runtime.confirmRelayResults(relayResults); }
                     confirmedUpdates += updates.length;
-                    healthy = true; confirmedAt = now;
+                    healthy = true; confirmedAt = now; failures = 0; retryAt = 0;
                     runtime.acceptAndroidResponseWishes(reply.wishes);
                     if (typeof runtime.acceptRelayCommands === 'function') { runtime.acceptRelayCommands(reply); }
                     runtime.acceptStudioWishCommands(reply, wishProjection.control, now);
                     processingReply = false;
-                    // Neue Quittungen gehen im nächsten regulären POST; keine rekursive Antwort-/Sendeschleife.
-                    var hasCommands = (Array.isArray(reply.scheduleCommands) && reply.scheduleCommands.length > 0) ||
-                        (Array.isArray(reply.moderatorCommands) && reply.moderatorCommands.length > 0) ||
-                        (Array.isArray(reply.studioWishCommands) && reply.studioWishCommands.length > 0);
-                    if (!reply.wishes.length && !hasCommands) { publish(false); }
+                    // Quittungen und weitere Pakete ausschließlich im nächsten regulären Takt.
+                    arm(false);
                 } catch (error) {
                     processingReply = false; healthy = false; dirty = true;
+                    failed();
                     if (!result || !result.failureStage) {
                         runtime.recordAndroidFailure(runtime.now() - startedAt > 10000 ? 'timeout' :
                             result && result.status !== 200 ? 'http_response' : 'response_contract', result && result.status);
@@ -93,26 +97,34 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
             if (active && active.token === token) { active.cancel = cancel; }
         } catch (error) {
             cancelActive(); healthy = false; dirty = true;
+            failed();
             if (!error.androidBusy) { runtime.recordAndroidFailure('send', null); }
             runtime.warn('ANDROID_PUBLISH_SEND');
         }
     }
-    function arm() {
+    function arm(reset) {
         if (!running || runtime.shuttingDown) { return; }
+        var next = Math.max(runtime.moderatorIsActive() ? 5000 : 20000, retryAt - runtime.now());
+        if (timer !== null) {
+            if (!reset && interval === next) { return; }
+            clearTimeout(timer);
+        }
+        interval = next;
         var epoch = generation;
         timer = setTimeout(function () {
             timer = null;
             if (!running || epoch !== generation || runtime.shuttingDown) { return; }
-            if (active && runtime.now() - active.at >= 10000) { cancelActive(); healthy = false; runtime.recordAndroidFailure('timeout', null); }
-            publish(true); arm();
-        }, 20000);
+            if (active && runtime.now() - active.at >= 10000) { cancelActive(); healthy = false; failed(); runtime.recordAndroidFailure('timeout', null); }
+            publish(true); arm(false);
+        }, interval);
     }
     runtime.startAndroidPublisher = function (configuration, connection) {
         if (running) { return; }
         if (!connection || typeof connection.sendJson !== 'function') { throw new Error('ANDROID_TRANSPORT_UNVERIFIED'); }
         wire = connection;
         settings = configuration; running = true; generation += 1; dirty = true; lastPost = null; firstAcceptedPost = null;
-        publish(true); arm();
+        failures = 0; retryAt = 0;
+        publish(true); arm(false);
     };
     runtime.androidPublisherStatus = function () {
         return { publisherActive: running, firstAcceptedPost: firstAcceptedPost ? {
@@ -135,5 +147,6 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
         if (kind === 'station' && JSON.stringify(projection()) !== lastProjection) { dirty = true; publish(true); }
         else if (kind === 'wishes' || kind === 'wish-removed') { publish(false); }
         else if (kind === 'schedule') { dirty = true; publish(true); }
+        arm(false);
     });
 };

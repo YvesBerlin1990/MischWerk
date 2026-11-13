@@ -44,13 +44,13 @@
     },
     {
       "path": "MischWerk/server/android/commands.js",
-      "bytes": 7845,
-      "sha256": "C1ECB95B3FA00E910A56CFA2C4AFF1CEDB96744A9691608BF59F0C8D987951E5"
+      "bytes": 7851,
+      "sha256": "D52DFBFB53089155F23103D12BEFF43F6ACFB8BA9F0F9AF6C90AFA8F024C66BF"
     },
     {
       "path": "MischWerk/server/android/publisher.js",
-      "bytes": 9096,
-      "sha256": "614DF7D18A90ABA71C5A67A3CA535A435E2D6753FE636B0D10B9A92DA2E8FDF2"
+      "bytes": 9386,
+      "sha256": "422F32ED3B2BDF5ED5761E0E8F28CE8BDC3331FEC14F0AEE6644A641B3743BD9"
     },
     {
       "path": "MischWerk/server/android/verification.js",

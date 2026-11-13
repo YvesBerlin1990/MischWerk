@@ -54,6 +54,23 @@ MischWerkModules.attachSessions = function (runtime, config) {
         if (kind !== 'radio') {
             data.wishSurface = kind === 'wishes'; data.wishSurfaceId = opening.surfaceId; data.wishPresentation = opening.presentation;
         }
+        if (kind === 'schedule') {
+            try {
+                var savedDay = data.overlayState && data.overlayState.scheduleDay;
+                var context = runtime.scheduleDayContext('');
+                if (savedDay && savedDay.followToday === false) {
+                    try { context = runtime.scheduleDayContext(savedDay.date); }
+                    catch (outsideDay) { data.overlayState.scheduleDay = {date:context.date, followToday:true, scroll:0}; }
+                }
+                var cached = runtime.cachedPublicSchedule(context.week);
+                if (cached) {
+                    var initialDay = runtime.scheduleDayPage(context, 0, cached.value);
+                    initialDay.stale = cached.stale;
+                    if (initialDay.pages === 1) { data.scheduleInitial = initialDay; }
+                    if (JSON.stringify(data).length >= 9500) { delete data.scheduleInitial; }
+                }
+            } catch (ignoredSchedule) { /* Ohne bestätigten Cache über den normalen Tagesvertrag laden. */ }
+        }
         if (JSON.stringify(data).length >= 10000) { throw runtime.failure('Die Ansicht ist gerade zu umfangreich. Bitte erneut versuchen.'); }
         return runtime.createChannelContent(user, kind, data);
     }
@@ -77,6 +94,7 @@ MischWerkModules.attachSessions = function (runtime, config) {
             if (entry.closed) { return; }
             entry.closed = true;
             var closedKind = entry.kind;
+            if (closedKind === 'schedule') { runtime.releasePublicSchedule(content); }
             views = views.filter(function (view) { return view.content !== content; });
             if (entry.transition && entry.transition.cancel) { entry.transition.cancel(); }
             if (entry.radioContent) {

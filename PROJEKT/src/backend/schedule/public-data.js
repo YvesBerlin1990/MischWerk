@@ -39,6 +39,11 @@ MischWerkModules.attachPublicScheduleData = function (runtime) {
             rows.push({ from:from, until:until, topic:text(entry.topic, 80), nick:text(entry.moderator, 50),
                 kind:entry.kind, allDay:entry.timing === 'allDay' });
         });
-        return { entries:rows };
+        function revision(value) {
+            return typeof value === 'number' && isFinite(value) && value >= 0 && Math.floor(value) === value ? value : null;
+        }
+        return { entries:rows, revision:revision(value.revision), previousRevision:revision(value.previousRevision),
+            boundaryRevision:typeof value.boundaryRevision === 'string' && value.boundaryRevision.length <= 1024 ?
+                value.boundaryRevision : revision(value.boundaryRevision) };
     };
 };

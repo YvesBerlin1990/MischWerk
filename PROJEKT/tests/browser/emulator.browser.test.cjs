@@ -35,8 +35,8 @@ for(const client of ['k3','stapp'])test('Fernregie verändert dieselbe native Wu
   const id=(++sequence).toString(16).padStart(64,'0');pending={commandId:id,submissionId:exported.submissionId,action,
    expectedState:state,expectedPosition:1,expectedSourceUpdatedAt:source.station.updatedAt,beforeSubmissionId:null,
    sessionId:bodies.at(-1).studioWishControl.sessionId,expiresAt:runtime.clock.now()+120000};
-  const count=bodies.length;runtime.clock.advance(20000);assert.equal(bodies.length,count+1,'Keine rekursive Quittung');
-  runtime.clock.advance(20000);
+  const count=bodies.length;runtime.clock.advance(5000);assert.equal(bodies.length,count+1,'Keine rekursive Quittung');
+  runtime.clock.advance(5000);
   const result=bodies.findLast(body=>body.studioWishResults.some(row=>row.commandId===id));
   assert.equal(result?.studioWishResults[0].state,'applied');return result;
  }

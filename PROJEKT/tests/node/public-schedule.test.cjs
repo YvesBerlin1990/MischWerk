@@ -4,7 +4,7 @@ const base = 'https://radio-mischwerk.web.app/api/public-schedule?week=';
 const plain = value => JSON.parse(JSON.stringify(value));
 function fixture(options = {}) {
   const calls = [], store = persistence(); let runtime;
-  const h = createHarness(store, { serverMethods: { getExternalServerAccess: () => ({
+  const h = createHarness(store, { now:options.now, serverMethods: { getExternalServerAccess: () => ({
     canAccessURL: () => options.allowed !== false,
     getURL(target, callbacks) { calls.push({ target, callbacks }); if (options.throwGet) throw Error('private'); }
   }) }, configureModules(c) {
@@ -19,8 +19,8 @@ function fixture(options = {}) {
   const row = (changes = {}) => ({ id:'public-row', week, date, start:'12:00', end:'14:00', until:null,
     kind:'live', timing:'fixed', moderator:'Otterchen', topic:'Öffentlicher Webtitel', ...changes });
   return {h, store, runtime, calls, person, session, date, week, body, row,
-    read(day = date, page = 0, who = person, surface = session) {
-      h.event(who, surface, 'mw:schedule.day', {requestId:'public-'+(++sequence), date:day, page}); return surface.events;
+    read(day = date, page = 0, who = person, surface = session, extra = {}) {
+      h.event(who, surface, 'mw:schedule.day', {requestId:'public-'+(++sequence), date:day, page, ...extra}); return surface.events;
     },
     reply(value = body(), status = 200, target = calls.at(-1)?.target, failure = false, index = calls.length-1) {
       calls[index].callbacks[failure?'onFailure':'onSuccess'](typeof value === 'string' ? value : JSON.stringify(value),
@@ -49,7 +49,7 @@ test('Generierte AutoDJ-Zeilen, Live-Texte und leere Webtitel folgen dem öffent
   assert.deepEqual(f.data().entries.map(e=>[e.start,e.end,e.topic,e.nick]),[
     ['00:00','12:00','MischWerk Radio Show','MischWerk am Pult'], ['12:00','14:00','Live-Sendung','Polaroid'],
     ['14:00','00:00','  Web   Titel  ','otterchen']]);
-  f.h.advance(15000); f.read(); f.reply(f.body([f.row({kind:'autodj',timing:'allDay',start:'00:00',end:'00:00',generated:true})]));
+  f.h.advance(60000); f.read(); f.reply(f.body([f.row({kind:'autodj',timing:'allDay',start:'00:00',end:'00:00',generated:true})]));
   assert.equal(f.data().entries[0].allDay,true); assert.equal(f.data().entries[0].until-f.data().entries[0].from,1440);
 });
 
@@ -63,10 +63,10 @@ test('Mitternacht, vom Server aufgelöstes Open End und Wochengrenzen folgen den
   const f=fixture(),sunday=f.runtime.scheduleDay(f.week,6),monday=f.runtime.scheduleDay(sunday,1);
   const body=f.body([f.row({date:sunday,start:'22:00',end:'02:00'})],{week:f.runtime.scheduleWeek(monday),days:Array.from({length:7},(_,i)=>f.runtime.scheduleDay(monday,i))});
   f.read(monday); f.reply(body); assert.deepEqual(f.data().entries.map(e=>[e.start,e.end]),[['00:00','02:00']]);
-  f.h.advance(15000); f.read(monday); body.entries[0].timing='openEnd'; body.entries[0].until=f.runtime.scheduleDate(monday)/60000+600;
+  f.h.advance(60000); f.read(monday); body.entries[0].timing='openEnd'; body.entries[0].until=f.runtime.scheduleDate(monday)/60000+600;
   body.entries.push(f.row({id:'next',date:monday,week:body.week,start:'10:00',end:'12:00'})); f.reply(body);
   assert.deepEqual(f.data().entries.map(e=>[e.start,e.end]),[['00:00','10:00'],['10:00','12:00']]);
-  f.h.advance(15000); f.read(monday); body.entries[0].until=null; f.reply(body);
+  f.h.advance(60000); f.read(monday); body.entries[0].until=null; f.reply(body);
   assert.deepEqual(f.data().entries.map(e=>e.start),['10:00'],'Ohne until endet Open End wie auf der Website am Ende seines Starttags');
 });
 
@@ -74,9 +74,9 @@ test('Viele Einträge werden atomar paginiert; revision 0 kann neue Inhalte und 
   const f=fixture(),entries=Array.from({length:24},(_,i)=>f.row({id:'hour-'+i,start:String(i).padStart(2,'0')+':00',end:String((i+1)%24).padStart(2,'0')+':00',topic:'Ä'.repeat(78)}));
   f.read();f.reply(f.body(entries));const first=plain(f.data());assert.equal(first.pages,2);assert.equal(first.entries.length,20);
   f.read(f.date,1);assert.equal(f.calls.length,1);assert.equal(f.data().entries.length,4);assert.equal(f.data().signature,first.signature);
-  assert.ok(JSON.stringify(f.data()).length<9500);f.h.advance(15000);f.read();f.reply(f.body(entries));assert.equal(f.data().signature,first.signature);
-  f.h.advance(15000);f.read();entries[0].topic='BB';f.reply(f.body(entries));const changed=f.data().signature;assert.notEqual(changed,first.signature);
-  f.h.advance(15000);f.read();entries[0].topic='Aa';f.reply(f.body(entries));assert.notEqual(f.data().signature,changed,'Keine Kollision eines einfachen 31er-Hashes');
+  assert.ok(JSON.stringify(f.data()).length<9500);f.h.advance(60000);f.read();f.reply(f.body(entries));assert.equal(f.data().signature,first.signature);
+  f.h.advance(60000);f.read();entries[0].topic='BB';f.reply(f.body(entries));const changed=f.data().signature;assert.notEqual(changed,first.signature);
+  f.h.advance(60000);f.read();entries[0].topic='Aa';f.reply(f.body(entries));assert.notEqual(f.data().signature,changed,'Keine Kollision eines einfachen 31er-Hashes');
 });
 
 test('Mehrere Hörer teilen GET und Cache; derselbe Inhaltseigentümer behält nur seinen jüngsten Auftrag', () => {
@@ -84,7 +84,7 @@ test('Mehrere Hörer teilen GET und Cache; derselbe Inhaltseigentümer behält n
   f.read();f.read(f.date,0,other,second);f.read(f.date);assert.equal(f.calls.length,1);
   f.reply(f.body([f.row()]));assert.equal(f.session.events.filter(e=>e.type==='mw:schedule.data').length,1);
   assert.equal(second.events.filter(e=>e.type==='mw:schedule.data').length,1);assert.equal(f.data().requestId,'public-3');
-  f.read();assert.equal(f.calls.length,1);f.h.advance(15000);f.read();assert.equal(f.calls.length,2);
+  f.read();assert.equal(f.calls.length,1);f.h.advance(60000);f.read();assert.equal(f.calls.length,2);
 });
 
 for(const kind of ['http','redirect','failure','invalid','not-ready','wrong-week','oversized','bad-entry','duplicate','bad-days','control','long-title']) {
@@ -127,7 +127,7 @@ test('Berliner Heute und navigierbare Wochen bleiben über DST und Jahreswechsel
     assert.equal(f.data().date,today);assert.equal(f.data().today,today);
     const first=f.runtime.scheduleDay(week,-7),last=f.runtime.scheduleDay(week,13);
     assert.equal(f.runtime.scheduleDayContext(first).first,first);assert.equal(f.runtime.scheduleDayContext(last).last,last);
-    f.read(f.runtime.scheduleDay(first,-1));assert.equal(f.data(),undefined);assert.equal(f.error().ok,false);
+    f.read('2026-02-30');assert.equal(f.data(),undefined);assert.equal(f.error().ok,false);
     assert.equal(f.calls.length,1,'Ungültiges Datum wird nicht an eine fremde URL weitergereicht');
   }
 });
@@ -135,4 +135,73 @@ test('Berliner Heute und navigierbare Wochen bleiben über DST und Jahreswechsel
 test('Ein Heute-Auftrag über Mitternacht bestätigt keine veraltete Tagesauswahl',()=>{
   const f=fixture();f.h.advance(Date.parse('2026-11-11T22:59:59Z')-f.h.now());f.read('');f.h.advance(2000);
   f.reply(f.body());assert.equal(f.data(),undefined);assert.equal(f.error().ok,false);
+});
+
+test('Warmer Tagescache bestätigt unveränderte Inhalte klein und liest eine Woche höchstens einmal pro Minute',()=>{
+ const f=fixture();f.read();f.reply(f.body([f.row()]));const signature=f.data().signature;
+ for(let i=0;i<2;i++){f.h.advance(20000);f.read(f.date,0,f.person,f.session,{signature});assert.equal(f.data().unchanged,true);assert.equal(f.data().entries,undefined);}
+ assert.equal(f.calls.length,1);f.h.advance(20000);f.read(f.date,0,f.person,f.session,{signature});assert.equal(f.calls.length,2);
+ f.reply(f.body([f.row({topic:'Neue öffentliche Sendung'})]));assert.notEqual(f.data().signature,signature);assert.equal(f.data().entries[0].topic,'Neue öffentliche Sendung');
+});
+
+test('Wochen-, Vor- und Randrevisionen sichern denselben öffentlichen Cache einschließlich grenzüberschreitender Änderungen',()=>{
+ const f=fixture();let previous;
+ for(const changes of [{revision:1,previousRevision:2,boundaryRevision:'a:1/b:2'},
+  {revision:1,previousRevision:3,boundaryRevision:'a:1/b:2'},{revision:1,previousRevision:3,boundaryRevision:'a:1/b:3'}]){
+  f.read();f.reply(f.body([f.row()],changes));const current=f.data();
+  assert.equal(current.previousRevision,changes.previousRevision);assert.equal(current.boundaryRevision,changes.boundaryRevision);
+  if(previous)assert.notEqual(current.signature,previous);
+  previous=current.signature;f.h.advance(60000);
+ }
+});
+
+test('21 Tage teilen drei Wochenabrufe; Tage außerhalb werden ohne externen Abruf abgewiesen',()=>{
+ const f=fixture(),first=f.runtime.scheduleDay(f.week,-7);
+ function load(date){const count=f.calls.length;f.read(date);if(f.calls.length!==count){const week=f.runtime.scheduleWeek(date);f.reply(f.body([],{week,days:Array.from({length:7},(_,i)=>f.runtime.scheduleDay(week,i))}));}assert.equal(f.data().date,date);}
+ for(let i=0;i<21;i++)load(f.runtime.scheduleDay(first,i));assert.equal(f.calls.length,3);
+ for(let i=20;i>=0;i--)load(f.runtime.scheduleDay(first,i));assert.equal(f.calls.length,3);
+ for(const offset of [-1,21,35]){f.read(f.runtime.scheduleDay(first,offset));assert.equal(f.error().ok,false);}
+ assert.equal(f.calls.length,3);
+ assert.ok(f.runtime.cachedPublicSchedule(f.week));
+});
+
+test('Drei Berliner Kalenderwochen begrenzen auch Jahreswechsel und Zeitumstellungen auf Montag bis Sonntag',()=>{
+ for(const stamp of ['2026-03-29T01:30:00Z','2026-10-25T01:30:00Z','2026-12-31T23:30:00Z']){
+  const f=fixture({now:Date.parse(stamp)}),first=f.runtime.scheduleDay(f.week,-7),last=f.runtime.scheduleDay(f.week,13);
+  const snapshot={entries:[],signature:'test',checkedAt:f.h.now(),revision:0};
+  assert.equal(f.runtime.scheduleDayPage(f.runtime.scheduleDayContext(first),0,snapshot).previous,null);
+  assert.equal(f.runtime.scheduleDayPage(f.runtime.scheduleDayContext(last),0,snapshot).next,null);
+  for(const date of [f.runtime.scheduleDay(first,-1),f.runtime.scheduleDay(last,1)])assert.throws(()=>f.runtime.scheduleDayContext(date));
+  assert.equal(f.calls.length,0);
+ }
+});
+
+test('Der öffentliche Wochenleser weist Außenwochen auch ohne Tagescontroller ab',()=>{
+ const f=fixture();let failure;
+ for(const offset of [-14,14])f.runtime.readPublicSchedule(f.runtime.scheduleDay(f.week,offset),{},error=>{failure=error;});
+ assert.ok(failure);assert.equal(f.calls.length,0);
+});
+
+test('Über den Wochenwechsel verspäteter Randauftrag bestätigt keinen inzwischen ausgeschlossenen Tag',()=>{
+ const f=fixture({now:Date.parse('2026-11-15T22:59:59Z')}),first=f.runtime.scheduleDay(f.week,-7);
+ f.read(first);f.h.advance(2000);f.reply(f.body([],{week:first,days:Array.from({length:7},(_,i)=>f.runtime.scheduleDay(first,i))}));
+ assert.equal(f.data(),undefined);assert.equal(f.error().ok,false);assert.equal(f.runtime.cachedPublicSchedule(first),null);
+});
+
+test('Wochenwechsel behält die zwei gültigen Wochen und lädt nur den neuen Rand nach',()=>{
+ const f=fixture({now:Date.parse('2026-11-15T22:59:59Z')}),weeks=[-7,0,7].map(n=>f.runtime.scheduleDay(f.week,n));
+ for(const week of weeks){f.read(week);f.reply(f.body([],{week,days:Array.from({length:7},(_,i)=>f.runtime.scheduleDay(week,i))}));}
+ f.h.advance(2000);assert.equal(f.runtime.scheduleToday(),'2026-11-16');
+ assert.equal(f.runtime.cachedPublicSchedule(weeks[0]),null);assert.equal(f.runtime.cachedPublicSchedule(weeks[1]).stale,false);
+ assert.equal(f.runtime.cachedPublicSchedule(weeks[2]).stale,false);
+ f.read(weeks[2]);assert.equal(f.calls.length,3);
+ const added=f.runtime.scheduleDay(weeks[2],7);f.read(added);assert.equal(f.calls.length,4);
+});
+
+test('Gezielte Änderung invalidiert betroffene und angrenzende Wochen, ohne einen entfernten gültigen Tag zu verwerfen',()=>{
+ const f=fixture(),weeks=[-7,0,7].map(n=>f.runtime.scheduleDay(f.week,n));
+ for(const week of weeks){f.read(week);f.reply(f.body([],{week,days:Array.from({length:7},(_,i)=>f.runtime.scheduleDay(week,i))}));}
+ f.runtime.changed('schedule',weeks[2]);assert.equal(f.runtime.cachedPublicSchedule(weeks[0]).stale,false);
+ assert.equal(f.runtime.cachedPublicSchedule(weeks[1]).stale,true);assert.equal(f.runtime.cachedPublicSchedule(weeks[2]).stale,true);
+ f.read(weeks[0]);assert.equal(f.calls.length,3);f.read(weeks[2]);assert.equal(f.calls.length,4);
 });

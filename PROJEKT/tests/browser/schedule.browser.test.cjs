@@ -11,16 +11,19 @@ async function setup(t,client='k3',options={}){
  const instance=await createEmulator({port:0,dataDir:directory,appDir:process.env.MISCHWERK_TEST_UPLOAD});
  Object.assign(instance.hub.faults,{provider:'online'},options);instance.hub.restart(false);
  const runtime=instance.hub.runtime,posts=[];runtime.shutdown();
- runtime.clock.offset=Date.parse('2026-11-10T18:30:00Z')-Date.now();
+ runtime.clock.offset=Date.parse(options.now||'2026-11-10T18:30:00Z')-Date.now();
  runtime.persistence.api().setObject('mischwerk.android.private.v1',{enabled:true,runtimeVerified:true,syncSecret:'local-test-secret-'.repeat(4),syncUrl:'https://radio-mischwerk.web.app/api/publishKnuddelsState'});
  let backend;const attach=runtime.context.MischWerkModules.attachScheduleDay;
  runtime.context.MischWerkModules.attachScheduleDay=r=>{attach(r);backend=r;};
- const publicRows=new Map(),gets=[],publicControl={failure:false};
+ const publicRows=new Map(),gets=[],publicControl={failure:false,held:[],holdWeeks:[]};
  runtime.context.KnuddelsServer.getExternalServerAccess=()=>({canAccessURL:()=>true,getURL(url,callbacks){
   gets.push(url);const week=new URL(url).searchParams.get('week');
-  if(publicControl.failure){runtime.invokeFunction(callbacks.onFailure,['',{getResponseCode:()=>503}]);return;}
-  const body={version:1,ok:true,ready:true,week,today:backend.scheduleToday(),days:Array.from({length:7},(_,i)=>backend.scheduleDay(week,i)),revision:0,entries:[...publicRows.values()]};
-  runtime.invokeFunction(callbacks.onSuccess,[JSON.stringify(body),{getResponseCode:()=>200,getURLString:()=>url}]);
+  const respond=()=>{
+   if(publicControl.failure){runtime.invokeFunction(callbacks.onFailure,['',{getResponseCode:()=>503}]);return;}
+   const body={version:1,ok:true,ready:true,week,today:backend.scheduleToday(),days:Array.from({length:7},(_,i)=>backend.scheduleDay(week,i)),revision:0,entries:[...publicRows.values()]};
+   runtime.invokeFunction(callbacks.onSuccess,[JSON.stringify(body),{getResponseCode:()=>200,getURLString:()=>url}]);
+  };
+  if(publicControl.holdWeeks.includes(week))publicControl.held.push({week,respond});else respond();
  }});
  const wire={sendJson(request,finish){const row={request,finish,finished:false};posts.push(row);return ()=>{row.cancelled=true;};}};
  runtime.app=runtime.context.MischWerkModules.createApp(runtime.context.MischWerkConfig,wire);runtime.context.App=runtime.app;
@@ -140,12 +143,15 @@ for(const client of ['k3','stapp'])test('Homepage-Inhalte in '+client+' erschein
 
 test('Ausfall oder verspätete Antwort wird nicht als AutoDJ ausgegeben; Wiederholen und Tageswechsel verwerfen alte Pakete',async t=>{
  const lab=await setup(t),owner=await lab.join('Otterchen',true),frame=await openSchedule(owner);
- lab.hub.faults.dropServer=1;lab.hub.faults.dropServerType='mw:schedule.data';await frame.locator('#schedule-next').click();await owner.page.waitForFunction(()=>EmulatorLab.trace.some(e=>e.kind==='droppedServer'&&e.eventType==='mw:schedule.data'));
+ await owner.page.clock.runFor(300);await owner.page.waitForFunction(()=>new Set(EmulatorLab.trace.filter(e=>e.kind==='sessionEvent'&&e.eventType==='mw:schedule.data').map(e=>e.eventData.date)).size===21);
+ lab.hub.faults.dropServer=1;lab.hub.faults.dropServerType='mw:schedule.data';
+ await frame.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+ await owner.page.waitForFunction(()=>EmulatorLab.trace.some(e=>e.kind==='droppedServer'&&e.eventType==='mw:schedule.data'));
  assert.equal(await frame.locator('.schedule-show').count(),0);await owner.page.clock.runFor(15001);await frame.locator('#schedule-message.error').waitFor();assert.equal(await frame.locator('.schedule-show').count(),0);
  await frame.locator('#schedule-retry').click();await frame.locator('#schedule-message:not(.error)').filter({hasText:'Für diesen Tag sind keine Sendungen vorhanden.'}).waitFor();
  const deliver=lab.hub.sendUser.bind(lab.hub),held=[];lab.hub.sendUser=(nick,message)=>{if(message.type==='sessionEvent'&&message.eventType==='mw:schedule.data'&&!held.length)held.push(()=>deliver(nick,message));else deliver(nick,message);};
- await frame.locator('#schedule-today').click();await owner.page.waitForTimeout(100);assert.equal(held.length,1);lab.hub.sendUser=deliver;
- await frame.locator('#schedule-today').click();await frame.locator('#schedule-date-label').filter({hasText:'10. November'}).waitFor();await frame.locator('#schedule-message').filter({hasText:'Für diesen Tag sind keine Sendungen vorhanden.'}).waitFor();held[0]();assert.match(await frame.locator('#schedule-date-label').textContent(),/10\. November/);
+ await frame.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await owner.page.waitForTimeout(100);assert.equal(held.length,1);lab.hub.sendUser=deliver;
+ await frame.locator('#schedule-next').click();await frame.locator('#schedule-date-label').filter({hasText:'11. November'}).waitFor();held[0]();assert.match(await frame.locator('#schedule-date-label').textContent(),/11\. November/);
  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
@@ -173,9 +179,163 @@ test('Offener Tagesplan liest geändertes öffentliches JSON über den bestehend
  const lab=await setup(t),owner=await lab.join('Otterchen',true);const row=lab.command('poll','18:00','20:00','Vorher');lab.publish([row]);
  const frame=await openSchedule(owner);await frame.locator('.schedule-topic').filter({hasText:'Vorher',exact:true}).waitFor();
  const before=lab.gets.length;await frame.locator('#schedule-next').focus();
- const saved=lab.publicRows.get('poll');saved.topic='Nachher';lab.runtime.clock.advance(15000);
+ const saved=lab.publicRows.get('poll');saved.topic='Nachher';lab.runtime.clock.advance(60000);
  await owner.page.clock.runFor(20001);await frame.locator('.schedule-topic').filter({hasText:'Nachher',exact:true}).waitFor();
  assert.ok(lab.gets.length>before);assert.equal(await frame.locator('#schedule-next').evaluate(n=>n===document.activeElement),true);
  assert.equal(lab.runtime.persistence.api().getObject('mischwerk.schedule.v1.'+lab.week,null),null);
  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);assert.deepEqual(lab.runtime.errors,[]);
+});
+
+async function preloaded(owner){
+ await owner.page.waitForFunction(()=>new Set(EmulatorLab.trace.filter(e=>e.kind==='sessionEvent'&&e.eventType==='mw:schedule.data').map(e=>e.eventData.date)).size>=21);
+}
+for(const stamp of ['2026-11-09T18:30:00Z','2026-11-15T18:30:00Z'])test('21-Tage-Vorladen zeigt den ersten Tag vor den Randwochen und navigiert ohne neue Abrufe '+stamp,async t=>{
+ const lab=await setup(t,'k3',{now:stamp}),owner=await lab.join();
+ const today=lab.backend.scheduleToday(),week=lab.backend.scheduleWeek(today),first=lab.backend.scheduleDay(week,-7);
+ const days=Array.from({length:21},(_,i)=>lab.backend.scheduleDay(first,i));
+ for(const date of days)lab.publicRows.set(date,{id:date,date,week:lab.backend.scheduleWeek(date),start:'00:00',end:'00:00',timing:'allDay',kind:'live',until:null,topic:'Tag '+date,moderator:'Testmoderation'});
+ lab.publicControl.holdWeeks=[first];
+ const frame=await openSchedule(owner);await frame.locator('.schedule-topic').filter({hasText:'Tag '+today,exact:true}).waitFor();
+ await owner.page.waitForFunction(()=>EmulatorLab.trace.filter(e=>e.kind==='clientEvent'&&e.eventType==='mw:schedule.day').length>=2);
+ assert.equal(lab.publicControl.held.length,1,'Die erste Woche muss die sichtbare Auswahl nicht blockieren');
+ lab.publicControl.holdWeeks=[];lab.publicControl.held.shift().respond();await preloaded(owner);
+ const gets=lab.gets.length,bridge=lab.hub.trace.filter(e=>e.kind==='clientEvent'&&e.eventType==='mw:schedule.day').length;
+ assert.equal(gets,3);assert.equal(bridge,21);
+ const index=days.indexOf(today);assert.ok(index>=7&&20-index>=7);
+ for(let i=index;i>0;i--)await frame.locator('#schedule-previous').click();
+ assert.equal(await frame.locator('#schedule-previous').isDisabled(),true);
+ await frame.locator('#schedule-previous').evaluate(n=>n.dispatchEvent(new MouseEvent('click')));
+ assert.equal(await frame.locator('#schedule-date-label').getAttribute('datetime'),days[0]);
+ for(let i=0;i<21;i++){
+  assert.equal(await frame.locator('#schedule-date-label').getAttribute('datetime'),days[i]);
+  assert.equal(await frame.locator('.schedule-topic').textContent(),'Tag '+days[i]);
+  assert.equal(await frame.locator('#schedule-list').getAttribute('aria-busy'),'false');
+  assert.equal(await frame.locator('#schedule-message').isVisible(),false);
+  if(i<20)await frame.locator('#schedule-next').click();
+ }
+ assert.equal(await frame.locator('#schedule-next').isDisabled(),true);
+ await frame.locator('#schedule-next').evaluate(n=>n.dispatchEvent(new MouseEvent('click')));
+ assert.equal(await frame.locator('#schedule-date-label').getAttribute('datetime'),days.at(-1));
+ assert.equal(lab.gets.length,gets);assert.equal(lab.hub.trace.filter(e=>e.kind==='clientEvent'&&e.eventType==='mw:schedule.day').length,bridge);
+ await frame.locator('#close-overlay').click();await owner.page.locator('#overlays iframe').waitFor({state:'detached'});const reopened=await openSchedule(owner);
+ assert.equal(await reopened.evaluate(()=>Client.pageData.scheduleInitial.date),days.at(-1),'Wiederöffnung enthält den bestätigten ausgewählten Tag bereits im Anfangspaket');
+ assert.equal(lab.gets.length,gets);
+ t.diagnostic('Initial: 3 GETs und 21 Tagespakete; '+(index+20)+' anschließende Tageswechsel: 0 GETs und 0 Tagesabrufe.');
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])for(const closed of [false,true])test('Drei-Wochen-Grenze setzt ausgeschlossene Auswahl auf Heute zurück '+client+(closed?' nach Wiederöffnung':' im offenen Plan'),async t=>{
+ const lab=await setup(t,client,{now:'2026-11-15T22:59:58Z'}),owner=await lab.join('Otterchen',true);
+ let frame=await openSchedule(owner);await owner.page.clock.runFor(100);await preloaded(owner);
+ const first=lab.backend.scheduleDay(lab.week,-7),steps=13;
+ for(let i=0;i<steps;i++)await frame.locator('#schedule-previous').click();
+ assert.equal(await frame.locator('#schedule-date-label').getAttribute('datetime'),first);
+ if(closed){await frame.locator('#close-overlay').click();await owner.page.locator('#overlays iframe').waitFor({state:'detached'});}
+ lab.runtime.clock.advance(3000);await owner.page.clock.runFor(20001);
+ if(closed)frame=await openSchedule(owner);
+ const today=lab.backend.scheduleToday();
+ await frame.waitForFunction(date=>document.getElementById('schedule-date-label').getAttribute('datetime')===date,today);
+ const currentWeek=lab.backend.scheduleWeek(today),allowed=[-7,0,7].map(n=>lab.backend.scheduleDay(currentWeek,n));
+ assert.equal(today,'2026-11-16');
+ assert.equal(lab.backend.cachedPublicSchedule(first),null);
+ assert.ok(lab.gets.slice(3).every(url=>allowed.includes(new URL(url).searchParams.get('week'))),'Nach Wochenwechsel keine alten Außenwochen lesen');
+ assert.equal(await frame.locator('#schedule-previous').isDisabled(),false);
+ assert.equal(await frame.locator('#schedule-next').isDisabled(),false);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);assert.deepEqual(lab.runtime.errors,[]);
+});
+
+test('Unveränderte Hintergrundantwort erhält echte Zeilenknoten, Fokus und Scrollposition',async t=>{
+ const lab=await setup(t),owner=await lab.join();
+ for(let i=0;i<24;i++)lab.publicRows.set('stable-'+i,{id:'stable-'+i,date:lab.date,week:lab.week,kind:'live',timing:'fixed',start:String(i).padStart(2,'0')+':00',end:String((i+1)%24).padStart(2,'0')+':00',until:null,topic:'Stabile Sendung '+i,moderator:'Testmoderation'});
+ const frame=await openSchedule(owner);await preloaded(owner);await frame.waitForFunction(()=>document.querySelectorAll('.schedule-show').length===24);
+ await frame.locator('#schedule-next').focus();
+ const before=await frame.evaluate(()=>{const list=document.getElementById('schedule-list');list.scrollTop=240;window.__stableRows=Array.from(list.children);return list.scrollTop;});
+ const count=lab.hub.trace.filter(e=>e.kind==='sessionEvent'&&e.eventType==='mw:schedule.data').length,gets=lab.gets.length;
+ await frame.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+ await owner.page.waitForFunction(n=>EmulatorLab.trace.filter(e=>e.kind==='sessionEvent'&&e.eventType==='mw:schedule.data').length>n,count);
+ assert.ok(lab.hub.trace.findLast(e=>e.kind==='sessionEvent'&&e.eventType==='mw:schedule.data').eventData.unchanged);
+ assert.equal(await frame.evaluate(()=>__stableRows.every((node,i)=>node===document.getElementById('schedule-list').children[i])),true);
+ assert.equal(await frame.locator('#schedule-list').evaluate(n=>n.scrollTop),before);
+ assert.equal(await frame.locator('#schedule-next').evaluate(n=>n===document.activeElement),true);assert.equal(lab.gets.length,gets);
+ lab.runtime.clock.advance(60000);await frame.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+ await owner.page.waitForFunction(n=>EmulatorLab.trace.filter(e=>e.kind==='sessionEvent'&&e.eventType==='mw:schedule.data').length>n,count+1);
+ assert.equal(await frame.evaluate(()=>__stableRows.every((node,i)=>node===document.getElementById('schedule-list').children[i])),true,'Auch eine neue identische Vollantwort baut die Liste nicht um');
+ assert.equal(await frame.locator('#schedule-list').evaluate(n=>n.scrollTop),before);
+ assert.equal(await frame.locator('#schedule-next').evaluate(n=>n===document.activeElement),true);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+test('Berliner Mitternacht verschiebt das Vorladefenster und Jetzt läuft ohne Programmabruf weiter',async t=>{
+ const lab=await setup(t,'stapp',{now:'2026-11-15T22:59:58Z'}),owner=await lab.join('Otterchen',true);
+ const sunday=lab.backend.scheduleToday(),monday=lab.backend.scheduleDay(sunday,1);
+ lab.publicRows.set('cross',{id:'cross',date:sunday,week:lab.backend.scheduleWeek(sunday),start:'23:00',end:'02:00',timing:'fixed',kind:'live',until:null,topic:'Über Mitternacht',moderator:'Testmoderation'});
+ const frame=await openSchedule(owner);await owner.page.clock.runFor(100);await preloaded(owner);
+ assert.equal(await frame.locator('.schedule-current .schedule-topic').textContent(),'Über Mitternacht');
+ const gets=lab.gets.length;
+ lab.runtime.clock.advance(3000);await owner.page.clock.runFor(20001);
+ await frame.locator('#schedule-date-label').filter({hasText:'16. November'}).waitFor();
+ assert.equal(await frame.locator('.schedule-current .schedule-topic').textContent(),'Über Mitternacht');
+ await owner.page.waitForFunction(()=>EmulatorLab.trace.some(e=>e.kind==='sessionEvent'&&e.eventType==='mw:schedule.data'&&e.eventData.date==='2026-11-29'));
+ assert.equal(lab.gets.length,gets+1,'Nur die neu hinzugekommene Kalenderwoche wird geladen');
+ assert.equal(await frame.locator('#schedule-date-label').getAttribute('datetime'),monday);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const stamp of ['2026-03-29T00:59:58Z','2026-10-25T00:59:58Z'])test('Jetzt-Markierung folgt der Berliner Zeitumstellung ohne neue Programmdaten '+stamp,async t=>{
+ const lab=await setup(t,'k3',{now:stamp}),owner=await lab.join('Otterchen',true),date=lab.backend.scheduleToday(),week=lab.backend.scheduleWeek(date);
+ for(const [id,start,end,topic] of [['early','00:00','02:30','Früh'],['late','02:30','04:00','Spät']])lab.publicRows.set(id,{id,date,week,start,end,topic,moderator:'Testmoderation',kind:'live',timing:'fixed',until:null});
+ const frame=await openSchedule(owner);await owner.page.clock.runFor(100);await preloaded(owner);
+ const spring=stamp.includes('03-29');assert.equal(await frame.locator('.schedule-current .schedule-topic').textContent(),spring?'Früh':'Spät');
+ const gets=lab.gets.length,bridge=lab.hub.trace.filter(e=>e.kind==='clientEvent'&&e.eventType==='mw:schedule.day').length;
+ lab.runtime.clock.advance(3000);await owner.page.clock.runFor(3000);
+ await frame.locator('.schedule-current .schedule-topic').filter({hasText:spring?'Spät':'Früh',exact:true}).waitFor();
+ assert.equal(lab.gets.length,gets);assert.equal(lab.hub.trace.filter(e=>e.kind==='clientEvent'&&e.eventType==='mw:schedule.day').length,bridge);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+test('Offline bleibt der bestätigte Tag sichtbar und ausdrücklich veraltet; Wiederanbindung erhält dieselben Zeilen',async t=>{
+ const lab=await setup(t),owner=await lab.join();lab.publish([lab.command('offline','18:00','20:00','Bekannter Offlineplan')]);
+ const frame=await openSchedule(owner);await preloaded(owner);await frame.evaluate(()=>window.__offlineRow=document.querySelector('.schedule-show'));
+ await frame.evaluate(()=>window.dispatchEvent(new Event('offline')));
+ await frame.locator('#schedule-message.error').filter({hasText:'derzeit nicht aktuell'}).waitFor();
+ assert.equal(await frame.locator('.schedule-topic').textContent(),'Bekannter Offlineplan');assert.equal(await frame.locator('#schedule-next').isDisabled(),true);
+ await frame.locator('.dialog-shell').screenshot({path:path.join(os.tmpdir(),'MischWerk-392-Sendeplan-Offline.png')});
+ await frame.evaluate(()=>window.dispatchEvent(new Event('online')));await frame.locator('#schedule-message').waitFor({state:'hidden'});
+ assert.equal(await frame.evaluate(()=>__offlineRow===document.querySelector('.schedule-show')),true);
+ assert.equal(await frame.locator('#schedule-next').isDisabled(),false);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+test('Gebündelte Vorwochenänderung aktualisiert eine grenzüberschreitende Sendung und erhält die entfernte Cachewoche',async t=>{
+ const lab=await setup(t,'k3',{now:'2026-11-16T00:30:00Z'}),owner=await lab.join();
+ const today=lab.backend.scheduleToday(),week=lab.backend.scheduleWeek(today),sunday=lab.backend.scheduleDay(today,-1),previous=lab.backend.scheduleWeek(sunday),after=lab.backend.scheduleDay(week,7);
+ lab.publicRows.set('night',{id:'night',date:sunday,week:previous,start:'22:00',end:'02:00',timing:'fixed',kind:'live',until:null,topic:'Vorwochensendung',moderator:'Testmoderation'});
+ const frame=await openSchedule(owner);await preloaded(owner);
+ assert.equal(await frame.locator('.schedule-hours').textContent(),'00:00 – 02:00 Uhr');
+ const gets=lab.gets.length;await frame.locator('#schedule-next').focus();
+ lab.publicRows.get('night').end='03:00';
+ for(let i=0;i<3;i++)lab.backend.changed('schedule',previous);
+ await frame.locator('.schedule-hours').filter({hasText:'00:00 – 03:00 Uhr',exact:true}).waitFor();
+ await owner.page.waitForFunction(n=>EmulatorLab.trace.filter(e=>e.kind==='sessionEvent'&&e.eventType==='mw:schedule.data').length>=n,35);
+ assert.equal(lab.backend.cachedPublicSchedule(after).stale,false);assert.equal(lab.gets.length,gets+2,'Drei Änderungen führen zu je einem Abruf der betroffenen und angrenzenden Woche');
+ assert.equal(await frame.locator('#schedule-next').evaluate(n=>n===document.activeElement),true);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+test('Warme Wiederöffnung stellt die gespeicherte Scrollposition her und Hintergrundprüfung erhält die jüngere Position',async t=>{
+ const lab=await setup(t),owner=await lab.join();
+ for(let i=0;i<12;i++)lab.publicRows.set('scroll-'+i,{id:'scroll-'+i,date:lab.date,week:lab.week,kind:'live',timing:'fixed',start:String(i*2).padStart(2,'0')+':00',end:String(((i+1)*2)%24).padStart(2,'0')+':00',until:null,topic:'Scrollsendung '+i,moderator:'Testmoderation'});
+ let frame=await openSchedule(owner);await preloaded(owner);
+ await frame.locator('#schedule-list').evaluate(n=>n.scrollTop=120);
+ await frame.locator('#schedule-next').click();await frame.locator('#schedule-previous').click();
+ await frame.locator('#schedule-list').evaluate(n=>n.scrollTop=420);
+ const count=lab.hub.trace.filter(e=>e.kind==='sessionEvent'&&e.eventType==='mw:schedule.data').length;
+ await frame.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+ await owner.page.waitForFunction(n=>EmulatorLab.trace.filter(e=>e.kind==='sessionEvent'&&e.eventType==='mw:schedule.data').length>n,count);
+ assert.equal(await frame.locator('#schedule-list').evaluate(n=>n.scrollTop),420,'Refresh verwendet keine ältere Besuchsposition');
+ await frame.locator('#close-overlay').click();await owner.page.locator('#overlays iframe').waitFor({state:'detached'});frame=await openSchedule(owner);
+ assert.ok(await frame.evaluate(()=>Client.pageData.scheduleInitial),'Der vollständige kleine Tag kommt aus dem warmen Servercache');
+ await frame.waitForFunction(()=>document.getElementById('schedule-list').scrollTop===420).catch(async error=>{
+  t.diagnostic(JSON.stringify(await frame.evaluate(()=>({position:document.getElementById('schedule-list').scrollTop,saved:Client.pageData.overlayState,clientHeight:document.getElementById('schedule-list').clientHeight,scrollHeight:document.getElementById('schedule-list').scrollHeight}))));throw error;
+ });
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });

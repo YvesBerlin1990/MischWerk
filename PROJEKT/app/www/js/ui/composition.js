@@ -70,10 +70,12 @@ MischWerkUI.setComposer(function (factories) {
     var teamConnection = null, teamNavigation = null;
     if (factories.teamConnection) { teamConnection = factories.teamConnection({ bridge:bridge, model:model, signals:signals }); }
     if (factories.teamNavigation) { teamNavigation = factories.teamNavigation({ dom:dom, model:model, signals:signals }); }
+    var scheduleCache = null;
+    if (factories.scheduleCache) { scheduleCache = factories.scheduleCache({}); }
     var scheduleView = null;
-    if (factories.scheduleView) { scheduleView = factories.scheduleView({ dom:dom, bridge:bridge, signals:signals }); }
+    if (factories.scheduleView) { scheduleView = factories.scheduleView({ dom:dom, bridge:bridge, signals:signals, cache:scheduleCache }); }
     var schedule = null;
-    if (factories.schedule) { schedule = factories.schedule({ bridge:bridge, model:model, dom:dom, commands:commands, signals:signals, view:scheduleView }); }
+    if (factories.schedule) { schedule = factories.schedule({ bridge:bridge, model:model, dom:dom, commands:commands, signals:signals, view:scheduleView, cache:scheduleCache }); }
     var overlays = factories.overlays({ bridge:bridge, model:model, dom:dom, signals:signals, commands:commands, layout:layout, wishDrawer:wishDrawer });
     var updates = factories.updates({ model: model, dom: dom, layout: layout, commands: commands,
       wishes: wishes, studio: studio, queue: queue, team: team, provider: provider, player: player,

@@ -1,4 +1,4 @@
-/* Dateiprüfung und Backend-Ladeplan. */
+/* Backend-Ladeplan mit Dateiprobe. */
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
   "schema": 1,
@@ -185,6 +185,7 @@ if (typeof MischWerkUpdateProbe === 'function') {
     "www/js/schedule": [
       "markup.js",
       "view.js",
+      "cache.js",
       "controller.js"
     ],
     "www/css/radio": [

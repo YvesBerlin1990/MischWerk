@@ -308,7 +308,7 @@ test('main.js bleibt ein kurzer Einstieg und lädt die Serverdateien des gewähl
 test('Backend und Frontend haben eindeutige Schnittstellen und azyklische Abhängigkeiten', () => {
   const result = require('../../tools/checks/architecture.cjs').checkArchitecture();
   assert.equal(result.backendModules, 84);
-  assert.equal(result.frontendComponents, 44);
+  assert.equal(result.frontendComponents, 45);
 });
 
 test('Laufzeitprüfung verweigert fremde und fehlende Dateien vor der Paketfreigabe', t => {

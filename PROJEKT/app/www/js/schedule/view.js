@@ -1,8 +1,8 @@
 /* Ruhige Tagesliste mit zugeordneten Zeiten und aktueller Programmeinordnung. */
 MischWerkUI.define('scheduleView', function (dependencies) {
   'use strict';
-  var dom = dependencies.dom, bridge = dependencies.bridge, signals = dependencies.signals;
-  var current = null, receivedAt = 0, frameRequest = null, requested = null, observer, disposed = false;
+  var dom = dependencies.dom, bridge = dependencies.bridge, signals = dependencies.signals, cache = dependencies.cache;
+  var current = null, receivedAt = 0, frameRequest = null, requested = null, observer, disposed = false, renderKey = null;
   var list = dom.el('schedule-list');
   function fit() {
     frameRequest = null;
@@ -40,20 +40,29 @@ MischWerkUI.define('scheduleView', function (dependencies) {
     dom.el('schedule-retry').hidden = !error;
     fitSoon();
   }
-  function clear() { current = null; list.replaceChildren(); list.scrollTop = 0; }
+  function clear() { current = null; renderKey = null; list.replaceChildren(); list.scrollTop = 0; }
   function mark() {
     if (!current) { return; }
-    var clock = current.clock + Math.max(0, Date.now() - receivedAt) / 60000;
+    var clock = cache.wall(current.serverTime + Math.max(0, Date.now() - receivedAt)) / 60000;
     var active = current.entries.findIndex(function (entry) { return entry.from <= clock && clock < entry.until; });
     Array.from(list.children).forEach(function (row, index) {
       var entry = current.entries[index], text = 'Sendung';
       if (active !== -1) { text = index === active ? 'Jetzt im Programm' : index === active - 1 ? 'Davor' : index === active + 1 ? 'Danach' : index < active ? 'Früher am Tag' : 'Später am Tag'; }
       row.classList.toggle('schedule-current', index === active);
-      if (index === active) { row.setAttribute('aria-current', 'time'); } else { row.removeAttribute('aria-current'); }
-      row.querySelector('.schedule-position').textContent = text;
+      if (index === active) { if (row.getAttribute('aria-current') !== 'time') { row.setAttribute('aria-current', 'time'); } }
+      else if (row.hasAttribute('aria-current')) { row.removeAttribute('aria-current'); }
+      var position = row.querySelector('.schedule-position');
+      if (position.textContent !== text) { position.textContent = text; }
     });
   }
   function render(data, initial, scroll) {
+    var key = JSON.stringify([data.date,data.entries]);
+    if (key === renderKey) {
+      current = data; receivedAt = Date.now(); date(data.date,data.today);
+      if (typeof scroll === 'number') { list.scrollTop = scroll; }
+      message(data.entries.length ? '' : 'Für diesen Tag sind keine Sendungen vorhanden.',false); mark(); return;
+    }
+    renderKey = key;
     var previousScroll = typeof scroll === 'number' ? scroll : list.scrollTop;
     var anchor = Array.from(list.children).find(function (row) { return row.offsetTop + row.offsetHeight > list.offsetTop + list.scrollTop; });
     var from = anchor && anchor.dataset.from, offset = anchor ? anchor.offsetTop - list.offsetTop - list.scrollTop : 0;

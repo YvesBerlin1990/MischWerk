@@ -56,7 +56,7 @@ MischWerkModules.attachRelayCommands = function (runtime) {
                     }
                 } else if (row.entry !== null) { throw runtime.relayFailure('validation'); }
                 var changed = runtime.changeScheduleFromRelay(row);
-                if (changed) { runtime.changed('schedule'); }
+                if (changed) { runtime.changed('schedule', week); }
             } else {
                 if (!exact(row, ['commandId', 'operation', 'expectedRevision', 'nick']) ||
                         ['add', 'remove'].indexOf(row.operation) < 0) { throw runtime.relayFailure('validation'); }

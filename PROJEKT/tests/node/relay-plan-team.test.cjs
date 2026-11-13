@@ -326,7 +326,12 @@ test('Leere Auftragsarrays erhalten die bisherige Nachlieferung großer Wunschqu
   f.store.setObject('mischwerk.android.receipts.v1', { version: 1, entries: Array.from({ length: 205 }, (_, i) => ({
     submissionId: 'old-' + i, state: 'done', position: null, createdAt: at, at, committed: true, dirty: true, revision: 1 })) });
   f.h.app.onShutdown(); const reboot = fixture({ store: f.store, now: f.h.now() });
-  for (let i = 0; i < 3; i++) reboot.reply({ scheduleCommands: [], moderatorCommands: [] });
+  for (let i = 0; i < 3; i++) {
+    if (i) reboot.h.advance(20000);
+    const count = reboot.calls.length;
+    reboot.reply({ scheduleCommands: [], moderatorCommands: [] });
+    assert.equal(reboot.calls.length, count, 'Weitere Pakete warten auf den regulären Takt');
+  }
   assert.deepEqual(reboot.calls.map(call => JSON.parse(call.p.data.payload).wishUpdates.length), [100, 100, 5]);
 });
 test('Teamwiederholung nach Neustart verändert weder Revision noch die ursprüngliche Quittung', () => {

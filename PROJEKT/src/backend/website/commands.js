@@ -31,7 +31,7 @@ MischWerkModules.attachWebsiteCommands = function (runtime) {
         }
         if (type === 'mw:channelTexts.save') { return runtime.changeChannelTexts(user, data); }
         if (type === 'mw:schedule.save' || type === 'mw:schedule.delete') {
-            runtime.changeSchedule(user, type, data); runtime.changed('schedule'); return 'Sendeplan gespeichert.';
+            runtime.changeSchedule(user, type, data); runtime.changed('schedule', data.week); return 'Sendeplan gespeichert.';
         }
         if (['mw:ackRequest', 'mw:setWishStage', 'mw:resolveRequest'].indexOf(type) !== -1) {
             if (typeof data.id !== 'number' || data.id !== auth.entry.queueId) {

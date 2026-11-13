@@ -6,7 +6,7 @@ MischWerkModules.attachScheduleDay = function (runtime) {
         date = date || runtime.scheduleToday(); runtime.scheduleDate(date);
         var monday = runtime.scheduleWeek(runtime.scheduleToday());
         var first = runtime.scheduleDay(monday, -7), last = runtime.scheduleDay(monday, 13);
-        if (date < first || date > last) { throw runtime.failure('Bitte einen Tag der vorigen, aktuellen oder nächsten Woche wählen.'); }
+        if (date < first || date > last) { throw runtime.failure('Der Sendeplan zeigt nur die vergangene, aktuelle und nächste Woche.'); }
         return { date:date, week:runtime.scheduleWeek(date), first:first, last:last };
     };
     runtime.scheduleDayPage = function (context, page, snapshot) {
@@ -32,6 +32,9 @@ MischWerkModules.attachScheduleDay = function (runtime) {
         return runtime.scheduleResponse({ source:'homepage', date:date, today:runtime.scheduleToday(),
             previous:date > context.first ? runtime.scheduleDay(date, -1) : null,
             next:date < context.last ? runtime.scheduleDay(date, 1) : null,
+            week:context.week, windowFirst:context.first, windowLast:context.last,
+            weekSignature:snapshot.signature, revision:snapshot.revision, previousRevision:snapshot.previousRevision,
+            boundaryRevision:snapshot.boundaryRevision, checkedAt:snapshot.checkedAt,
             signature:date + ':' + snapshot.signature,
             clock:runtime.scheduleWallTime(runtime.now()) / 60000, serverTime:runtime.now() }, rows, page);
     };

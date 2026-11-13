@@ -43,6 +43,7 @@
     ['teamNavigation', 'team/navigation.js', 'team'],
     ['scheduleMarkup', 'schedule/markup.js', 'schedule'],
     ['scheduleView', 'schedule/view.js', 'schedule'],
+    ['scheduleCache', 'schedule/cache.js', 'schedule'],
     ['schedule', 'schedule/controller.js', 'schedule'],
     ['overlays', 'ui/overlays.js'],
     ['updates', 'ui/updates.js'],

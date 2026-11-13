@@ -9,13 +9,13 @@
     },
     {
       "path": "MischWerk/www/js/start.js",
-      "bytes": 4902,
-      "sha256": "A7CC5892954FE8A34717BF001A6BFA34966720E790295C2B384C2940F4789E75"
+      "bytes": 4958,
+      "sha256": "0E42E243FC9512EE4123984F888D073DCF54A4557A472435C3B8CA9C2358A841"
     },
     {
       "path": "MischWerk/www/js/ui/composition.js",
-      "bytes": 8269,
-      "sha256": "44DCE31B394FA201F31B57BF0631746E37E8E966F9A3A5A97C8DB1217234B5BD"
+      "bytes": 8423,
+      "sha256": "C0373C57C4E61F80EC020EDE68ED015EA3DD31199652D3A0038B5C8F623B60C6"
     },
     {
       "path": "MischWerk/www/js/core/model.js",
@@ -99,13 +99,18 @@
     },
     {
       "path": "MischWerk/www/js/schedule/markup.js",
-      "bytes": 7228,
-      "sha256": "98CF59ABB43C8D36A057B030F187EAB8F4A2F4FF875BF484941A1C99757CA22C"
+      "bytes": 7845,
+      "sha256": "CA63F5F9C30F82A87C90A2A2FAC1753DC0CBBF4DDE284EE0B4E331CEC88A3EDC"
+    },
+    {
+      "path": "MischWerk/www/js/schedule/cache.js",
+      "bytes": 3589,
+      "sha256": "23C95E77FDAB84989510F366CA1F3145EE8436DDCBEBCA945C987B1BC6C6CA27"
     },
     {
       "path": "MischWerk/www/js/schedule/controller.js",
-      "bytes": 6150,
-      "sha256": "766313BD8A27D54879B7DEB51DCCED38CFE4882BD3BEF4FA74C03E605812A740"
+      "bytes": 9315,
+      "sha256": "1D7C5F8EF947968C3720E303E1235E23D82B2EE975E50F6D8B8B1436854EAB85"
     },
     {
       "path": "MischWerk/www/js/ui/overlays.js",

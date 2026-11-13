@@ -40,10 +40,12 @@
         }
         function tick() {
             var id = Object.keys(channelTextTasks)[0], task = channelTextTasks[id];
-            delete channelTextTasks[id]; clock += 20000; channelTextTime += 20000; task.callback();
+            var elapsed = task.at - channelTextTime;
+            delete channelTextTasks[id]; clock += elapsed; channelTextTime += elapsed; task.callback();
         }
         runtime.startAndroidRelay(); runtime.startAndroidRelay();
         check(nativeCalls.length === 1 && hookCalls === 0, 'Sync allein startet ohne WebHook oder zweiten Schlüssel');
+        check(channelTextTasks[Object.keys(channelTextTasks)[0]].at === channelTextTime + 20000, 'Inaktive Moderation behält exakt den 20-Sekunden-Takt');
         check(Object.keys(nativeCalls[0].params.data).sort().join(',') === 'nonce,payload,sig,ts', 'Unveränderte vier signierte Strings');
         answer([]); check(runtime.androidRelayHealthy(), 'Native Java-String-Antwort und Java-Integer normalisiert');
         runtime.state.ticker = { text: new Array(301).join('Ä'), enabled: true, speed: 72, direction: 'right', revision: 1 };
@@ -66,7 +68,7 @@
         tick(); answer(incoming); check(runtime.wishItems().length === 4, 'Android aus Antwort in derselben Queue auf Platz 4');
         check(runtime.wishItems()[3].nick === 'Android', 'Name wird keine behauptete Knuddelsidentität');
         check(runtime.wishItems()[3].displayName === 'Untrusted' && runtime.wishItems()[3].origin === undefined, 'Legacyname erhalten, unbekannte Herkunft nicht geraten');
-        tick(); check(JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload).wishUpdates[0].position === 4, 'Nächster POST quittiert echten Platz');
+        tick(); check(JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload).wishUpdates[0].position === 4, 'Nächster POST quittiert echten Platz'); answer([]);
         tick(); answer(incoming); check(runtime.wishItems().length === 4, 'Antwortwiederholung ist idempotent');
         runtime.resolveWish(1, 'done'); answer([]);
         check(JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload).wishUpdates[0].position === 3, 'Entfernung eines Vorgängers aktualisiert echte Position');
@@ -91,6 +93,8 @@
         runtime.state.moderator = { userId: 99101, nick: 'Otterchen', authentication: 'knuddels', sessionKey: 'rhino-native-session', since: clock };
         MischWerkModules.attachIdentity(runtime, MischWerkConfig); MischWerkModules.attachModeration(runtime, MischWerkConfig);
         runtime.changed('station'); answer([]);
+        check(Object.keys(channelTextTasks).length === 1 && channelTextTasks[Object.keys(channelTextTasks)[0]].at === channelTextTime + 5000,
+            'Echte aktive Moderation verwendet genau einen 5-Sekunden-Timer in Rhino');
         function body() { return JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload); }
         check(body().studioWishControl.nick === 'Otterchen' && /^[a-f0-9]{64}$/.test(body().studioWishControl.sessionId),
             'Echter nativer Moderator und Sitzung im v1-Steuerblock in Rhino');

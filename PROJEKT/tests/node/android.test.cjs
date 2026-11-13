@@ -7,14 +7,15 @@ const hostingUrl='https://radio-mischwerk.web.app/api/publishKnuddelsState';
 const settings=()=>({enabled:true,runtimeVerified:true,syncSecret:'s'.repeat(64),syncUrl:hostingUrl});
 function setup(options={}){
  const calls=[],store=options.store||persistence({[privateKey]:{...settings(),...options.config}});let runtime,hookCalls=0;
- const external={canAccessURL:()=>options.allowed!==false,postURL(url,p){calls.push({url,p});if(options.throwPost)throw Error('private-network-details');}};
+ const external={canAccessURL:()=>options.allowed!==false,postURL(url,p){calls.push({url,p,at:h.now(),finished:false});if(options.throwPost)throw Error('private-network-details');}};
  const h=createHarness(store,{now:options.now,serverMethods:{getExternalServerAccess:()=>external,getWebHookAccess(){hookCalls++;throw Error('WEBHOOK-MUST-NOT-BE-CALLED');},...options.serverMethods},configureModules(c){const attach=c.MischWerkModules.attachAndroidPublisher;c.MischWerkModules.attachAndroidPublisher=r=>{attach(r);runtime=r;};const lifecycle=c.MischWerkModules.attachLifecycle;c.MischWerkModules.attachLifecycle=(r,cfg)=>{lifecycle(r,cfg);const start=r.start;r.start=()=>{const saved=r.startAndroidRelay;r.startAndroidRelay=()=>{};start();r.startAndroidRelay=saved;};};}});
  const owner=h.user(1,'Otterchen','owner'),listener=h.user(2,'Privater Nick');const radio=h.open(owner),listenerRadio=h.open(listener);
  h.event(owner,radio,'mw:onAir',{});
  runtime.startAndroidRelay();
  return {h,store,runtime,owner,listener,radio,listenerRadio,calls,options,get hookCalls(){return hookCalls;},
-  reply(wishes=[],opts={}){const c=calls[opts.index===undefined?calls.length-1:opts.index];assert.ok(c,'Nativer Status-POST vorhanden');const body=opts.body||{accepted:true,serverTime:h.now(),wishes};c.p[opts.failure?'onFailure':'onSuccess'](opts.raw===undefined?JSON.stringify(body):opts.raw,{getResponseCode:()=>opts.status||200,getURLString:()=>opts.url||hostingUrl});},
-  poll(wishes=[],opts={}){h.advance(20000);this.reply(wishes,opts);},
+  reply(wishes=[],opts={}){const c=calls[opts.index===undefined?calls.length-1:opts.index];assert.ok(c,'Nativer Status-POST vorhanden');const body=opts.body||{accepted:true,serverTime:h.now(),wishes};c.finished=true;c.p[opts.failure?'onFailure':'onSuccess'](opts.raw===undefined?JSON.stringify(body):opts.raw,{getResponseCode:()=>opts.status||200,getURLString:()=>opts.url||hostingUrl});},
+  tick(){h.advance(runtime.moderatorIsActive()?5000:20000);},
+  poll(wishes=[],opts={}){this.tick();this.reply(wishes,opts);},
   updates(){return JSON.parse(calls.at(-1).p.data.payload).wishUpdates;},items(){return JSON.parse(JSON.stringify(runtime.wishItems()));},
   channel(text='Channelwunsch',id){h.event(listener,listenerRadio,'mw:wish.submit',{text,...(id?{submissionId:id}:{})});},
   resolve(id,outcome='done'){h.event(owner,radio,'mw:resolveRequest',{id,outcome});}
@@ -37,7 +38,7 @@ function wishCommand(f,action,id=1,overrides={}){
 function sendWishCommand(f,command,extra={}){
  f.reply([],{body:{accepted:true,serverTime:f.h.now(),wishes:[],studioWishCommands:[command],...extra}});
 }
-function wishResult(f){f.h.advance(20000);return payload(f).studioWishResults[0];}
+function wishResult(f){f.tick();return payload(f).studioWishResults[0];}
 
 test('Fernregie bindet echten nativen Nick und Sitzung; keine Firebase-UID oder behauptete Clientrolle',()=>{
  const f=setup(),control=payload(f).studioWishControl;
@@ -52,7 +53,7 @@ test('Fernregie bindet echten nativen Nick und Sitzung; keine Firebase-UID oder 
 test('Alle sechs Fernaktionen verwenden dieselbe Queue, behalten Reihenfolge und Herkunft',()=>{
  for(const external of [false,true]){
   const f=setup();f.reply();f.channel('Erster Wunsch','control-first');f.reply();
-  if(external){f.poll([{...wish('remote-second','Zweiter Wunsch','Öffentlicher Name'),origin:'web'}]);f.h.advance(20000);}
+  if(external){f.poll([{...wish('remote-second','Zweiter Wunsch','Öffentlicher Name'),origin:'web'}]);f.tick();}
   else f.channel('Zweiter Wunsch','control-second');
   const before=f.items(),id=2;
   for(const action of ['accept','prepare','defer']){
@@ -61,21 +62,21 @@ test('Alle sechs Fernaktionen verwenden dieselbe Queue, behalten Reihenfolge und
    assert.equal(wishResult(f).state,'applied');
    const row=[...(payload(f).studioWishUpdates||[]),...payload(f).wishUpdates].find(row=>row.submissionId===command.submissionId);
    assert.equal(row.position,2);assert.equal(row.state,action==='prepare'?'preparing':'received');
-   f.reply();f.h.advance(20000);
+   f.reply();f.tick();
   }
   assert.equal(f.items()[1].text,before[1].text);assert.equal(f.items()[1].submissionId,before[1].submissionId);
   assert.equal(f.items()[1].displayName,before[1].displayName);assert.equal(f.items()[1].origin,before[1].origin);
   const discard=wishCommand(f,'discard',id);sendWishCommand(f,discard);assert.deepEqual(f.items().map(row=>row.id),[1]);
-  assert.equal(wishResult(f).state,'applied');f.reply();f.h.advance(20000);
+  assert.equal(wishResult(f).state,'applied');f.reply();f.tick();
   for(const action of ['prepare','playing','done']){
-   sendWishCommand(f,wishCommand(f,action));assert.equal(wishResult(f).state,'applied');f.reply();f.h.advance(20000);
+   sendWishCommand(f,wishCommand(f,action));assert.equal(wishResult(f).state,'applied');f.reply();f.tick();
   }
   assert.equal(f.items().length,0);
  }
 });
 
 test('Nulländerung wird dauerhaft quittiert und liefert aktuellen Wunsch im selben POST',()=>{
- const f=setup();f.reply();f.channel('Bleibt offen','control-noop');f.reply();f.h.advance(20000);
+ const f=setup();f.reply();f.channel('Bleibt offen','control-noop');f.reply();f.tick();
  const command=wishCommand(f,'defer'),before=f.items();sendWishCommand(f,command);
  assert.deepEqual(f.items(),before);assert.equal(wishResult(f).state,'applied');
  assert.deepEqual(payload(f).studioWishUpdates.map(row=>[row.submissionId,row.state,row.position]),[[command.submissionId,'queued',1]]);
@@ -105,7 +106,7 @@ test('Status hin und zurück sowie Empfang nach dem Snapshot machen den alten Au
 });
 
 test('Unbekannte und globale Heartbeat-Version sind kein Beleg für den einzelnen Wunsch',()=>{
- const f=setup();f.reply();f.channel('Eigene Revision','control-source');f.reply();f.h.advance(20000);
+ const f=setup();f.reply();f.channel('Eigene Revision','control-source');f.reply();f.tick();
  const command=wishCommand(f,'accept',1,{expectedSourceUpdatedAt:payload(f).station.updatedAt});
  sendWishCommand(f,command);assert.equal(f.items()[0].delivery,null);assert.equal(wishResult(f).reason,'stale_wish');
 });
@@ -121,7 +122,7 @@ test('Moderationswechsel, Abmeldung und Verlassen verhindern alte Fernaufträge'
   const f=setup();f.reply();f.channel('Sitzungsschutz','control-session');const command=wishCommand(f,'accept');
   if(change==='leave'){f.owner.online=false;f.h.app.onUserLeft(f.owner);}
   else {f.h.event(f.owner,f.radio,'mw:offAir',{});if(change==='restart')f.h.event(f.owner,f.radio,'mw:onAir',{});}
-  sendWishCommand(f,command);assert.equal(f.items()[0].delivery,null);f.h.advance(20000);
+  sendWishCommand(f,command);assert.equal(f.items()[0].delivery,null);f.tick();
   assert.equal(payload(f).studioWishResults.length,0,'Altes Ergebnis wird keiner neuen Moderation zugeordnet');
   if(change!=='restart')assert.equal(payload(f).studioWishControl,null);
  }
@@ -130,7 +131,7 @@ test('Moderationswechsel, Abmeldung und Verlassen verhindern alte Fernaufträge'
 test('Unterwegs abgelaufene Aufträge und übergroße Antworten verändern die Queue nicht',()=>{
  const f=setup();f.reply();f.channel('Frische','control-expiry');
  sendWishCommand(f,wishCommand(f,'accept',1,{expiresAt:f.h.now()-1}));assert.equal(wishResult(f).reason,'stale_wish');
- f.reply();f.h.advance(20000);const before=f.items(),command=wishCommand(f,'accept');
+ f.reply();f.tick();const before=f.items(),command=wishCommand(f,'accept');
  f.reply([],{body:{accepted:true,serverTime:f.h.now(),wishes:[],studioWishCommands:[command],padding:'Ä'.repeat(17000)}});
  assert.deepEqual(f.items(),before);
 });
@@ -139,14 +140,14 @@ test('Doppelte Zustellung und Neustart nach Commit führen nicht erneut aus',()=
  const f=setup();f.reply();f.channel('Genau einmal','control-duplicate');const command=wishCommand(f,'accept');
  sendWishCommand(f,command);const delivery=f.items()[0].delivery,revision=f.runtime.loadWishes().controlVersions[0].revision;
  assert.equal(wishResult(f).state,'applied');f.reply([],{failure:true,status:503});
- f.h.advance(20000);sendWishCommand(f,command);assert.equal(wishResult(f).state,'applied');
+ f.tick();sendWishCommand(f,command);assert.equal(wishResult(f).state,'applied');
  assert.deepEqual(f.items()[0].delivery,delivery);assert.equal(f.runtime.loadWishes().controlVersions[0].revision,revision);
  f.h.app.onShutdown();const reboot=setup({store:f.store,now:f.h.now()});sendWishCommand(reboot,command);
  assert.deepEqual(reboot.items()[0].delivery,delivery);
  assert.equal(reboot.runtime.loadWishes().controlVersions[0].revision,revision);
  assert.equal(reboot.runtime.findStudioWishResult(command.commandId).state,'applied');
  assert.equal(payload(reboot).studioWishControl.sessionId===command.sessionId,false,'Neustart bestätigt eine neue native Moderationssitzung');
- reboot.h.advance(20000);assert.equal(payload(reboot).studioWishResults.length,0,'Keine alte Quittung unter einer neuen Sitzung');
+ reboot.tick();assert.equal(payload(reboot).studioWishResults.length,0,'Keine alte Quittung unter einer neuen Sitzung');
 });
 
 test('Aktuelle Rückprojektion darf dem quittierten accept bereits voraus sein',()=>{
@@ -157,7 +158,7 @@ test('Aktuelle Rückprojektion darf dem quittierten accept bereits voraus sein',
 
 test('Speicherfehler vor Fachcommit erzeugt keine Änderung und keine falsche Erfolgsquittung',()=>{
  for(const permanent of [false,true]){
-  const f=setup();f.reply();f.channel('Atomar','control-storage');f.reply();f.h.advance(20000);
+  const f=setup();f.reply();f.channel('Atomar','control-storage');f.reply();f.tick();
   const command=wishCommand(f,'accept'),write=f.store.setObject;let failures=0;
   f.store.setObject=(key,value)=>{if(key==='mischwerk.wishes.v3'&&(permanent||failures++===0))throw Error('private storage');write(key,value);};
   sendWishCommand(f,command);assert.equal(f.items()[0].delivery,null);f.store.setObject=write;
@@ -176,7 +177,7 @@ test('Anzeigefehler nach dauerhaftem Commit bleibt applied',()=>{
 test('Regie quittiert nur im nächsten Takt, ohne zweiten HTTP-Aufruf oder weitere Schleife',()=>{
  const f=setup();f.reply();f.channel('Ein Timer','control-rate');const count=f.calls.length;
  sendWishCommand(f,wishCommand(f,'accept'));assert.equal(f.calls.length,count);
- f.h.advance(19999);assert.equal(f.calls.length,count);f.h.advance(1);assert.equal(f.calls.length,count+1);
+ f.h.advance(4999);assert.equal(f.calls.length,count);f.h.advance(1);assert.equal(f.calls.length,count+1);
  const body=payload(f);assert.equal(body.studioWishResults.length,1);
  assert.ok(body.wishUpdates.length+(body.studioWishUpdates||[]).length<=100);
  assert.deepEqual(Object.keys(f.calls.at(-1).p.data).sort(),['nonce','payload','sig','ts']);
@@ -200,7 +201,7 @@ test('Dauerhafter Abschlussbeleg überlebt Replaygrenze und bestätigt Wiederhol
 test('Regiequittung erhält gemeinsam maximal 100 Updates und zehn native Wünsche',()=>{
  const f=setup();f.reply();f.runtime.stopAndroidRelay();
  for(let i=0;i<14;i++)f.channel('Nativer Wunsch '+i,'control-package-'+i);
- f.runtime.startAndroidRelay();f.reply();
+ f.runtime.startAndroidRelay();f.reply();f.tick();
  const command=wishCommand(f,'accept',14);sendWishCommand(f,command);wishResult(f);
  const body=payload(f);assert.equal(body.studioWishResults.length,1);assert.equal(body.studioWishUpdates[0].submissionId,command.submissionId);
  assert.ok(body.studioWishUpdates.length<=10);assert.ok(body.studioWishUpdates.length+body.wishUpdates.length<=100);
@@ -226,7 +227,7 @@ test('Gemeinsamer Firebase-Vertrag exportiert native Wünsche und erhält Web-/A
  assert.deepEqual(f.items().map(r=>r.text),['Nativer Wunsch','Webwunsch','Androidwunsch']);
  assert.deepEqual(f.items().slice(1).map(r=>[r.displayName,r.origin,r.senderKey]),[['Webname','web',''],['Appname','android','']]);
  assert.equal(f.h.state(f.listener,f.listenerRadio).wishPositions.total,1);
- f.h.advance(20000);assert.deepEqual(f.updates().map(r=>r.position),[2,3]);
+ f.tick();assert.deepEqual(f.updates().map(r=>r.position),[2,3]);
  assert.doesNotMatch(JSON.stringify(payload()),/senderKey|userId|visitorId|authentication/);
 });
 
@@ -242,7 +243,7 @@ test('Native Studiostatus und Endzustände verwenden dieselbe stabile ID und die
 });
 
 test('Gemischte Vorgängerentfernung aktualisiert native und externe Plätze im selben POST',()=>{
- const f=setup();f.reply([wish('web-first','Web zuerst','Webname')]);f.h.advance(20000);f.reply();
+ const f=setup();f.reply([wish('web-first','Web zuerst','Webname')]);f.tick();f.reply();
  f.channel('Native danach','native-position');const native=JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0];
  assert.equal(native.position,2);f.reply();f.resolve(1);
  const body=JSON.parse(f.calls.at(-1).p.data.payload);
@@ -252,7 +253,7 @@ test('Gemischte Vorgängerentfernung aktualisiert native und externe Plätze im 
 
 test('Eine alte HTTP-Quittung löscht keinen neueren nativen Endzustand',()=>{
  const f=setup();f.reply();f.channel('Kurzer Wunsch','native-old-ack');
- const first=JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0];f.resolve(1,'discarded');f.reply();
+ const first=JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0];f.resolve(1,'discarded');f.reply();f.tick();
  const body=JSON.parse(f.calls.at(-1).p.data.payload);
  assert.deepEqual(body.studioWishUpdates,[{submissionId:first.submissionId,state:'discarded',position:null}]);
  f.reply();assert.equal(f.runtime.pendingStudioWishUpdates().length,0);
@@ -279,7 +280,7 @@ test('Native Queue- und Endmarkercommits sind atomar; verlorene HTTP-Erfolge wer
  const count=f.calls.length;f.channel('Noch nicht gespeichert','native-commit');assert.equal(f.items().length,0);assert.equal(f.calls.length,count);
  f.store.setObject=write;f.channel('Noch nicht gespeichert','native-commit');assert.equal(f.items().length,1);
  const pending=JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0];f.reply([],{failure:true,status:503});
- f.h.advance(20000);assert.equal(JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0].submissionId,pending.submissionId);f.reply();
+ f.tick();assert.equal(JSON.parse(f.calls.at(-1).p.data.payload).studioWishUpdates[0].submissionId,pending.submissionId);f.reply();
  f.store.setObject=(key,value)=>{if(key==='mischwerk.wishes.v3')throw Error('disk unavailable');write(key,value);};
  f.resolve(1);assert.equal(f.items().length,1);assert.equal(f.runtime.loadWishes().studioExports[0].state,'queued');
  f.store.setObject=write;f.resolve(1);assert.equal(f.items().length,0);assert.equal(f.runtime.loadWishes().studioExports[0].state,'done');
@@ -292,10 +293,12 @@ test('Unbestätigte native Endmarker überleben die 256er-Replaygrenze und einen
  assert.equal(f.runtime.loadWishes().studioExports.length,270);
  assert.doesNotMatch(JSON.stringify(f.runtime.loadWishes().studioExports),/Temporärer Text|Privater Nick|senderKey/);
  f.h.app.onShutdown();const reboot=setup({store:f.store,now:f.h.now()}),sent=[];
- while(reboot.runtime.pendingStudioWishUpdates().length){
+ for(let page=0;reboot.runtime.pendingStudioWishUpdates().length&&page<28;page++){
   const body=JSON.parse(reboot.calls.at(-1).p.data.payload);assert.ok(body.wishUpdates.length+body.studioWishUpdates.length<=100);
   sent.push(...body.studioWishUpdates);reboot.reply();
+  if(reboot.runtime.pendingStudioWishUpdates().length)reboot.tick();
  }
+ assert.equal(reboot.runtime.pendingStudioWishUpdates().length,0,'Alle Endmarker werden innerhalb der begrenzten Paketfolge quittiert');
  assert.equal(sent.length,270);assert.equal(new Set(sent.map(r=>r.submissionId)).size,270);
  assert.ok(sent.every(r=>['done','discarded'].includes(r.state)&&r.position===null&&!('text' in r)));
 });
@@ -304,7 +307,7 @@ test('Native und externe Quittungen teilen die gemeinsame Obergrenze von 100 pro
  const at=Date.now()-120000,entries=Array.from({length:205},(_,i)=>({submissionId:'mixed-'+i,state:'done',position:null,createdAt:at,at,committed:true,dirty:true,revision:1}));
  const f=setup({store:persistence({[privateKey]:settings(),[journalKey]:{version:1,entries}})});
  for(let i=0;i<12;i++)f.channel('Native '+i,'native-mix-'+i);
- f.reply();f.reply();f.reply();const bodies=f.calls.map(c=>JSON.parse(c.p.data.payload));
+ f.reply();f.tick();f.reply();f.tick();f.reply();const bodies=f.calls.map(c=>JSON.parse(c.p.data.payload));
  assert.deepEqual(bodies.map(b=>b.wishUpdates.length+(b.studioWishUpdates||[]).length),[100,100,17]);
  assert.equal(bodies.flatMap(b=>b.studioWishUpdates||[]).length,12);
 });
@@ -313,8 +316,8 @@ test('Legacyherkunft bleibt unbekannt; optionale Metadaten verleihen keine Chann
  const f=setup();f.reply([wish('legacy-metadata','Legacy','Name <img onerror=evil>')]);
  const view=f.runtime.requestView(f.items()[0]);assert.equal(view.origin,null);assert.equal(view.nick,'Name <img onerror=evil>');
  assert.equal(f.items()[0].senderKey,'');assert.equal(f.h.state(f.listener,f.listenerRadio).wishPositions.total,0);
- f.h.advance(20000);f.reply([{...wish('forged-origin'),origin:'knuddels'},{...wish('control-name'),displayName:'Name\u0000X'}]);
- assert.equal(f.items().length,1);f.h.advance(20000);
+ f.tick();f.reply([{...wish('forged-origin'),origin:'knuddels'},{...wish('control-name'),displayName:'Name\u0000X'}]);
+ assert.equal(f.items().length,1);f.tick();
  for(const id of ['forged-origin','control-name'])assert.equal(f.updates().find(r=>r.submissionId===id).state,'discarded');
 });
 
@@ -359,13 +362,13 @@ test('Wünsche stammen nur aus frischen bestätigten 200-Antworten des festen Zi
 test('Zehn lange Unicode-Wünsche über 4096 Bytes werden vollständig übernommen und im nächsten POST quittiert',()=>{
  const f=setup(),rows=Array.from({length:10},(_,i)=>wish('batch-'+i,'Ä'.repeat(300),'名'.repeat(50)));
  f.reply(rows);assert.equal(f.items().length,10);assert.equal(f.calls.length,1,'Kein rekursiver Status-POST aus der Antwortverarbeitung');
- f.h.advance(20000);assert.equal(f.updates().length,10);assert.ok(f.updates().every((r,i)=>r.position===i+1&&r.state==='queued'));
+ f.tick();assert.equal(f.updates().length,10);assert.ok(f.updates().every((r,i)=>r.position===i+1&&r.state==='queued'));
  f.reply();assert.equal(f.runtime.androidPublisherStatus().statusUpdatesConfirmed,10);
 });
 test('Rückkanal reiht hinter Channelwünschen ein und vermischt keine eigenen Hörerpositionen',()=>{
  const f=setup();for(let i=0;i<3;i++)f.channel('Channel '+i);f.reply([wish()]);
  assert.equal(f.items().length,4);assert.equal(f.items()[3].nick,'Android');assert.equal(f.items()[3].source,'Android');
- assert.equal(f.h.state(f.listener,f.listenerRadio).wishPositions.total,3);f.h.advance(20000);assert.equal(f.updates()[0].position,4);
+ assert.equal(f.h.state(f.listener,f.listenerRadio).wishPositions.total,3);f.tick();assert.equal(f.updates()[0].position,4);
 });
 test('Erneute Zustellung und gleichlautende native Kennung erzeugen keinen zweiten Androideintrag',()=>{
  const f=setup();f.channel('Anderer Ursprung','android-one');f.reply([wish(),wish()]);assert.equal(f.items().length,2);
@@ -373,25 +376,25 @@ test('Erneute Zustellung und gleichlautende native Kennung erzeugen keinen zweit
  assert.equal(f.runtime.androidIncomingStatus().duplicates,2);assert.equal(f.updates()[0].position,2);
 });
 test('Terminale Wiederholung bleibt erledigt und wird erneut mit aktuellem Ergebnis quittiert',()=>{
- const f=setup();f.reply([wish()]);f.resolve(1);f.reply();f.poll([wish()]);assert.equal(f.items().length,0);f.h.advance(20000);
+ const f=setup();f.reply([wish()]);f.resolve(1);f.reply();f.poll([wish()]);assert.equal(f.items().length,0);f.tick();
  assert.deepEqual(f.updates(),[{submissionId:'android-one',state:'done',position:null}]);
 });
 test('Geschlossene Wunschbox und ungültige Inhalte erzeugen discarded statt einer falschen Queueannahme',()=>{
  const changes=[{text:''},{text:'x'.repeat(301)},{text:'https://example.invalid'},{text:'www.example.invalid'},{text:null},
   {displayName:{}},{displayName:'x'.repeat(51)},{uid:'forged'}];
- for(const data of changes){const f=setup();f.reply([{...wish(),...data}]);assert.equal(f.items().length,0);f.h.advance(20000);assert.equal(f.updates()[0].state,'discarded');}
- const f=setup();f.h.event(f.owner,f.radio,'mw:setRequests',{enabled:false});f.reply([wish()]);assert.equal(f.items().length,0);f.h.advance(20000);assert.equal(f.updates()[0].state,'discarded');
+ for(const data of changes){const f=setup();f.reply([{...wish(),...data}]);assert.equal(f.items().length,0);f.tick();assert.equal(f.updates()[0].state,'discarded');}
+ const f=setup();f.h.event(f.owner,f.radio,'mw:setRequests',{enabled:false});f.reply([wish()]);assert.equal(f.items().length,0);f.tick();assert.equal(f.updates()[0].state,'discarded');
 });
 test('Ungültige Kennungen werden nicht gespeichert; gültige Nachbarn und __proto__ bleiben sicher',()=>{
  const f=setup();f.reply([null,[],wish(''),wish('x'.repeat(81)),wish('bad/id'),wish(2),wish('__proto__'),wish('safe')]);
- assert.equal(f.items().length,2);assert.equal(f.runtime.androidIncomingStatus().invalid,6);f.h.advance(20000);assert.deepEqual(f.updates().map(x=>x.submissionId),['__proto__','safe']);
+ assert.equal(f.items().length,2);assert.equal(f.runtime.androidIncomingStatus().invalid,6);f.tick();assert.deepEqual(f.updates().map(x=>x.submissionId),['__proto__','safe']);
 });
 test('Wunschtext wird normalisiert; fremde Namen werden weder als Identität noch als KCode ausgegeben',()=>{
  const f=setup();f.reply([wish('safe',' \u0000  M.I.A.   – Song \n ','°>evil<°')]);assert.equal(f.items()[0].text,'M.I.A. – Song');assert.equal(f.items()[0].nick,'Android');
  assert.doesNotMatch(JSON.stringify([f.h.logs,f.h.bot.messages,f.store.data[journalKey]]),/evil|M\.I\.A\./);
 });
 test('Nur geschützte native Studioupdates enthalten Wunschtext und öffentlichen Nick; externe Quittungen bleiben technisch',()=>{
- const f=setup();f.channel('Privater Channeltext');f.reply([wish('private','Privater Androidtext','Privater Androidname')]);f.h.advance(20000);
+ const f=setup();f.channel('Privater Channeltext');f.reply([wish('private','Privater Androidtext','Privater Androidname')]);f.tick();
  const outgoing=f.calls.map(c=>JSON.parse(c.p.data.payload));
  assert.ok(outgoing.some(body=>body.studioWishUpdates?.some(row=>row.text==='Privater Channeltext'&&row.displayName==='Privater Nick')));
  assert.doesNotMatch(JSON.stringify(outgoing),/Privater Androidtext|Privater Androidname|senderKey|userId/);
@@ -417,45 +420,45 @@ test('Queuecommitfehler bestätigt keine Annahme; dieselbe Kennung kann nach Erh
 });
 test('Abgestürzte Quittung nach dauerhaftem Queuecommit wird nach Neustart ohne Dublette repariert',()=>{
  const f=setup(),write=f.store.setObject;f.store.setObject=(k,v)=>{if(k===journalKey&&v.entries.some(r=>r.committed))throw Error('receipt offline');write(k,v);};
- f.reply([wish()]);assert.equal(f.items().length,1);f.store.setObject=write;f.h.app.onShutdown();const reboot=setup({store:f.store,now:f.h.now()});reboot.reply([wish()]);assert.equal(reboot.items().length,1);reboot.h.advance(20000);assert.equal(reboot.updates()[0].state,'queued');
+ f.reply([wish()]);assert.equal(f.items().length,1);f.store.setObject=write;f.h.app.onShutdown();const reboot=setup({store:f.store,now:f.h.now()});reboot.reply([wish()]);assert.equal(reboot.items().length,1);reboot.tick();assert.equal(reboot.updates()[0].state,'queued');
 });
 test('Fehlender Quittungsmarker wird aus der dauerhaft vorhandenen Queue wiederhergestellt',()=>{
- const f=setup();f.reply([wish()]);f.h.app.onShutdown();f.store.data[journalKey]={version:1,entries:[]};const reboot=setup({store:f.store,now:f.h.now()});reboot.reply([wish()]);assert.equal(reboot.items().length,1);reboot.h.advance(20000);assert.equal(reboot.updates()[0].position,1);
+ const f=setup();f.reply([wish()]);f.h.app.onShutdown();f.store.data[journalKey]={version:1,entries:[]};const reboot=setup({store:f.store,now:f.h.now()});reboot.reply([wish()]);assert.equal(reboot.items().length,1);reboot.tick();assert.equal(reboot.updates()[0].position,1);
 });
 test('Verlorene/verspätete Antwort und Shutdown führen keine alten Wünsche aus',()=>{
  const f=setup();f.h.advance(20000);const before=f.calls.length;f.reply([wish()],{index:0});assert.equal(f.items().length,0);assert.equal(f.calls.length,before);
- f.h.advance(20000);f.h.app.onPrepareShutdown();f.reply([wish()]);assert.equal(f.items().length,0);assert.equal(f.h.timers.size,0);
+ f.tick();f.h.app.onPrepareShutdown();f.reply([wish()]);assert.equal(f.items().length,0);assert.equal(f.h.timers.size,0);
 });
 test('Nativer belegter Port bleibt bis zum echten Callback gesperrt, logisches Cancel genügt nicht',()=>{
- const f=setup();f.h.advance(60000);assert.equal(f.calls.length,1);f.reply([wish()]);assert.equal(f.items().length,0);f.h.advance(20000);assert.equal(f.calls.length,2);f.reply([wish()]);assert.equal(f.items().length,1);
+ const f=setup();f.h.advance(60000);assert.equal(f.calls.length,1);f.reply([wish()]);assert.equal(f.items().length,0);f.h.advance(10000);assert.equal(f.calls.length,2);f.reply([wish()]);assert.equal(f.items().length,1);
 });
 test('Antwortgrenze ist ein lokaler 32-KiB-Schutz, keine behauptete Plattformgrenze',()=>{
  const f=setup();f.reply([],{raw:'x'.repeat(32769)});assert.equal(f.items().length,0);assert.equal(f.runtime.androidRelayHealthy(),false);
 });
 test('Domainfreigabe wird vor jedem Versand erneut geprüft; fehlerhafte Konfiguration startet nicht',()=>{
- const f=setup();f.reply();f.options.allowed=false;f.h.advance(20000);assert.equal(f.calls.length,1);
+ const f=setup();f.reply();f.options.allowed=false;f.tick();assert.equal(f.calls.length,1);
  for(const config of [{enabled:false},{runtimeVerified:false},{syncSecret:'short'},{syncUrl:hostingUrl+'?bad=1'},{syncUrl:'http://evil.invalid'}])assert.equal(setup({config}).calls.length,0);
 });
 test('Jede neue Projektion ist monoton und nach mehr als 45 Sekunden frisch',()=>{
- const f=setup();f.reply();for(const topic of ['Eins','Zwei','Drei']){f.h.event(f.owner,f.radio,'mw:setTopic',{topic});f.reply();}f.h.advance(20000);f.reply();
+ const f=setup();f.reply();for(const topic of ['Eins','Zwei','Drei']){f.h.event(f.owner,f.radio,'mw:setTopic',{topic});f.reply();}f.tick();f.reply();
  const stamps=f.calls.map(c=>JSON.parse(c.p.data.payload).station.updatedAt);for(let i=1;i<stamps.length;i++)assert.ok(stamps[i]>stamps[i-1]);
- const old=f.calls.at(-1).p.data;f.h.event(f.owner,f.radio,'mw:setTopic',{topic:'Hängt'});f.h.advance(60000);f.reply([],{failure:true,status:401});f.h.advance(20000);assert.ok(JSON.parse(f.calls.at(-1).p.data.payload).station.updatedAt>JSON.parse(old.payload).station.updatedAt+45000);
+ const old=f.calls.at(-1).p.data;f.h.event(f.owner,f.radio,'mw:setTopic',{topic:'Hängt'});f.h.advance(60000);f.reply([],{failure:true,status:401});f.h.advance(10000);assert.ok(JSON.parse(f.calls.at(-1).p.data.payload).station.updatedAt>JSON.parse(old.payload).station.updatedAt+45000);
 });
 test('Quittungsrevision einer alten Projektion löscht keine neuere Regieänderung',()=>{
- const f=setup();f.reply([wish()]);f.h.advance(20000);f.resolve(1,'discarded');f.reply();assert.ok(f.calls.some(c=>JSON.parse(c.p.data.payload).wishUpdates.some(r=>r.state==='discarded')));
+ const f=setup();f.reply([wish()]);f.tick();f.resolve(1,'discarded');f.reply();f.tick();assert.ok(f.calls.some(c=>JSON.parse(c.p.data.payload).wishUpdates.some(r=>r.state==='discarded')));
 });
 test('Große ausstehende Statusmenge wird weiterhin in Paketen bis 100 ohne Verlust bestätigt',()=>{
  const at=Date.now()-120000,entries=Array.from({length:205},(_,i)=>({submissionId:'old-'+i,state:'done',position:null,createdAt:at,at,committed:true,dirty:true,revision:1}));
- const f=setup({store:persistence({[privateKey]:settings(),[journalKey]:{version:1,entries}})});f.reply();f.reply();f.reply();assert.deepEqual(f.calls.map(c=>JSON.parse(c.p.data.payload).wishUpdates.length),[100,100,5]);
+ const f=setup({store:persistence({[privateKey]:settings(),[journalKey]:{version:1,entries}})});f.reply();f.tick();f.reply();f.tick();f.reply();assert.deepEqual(f.calls.map(c=>JSON.parse(c.p.data.payload).wishUpdates.length),[100,100,5]);
 });
 test('Sieben-Tage-Bereinigung und Kapazitätsgrenze bleiben begrenzt, ohne Hörerwünsche zu sperren',()=>{
  const at=Date.now()-8*86400000,entry={submissionId:'expired',state:'done',position:null,createdAt:at,at,committed:true,dirty:true,revision:1};const f=setup({store:persistence({[privateKey]:settings(),[journalKey]:{version:1,entries:[entry]}})});assert.equal(f.store.data[journalKey].entries.length,0);
  f.reply();for(let n=0;n<26;n++)f.poll(Array.from({length:10},(_,i)=>wish('capacity-'+(n*10+i))));assert.equal(f.items().length,256);assert.equal(f.store.data[journalKey].entries.length,256);f.channel();assert.equal(f.items().length,257);
 });
-test('Station überträgt bestätigten Lauftext einschließlich Aus mit Studiozustand und genau einem 20-Sekunden-Heartbeat',()=>{
+test('Station überträgt bestätigten Lauftext einschließlich Aus mit Studiozustand und genau einem aktiven 5-Sekunden-Heartbeat',()=>{
  const f=setup(),station=()=>JSON.parse(f.calls.at(-1).p.data.payload).station;
  assert.deepEqual(station().ticker,{text:'',enabled:false,speed:48,direction:'left',revision:0});
- f.reply();f.h.advance(19999);assert.equal(f.calls.length,1);f.h.advance(1);assert.equal(f.calls.length,2);f.reply();
+ f.reply();f.h.advance(4999);assert.equal(f.calls.length,1);f.h.advance(1);assert.equal(f.calls.length,2);f.reply();
  f.h.event(f.owner,f.radio,'mw:onAir', {});f.reply();f.h.event(f.owner,f.radio,'mw:setTopic',{topic:'Sendung'});const state=JSON.parse(f.calls.at(-1).p.data.payload).station;assert.equal(state.onAir,true);assert.equal(state.moderatorNick,'Otterchen');assert.equal(state.topic,'Sendung');
  f.reply();f.h.event(f.owner,f.radio,'mw:openStudio');const studio=f.owner.sessions.find(s=>s.activeView==='studio');
  const save=(data)=>f.h.event(f.owner,studio,'mw:setTicker',{view:'studio',viewRevision:1,...data});
@@ -469,7 +472,7 @@ test('Station überträgt bestätigten Lauftext einschließlich Aus mit Studiozu
   const ticker={...values,text:index===0?'Radio MischWerk':text,revision:index+1};
   assert.deepEqual(station().ticker,ticker);assert.equal(station().topic,'Sendung');
   assert.equal(station().onAir,true);assert.equal(station().moderatorNick,'Otterchen');assert.equal(station().wishboxOpen,true);
-  const stamp=station().updatedAt;f.reply();f.h.advance(20000);
+  const stamp=station().updatedAt;f.reply();f.tick();
   assert.equal(f.calls.length,before+2,'Ein regulärer Heartbeat übernimmt denselben Lauftext');
   assert.deepEqual(station().ticker,ticker);assert.ok(station().updatedAt>stamp);f.reply();
  }
@@ -477,6 +480,72 @@ test('Station überträgt bestätigten Lauftext einschließlich Aus mit Studiozu
   assert.equal(data.sig,require('node:crypto').createHmac('sha256',settings().syncSecret).update('v1.'+data.ts+'.'+data.nonce+'.'+data.payload).digest('hex'));}
  f.h.app.onShutdown();const reboot=setup({store:f.store,now:f.h.now()});
  assert.deepEqual(JSON.parse(reboot.calls[0].p.data.payload).station.ticker,station().ticker,'Ausgeschalteter gespeicherter Lauftext bleibt nach Neustart übertragen');
+});
+
+test('Dynamischer Publisher misst zwölf aktive und drei inaktive Statusaufrufe pro Minute',t=>{
+ const f=setup(),start=f.h.now();f.reply();
+ for(let i=0;i<11;i++){f.h.advance(5000);const before=f.calls.length;f.reply();assert.equal(f.calls.length,before,'Kein POST aus onSuccess');}
+ f.h.advance(4999);assert.equal(f.calls.length,12);
+ assert.deepEqual(f.calls.map(c=>c.at-start),Array.from({length:12},(_,i)=>i*5000));
+ f.h.event(f.owner,f.radio,'mw:offAir',{});f.reply();const idle=f.calls.length;
+ for(let i=0;i<2;i++){f.h.advance(20000);f.reply();}
+ f.h.advance(19999);assert.equal(f.calls.length-idle+1,3);
+ t.diagnostic('Synthetische gesunde Verbindung, Intervalle ohne Start am rechten Rand: aktiv 12/min, inaktiv 3/min; Faktor 4.');
+});
+
+test('Dynamischer Publisher stellt den einen Takt bei wiederholtem Moderationswechsel sauber um',()=>{
+ const f=setup();f.reply();
+ for(let round=0;round<4;round++){
+  f.h.event(f.owner,f.radio,'mw:offAir',{});f.reply();let count=f.calls.length;
+  f.h.advance(19999);assert.equal(f.calls.length,count);f.h.advance(1);assert.equal(f.calls.length,count+1);f.reply();
+  f.h.event(f.owner,f.radio,'mw:onAir',{});f.reply();count=f.calls.length;
+  f.h.advance(4999);assert.equal(f.calls.length,count);f.h.advance(1);assert.equal(f.calls.length,count+1);f.reply();
+  for(let i=0;i<3;i++)f.h.state(f.owner,f.radio);
+  assert.equal(f.calls.length,count+1,'Öffnen und Aktualisieren erzeugt keinen Publisher');
+ }
+ f.owner.online=false;f.h.app.onUserLeft(f.owner);f.reply();const count=f.calls.length;
+ assert.equal(payload(f).studioWishControl,null);f.h.advance(19999);assert.equal(f.calls.length,count);
+ f.h.advance(1);assert.equal(f.calls.length,count+1);f.reply();
+ f.h.app.onShutdown();f.h.advance(60000);assert.equal(f.calls.length,count+1);
+});
+
+test('Dynamischer Publisher wartet auch nach Timeout und Neustart auf das physische Ende des HTTP-Aufrufs',()=>{
+ const f=setup();f.h.advance(10000);assert.equal(f.calls.length,1);
+ f.runtime.stopAndroidRelay();f.runtime.startAndroidRelay();assert.equal(f.calls.length,1);
+ for(let i=0;i<6;i++){f.h.advance(10000);assert.equal(f.calls.length,1);}
+ f.reply([wish('late-physical')]);assert.equal(f.items().length,0);assert.equal(f.calls.length,1,'Spätes onSuccess startet keinen Folgeaufruf');
+ f.h.advance(60000);assert.equal(f.calls.length,2);assert.equal(f.calls.filter(c=>!c.finished).length,1);
+ f.reply();assert.equal(f.calls.length,2);f.runtime.stopAndroidRelay();f.h.advance(60000);assert.equal(f.calls.length,2);
+});
+
+test('Dynamischer Publisher bremst 429 und 5xx auf zehn zwanzig vierzig und sechzig Sekunden',()=>{
+ const f=setup();
+ for(const [index,delay] of [10000,20000,40000,60000].entries()){
+  const count=f.calls.length;f.reply([],{failure:true,status:index%2?503:429});
+  assert.equal(f.calls.length,count,'Kein Folge-POST aus onFailure');
+  f.h.event(f.owner,f.radio,'mw:setTopic',{topic:'Fehlerphase '+index});assert.equal(f.calls.length,count);
+  f.h.advance(delay-1);assert.equal(f.calls.length,count);f.h.advance(1);assert.equal(f.calls.length,count+1);
+ }
+ f.reply();const count=f.calls.length;f.h.advance(4999);assert.equal(f.calls.length,count);f.h.advance(1);assert.equal(f.calls.length,count+1);
+});
+
+test('Dynamischer Publisher misst dauerhafte Fernregiequittungen kurz vor und nach einem aktiven Takt',t=>{
+ const latencies=[];
+ for(const phase of [4999,5001]){
+  const f=setup();f.reply();f.channel('Messwunsch','cadence-latency');f.reply();
+  if(phase>5000){f.h.advance(5000);f.reply();f.h.advance(1);}else f.h.advance(phase);
+  const queuedAt=f.h.now(),command=wishCommand(f,'accept'),count=f.calls.length;
+  f.h.advance(phase<5000?5000-phase:10000-phase);assert.equal(f.calls.length,count+1);
+  sendWishCommand(f,command);assert.equal(f.items()[0].delivery.nick,'Otterchen');
+  assert.ok(f.runtime.findStudioWishResult(command.commandId),'Ergebnis ist vor Quittung dauerhaft gespeichert');
+  assert.equal(f.calls.length,count+1);
+  f.h.advance(4999);assert.equal(f.calls.length,count+1);f.h.advance(1);
+  const body=payload(f);assert.equal(body.studioWishResults[0].state,'applied');
+  assert.equal(body.studioWishUpdates[0].submissionId,command.submissionId);assert.equal(body.studioWishUpdates[0].state,'received');
+  latencies.push(f.h.now()-queuedAt);
+ }
+ assert.deepEqual(latencies,[5001,9999]);
+ t.diagnostic('Synthetischer Transport ohne Laufzeit: Auftrag kurz vor/nach dem Takt, dauerhafte Rückquittung nach 5001/9999 ms.');
 });
 
 function runtimeProbeFixture(options = {}) {
