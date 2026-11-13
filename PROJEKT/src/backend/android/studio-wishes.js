@@ -7,10 +7,11 @@ MischWerkModules.attachAndroidStudioWishes = function (runtime) {
         next.studioExports.forEach(function (row) { row.dirty = true; });
         runtime.commitWishMetadata(next);
     };
-    runtime.reserveStudioWishTimestamp = function (candidate) {
+    runtime.reserveStudioWishTimestamp = function (candidate, updates) {
         var next = runtime.copy(runtime.loadWishes()), stamp = Math.max(candidate, next.studioStamp + 1);
         if (stamp > runtime.now() + 15000) { throw new Error('ANDROID_CLOCK'); }
-        next.studioStamp = stamp; runtime.commitWishMetadata(next); return stamp;
+        next.studioStamp = stamp; runtime.reserveWishControlExports(next, stamp, updates || []);
+        runtime.commitWishMetadata(next); return stamp;
     };
     runtime.pendingStudioWishUpdates = function () {
         var queue = runtime.loadWishes(), items = {};

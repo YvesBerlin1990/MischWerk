@@ -30,8 +30,10 @@ MischWerkModules.attachWishQueue = function (runtime) {
         } catch (error) { return ''; }
     }
 
-    function commit(next, quiet) {
+    function commit(next, quiet, result) {
+        if (result) { next.controlResults.push(result); }
         runtime.updateStudioWishState(queueState(), next);
+        runtime.updateWishControlState(queueState(), next);
         runtime.saveWishes(next);
         wishQueue = next;
         if (!quiet) { runtime.changed('wishes'); }
@@ -45,6 +47,14 @@ MischWerkModules.attachWishQueue = function (runtime) {
         var rows = queueState().replays;
         for (var index = 0; index < rows.length; index += 1) {
             if (rows[index].submissionId === id) { return rows[index].outcome; }
+        }
+        // Ein atomarer Fernabschluss bleibt auch nach einem ausgefallenen externen Quittungsspeicher belegbar.
+        if (typeof id === 'string' && id.indexOf('android:') === 0) {
+            var results = queueState().controlResults;
+            for (var resultIndex = results.length - 1; resultIndex >= 0; resultIndex -= 1) {
+                if (results[resultIndex].submissionId === id.substring(8) && results[resultIndex].state === 'applied' &&
+                        results[resultIndex].terminalState) { return results[resultIndex].terminalState; }
+            }
         }
         return null;
     };
@@ -107,15 +117,15 @@ MischWerkModules.attachWishQueue = function (runtime) {
         commit(queue);
         return { duplicate: false, item: item };
     };
-    runtime.deliverWish = function (id, moderator) {
+    runtime.deliverWish = function (id, moderator, result) {
         var queue = runtime.copy(queueState()), item = itemById(queue, id);
         if (!item) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
-        if (item.delivery) { return false; }
+        if (item.delivery) { if (result) { commit(queue, true, result); } return false; }
         item.delivery = { nick: safeNick(moderator), at: runtime.now(), senderKey: safeUserKey(moderator) };
-        commit(queue);
+        commit(queue, false, result);
         return true;
     };
-    runtime.resolveWish = function (id, outcome) {
+    runtime.resolveWish = function (id, outcome, result) {
         var queue = runtime.copy(queueState());
         var remaining = [];
         var removed = null;
@@ -129,7 +139,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
         queue.items = remaining;
         remember(queue, removed, outcome);
         queue.revision += 1;
-        commit(queue);
+        commit(queue, false, result);
         runtime.changed('wish-removed', { item: removed, outcome: outcome });
     };
     runtime.removeWishesForUser = function (userId) {
@@ -157,7 +167,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
         }
         runtime.resolveWish(data.id, data.outcome);
     };
-    runtime.changeWishStage = function (user, data) {
+    runtime.changeWishStage = function (user, data, result) {
         if (!runtime.canUseModeration(user)) { throw runtime.failure('Nur die Radio-Moderation darf Wünsche bearbeiten.'); }
         var queue = runtime.copy(queueState()), item = itemById(queue, data.id);
         if (!item) { throw runtime.failure('Dieser Wunsch wurde bereits bearbeitet.'); }
@@ -165,7 +175,7 @@ MischWerkModules.attachWishQueue = function (runtime) {
             throw runtime.failure('Bitte einen gültigen Wunschstatus wählen.');
         }
         var previous = item.stage || 'queued';
-        if (data.stage === previous) { return; }
+        if (data.stage === previous) { if (result) { commit(queue, true, result); } return; }
         if (data.previousStage !== previous) {
             throw runtime.failure('Der Wunsch wurde inzwischen geändert. Bitte erneut prüfen.');
         }
@@ -174,6 +184,6 @@ MischWerkModules.attachWishQueue = function (runtime) {
         }
         item.stage = data.stage;
         queue.revision += 1;
-        commit(queue);
+        commit(queue, false, result);
     };
 };

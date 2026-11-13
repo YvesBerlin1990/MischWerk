@@ -29,22 +29,17 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
     function projection() { return runtime.androidStationProjection(); }
     function publish(force) {
         if (!running || runtime.shuttingDown || active || processingReply) { return; }
-        var updates, studio, body, startedAt, relayProjection = null, relayResults = null;
+        var updates, studio, body, startedAt, wishProjection, relayProjection = null, relayResults = null;
         try {
             studio = runtime.pendingStudioWishUpdates();
             updates = runtime.pendingAndroidUpdates().slice(0, 100 - studio.length);
-            if (!force && !dirty && !updates.length && !studio.length) { return; }
+            wishProjection = runtime.studioWishProjection(updates, studio);
+            updates = wishProjection.updates; studio = wishProjection.studio;
+            if (!force && !dirty && !updates.length && !studio.length && !wishProjection.results.length) { return; }
             var current = projection();
             startedAt = clock(); lastProjection = JSON.stringify(current);
-            current.updatedAt = runtime.reserveStudioWishTimestamp(runtime.nextAndroidProjectionTimestamp()); lastStamp = current.updatedAt;
-            body = { station: current, wishMetadataVersion: 1, wishUpdates: updates.map(function (row) {
-                return { submissionId: row.submissionId, state: row.state, position: row.position };
-            }) };
-            if (studio.length) { body.studioWishUpdates = studio.map(function (row) {
-                var entry = { submissionId: row.submissionId, state: row.state, position: row.position };
-                if (row.text !== undefined) { entry.text = row.text; entry.origin = row.origin; entry.displayName = row.displayName; }
-                return entry;
-            }); }
+            current.updatedAt = runtime.reserveStudioWishTimestamp(runtime.nextAndroidProjectionTimestamp(), updates.concat(studio)); lastStamp = current.updatedAt;
+            body = runtime.studioWishBody(current, wishProjection);
             if (typeof runtime.prepareRelayProjection === 'function') {
                 relayProjection = runtime.prepareRelayProjection();
                 Object.keys(relayProjection.body).forEach(function (field) { body[field] = relayProjection.body[field]; });
@@ -73,15 +68,18 @@ MischWerkModules.attachAndroidPublisher = function (runtime) {
                     processingReply = true;
                     runtime.confirmAndroidUpdates(updates);
                     runtime.confirmStudioWishUpdates(studio);
+                    runtime.confirmStudioWishResults(wishProjection.results);
                     if (relayProjection) { runtime.confirmRelayResults(relayResults); }
                     confirmedUpdates += updates.length;
                     healthy = true; confirmedAt = now;
                     runtime.acceptAndroidResponseWishes(reply.wishes);
                     if (typeof runtime.acceptRelayCommands === 'function') { runtime.acceptRelayCommands(reply); }
+                    runtime.acceptStudioWishCommands(reply, wishProjection.control, now);
                     processingReply = false;
                     // Neue Quittungen gehen im nächsten regulären POST; keine rekursive Antwort-/Sendeschleife.
                     var hasCommands = (Array.isArray(reply.scheduleCommands) && reply.scheduleCommands.length > 0) ||
-                        (Array.isArray(reply.moderatorCommands) && reply.moderatorCommands.length > 0);
+                        (Array.isArray(reply.moderatorCommands) && reply.moderatorCommands.length > 0) ||
+                        (Array.isArray(reply.studioWishCommands) && reply.studioWishCommands.length > 0);
                     if (!reply.wishes.length && !hasCommands) { publish(false); }
                 } catch (error) {
                     processingReply = false; healthy = false; dirty = true;

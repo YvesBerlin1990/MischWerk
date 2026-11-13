@@ -1,8 +1,7 @@
-/* Der Prüfzweig liefert ausschließlich den beim Build erzeugten Dateibedarf. */
+/* Dateiprüfung und Backend-Ladeplan. */
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ null /* update-files:end */);
 } else {
-/* Zentraler Backend-Start: Module laden, Abhängigkeiten verbinden, Knuddels-Hooks zuordnen. */
 var MischWerkModules = {};
 KnuddelsServer.execute('server/config.js');
 KnuddelsServer.execute('server/core/runtime.js');
@@ -33,6 +32,7 @@ KnuddelsServer.execute('server/radio/handover.js');
 KnuddelsServer.execute('server/state/initialization.js');
 KnuddelsServer.execute('server/radio/show.js');
 KnuddelsServer.execute('server/wishes/export-state.js');
+KnuddelsServer.execute('server/wishes/control-state.js');
 KnuddelsServer.execute('server/wishes/storage.js');
 KnuddelsServer.execute('server/wishes/queue.js');
 KnuddelsServer.execute('server/wishes/transport.js');
@@ -75,6 +75,8 @@ KnuddelsServer.execute('server/android/settings.js');
 KnuddelsServer.execute('server/android/receipts.js');
 KnuddelsServer.execute('server/android/incoming.js');
 KnuddelsServer.execute('server/android/studio-wishes.js');
+KnuddelsServer.execute('server/android/wish-control.js');
+KnuddelsServer.execute('server/android/wish-commands.js');
 KnuddelsServer.execute('server/android/projection.js');
 KnuddelsServer.execute('server/android/commands.js');
 KnuddelsServer.execute('server/android/publisher.js');

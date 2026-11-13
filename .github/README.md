@@ -11,13 +11,14 @@
 
 Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderation, Sendeplan und eigener Homepage.
 
-**App 0.1.391 · Build 391 · Website 0.2.12** · Stand: 12. November 2026.
+**App 0.1.392 · Build 392 · Website 0.2.12** · Stand: 13. November 2026.
 
 ![Lokale Testansicht der Radioleiste in Build 391 mit passender Vinylhöhe und vollständigen Trennlinien](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
 
 - **Radio:** HTTPS-Stream mit Play/Stop und aktuellen Titeln direkt vom SPCast-Streamserver. Der goldene Lautstärkeregler steht auf allen Breiten waagerecht unter Thema und Moderationsname. Vinyl-Player und Original-Logo bleiben erhalten. Ein eigener Wunsch erscheint breit nur bei Bedarf; die übrige Fläche nutzen Musik und Sendungsinfo. Während der Wiedergabe leuchten Playtaste und Außenrand.
 - **Wunschbox erst bei Live-Moderation:** Hörer sehen den Button erst, wenn sich die Moderation anmeldet und die Wunschannahme freigegeben ist. Im AutoDJ, nach Abmeldung und bei gesperrter Wunschannahme ist er ausgeblendet. Das Öffnen des Moderationsmenüs allein startet keine Sendung. Ein freies Textfeld nimmt den Wunsch auf; bestätigte offene Wünsche bleiben bei Appupdates und Neustarts gespeichert.
 - **Gemeinsame Wunschweiterleitung:** Build 391 ergänzt die geschützte Firebase-Studioprojektion für native Wünsche. Web- und Android-Wünsche behalten Anzeigename und Herkunft in derselben Queue. Positionsänderungen und Endzustände werden dauerhaft vorgemerkt; die gemeinsame Produktionsabnahme bleibt nach Installation offen.
+- **Wunschfernregie:** Build 392 ergänzt lokal die Bedienung der vorhandenen Wunschaktionen aus Live Studio. Die Eingangsreihenfolge und das Knuddels-Menü bleiben erhalten. Die Gegenseitenbereitstellung und gemeinsame native Abnahme stehen noch aus.
 - **Moderation:** Native Anmeldung ohne persönliche PIN, Anmelden und Abmelden ohne Zeitlimit, Sendungsthema, scrollbare Wunschliste mit Nick, Uhrzeit und goldenem Wunschtext sowie bestätigte Übergabe an andere Moderatoren. Das Menü bietet die Bereiche Sendung und Wünsche.
 - **Lauftext:** /lauftext TEXT setzt und aktiviert die Laufzeile mit automatisch ergänzten +++; --aus/--an erhält den gespeicherten Text.
 - **Sendeplan aus der Homepage:** Die App liest die öffentliche Tagesübersicht von [radio-mischwerk.web.app](https://radio-mischwerk.web.app/) mit Thema, Moderationsname und Uhrzeit. Davor, aktuelle Sendung und Danach sind zugeordnet. Auch AutoDJ-Zeilen stammen aus den gelieferten Homepage-Daten; leere Tage und Abruffehler werden ausdrücklich angezeigt. Für den Lesezugriff sind weder ein Verbindungsschlüssel noch eine aktivierte Statusübertragung nötig. Die redaktionelle Planung wird auf der Homepage gepflegt.

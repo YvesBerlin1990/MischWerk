@@ -9,6 +9,50 @@ const {reveal:revealStudio}=require('../support/studio-browser.cjs');
 const studioPictures=path.join(require('node:os').tmpdir(),'MischWerk-Pruefbilder','moderation-neu');fs.mkdirSync(studioPictures,{recursive:true});
 let browser;
 
+for(const client of ['k3','stapp'])test('Fernregie verändert dieselbe native Wunschliste und erhält Radioaudio in '+client,async t=>{
+ const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client,640),listener=await lab.join('Polaroid',client,640);
+ await owner.radio.locator('#play-button').click();await owner.radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
+ await owner.radio.evaluate(()=>{window.__controlAudio=document.getElementById('radio-audio');__controlAudio.loop=true;});
+ await listener.radio.evaluate(()=>{
+  window.__remoteWishAccepted=false;
+  Client.addEventListener('mw:wish.receipt',event=>{if(event.data.submissionId==='remote-browser')window.__remoteWishAccepted=event.data.accepted;});
+  Client.sendEvent('mw:wish.submit',{submissionId:'remote-browser',text:'Queen – Radio Ga Ga'});
+ });
+ await listener.radio.waitForFunction(()=>window.__remoteWishAccepted===true);
+ const runtime=lab.hub.runtime,bodies=[];let pending=null,sequence=0;
+ runtime.persistence.api().setObject('mischwerk.android.private.v1',{enabled:true,runtimeVerified:true,syncSecret:'s'.repeat(64),syncUrl:'https://radio-mischwerk.web.app/api/publishKnuddelsState'});
+ runtime.context.KnuddelsServer.getExternalServerAccess=()=>({canAccessURL:()=>true,postURL:(url,p)=>{
+  const body=JSON.parse(p.data.payload);bodies.push(body);const command=pending;pending=null;
+  p.onSuccess(JSON.stringify({accepted:true,serverTime:runtime.clock.now(),wishes:[],...(command?{studioWishCommands:[command]}:{})}),
+   {getResponseCode:()=>200,getURLString:()=>url});
+ }});
+ runtime.invokeFunction(runtime.app.onAppStart,[]);
+ const exported=bodies.flatMap(body=>body.studioWishUpdates||[]).find(row=>row.text==='Queen – Radio Ga Ga');
+ assert.ok(exported);assert.equal(bodies.at(-1).studioWishControl.nick,'Otterchen');
+ function act(action,state){
+  const source=bodies.findLast(body=>body.studioWishUpdates?.some(row=>row.submissionId===exported.submissionId&&row.state===state));
+  assert.ok(source,'Tatsächlich exportierter Einzelwunschstand');
+  const id=(++sequence).toString(16).padStart(64,'0');pending={commandId:id,submissionId:exported.submissionId,action,
+   expectedState:state,expectedPosition:1,expectedSourceUpdatedAt:source.station.updatedAt,beforeSubmissionId:null,
+   sessionId:bodies.at(-1).studioWishControl.sessionId,expiresAt:runtime.clock.now()+120000};
+  const count=bodies.length;runtime.clock.advance(20000);assert.equal(bodies.length,count+1,'Keine rekursive Quittung');
+  runtime.clock.advance(20000);
+  const result=bodies.findLast(body=>body.studioWishResults.some(row=>row.commandId===id));
+  assert.equal(result?.studioWishResults[0].state,'applied');return result;
+ }
+ assert.equal(act('accept','queued').studioWishUpdates[0].state,'received');
+ await owner.radio.locator('#studio-tab').click();const studio=await overlayView(owner.page,'studio');
+ await studio.locator('#studio-queue-tab').click();await studio.waitForFunction(()=>document.querySelectorAll('.queue-item').length===1);
+ assert.deepEqual(await studio.locator('.request-text').allTextContents(),['Queen – Radio Ga Ga']);
+ assert.equal(await studio.locator('.queue-item button').count(),0,'Bestehendes natives Menü erhält keine neuen Regieknöpfe');
+ assert.equal(act('prepare','received').studioWishUpdates[0].state,'preparing');
+ assert.equal(act('playing','preparing').studioWishUpdates[0].state,'playing');
+ const done=act('done','playing');assert.deepEqual(done.studioWishUpdates[0],{submissionId:exported.submissionId,state:'done',position:null});
+ await studio.waitForFunction(()=>document.querySelectorAll('.queue-item').length===0);
+ assert.equal(await owner.radio.evaluate(()=>document.getElementById('radio-audio')===__controlAudio&&!__controlAudio.paused),true);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
 for(const client of ['k3','stapp'])test('Gemeinsame Wunschweiterleitung erhält Namen Herkunft und private Reihenfolge in '+client,async t=>{
  const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client,640),listener=await lab.join('Polaroid',client,640);
  await listener.radio.evaluate(()=>Client.sendEvent('mw:wish.submit',{submissionId:'metadata-native',text:'Nativer Wunsch'}));

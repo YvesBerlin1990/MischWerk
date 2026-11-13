@@ -37,6 +37,7 @@ MischWerkModules.attachWishStorage = function (runtime) {
             submissions['$' + row.submissionId] = true;
         });
         runtime.validateStudioWishState(value);
+        runtime.validateWishControlState(value);
         value.submissionIds = {};
         value.items.concat(value.replays).forEach(function (row) { value.submissionIds['$' + row.submissionId] = row.id; });
         return value;
@@ -71,7 +72,8 @@ MischWerkModules.attachWishStorage = function (runtime) {
         if (!loaded) { throw new Error('WISH_STORAGE_NOT_LOADED'); }
         var store = KnuddelsServer.getPersistence(), bank = head ? 1 - head.bank : 0;
         var value = { version: 1, nextId: queue.nextId, revision: queue.revision, items: queue.items, replays: queue.replays,
-            studioNamespace: queue.studioNamespace, studioStamp: queue.studioStamp, studioExports: queue.studioExports };
+            studioNamespace: queue.studioNamespace, studioStamp: queue.studioStamp, studioExports: queue.studioExports,
+            controlVersions: queue.controlVersions, controlResults: queue.controlResults };
         validate(value);
         var text = JSON.stringify(value, function (name, entry) { return name === 'submissionIds' ? undefined : entry; });
         var next = { version: 1, bank: bank, pages: Math.ceil(text.length / 10000) };

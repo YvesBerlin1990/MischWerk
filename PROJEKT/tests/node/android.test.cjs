@@ -22,6 +22,200 @@ function setup(options={}){
 }
 const wish=(id='android-one',text='Band – Song',displayName=null)=>({submissionId:id,text,displayName});
 
+// Fernregie durch denselben echten signierten HTTP-Port, keine direkten Erfolgsattrappen.
+let wishCommandSequence=0;
+const payload=f=>JSON.parse(f.calls.at(-1).p.data.payload);
+function wishCommand(f,action,id=1,overrides={}){
+ const queue=f.runtime.loadWishes(),item=queue.items.find(row=>row.id===id);
+ const submissionId=f.runtime.wishControlId(queue,item),version=queue.controlVersions.find(row=>row.id===id);
+ const source=version.exports.filter(row=>row.revision===version.revision).at(-1);
+ return {commandId:(++wishCommandSequence).toString(16).padStart(64,'0'),submissionId,action,
+  expectedState:f.runtime.wishControlStage(item),expectedPosition:queue.items.indexOf(item)+1,
+  expectedSourceUpdatedAt:source?.stamp||0,beforeSubmissionId:null,
+  sessionId:payload(f).studioWishControl.sessionId,expiresAt:f.h.now()+120000,...overrides};
+}
+function sendWishCommand(f,command,extra={}){
+ f.reply([],{body:{accepted:true,serverTime:f.h.now(),wishes:[],studioWishCommands:[command],...extra}});
+}
+function wishResult(f){f.h.advance(20000);return payload(f).studioWishResults[0];}
+
+test('Fernregie bindet echten nativen Nick und Sitzung; keine Firebase-UID oder behauptete Clientrolle',()=>{
+ const f=setup(),control=payload(f).studioWishControl;
+ assert.deepEqual(Object.keys(control).sort(),['nick','sessionId','version']);
+ assert.equal(control.nick,'Otterchen');assert.equal(control.version,1);assert.match(control.sessionId,/^[a-f0-9]{64}$/);
+ assert.equal(f.runtime.studioWishControl().sessionId,control.sessionId);
+ f.reply();f.h.event(f.owner,f.radio,'mw:offAir',{});assert.equal(payload(f).studioWishControl,null);
+ f.reply();f.h.event(f.owner,f.radio,'mw:onAir',{});assert.notEqual(payload(f).studioWishControl.sessionId,control.sessionId);
+ assert.equal(f.calls.at(-1).p.data.payload.includes('uid'),false);
+});
+
+test('Alle sechs Fernaktionen verwenden dieselbe Queue, behalten Reihenfolge und Herkunft',()=>{
+ for(const external of [false,true]){
+  const f=setup();f.reply();f.channel('Erster Wunsch','control-first');f.reply();
+  if(external){f.poll([{...wish('remote-second','Zweiter Wunsch','Öffentlicher Name'),origin:'web'}]);f.h.advance(20000);}
+  else f.channel('Zweiter Wunsch','control-second');
+  const before=f.items(),id=2;
+  for(const action of ['accept','prepare','defer']){
+   const command=wishCommand(f,action,id);sendWishCommand(f,command);
+   assert.deepEqual(f.items().map(row=>row.id),[1,2]);
+   assert.equal(wishResult(f).state,'applied');
+   const row=[...(payload(f).studioWishUpdates||[]),...payload(f).wishUpdates].find(row=>row.submissionId===command.submissionId);
+   assert.equal(row.position,2);assert.equal(row.state,action==='prepare'?'preparing':'received');
+   f.reply();f.h.advance(20000);
+  }
+  assert.equal(f.items()[1].text,before[1].text);assert.equal(f.items()[1].submissionId,before[1].submissionId);
+  assert.equal(f.items()[1].displayName,before[1].displayName);assert.equal(f.items()[1].origin,before[1].origin);
+  const discard=wishCommand(f,'discard',id);sendWishCommand(f,discard);assert.deepEqual(f.items().map(row=>row.id),[1]);
+  assert.equal(wishResult(f).state,'applied');f.reply();f.h.advance(20000);
+  for(const action of ['prepare','playing','done']){
+   sendWishCommand(f,wishCommand(f,action));assert.equal(wishResult(f).state,'applied');f.reply();f.h.advance(20000);
+  }
+  assert.equal(f.items().length,0);
+ }
+});
+
+test('Nulländerung wird dauerhaft quittiert und liefert aktuellen Wunsch im selben POST',()=>{
+ const f=setup();f.reply();f.channel('Bleibt offen','control-noop');f.reply();f.h.advance(20000);
+ const command=wishCommand(f,'defer'),before=f.items();sendWishCommand(f,command);
+ assert.deepEqual(f.items(),before);assert.equal(wishResult(f).state,'applied');
+ assert.deepEqual(payload(f).studioWishUpdates.map(row=>[row.submissionId,row.state,row.position]),[[command.submissionId,'queued',1]]);
+ assert.equal(payload(f).studioWishControl.sessionId,command.sessionId);
+});
+
+test('Fernregie lehnt Sortieren, Zielanker, ungültige Vorzustände und direktes playing ab',()=>{
+ for(const changes of [{action:'move'},{beforeSubmissionId:'knuddels:other'},{action:'forged'},
+  {expectedPosition:0},{expectedState:'done'},{expiresAt:Date.now()+999999999}, {action:'playing'}, {role:'owner'}]){
+  const f=setup();f.reply();f.channel('Unverändert','control-invalid');const before=f.items();
+  sendWishCommand(f,wishCommand(f,'accept',1,changes));assert.deepEqual(f.items(),before);
+  assert.equal(wishResult(f).reason,'not_allowed');
+ }
+});
+
+test('Status hin und zurück sowie Empfang nach dem Snapshot machen den alten Auftrag ungültig',()=>{
+ for(const mutation of ['stage','delivery']){
+  const f=setup();f.reply();f.channel('Konflikt','control-conflict');const command=wishCommand(f,'accept');
+  if(mutation==='stage'){
+   f.runtime.changeWishStage(f.owner,{id:1,stage:'preparing',previousStage:'queued'});
+   f.runtime.changeWishStage(f.owner,{id:1,stage:'queued',previousStage:'preparing'});
+  }else f.runtime.deliverWish(1,f.owner);
+  const before=f.items();sendWishCommand(f,command);assert.deepEqual(f.items(),before);
+  assert.equal(wishResult(f).reason,'stale_wish');
+  assert.equal(payload(f).studioWishUpdates[0].state,mutation==='stage'?'queued':'received');
+ }
+});
+
+test('Unbekannte und globale Heartbeat-Version sind kein Beleg für den einzelnen Wunsch',()=>{
+ const f=setup();f.reply();f.channel('Eigene Revision','control-source');f.reply();f.h.advance(20000);
+ const command=wishCommand(f,'accept',1,{expectedSourceUpdatedAt:payload(f).station.updatedAt});
+ sendWishCommand(f,command);assert.equal(f.items()[0].delivery,null);assert.equal(wishResult(f).reason,'stale_wish');
+});
+
+test('Eine Änderung an anderem Wunsch verwirft den gültigen Bezug nicht',()=>{
+ const f=setup();f.reply();f.channel('Erster','control-independent');const command=wishCommand(f,'accept');
+ f.channel('Neuer Zweiter','control-independent-2');sendWishCommand(f,command);
+ assert.equal(f.items()[0].delivery.nick,'Otterchen');assert.equal(wishResult(f).state,'applied');
+});
+
+test('Moderationswechsel, Abmeldung und Verlassen verhindern alte Fernaufträge',()=>{
+ for(const change of ['off','restart','leave']){
+  const f=setup();f.reply();f.channel('Sitzungsschutz','control-session');const command=wishCommand(f,'accept');
+  if(change==='leave'){f.owner.online=false;f.h.app.onUserLeft(f.owner);}
+  else {f.h.event(f.owner,f.radio,'mw:offAir',{});if(change==='restart')f.h.event(f.owner,f.radio,'mw:onAir',{});}
+  sendWishCommand(f,command);assert.equal(f.items()[0].delivery,null);f.h.advance(20000);
+  assert.equal(payload(f).studioWishResults.length,0,'Altes Ergebnis wird keiner neuen Moderation zugeordnet');
+  if(change!=='restart')assert.equal(payload(f).studioWishControl,null);
+ }
+});
+
+test('Unterwegs abgelaufene Aufträge und übergroße Antworten verändern die Queue nicht',()=>{
+ const f=setup();f.reply();f.channel('Frische','control-expiry');
+ sendWishCommand(f,wishCommand(f,'accept',1,{expiresAt:f.h.now()-1}));assert.equal(wishResult(f).reason,'stale_wish');
+ f.reply();f.h.advance(20000);const before=f.items(),command=wishCommand(f,'accept');
+ f.reply([],{body:{accepted:true,serverTime:f.h.now(),wishes:[],studioWishCommands:[command],padding:'Ä'.repeat(17000)}});
+ assert.deepEqual(f.items(),before);
+});
+
+test('Doppelte Zustellung und Neustart nach Commit führen nicht erneut aus',()=>{
+ const f=setup();f.reply();f.channel('Genau einmal','control-duplicate');const command=wishCommand(f,'accept');
+ sendWishCommand(f,command);const delivery=f.items()[0].delivery,revision=f.runtime.loadWishes().controlVersions[0].revision;
+ assert.equal(wishResult(f).state,'applied');f.reply([],{failure:true,status:503});
+ f.h.advance(20000);sendWishCommand(f,command);assert.equal(wishResult(f).state,'applied');
+ assert.deepEqual(f.items()[0].delivery,delivery);assert.equal(f.runtime.loadWishes().controlVersions[0].revision,revision);
+ f.h.app.onShutdown();const reboot=setup({store:f.store,now:f.h.now()});sendWishCommand(reboot,command);
+ assert.deepEqual(reboot.items()[0].delivery,delivery);
+ assert.equal(reboot.runtime.loadWishes().controlVersions[0].revision,revision);
+ assert.equal(reboot.runtime.findStudioWishResult(command.commandId).state,'applied');
+ assert.equal(payload(reboot).studioWishControl.sessionId===command.sessionId,false,'Neustart bestätigt eine neue native Moderationssitzung');
+ reboot.h.advance(20000);assert.equal(payload(reboot).studioWishResults.length,0,'Keine alte Quittung unter einer neuen Sitzung');
+});
+
+test('Aktuelle Rückprojektion darf dem quittierten accept bereits voraus sein',()=>{
+ const f=setup();f.reply();f.channel('Schon vorbereitet','control-progress');const command=wishCommand(f,'accept');
+ sendWishCommand(f,command);f.runtime.changeWishStage(f.owner,{id:1,stage:'preparing',previousStage:'queued'});
+ assert.equal(wishResult(f).state,'applied');assert.equal(payload(f).studioWishUpdates[0].state,'preparing');
+});
+
+test('Speicherfehler vor Fachcommit erzeugt keine Änderung und keine falsche Erfolgsquittung',()=>{
+ for(const permanent of [false,true]){
+  const f=setup();f.reply();f.channel('Atomar','control-storage');f.reply();f.h.advance(20000);
+  const command=wishCommand(f,'accept'),write=f.store.setObject;let failures=0;
+  f.store.setObject=(key,value)=>{if(key==='mischwerk.wishes.v3'&&(permanent||failures++===0))throw Error('private storage');write(key,value);};
+  sendWishCommand(f,command);assert.equal(f.items()[0].delivery,null);f.store.setObject=write;
+  assert.equal(f.runtime.findStudioWishResult(command.commandId)?.state,permanent?undefined:'rejected');
+  if(!permanent)assert.equal(wishResult(f).reason,'storage_failed');
+  else {f.h.app.onShutdown();const reboot=setup({store:f.store,now:f.h.now()});assert.equal(reboot.items()[0].delivery,null);}
+ }
+});
+
+test('Anzeigefehler nach dauerhaftem Commit bleibt applied',()=>{
+ const f=setup();f.reply();f.channel('Commit zuerst','control-notify');
+ f.runtime.broadcast=()=>{throw Error('private render failure');};const command=wishCommand(f,'accept');
+ sendWishCommand(f,command);assert.equal(f.items()[0].delivery.nick,'Otterchen');assert.equal(wishResult(f).state,'applied');
+});
+
+test('Regie quittiert nur im nächsten Takt, ohne zweiten HTTP-Aufruf oder weitere Schleife',()=>{
+ const f=setup();f.reply();f.channel('Ein Timer','control-rate');const count=f.calls.length;
+ sendWishCommand(f,wishCommand(f,'accept'));assert.equal(f.calls.length,count);
+ f.h.advance(19999);assert.equal(f.calls.length,count);f.h.advance(1);assert.equal(f.calls.length,count+1);
+ const body=payload(f);assert.equal(body.studioWishResults.length,1);
+ assert.ok(body.wishUpdates.length+(body.studioWishUpdates||[]).length<=100);
+ assert.deepEqual(Object.keys(f.calls.at(-1).p.data).sort(),['nonce','payload','sig','ts']);
+ assert.ok(Object.values(f.calls.at(-1).p.data).every(value=>typeof value==='string'));
+});
+
+test('Dauerhafter Abschlussbeleg überlebt Replaygrenze und bestätigt Wiederholung nach Exportquittung',()=>{
+ const f=setup();f.reply();f.channel('Dauerhafter Abschluss','control-terminal');const command=wishCommand(f,'done');
+ sendWishCommand(f,command);f.runtime.stopAndroidRelay();
+ for(let i=0;i<270;i++){f.channel('Weiterer Wunsch '+i,'control-later-'+i);f.resolve(i+2);}
+ assert.equal(f.runtime.wishOutcome('control-terminal'),null,'Der normale Replaycache ist inzwischen weitergerückt');
+ assert.equal(f.runtime.findStudioWishResult(command.commandId).terminalState,'done');
+ f.runtime.startAndroidRelay();assert.equal(payload(f).studioWishResults[0].state,'applied');
+ assert.deepEqual(payload(f).studioWishUpdates[0],{submissionId:command.submissionId,state:'done',position:null});
+ sendWishCommand(f,command);assert.ok(!f.runtime.loadWishes().studioExports.some(row=>row.submissionId===command.submissionId));
+ assert.equal(wishResult(f).state,'applied');
+ assert.deepEqual(payload(f).studioWishUpdates[0],{submissionId:command.submissionId,state:'done',position:null});
+ assert.equal(f.items().length,0);
+});
+
+test('Regiequittung erhält gemeinsam maximal 100 Updates und zehn native Wünsche',()=>{
+ const f=setup();f.reply();f.runtime.stopAndroidRelay();
+ for(let i=0;i<14;i++)f.channel('Nativer Wunsch '+i,'control-package-'+i);
+ f.runtime.startAndroidRelay();f.reply();
+ const command=wishCommand(f,'accept',14);sendWishCommand(f,command);wishResult(f);
+ const body=payload(f);assert.equal(body.studioWishResults.length,1);assert.equal(body.studioWishUpdates[0].submissionId,command.submissionId);
+ assert.ok(body.studioWishUpdates.length<=10);assert.ok(body.studioWishUpdates.length+body.wishUpdates.length<=100);
+ assert.doesNotMatch(JSON.stringify(f.h.state(f.owner,f.radio)),/controlVersions|controlResults|commandId|exports/);
+});
+
+test('Ungültige technische Speicherbelege werden vor jedem Seitencommit abgewiesen',()=>{
+ const f=setup();f.reply();f.channel('Valider Bestand','control-validate');f.reply();
+ for(const mutate of [q=>{q.controlVersions[0].revision=0;},q=>{q.controlVersions[0].exports[0].stamp=q.studioStamp+1;},
+  q=>{q.controlVersions.push(q.controlVersions[0]);},q=>{q.controlVersions=[];},q=>{q.controlResults=[{commandId:'forged'}];}]){
+  const queue=JSON.parse(JSON.stringify(f.runtime.loadWishes())),saved=JSON.stringify(f.store.data);mutate(queue);
+  assert.throws(()=>f.runtime.saveWishes(queue),/WISH_CONTROL_FORMAT/);assert.equal(JSON.stringify(f.store.data),saved);
+ }
+});
+
 test('Gemeinsamer Firebase-Vertrag exportiert native Wünsche und erhält Web-/Android-Metadaten',()=>{
  const f=setup();f.reply();f.channel('Nativer Wunsch','native-contract');
  const payload=()=>JSON.parse(f.calls.at(-1).p.data.payload),native=payload().studioWishUpdates;

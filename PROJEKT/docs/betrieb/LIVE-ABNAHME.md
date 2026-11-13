@@ -1,4 +1,14 @@
-# MischWerk – LIVE-Abnahme: lokal 0.1.391 / Build 391
+# MischWerk – LIVE-Abnahme: lokal 0.1.392 / Build 392
+
+## Offene Wunschfernregie ohne Umsortieren · Build 392
+
+Die Wunschfernregie ist in Version 0.1.392 und Build 392 lokal umgesetzt und paketiert. Eine native Installation oder gemeinsame produktive Abnahme wird daraus nicht abgeleitet.
+
+Nach separat freigegebener Installation und kompatibler Gegenseitenbereitstellung die sechs Fernaktionen gemeinsam mit synthetischen nativen und externen Wünschen prüfen. Geschützt gepflegte eindeutige DJ-Nick-Zuordnung auf Firebase-Seite, echte aktive native Moderation und richtige Sitzungsbindung voraussetzen. Ohne passende DJ-Zuordnung keine Steuerfreigabe. Vorbereiten auch abseits von Platz 1, playing nur vorbereitet auf Platz 1; defer darf bei bestehendem Empfang received ergeben. Eingangsreihenfolge, Namen, Herkunft, Kennungen, native Bedienung und laufendes Radioaudio erhalten. Keine neuen Regieknöpfe oder Sortierung abnehmen.
+
+Gleichzeitige sichtbare native Empfangsbestätigung, Status-hin-und-zurück, abgelaufene Aufträge, Moderationswechsel, Abmeldung, Verlassen und Rechteverlust müssen alte Aufträge zuverlässig sperren. Verlorene Quittung und Neustart zwischen Fachcommit und Antwort dürfen keine zweite Ausführung oder nachträgliche Ablehnung des gespeicherten Erfolgs auslösen. Ergebnisse gehören zur ursprünglichen Sitzung; keine alten Belege unter einer neuen Moderation quittieren. Applied und aktueller Wunschzustand müssen im selben angenommenen POST sichtbar werden, auch bei Nulländerung und nach Abschluss über die Replaygrenze hinaus.
+
+Den unveränderten signierten HTTP-Port, höchstens einen echten offenen Abruf und den bestehenden 20-Sekunden-Takt im nativen Betrieb bestätigen. Lange Unicodeantworten mit Wünschen sowie Sendeplan-/Teamaufträgen gemeinsam innerhalb des lokalen 32768-Schutzes halten. Lokale Browser-/Rhino-Modelle und HTTP accepted:true ersetzen diese gemeinsame native Abnahme nicht. Echte Hörerwünsche nicht als Test verwenden; keine automatischen produktiven Updates oder Neustarts.
 
 ## Offene gemeinsame Wunschweiterleitung · Build 391
 

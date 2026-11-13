@@ -1,7 +1,7 @@
 /* Echte Rhino-Engines; native HTTP-Antworten/Java-Strings im isolierten Plattformmodell. */
 (function () {
     var previousPersistence = KnuddelsServer.getPersistence, previousHooks = KnuddelsServer.getWebHookAccess;
-    var previousExternal = KnuddelsServer.getExternalServerAccess, previousInfo = KnuddelsServer.getAppServerInfo;
+    var previousExternal = KnuddelsServer.getExternalServerAccess, previousInfo = KnuddelsServer.getAppServerInfo, previousPeople = people;
     var sync = new Array(65).join('s'), observer = null, nativeCalls = [], hookCalls = 0, clock = 1800000000000;
     var data = { 'mischwerk.android.private.v1': { enabled: true, runtimeVerified: true, syncSecret: sync,
         syncUrl: 'https://radio-mischwerk.web.app/api/publishKnuddelsState' } };
@@ -22,14 +22,17 @@
         runtime.state = { requestsEnabled: true, topic: '', moderator: null };runtime.requestsAvailable=function(){return runtime.state.requestsEnabled;};
         MischWerkModules.attachChanges(runtime); MischWerkModules.attachValidation(runtime);
         MischWerkModules.attachTicker(runtime);
-        MischWerkModules.attachWishExportState(runtime); MischWerkModules.attachWishStorage(runtime); MischWerkModules.attachWishQueue(runtime);
+        MischWerkModules.attachWishExportState(runtime); MischWerkModules.attachWishControlState(runtime);
+        MischWerkModules.attachWishStorage(runtime); MischWerkModules.attachWishQueue(runtime);
         MischWerkModules.attachWebsiteWishes(runtime);
         MischWerkModules.attachAndroidFailures(runtime); MischWerkModules.attachAndroidSigning(runtime); MischWerkModules.attachAndroidConnection(runtime);
         MischWerkModules.attachAndroidReceipts(runtime); MischWerkModules.attachAndroidIncoming(runtime);
         MischWerkModules.attachAndroidStudioWishes(runtime);
+        MischWerkModules.attachStudioWishControl(runtime); MischWerkModules.attachStudioWishCommands(runtime);
         MischWerkModules.attachAndroidPublisher(runtime); MischWerkModules.attachAndroidRelay(runtime);
-        function answer(rows, status) {
+        function answer(rows, status, commands) {
             var c = nativeCalls[nativeCalls.length - 1], reply = { accepted: true, serverTime: clock, wishes: rows };
+            if (commands) { reply.studioWishCommands = commands; }
             c.params[status ? 'onFailure' : 'onSuccess'](new java.lang.String(JSON.stringify(reply)), {
                 getResponseCode: function () { return new java.lang.Integer(status || 200); },
                 getURLString: function () { return new java.lang.String(c.url); }
@@ -82,6 +85,49 @@
         check(runtime.wishItems()[0].origin === 'web' && runtime.wishItems()[1].origin === 'android' &&
             runtime.wishItems()[0].displayName.length === 50, 'Web-/Android-Herkunft und Anzeigename verlustfrei in Rhino');
         check(JSON.stringify(data['mischwerk.android.receipts.v1']).indexOf('Untrusted') === -1, 'Technische Marker ohne Wunschtext oder Namen');
+        tick(); answer([]);
+        var moderator = person(99101, 'Otterchen', true); people = [moderator];
+        runtime.state.radioModeratorUserIds = [];
+        runtime.state.moderator = { userId: 99101, nick: 'Otterchen', authentication: 'knuddels', sessionKey: 'rhino-native-session', since: clock };
+        MischWerkModules.attachIdentity(runtime, MischWerkConfig); MischWerkModules.attachModeration(runtime, MischWerkConfig);
+        runtime.changed('station'); answer([]);
+        function body() { return JSON.parse(nativeCalls[nativeCalls.length - 1].params.data.payload); }
+        check(body().studioWishControl.nick === 'Otterchen' && /^[a-f0-9]{64}$/.test(body().studioWishControl.sessionId),
+            'Echter nativer Moderator und Sitzung im v1-Steuerblock in Rhino');
+        runtime.submitWish(moderator, { submissionId: 'rhino-control', text: 'Fernregie erhält Reihenfolge' });
+        var controlItem = runtime.wishItems()[10], commandSequence = 0;
+        function command(action, item) {
+            var queue = runtime.loadWishes(), version = queue.controlVersions.filter(function (row) { return row.id === item.id; })[0];
+            var sent = version.exports[version.exports.length - 1];
+            return { commandId: new Array(64).join('0') + (++commandSequence), submissionId: runtime.wishControlId(queue, item),
+                action: action, expectedState: runtime.wishControlStage(item), expectedPosition: queue.items.indexOf(item) + 1,
+                expectedSourceUpdatedAt: sent.stamp, beforeSubmissionId: null, sessionId: body().studioWishControl.sessionId, expiresAt: clock + 120000 };
+        }
+        var accept = command('accept', controlItem), beforeCalls = nativeCalls.length;
+        answer([], null, [accept]);
+        check(nativeCalls.length === beforeCalls && controlItem.id === runtime.wishItems()[10].id, 'Kein Sortieren oder rekursiver Ergebnis-POST in Rhino');
+        tick();
+        check(body().studioWishResults[0].state === 'applied' && body().studioWishUpdates[0].state === 'received' &&
+            body().studioWishUpdates[0].position === 11, 'Atomarer Annahmebeleg mit aktuellem nativen Wunsch im selben POST');
+        var revision = runtime.loadWishes().controlVersions[10].revision;
+        answer([], null, [accept]); tick();
+        check(body().studioWishResults[0].state === 'applied' && runtime.loadWishes().controlVersions[10].revision === revision,
+            'Doppelte Zustellung quittiert denselben Commit ohne zweite Mutation');
+        answer([]); tick();
+        var stale = command('prepare', runtime.wishItems()[10]);
+        runtime.changeWishStage(moderator, { id: controlItem.id, previousStage: 'queued', stage: 'preparing' });
+        runtime.changeWishStage(moderator, { id: controlItem.id, previousStage: 'preparing', stage: 'queued' });
+        answer([], null, [stale]); tick();
+        check(body().studioWishResults[0].reason === 'stale_wish', 'Hin-und-zurück-Mutation macht alten Snapshot in Rhino ungültig');
+        answer([], null, [command('prepare', runtime.wishItems()[0])]); tick();
+        check(body().studioWishResults[0].state === 'applied' && body().wishUpdates[0].state === 'preparing',
+            'Externer Wunsch benutzt dieselben Fachaktionen und aktuelle technische Rückprojektion');
+        answer([], null, [command('playing', runtime.wishItems()[0])]); tick();
+        check(body().wishUpdates[0].state === 'playing', 'Nur vorbereiteter erster Wunsch wird als laufend markiert');
+        answer([], null, [command('done', runtime.wishItems()[0])]); tick();
+        check(body().studioWishResults[0].state === 'applied' && body().wishUpdates[0].state === 'done' && body().wishUpdates[0].position === null,
+            'Abschluss und dauerhafter Beleg vor Endzustandsquittung in Rhino');
+        answer([]);
         runtime.stopAndroidRelay(); runtime.stopAndroidRelay();
         check(hookCalls === 0 && Object.keys(channelTextTasks).length === 0, 'Stop beendet Timer ohne WebHook-Zugriff');
         KnuddelsServer.getWebHookAccess = function () { return {
@@ -147,6 +193,7 @@
         KnuddelsServer.getPersistence = previousPersistence; KnuddelsServer.getWebHookAccess = previousHooks;
         KnuddelsServer.getExternalServerAccess = previousExternal;
         KnuddelsServer.getAppServerInfo = previousInfo;
+        people = previousPeople;
         channelTextTasks = {};
     }
 }());

@@ -1,6 +1,6 @@
 {
-  "version": "0.1.391",
-  "buildNumber": 391,
+  "version": "0.1.392",
+  "buildNumber": 392,
   "files": [
     {
       "path": "MischWerk/server/android/signing.js",
@@ -29,8 +29,18 @@
     },
     {
       "path": "MischWerk/server/android/incoming.js",
-      "bytes": 7091,
-      "sha256": "369680BED62648F0FE15521E48FD08996A84EC2EC401C6FAC6D982BAE6B541A2"
+      "bytes": 6094,
+      "sha256": "F76959BAE6CAAFB7439DDB99E0AFA03786ED674B496B74489E85CFBA3ABE48A3"
+    },
+    {
+      "path": "MischWerk/server/android/wish-control.js",
+      "bytes": 5211,
+      "sha256": "0E44F04D48FA0D41CB3399F7144451C0B13A48F0BC46B3DD17BB57B09006D93C"
+    },
+    {
+      "path": "MischWerk/server/android/wish-commands.js",
+      "bytes": 6702,
+      "sha256": "14C39017139310B725E79D51381B6F642203C22FE60E2230626334F7F5C96FBA"
     },
     {
       "path": "MischWerk/server/android/commands.js",
@@ -39,8 +49,8 @@
     },
     {
       "path": "MischWerk/server/android/publisher.js",
-      "bytes": 9123,
-      "sha256": "E07FA8761C263644BADCB9F77D8F0AEAE882DF6ED09EDA1FA163DB9845347F2A"
+      "bytes": 9096,
+      "sha256": "614DF7D18A90ABA71C5A67A3CA535A435E2D6753FE636B0D10B9A92DA2E8FDF2"
     },
     {
       "path": "MischWerk/server/android/verification.js",

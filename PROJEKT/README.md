@@ -1,6 +1,6 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.391 · Build 391 · Website 0.2.12** · Stand: 12.11.2026.
+**App 0.1.392 · Build 392 · Website 0.2.12** · Stand: 13.11.2026.
 
 Die Lautstärke steht auf allen Breiten waagerecht und mittig unter Thema und Moderationsname. Vinyl-Player und Original-Logo behalten ihre bisherige Gestaltung und Position. Der goldene Regler bietet eine längere Spur; Prozentanzeige, Stummschaltung, Tastaturbedienung und die rote Markierung über 60 % bleiben erhalten. [Breite Leiste](docs/pruefung/oberflaeche/radio/radio-lautstaerke-desktop.png) · [Live mit eigenem Wunsch](docs/pruefung/oberflaeche/radio/radio-lautstaerke-1280.png).
 
@@ -93,9 +93,11 @@ Der bestehende signierte Statusweg verbindet native, Web- und Android-Wünsche m
 
 ## Bereitstellung und Nachweise
 
-`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Beide Rhino-Engines prüfen auch das fertige Paket; die Browserrunde läuft separat. Der App-Arbeitsbestand umfasst **167 Dateien und 81 Backendmodule**, das aktuelle Paket **120 Dateien mit 107 Texten und 49 Serverdateien**. Ganze benachbarte Module werden reproduzierbar gebündelt; Quellen bleiben lesbar erhalten. Der Dateibedarf wird im zugehörigen Server-Ladeplan erzeugt und auf den tatsächlichen Auslieferungsbestand angepasst. Fünf Manifeste belegen die tatsächlichen Auslieferungsbytes. Alle Laufzeittexte und Manifeste bleiben strikt unter 9500 UTF-16-Zeichen.
+Build 392 ergänzt lokal die Wunschfernregie für Live Studio: Empfang bestätigen, vorbereiten, zurückstellen, als laufend markieren, abschließen und verwerfen. Eingangsreihenfolge und natives Menü bleiben erhalten. Die Gegenseite ordnet den echten aktiven Knuddels-Nick geschützt einem DJ-Konto zu. Gegenseitenbereitstellung und gemeinsame native Abnahme bleiben separat offen. [API-Abgleich](docs/api/API-NACHWEIS.md#wunschfernregie-ohne-umsortieren--13112026) und [Abnahme](docs/betrieb/LIVE-ABNAHME.md#offene-wunschfernregie-ohne-umsortieren--build-392).
 
-Build 391 besteht mit **633/633 Nodefällen an Quellen und Upload**, **12/12 gezielten Browserfällen am fertigen Upload** einschließlich Wunschweiterleitung, scrollbarer Liste und Radiogeometrie bei vier Pixeldichten sowie je **1349 Prüfungen in beiden Rhino-Engines an beiden Beständen**. Die native Installation und gemeinsame Firebase-/Live-Studio-Abnahme bleiben offen. [Aktueller Prüfbericht](docs/pruefung/PRUEFBERICHT.md).
+`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Beide Rhino-Engines prüfen auch das fertige Paket; die Browserrunde läuft separat. Der App-Arbeitsbestand umfasst **170 Dateien und 84 Backendmodule**, das Paket **123 Dateien mit 110 Texten und 52 Serverdateien**. Ganze benachbarte Module werden reproduzierbar gebündelt; Quellen bleiben lesbar erhalten. Der Dateibedarf wird im zugehörigen Server-Ladeplan erzeugt und auf den tatsächlichen Auslieferungsbestand angepasst. Fünf Manifeste belegen die tatsächlichen Auslieferungsbytes. Alle Laufzeittexte und Manifeste bleiben strikt unter 9500 UTF-16-Zeichen.
+
+Die Wunschfernregie besteht mit **650/650 Nodefällen an Quellen und Upload**, **7/7 gezielten Browserfällen am fertigen Upload** einschließlich Fernregie mit laufendem Audio, Wunschweiterleitung und scrollbarer Liste sowie je **1357 Prüfungen in beiden Rhino-Engines an beiden Beständen**. Die native Installation und gemeinsame Firebase-/Live-Studio-Abnahme bleiben offen. [Aktueller Prüfbericht](docs/pruefung/PRUEFBERICHT.md).
 
 Build 383 besteht erneut mit **404/404 Browserfällen**, **620/620 Nodefällen an Quellen und Upload** und je **1336 Prüfungen in beiden Rhino-Engines an beiden Beständen**. Alle 25 zuvor fehlgeschlagenen Browserfälle bestehen zusätzlich am tatsächlichen Uploadpaket. Website 0.2.12 besteht mit **26/26 Fällen**; geteiltes UTF-8, Löschbestätigung und regulärer Mailadapter sind durch neue Regressionen abgesichert.
 

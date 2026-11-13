@@ -1,4 +1,14 @@
-# MischWerk – API-Nachweis 0.1.391 · Build 391
+# MischWerk – API-Nachweis 0.1.392 · Build 392
+
+## Wunschfernregie ohne Umsortieren · 13.11.2026
+
+Der reduzierte Vertrag ist mit der Firebase-/Studio-Seite abgestimmt. Der Nutzer hat Umsortieren und gezieltes Einsortieren gestrichen. Der native Teil verwendet die bestehenden Wunschfachfunktionen; zusätzlich speichern wishes/control-state und der vorhandene Queueadapter technische Mutationsrevisionen, tatsächlich gesendete Snapshotbezüge und atomare Auftragsbelege. android/wish-control projiziert echte Moderationsbindung, Quittungen und jeweils den aktuellen Wunschstand. android/wish-commands prüft die Aufträge und ruft die vorhandenen Fachaktionen mit einem im selben Commit gespeicherten Ergebnis auf. Die verbindlichen Daten-/Rechte-/Statusregeln stehen zentral in [AGENTS.md](../../AGENTS.md#wunschfernregie-ohne-umsortieren).
+
+Die offizielle [ExternalServerAccess-Referenz](https://developer.knuddels.de/docs/classes/ExternalServerAccess.html) ist erneut gelesen und mit den unveränderten Referenzstubs abgeglichen: postURL(url, parameters), data mit Stringwerten und onSuccess/onFailure(responseData, response). Weiterhin ausschließlich payload/ts/nonce/sig; kein zusätzlicher Header, Endpunkt, WebHook oder unbelegter physischer Abbruch. Die Referenz nennt kein zugesichertes Requestkontingent. Der bisherige 20-Sekunden-Timer und der bis zum echten Callback belegte Port bleiben erhalten; Wunschaufträge verhindern wie Sendeplan-/Teamaufträge eine rekursive Folgequittierung.
+
+Die offizielle [Persistence-Referenz](https://developer.knuddels.de/docs/classes/Persistence.html#method_setObject) begrenzt ein JSON-Objekt auf 100 kB. Die bestehenden Queue-Seiten bleiben bei höchstens 10000 UTF-16-Zeichen und unter 90000 JSON-Bytes je Objekt; der Index wird zuletzt umgeschaltet. Die neue Metadatenvalidierung erkennt beschädigte Revisionen und Querverweise. Der lokale HTTP-Antwortschutz bleibt separat bei höchstens 32768 UTF-16-Zeichen und UTF-8-Bytes; UI-Paketgrenzen sind davon unabhängig. Diese lokalen Grenzen werden nicht als offizielles Transportkontingent ausgegeben.
+
+Die Knuddels-Seite ist lokal in Build 392 umgesetzt und paketiert. Produktive Firebase-/Studio-Bereitstellung, echte native Installation und gemeinsame Abnahme werden daraus nicht abgeleitet.
 
 ## Gemeinsame Wunschweiterleitung · 12.11.2026
 
