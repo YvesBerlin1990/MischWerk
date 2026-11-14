@@ -67,7 +67,7 @@ Im Ordner `website/` zunächst `pnpm install --frozen-lockfile` ausführen. `pnp
 
 ## Paketbau und Nachweise
 
-`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Beide Rhino-Engines prüfen auch das fertige Paket; die Browserrunde läuft separat. Die Auslieferung liegt unter **<Desktop des aktuellen Nutzers>/MischWerk/UPLOAD/MischWerk/**. Der Windows-Desktop wird automatisch ermittelt. Ablauf und Installation beschreibt die [Uploadanleitung](docs/betrieb/INBETRIEBNAHME.md#installation-und-upload).
+`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Beide Rhino-Engines prüfen auch das fertige Paket; die Browserrunde läuft separat. Die Auslieferung liegt unter `<Desktop des aktuellen Nutzers>/MischWerk/UPLOAD/MischWerk/`. Der Windows-Desktop wird automatisch ermittelt. Ablauf und Installation beschreibt die [Uploadanleitung](docs/betrieb/INBETRIEBNAHME.md#installation-und-upload).
 
 Aktuelle Ergebnisse, Bestandszahlen und offene Abnahmen stehen in den Prüfberichten:
 
