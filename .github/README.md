@@ -40,7 +40,7 @@ pnpm --dir PROJEKT install --frozen-lockfile
 pnpm --dir PROJEKT run emulator
 ```
 
-Das integrierte Testlabor ist unter [127.0.0.1:8776](http://127.0.0.1:8776) erreichbar. Bei gesperrten PowerShell-Skripten `pnpm.cmd` verwenden. Die eigenständige [Website](../PROJEKT/website/README.md) benötigt Node.js ab 22.
+Das integrierte Testlabor ist unter `127.0.0.1:8776` erreichbar. Bei gesperrten PowerShell-Skripten `pnpm.cmd` verwenden. Die eigenständige [Website](../PROJEKT/website/README.md) benötigt Node.js ab 22.
 
 ## Projekt und Dokumentation
 

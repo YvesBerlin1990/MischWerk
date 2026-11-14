@@ -35,8 +35,8 @@ Befehle aus `PROJEKT/` ausführen; von der Repositorywurzel jeweils `pnpm --dir 
 | Befehl | Zweck |
 | --- | --- |
 | `pnpm install --frozen-lockfile` | Entwicklungsabhängigkeiten installieren |
-| `pnpm run emulator` | Interaktives Testlabor auf http://127.0.0.1:8776 |
-| `pnpm run preview` | Appvorschau auf http://127.0.0.1:8765 |
+| `pnpm run emulator` | Interaktives Testlabor auf `http://127.0.0.1:8776` |
+| `pnpm run preview` | Appvorschau auf `http://127.0.0.1:8765` |
 | `pnpm run build:backend` | Backendlaufzeit aus den Quellen erzeugen |
 | `pnpm run check:backend` | Quell-/Laufzeitgleichheit prüfen |
 | `pnpm test` | Vollständige Node-Suite |
@@ -53,7 +53,7 @@ Rhino-JARs einmalig mit `node tools/checks/rhino.cjs --download` beziehen. `MISC
 
 ## App im Testlabor prüfen
 
-`pnpm run emulator` startet [127.0.0.1:8776](http://127.0.0.1:8776); alternativ [Start-Testlabor.ps1](tools/emulator/Start-Testlabor.ps1) verwenden. `-Port` bzw. `MISCHWERK_EMULATOR_PORT` wählt einen anderen Port, Strg+C beendet den Server.
+`pnpm run emulator` startet `127.0.0.1:8776`; alternativ [Start-Testlabor.ps1](tools/emulator/Start-Testlabor.ps1) verwenden. `-Port` bzw. `MISCHWERK_EMULATOR_PORT` wählt einen anderen Port, Strg+C beendet den Server.
 
 Das Labor lädt den lokalen Appcode und bietet Testnutzer, K3-/STAPP-Modelle, unterschiedliche Fenstergrößen sowie Ressourcen-, Provider- und Audiofälle. Testdaten und temporäre Aufnahmen liegen im System-Tempordner. Die Modelle ersetzen keine native Knuddels-Abnahme.
 
