@@ -1006,8 +1006,17 @@ for(const client of ['k3','stapp']) {
     });
     const {page,radio}=await lab.join('Otterchen',client);
     await radio.evaluate(()=>{
-      const a=document.getElementById('radio-audio');window.__gapEvents=[];window.__playCalls=0;
+      const a=document.getElementById('radio-audio');window.__gapEvents=[];window.__playCalls=0;window.__realmCalls=0;
       const play=a.play;a.play=function(){window.__playCalls++;return play.apply(this,arguments);};
+      const append=Element.prototype.appendChild;
+      Element.prototype.appendChild=function(node){
+        const result=append.call(this,node);
+        if(node.tagName==='IFRAME'&&node.src==='about:blank'){
+          const prototype=node.contentWindow.HTMLMediaElement.prototype,np=prototype.play;
+          prototype.play=function(){window.__realmCalls++;return np.apply(this,arguments);};
+        }
+        return result;
+      };
       for(const type of ['playing','waiting','pause','error'])a.addEventListener(type,()=>__gapEvents.push({type,time:a.currentTime}));
     });
     await radio.locator('#play-button:not([disabled])').click();
@@ -1021,7 +1030,7 @@ for(const client of ['k3','stapp']) {
     assert.equal(await radio.locator('#radio-audio').evaluate(a=>a.paused),false);
     assert.equal(await radio.locator('#radio-audio').evaluate(a=>a.volume),.43);
     assert.equal(await radio.locator('#stream-label').textContent(),'LIVE');
-    assert.equal(await radio.evaluate(()=>__playCalls),1,'Keine eigene play-/Wiederverbindungsschleife');
+    assert.equal(await radio.evaluate(()=>__playCalls+__realmCalls),1,'Keine eigene play-/Wiederverbindungsschleife auf beiden Aufrufwegen');
     assert.equal(audioRequests,1);assert.equal(await radio.locator('#notice').isVisible(),false);
     assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
   });
@@ -1140,8 +1149,8 @@ for (const client of ['k3','stapp']) test('Neue Verwaltung in '+client+' zeigt T
   await team.locator('#channel-texts-current').selectOption('4');await team.locator('#channel-texts-fields textarea').nth(4).fill('Entwurf im fünften Text');
   await team.locator('#channel-texts-refresh').click();await team.waitForFunction(()=>document.getElementById('channel-texts-refresh').getAttribute('aria-disabled')==='false');
   assert.equal(await team.locator('#channel-texts-current').inputValue(),'4');
-  await team.locator('#close-overlay').click();await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));
-  const reopened=await overlayView(page,'team');
+  await team.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const reopened=await overlayView(page,'team');
   assert.equal(await reopened.locator('#channel-texts-current').inputValue(),'4');
   assert.equal(await reopened.locator('#channel-texts-fields textarea:visible').inputValue(),'Entwurf im fünften Text');
   await reopened.locator('.channel-texts-remove:visible').click();
@@ -1150,6 +1159,7 @@ for (const client of ['k3','stapp']) test('Neue Verwaltung in '+client+' zeigt T
   await reopened.locator('#channel-texts-save').click();await reopened.locator('#channel-texts-feedback').filter({hasText:'gespeichert'}).waitFor();
   assert.deepEqual(lab.hub.runtime.persistence.api().getObject('mischwerk.channelTexts.v1').texts,['Kurze Nachricht 1','Kurze Nachricht 2','Kurze Nachricht 3','Kurze Nachricht 4','Kurze Nachricht 6']);
   await reopened.locator('#channel-texts-current').selectOption('3');await reopened.locator('#close-overlay').click();
+  await page.locator('#overlays iframe').waitFor({state:'detached'});
   await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));const clean=await overlayView(page,'team');
   await clean.locator('#channel-texts-current:not([disabled])').waitFor();
   assert.equal(await clean.locator('#channel-texts-current').inputValue(),'3','Auch ohne ungespeicherte Änderung bleibt die Textauswahl erhalten');
@@ -1920,6 +1930,54 @@ async function view(page, mode) {
 }
 async function send(page, value) { await page.evaluate(value => window.EmulatorLab.send(value), value); }
 
+for(const client of ['k3','stapp','android'])test('Native Wiedergabe erholt sich nach einem Fehlversuch ohne Nutzer-Fehlerlog in '+client,async t=>{
+ const lab=await setup(t,{provider:'online'},false,client==='android'?{userAgent:'Mozilla/5.0 (Linux; Android 14; SM-A546B) AppleWebKit/537.36 Chrome/157.0.8103.38 Mobile Safari/537.36'}:{});let failed=true;
+ await lab.context.route('**/fixture/audio.wav**',route=>failed?route.abort('failed'):route.continue());
+ const {radio}=await lab.join('Otterchen',client,412);await radio.locator('#play-button').click();
+ await radio.waitForFunction(()=>document.getElementById('stream-label').textContent==='Verbinde erneut');failed=false;
+ await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.2&&document.body.classList.contains('playing'));
+ assert.equal(await radio.locator('#radio-audio').evaluate(audio=>audio.muted),false);
+ assert.equal(lab.hub.trace.some(e=>e.eventType==='mw:playback.error'||e.kind==='log'&&e.message.includes('[PLAYBACK_ERROR]')),false);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp','android'])for(const hostSizing of ['normal','ignored'])test('Audiostörung bleibt im Hintergrund und erholt sich in '+client+' bei '+hostSizing,async t=>{
+ const lab=await setup(t,{provider:'online',hostSizing},false,{viewport:{width:4100,height:1100},...(client==='android'?{userAgent:'Mozilla/5.0 (Linux; Android 14; SM-A546B; wv) AppleWebKit/537.36 Chrome/140.0.0.0 Mobile Safari/537.36'}:{})});let failure=true;
+ await lab.context.route('**/fixture/audio.wav**',route=>failure?route.abort('failed'):route.continue());
+ const {page,radio}=await lab.join('Otterchen',client,412);
+ await radio.evaluate(()=>document.fonts.ready);await radio.waitForTimeout(100);
+ const original=await radio.evaluate(()=>innerHeight);
+ const originalDeck=await radio.locator('#radio-deck').evaluate(n=>n.getBoundingClientRect().height);
+ const originalSizes=lab.hub.trace.filter(e=>e.kind==='hostSize'&&e.mode==='Headerbar'&&e.method==='setSize').length;
+ await radio.locator('#play-button').click();
+ await radio.waitForFunction(()=>document.getElementById('stream-label').textContent==='Verbinde erneut');
+ assert.equal(await radio.locator('#playback-status').count(),0,'Keine Diagnosezeile unter der Appleiste');
+ assert.equal(await radio.evaluate(()=>innerHeight),original);
+ assert.equal(await radio.locator('#radio-deck').evaluate(n=>n.getBoundingClientRect().height),originalDeck);
+ assert.equal(lab.hub.trace.filter(e=>e.kind==='hostSize'&&e.mode==='Headerbar'&&e.method==='setSize').length,originalSizes,'Ein Fehler erzeugt keinen Größenauftrag');
+ assert.equal(lab.hub.trace.some(e=>e.eventType==='mw:playback.error'||e.kind==='log'&&e.message.includes('[PLAYBACK_ERROR]')),false,'Keine Nutzer-Fehlerberichte oder App-Logs');
+ assert.equal(await radio.locator('#play-button').getAttribute('aria-pressed'),'true');
+ assert.equal(await radio.locator('body').evaluate(n=>n.classList.contains('playing')),false);
+ for(const width of [320,412,1280,3840]){
+  await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');
+  await radio.waitForFunction(w=>innerWidth===w,width);
+  assert.equal(await radio.locator('#playback-status').count(),0);
+  assert.doesNotMatch(await radio.locator('body').textContent(),/Medienfehler|PLAY_FAILED|START_TIMEOUT/);
+  assert.equal(await radio.locator('#play-button').isEnabled(),true);
+ }
+ await page.locator('#width').fill('412');await page.locator('#width').dispatchEvent('change');
+ await radio.locator('#play-button').scrollIntoViewIfNeeded();
+ const picture=path.join(os.tmpdir(),'MischWerk-Pruefbilder','audiofehler-hintergrund-398');fs.mkdirSync(picture,{recursive:true});
+ await radio.locator('body').screenshot({path:path.join(picture,'audiofehler-'+client+'-'+hostSizing+'.png')});
+ failure=false;await radio.locator('#play-button').click();assert.equal(await radio.locator('#playback-status').count(),0);
+ await radio.locator('#play-button').click();await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.2&&document.body.classList.contains('playing'));
+ assert.equal(await radio.locator('#playback-status').count(),0);
+ if(hostSizing==='ignored')assert.equal(await radio.evaluate(()=>innerHeight),original);
+ const sizes=lab.hub.trace.filter(e=>e.kind==='hostSize'&&e.mode==='Headerbar'&&e.method==='setSize').length;
+ await radio.waitForTimeout(500);assert.equal(lab.hub.trace.filter(e=>e.kind==='hostSize'&&e.mode==='Headerbar'&&e.method==='setSize').length,sizes,'Keine Größenwiederholung bei gleichem Inhalt');
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
 for (const client of ['k3','stapp']) {
   test('Wunschbox bündelt in '+client+' nach Versand nur Bestätigung und weiteren Wunsch; Information bleibt in der Appleiste',async t=>{
     const lab=await setup(t,{hostSizing:'stepped'}),{page,radio}=await lab.join('Otterchen',client,320);
@@ -2130,7 +2188,7 @@ test('Synthetischer Anbieter nutzt nur lokale Antworten und echtes HTML-Audio na
   assert.equal(await radio.locator('#listener-count,#listener-value').count(), 0);
   assert.equal(await radio.locator('#radio-audio').getAttribute('src'), null);
   await radio.locator('#play-button:not([disabled])').click();
-  await radio.waitForFunction(() => document.querySelector('#radio-audio').paused === false);
+  await radio.waitForFunction(() => {const audio=document.querySelector('#radio-audio');return !audio.paused&&audio.currentTime>0&&!!audio.currentSrc;});
   assert.ok(await radio.locator('#radio-audio').evaluate(audio => audio.volume <= .1));
   assert.ok(await radio.locator('#radio-audio').evaluate(audio => new URL(audio.currentSrc).origin === location.origin));
   assert.deepEqual(lab.external, []); assert.deepEqual(lab.errors, []);
@@ -2513,7 +2571,8 @@ for(const client of ['k3','stapp'])test('Verbindung im Admin-Reiter erhält in '
   }
   await team.locator('#relay-refresh').click();await team.locator('#relay-status').filter({hasText:'Aktiv –'}).waitFor();
   await team.locator('.connection-secret summary').click();await team.locator('#relay-sync').fill('x'.repeat(64));
-  await team.locator('#close-overlay').click();await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));team=await overlayView(page,'team');
+  await team.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});
+  await radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));team=await overlayView(page,'team');
   assert.equal(await team.locator('#team-connection-tab').getAttribute('aria-selected'),'true');await team.locator('#relay-status').filter({hasText:'Aktiv –'}).waitFor();
   assert.equal(await team.locator('#relay-sync').inputValue(),'');
   assert.doesNotMatch(JSON.stringify(lab.hub.trace.filter(e=>e.eventType&&e.eventType.startsWith('mw:overlay.'))),/xxxxxxxx/);

@@ -1,4 +1,8 @@
-# MischWerk – LIVE-Abnahme: lokal 0.1.392 / Build 392
+# MischWerk – LIVE-Abnahme: lokal 0.1.402 / Build 402
+
+## Bestätigter Audiostart und entfernte Nutzerdiagnose
+
+Das vom Nutzer im Channel für alle Nutzer bestätigte Startverhalten von Build 401 bleibt vollständig erhalten: zuerst die Play-Methode aus dem eigenen wiederverwendeten about:blank-iframe, danach die bisherigen Wege im Zyklus 4 → 1 → 2 → 3. Dasselbe Audioelement, Mute-Wiederherstellung, canplay-Warteweg, Drei-Sekunden-Fortsetzungen, Startfrist, Backoff und Browserfreigabe bleiben erhalten. Entfernt sind ausschließlich Nutzer-Wiedergabediagnose, Erholungsberichte, Methoden-/Umgebungsproben, Medienverläufe, Resolve-Nachmessungen und deren Übertragung bzw. App-Log-Ausgabe. Reguläre Backendwarnungen und App-Start-/Stopprotokolle bleiben erhalten. Der Nutzer hat die Wiedergabe mit Build 401 im Channel einschließlich des betroffenen A54 bestätigt. Build 402 erhält diesen Ablauf und entfernt die Diagnose. Nach vollständigem Upload die unveränderte Wiedergabe und das Ausbleiben neuer PLAYBACK_ERROR-/Erholungszeilen prüfen. Bereits vorhandene App-Log-Einträge werden nicht nachträglich gelöscht. Build 402 wird hier nur lokal paketiert; keine native Installation oder Veröffentlichung daraus ableiten.
 
 ## Offene Wunschfernregie ohne Umsortieren · Build 392
 

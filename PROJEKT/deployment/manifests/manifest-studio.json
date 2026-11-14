@@ -1,7 +1,12 @@
 {
-  "version": "0.1.392",
-  "buildNumber": 392,
+  "version": "0.1.402",
+  "buildNumber": 402,
   "files": [
+    {
+      "path": "MischWerk/server/website/access.js",
+      "bytes": 4639,
+      "sha256": "2CF5FE7F5871DDA92196CF0A0C52D27C48CCE942B6B7D49515A7A5B8462D5AF8"
+    },
     {
       "path": "MischWerk/server/android/signing.js",
       "bytes": 6494,

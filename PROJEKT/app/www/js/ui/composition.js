@@ -31,8 +31,10 @@ MischWerkUI.setComposer(function (factories) {
     var audio = dom.el('radio-audio');
     var volume = null;
     if (factories.volume) { volume = factories.volume({ dom: dom, audio: audio }); }
+    var playbackRealm = null;
+    if (factories.playbackRealm) { playbackRealm = factories.playbackRealm({}); }
     var connection = null;
-    if (factories.radioConnection) { connection = factories.radioConnection({ audio: audio, signals: signals }); }
+    if (factories.radioConnection) { connection = factories.radioConnection({ audio: audio, signals: signals, realm:playbackRealm }); }
     var player = null;
     if (factories.player) { player = factories.player({ model: model, dom: dom, api: api, provider: provider,
       signals: signals, volume: volume, connection: connection }); }

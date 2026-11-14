@@ -2,7 +2,6 @@
 MischWerkModules.attachDiagnostics = function (runtime, config) {
     'use strict';
     var warningTimes = {};
-
     runtime.warn = function (operation, error) {
         var tag = typeof operation === 'string' && /^[A-Z_]{1,30}$/.test(operation) ? operation : 'GENERAL';
         if (warningTimes[tag] && runtime.now() - warningTimes[tag] < 60000) { return; }

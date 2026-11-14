@@ -524,4 +524,17 @@ load('tests/rhino/android-operation.js');
     try { runtime.sendQueuePage({}, request, session); } catch (error) { denied = true; }
     check(denied, 'Listenrechte bei jedem Abruf in Rhino pruefen');
 }());
+(function () {
+    var oldLogger = KnuddelsServer.getDefaultLogger, logs = [], stamp = 100000;
+    var runtime = {now:function () {return stamp;}};
+    KnuddelsServer.getDefaultLogger = function () {return {warn:function (message) {logs.push(String(message));}};};
+    try {
+        MischWerkModules.attachDiagnostics(runtime, {});
+        check(typeof runtime.logPlaybackError === 'undefined', 'Entfernter Wiedergabelog bleibt auch in Rhino entfernt');
+        runtime.warn('STATE_LOAD', {name:'TypeError',lineNumber:7,message:'privat',stack:'privat'});
+        check(logs.length === 1 && /STATE_LOAD.*TypeError.*Backend-Zeile:7/.test(logs[0]) && logs[0].indexOf('privat') === -1, 'Reguläre Backendwarnung bleibt datensparsam erhalten');
+        runtime.warn('STATE_LOAD', {});check(logs.length === 1, 'Reguläre Warnrate bleibt erhalten');
+        stamp += 60000;runtime.warn('STATE_LOAD', {});check(logs.length === 2, 'Reguläre Warnung nach einer Minute erneut möglich');
+    } finally {KnuddelsServer.getDefaultLogger=oldLogger;}
+}());
 print('Rhino-Wunschweg OK: ' + assertions + ' Pruefungen, 125 Wuensche, ' + links.length + ' abgewiesene Links; Sendeplan, Studio-Meldungen und Bot-Texte ebenfalls geprueft.');

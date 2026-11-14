@@ -41,7 +41,7 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
           <span class="radio-listener-emblem"><img class="radio-listener-logo" src="img/mischwerk-radio.png" width="140" height="140" loading="lazy" decoding="async" alt=""></span>
           <span class="radio-listener-wordmark"><img class="radio-listener-logo" src="img/mischwerk-radio.png" width="115" height="115" loading="lazy" decoding="async" alt=""></span>
         </div>
-      <div class="sr-only"><span id="stream-badge" title="Wiedergabestatus" role="status"><span id="stream-label">Verbinde …</span></span><span id="playback-status" role="status"></span><span id="metadata-status" role="status"></span><a id="station-link" tabindex="-1" target="_blank" rel="noopener noreferrer" hidden>Öffentlichen Radiostream öffnen</a></div>
+      <div class="sr-only"><span id="stream-badge" title="Wiedergabestatus" role="status"><span id="stream-label">Verbinde …</span></span><span id="metadata-status" role="status"></span><a id="station-link" tabindex="-1" target="_blank" rel="noopener noreferrer" hidden>Öffentlichen Radiostream öffnen</a></div>
     </main>
     <div id="radio-ticker-placeholder"></div>
     </div>

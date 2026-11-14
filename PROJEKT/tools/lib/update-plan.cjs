@@ -10,7 +10,7 @@ function renderUpdatePlan(source, files, release) {
   }
   const plan = { schema:1, version:release.version, buildNumber:release.buildNumber, directories };
   assert.equal([...source.matchAll(marker)].length, 1, 'Genau ein Dateiplan im Server-Ladeplan erforderlich');
-  return source.replace(marker, '/* update-files:start */ ' + JSON.stringify(plan, null, 2) + ' /* update-files:end */');
+  return source.replace(marker, '/* update-files:start */ ' + JSON.stringify(plan, null, 1) + ' /* update-files:end */');
 }
 function withoutUpdatePlan(source) {
   return source.replace(marker, '/* update-files:start */ null /* update-files:end */');

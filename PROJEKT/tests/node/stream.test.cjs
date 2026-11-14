@@ -4,6 +4,199 @@ const {createHarness}=require('../support/knuddels.cjs');
 const {configureStream,spcastStatistics}=require('../fixtures/stream.cjs');
 const {playbackHarness}=require('../support/playback.cjs');
 
+test('Variante 4 ruft die Realm-Methode mit dem vorhandenen Audioelement auf und erhält dessen eigene Methode',async()=>{
+ let wrapped=0,native=0,receiver;
+ const np=function(){native++;receiver=this;return Promise.resolve();};
+ const realm={getPlay:()=>np,info:()=>({realmCreated:true,realmNative:false,realmAvailable:true}),dispose(){}};
+ const p=playbackHarness({deterministicClock:true,realm});p.audio.play=function localWrapper(){wrapped++;return Promise.resolve();};const original=p.audio.play;
+ p.window.HTMLMediaElement={prototype:{play:np,pause:p.audio.pause,load:p.audio.load}};p.play();await Promise.resolve();p.advance(100);
+ assert.equal(native,1);assert.equal(wrapped,0);assert.equal(receiver,p.audio);assert.equal(p.audio.play,original);
+ p.audio.error={code:2};p.audio.emit('error');assert.equal(p.connection.state().phase,'reconnecting');
+ assert.equal(p.requests.some(e=>e.type==='mw:playback.error'),false);
+});
+
+test('Lokaler Realm wird einmal angelegt, wiederverwendet und ausschließlich über die eigene Referenz entfernt',()=>{
+ const factories={},children=[],np=Math.max;let created=0;
+ const body={appendChild(frame){children.push(frame);frame.parentNode=body;},removeChild(frame){assert.equal(frame,children[0]);children.splice(0,1);frame.parentNode=null;}};
+ const document={body,createElement(tag){assert.equal(tag,'iframe');created++;return {style:{},setAttribute(){},contentWindow:{HTMLMediaElement:{prototype:{play:np}}}};}};
+ vm.runInNewContext(fs.readFileSync('app/www/js/radio/realm.js','utf8'),{document,MischWerkUI:{define:(name,factory)=>factories[name]=factory}});
+ const realm=factories.playbackRealm({});assert.equal(realm.getPlay(),np);assert.equal(realm.getPlay(),np);
+ assert.equal(created,1);assert.equal(children.length,1);assert.equal(children[0].src,'about:blank');assert.equal(children[0].hidden,true);
+ realm.dispose();realm.dispose();assert.equal(children.length,0);
+});
+
+test('Nicht verfügbarer Realm wird ohne erneute iframe-Schleife gemeldet',()=>{
+ const factories={};let created=0;
+ const document={body:{appendChild(){throw Error('blocked');}},createElement(){created++;return {style:{},setAttribute(){}};}};
+ vm.runInNewContext(fs.readFileSync('app/www/js/radio/realm.js','utf8'),{document,MischWerkUI:{define:(name,factory)=>factories[name]=factory}});
+ const realm=factories.playbackRealm({});assert.throws(()=>realm.getPlay(),/Realm/);assert.throws(()=>realm.getPlay(),/Realm/);assert.equal(created,1);
+});
+
+test('Startvarianten verwenden 4, 1, 2, 3 und danach wieder 4 ohne zweiten Timer',()=>{
+ const p=playbackHarness({deterministicClock:true}),calls=[];
+ p.audio.play=()=>{calls.push(p.audio.muted);return new Promise(()=>{});};p.play();assert.deepEqual(calls,[false]);
+ p.audio.error={code:2};p.audio.emit('error');p.advance(1000);assert.deepEqual(calls,[false,false]);
+ p.audio.error={code:2};p.audio.emit('error');p.advance(2000);assert.deepEqual(calls,[false,false,true]);
+ p.audio.error={code:2};p.audio.emit('error');p.advance(4000);assert.equal(p.audio.muted,false);assert.equal(calls.length,3);
+ p.audio.readyState=4;p.audio.emit('loadeddata');p.advance(4000);assert.equal(calls.length,3,'Variante 3 wartet auch beim Pausenexperiment auf canplay');
+ p.audio.emit('canplay');assert.equal(calls.length,4);assert.equal(calls[3],false);
+ p.audio.error={code:2};p.audio.emit('error');p.advance(8000);assert.equal(calls.length,5);assert.equal(calls[4],false);
+ assert.equal(p.connectionTimers().length,1);
+});
+
+
+test('Wiedergabe nach einem Fehlversuch erholt sich ohne Nutzer-Fehlerbericht',async()=>{
+ const p=playbackHarness({deterministicClock:true});let calls=0;
+ p.audio.play=()=>{if(++calls===1)return new Promise(()=>{});p.audio.paused=false;p.audio.readyState=4;p.audio.emit('playing');return Promise.resolve();};
+ p.play();p.audio.error={code:2};p.audio.emit('error');p.advance(1000);await Promise.resolve();p.advance(1000);
+ assert.equal(p.connection.state().phase,'playing');assert.equal(p.audio.muted,false);assert.equal(calls,2);
+ assert.equal(p.requests.some(e=>e.type==='mw:playback.error'),false);assert.equal(p.connection.diagnostics,undefined);
+});
+
+
+
+
+test('Variante 2 erhält zuvor gesetztes Mute auch nach playing und räumt es bei Stop auf',()=>{
+ const p=playbackHarness({deterministicClock:true});p.audio.muted=true;p.audio.play=()=>new Promise(()=>{});p.play();p.audio.error={code:2};p.audio.emit('error');p.advance(1000);p.audio.error={code:2};p.audio.emit('error');p.advance(2000);
+ p.audio.paused=false;p.audio.readyState=4;p.audio.emit('playing');assert.equal(p.audio.muted,true);p.stop();assert.equal(p.audio.muted,true);
+ const q=playbackHarness({deterministicClock:true});q.audio.play=()=>new Promise(()=>{});q.play();q.audio.error={code:2};q.audio.emit('error');q.advance(1000);q.audio.error={code:2};q.audio.emit('error');q.advance(2000);assert.equal(q.audio.muted,true);q.stop();assert.equal(q.audio.muted,false);
+});
+
+
+test('Pausiertes bereites Medium erhält genau drei zusätzliche Play-Aufrufe vor Retry, auch ohne Pauseereignis',()=>{
+ const p=playbackHarness({performanceClock:true,deterministicClock:true});let calls=0,loads=0;const load=p.audio.load;
+ p.audio.load=()=>{loads++;load();};p.audio.play=()=>{calls++;p.audio.readyState=3;return new Promise(()=>{});};
+ p.play();const initialLoads=loads;p.advance(3000);assert.equal(calls,1);
+ p.advance(1000);assert.equal(calls,2);p.advance(4000);assert.equal(calls,3);p.advance(4000);assert.equal(calls,4);
+ assert.equal(loads,initialLoads);assert.equal(p.connectionTimers().length,1);
+ p.advance(4000);assert.equal(p.connection.state().phase,'reconnecting');assert.equal(calls,4);
+ p.advance(1000);assert.equal(calls,5,'Neuer Versuch beginnt regulär');p.advance(5000);assert.equal(calls,6,'Budget je Versuch zurücksetzen');
+ p.stop();const stopped=calls;p.advance(60000);assert.equal(calls,stopped);
+});
+
+test('Erneutes Play erhält Quelle und Lautstärke, setzt Drei-Sekunden-Beobachtung bei Datenmangel zurück',()=>{
+ const p=playbackHarness({deterministicClock:true});p.play();p.advance(5000);const source=p.audio.src;
+ p.audio.paused=true;p.audio.readyState=3;p.audio.volume=.72;p.audio.muted=true;p.audio.emit('pause');
+ p.advance(2000);p.audio.readyState=2;p.advance(1000);p.audio.readyState=3;p.advance(3000);
+ assert.equal(p.audio.playCalls,1);p.advance(2000);assert.equal(p.audio.playCalls,2);
+ assert.equal(p.audio.src,source);assert.equal(p.audio.volume,.72);assert.equal(p.audio.muted,true);
+ assert.equal(p.connection.state().phase,'playing');p.stop();
+ assert.equal(p.connectionTimers().length,0);
+});
+
+test('Experiment wartet auch bei abgelehnten Fortsetzungen das Budget ab und ignoriert überholte Play-Promises',async()=>{
+ const p=playbackHarness({deterministicClock:true}),rejects=[];
+ p.audio.play=()=>{p.audio.readyState=3;return new Promise((resolve,reject)=>rejects.push(reject));};p.play();p.advance(4000);
+ rejects[0]({name:'AbortError'});await Promise.resolve();assert.equal(p.connection.state().error,'');
+ rejects[1]({name:'AbortError'});await Promise.resolve();assert.equal(p.connection.state().error,'');
+ p.advance(4000);assert.equal(rejects.length,3);rejects[2]({name:'AbortError'});await Promise.resolve();
+ p.advance(4000);assert.equal(rejects.length,4);rejects[3]({name:'AbortError'});await Promise.resolve();
+ p.advance(4000);assert.equal(p.connection.state().phase,'reconnecting');
+});
+
+test('Browserfreigabe beendet auch beim Fortsetzen sofort Hörwunsch ohne Fehlerbericht',async()=>{
+ const p=playbackHarness({deterministicClock:true});let calls=0;
+ p.audio.play=()=>{p.audio.readyState=3;return ++calls===1?new Promise(()=>{}):Promise.reject({name:'NotAllowedError'});};
+ p.play();p.advance(4000);await Promise.resolve();assert.equal(p.connection.state().phase,'blocked');
+ assert.equal(p.requests.some(e=>e.type==='mw:playback.error'),false);
+ p.advance(60000);assert.equal(calls,2);assert.equal(p.connectionTimers().length,0);
+});
+
+test('Drei Fortsetzungen bleiben auch über wiederholte erfolgreiche Pausen auf denselben Versuch begrenzt',()=>{
+ const p=playbackHarness({deterministicClock:true});p.play();
+ for(let i=0;i<3;i++){
+  p.advance(2000);p.audio.pause();for(let j=0;j<50;j++)p.audio.emit('pause');p.advance(4000);
+  assert.equal(p.audio.playCalls,i+2);assert.equal(p.connectionTimers().length,1);
+ }
+ p.audio.pause();p.advance(4000);assert.equal(p.connection.state().phase,'reconnecting');assert.equal(p.audio.playCalls,4);
+});
+
+
+test('Eine unmittelbar nach erfolgreichem Fortsetzen folgende Pause erhält ihre eigene volle Wartezeit',()=>{
+ const p=playbackHarness({deterministicClock:true});p.play();p.audio.pause();p.advance(4000);assert.equal(p.audio.playCalls,2);
+ p.advance(100);p.audio.pause();p.advance(3000);assert.equal(p.audio.playCalls,2,'Drei Sekunden seit der neuen Pause reichen noch nicht');
+ p.advance(1000);assert.equal(p.audio.playCalls,3);assert.equal(p.connectionTimers().length,1);p.stop();
+});
+
+test('Audio-Markup enthält keine preload-none-Vorgabe und die Startfrist beträgt 30 Sekunden',()=>{
+ assert.doesNotMatch(fs.readFileSync('app/www/index.html','utf8'),/<audio[^>]+id="radio-audio"[^>]+preload="none"/);
+ const p=playbackHarness();p.audio.play=()=>new Promise(()=>{});p.play();p.advance(29900);
+ assert.equal(p.connection.state().error,'');p.advance(200);assert.equal(p.connection.state().error,'START_TIMEOUT');
+});
+
+
+
+
+test('Android-Idle-Start lädt die gesetzte Quelle vor Play synchron in der Nutzergeste',()=>{
+ const p=playbackHarness(),calls=[];p.navigator.userActivation={isActive:true};
+ const load=p.audio.load;p.audio.networkState=1;
+ p.audio.load=()=>{calls.push({type:'load',src:p.audio.src,preload:p.audio.preload});load();};
+ p.audio.play=()=>{calls.push({type:'play',active:p.navigator.userActivation.isActive});return new Promise(()=>{});};
+ p.play();p.navigator.userActivation.isActive=false;
+ assert.equal(calls.at(-2).type,'load');assert.equal(calls.at(-2).src,p.audio.src);assert.equal(calls.at(-2).preload,'auto');
+ assert.equal(calls.at(-1).type,'play');assert.equal(calls.at(-1).active,true);assert.equal(calls.filter(x=>x.type==='play').length,1);
+ p.advance(29900);assert.equal(p.connection.state().error,'');p.advance(200);
+ assert.equal(p.connection.state().error,'START_TIMEOUT');
+});
+
+for(const event of ['playing','canplay','loadeddata'])test('Bereitschaft '+event+' erhält ohne Fortschritt die 30-Sekunden-Startfrist',()=>{
+ const p=playbackHarness();p.audio.play=()=>new Promise(()=>{});p.play();p.advance(14000);
+ const previous=p.connectionTimers();assert.equal(previous.length,1);
+ p.freeze(true);p.audio.readyState=2;if(event==='playing')p.audio.paused=false;p.audio.emit(event);
+ assert.ok(previous.every(id=>!p.connectionTimers().includes(id)),'Vorhandenen Timeout sofort löschen');
+ assert.equal(p.connectionTimers().length,1,'Genau einen Beobachter weiterführen');
+ p.advance(15000);assert.equal(p.connection.state().error,'');p.advance(1000);
+ assert.equal(p.connection.state().error,'START_TIMEOUT');
+ assert.equal(p.connectionTimers().length,1);
+});
+
+test('Play-Ablehnung blockiert ohne Startzeitablauf und ohne Fehlerbericht',async()=>{
+ const p=playbackHarness();let calls=0;p.audio.play=()=>{calls++;return Promise.reject({name:'NotAllowedError',message:'private'});};
+ p.play();await Promise.resolve();assert.equal(p.connection.state().phase,'blocked');assert.equal(p.connectionTimers().length,0);
+ assert.match(p.document.getElementById('stream-label').textContent,/Tippen zum Starten/);
+ p.advance(120000);p.window.emit('online');p.document.emit('visibilitychange');p.advance(120000);
+ assert.equal(calls,1);assert.equal(p.connectionTimers().length,0);assert.equal(p.requests.some(e=>e.type==='mw:playback.error'),false);
+});
+
+test('Erfülltes Play ohne Daten führt nach 30 Sekunden weiter zur Wiederverbindung',async()=>{
+ const p=playbackHarness();p.audio.play=()=>Promise.resolve();p.play();await Promise.resolve();p.advance(30000);
+ assert.equal(p.connection.state().error,'START_TIMEOUT');assert.equal(p.connection.state().phase,'reconnecting');
+ assert.equal(p.requests.some(e=>e.type==='mw:playback.error'),false);
+});
+
+
+
+
+for(const code of [1,2,3,4])test('Verbindungssteuerung erhält Medienfehler '+code+' vor Load und über den Folgeversuch',()=>{
+ const p=playbackHarness();p.play();p.audio.error={code,message:'https://private.invalid/secret'};p.audio.emit('error');
+ assert.equal(p.connection.state().error,'MEDIA_ERR_'+['','ABORTED','NETWORK','DECODE','SRC_NOT_SUPPORTED'][code]);
+ const reason=p.connection.state().error;
+ assert.equal(p.audio.error,null,'Freigabe darf den gespeicherten Fehlergrund nicht löschen');
+ p.audio.play=()=>{p.audio.paused=false;};p.advance(1000);
+ assert.equal(p.connection.state().phase,'connecting');assert.equal(p.connection.state().error,reason);
+ p.audio.readyState=4;p.audio.emit('playing');assert.equal(p.connection.state().error,'');
+ p.stop();assert.equal(p.connection.state().error,'');
+});
+
+test('Verbindungssteuerung unterscheidet Play-Ablehnung, verwirft Rohfehler und ignoriert alte Versuche',async()=>{
+ for(const name of ['NotAllowedError','NotSupportedError','AbortError','SecurityError','Unbekannt']){
+  const p=playbackHarness();let reject;p.audio.play=()=>new Promise((resolve,fail)=>{reject=fail;});p.play();
+  reject({name,message:'https://private.invalid/secret'});await Promise.resolve();
+  assert.equal(p.connection.state().error,name==='Unbekannt'?'PLAY_FAILED':name);
+  assert.equal(p.connection.state().wanted,name!=='NotAllowedError');
+  assert.doesNotMatch(JSON.stringify(p.connection.state()),/private|secret/);
+  p.stop();assert.equal(p.connection.state().error,'');
+ }
+ const p=playbackHarness();let reject;p.audio.play=()=>new Promise((resolve,fail)=>{reject=fail;});p.play();p.stop();
+ reject({name:'NotSupportedError'});await Promise.resolve();assert.equal(p.connection.state().error,'');
+});
+
+test('Verbindungssteuerung meldet Startzeitablauf ohne weiteren Timer',()=>{
+ const p=playbackHarness();p.audio.play=()=>{p.audio.paused=false;};p.play();p.advance(30000);
+ assert.equal(p.connection.state().error,'START_TIMEOUT');assert.equal(p.connection.state().wanted,true);
+ p.stop();assert.equal(p.connection.state().error,'');
+});
+
 test('Neuer Verbindungsweg hält 24 Stunden mit genau einem Play und erhält Statusfehler',()=>{
  const p=playbackHarness();p.play();p.audio.volume=.73;p.audio.muted=true;p.advance(86400000);
  p.signals.emit('provider-status',{status:'stopped',previous:'started'});
@@ -30,12 +223,15 @@ for(const event of ['error','ended'])test('Transportabbruch '+event+' verbindet 
  assert.equal(p.audio.playCalls,2);assert.equal(p.audio.volume,.81);assert.equal(p.audio.muted,true);
  p.advance(2000);assert.equal(p.connection.state().phase,'playing');
 });
-test('Unerwartete native Pause setzt dieselbe Quelle fort',()=>{
- const p=playbackHarness();p.play();p.advance(5000);const src=p.audio.src;p.audio.pause();
- assert.equal(p.audio.paused,false);assert.equal(p.audio.playCalls,2);assert.equal(p.audio.src,src);
+test('Unerwartete native Pause setzt dieselbe Quelle nach mehr als drei Sekunden fort',()=>{
+ const p=playbackHarness({deterministicClock:true});p.play();p.advance(5000);const src=p.audio.src;p.audio.pause();
+ p.advance(3000);assert.equal(p.audio.paused,true);assert.equal(p.audio.playCalls,1);
+ p.advance(1000);assert.equal(p.audio.paused,false);assert.equal(p.audio.playCalls,2);assert.equal(p.audio.src,src);
 });
 test('Wiederholte Ausfälle erhalten Hörwunsch mit begrenzter Rücknahme der Versuchsrate',()=>{
- const p=playbackHarness();let attempts=0;p.audio.play=()=>{attempts++;throw Error('network');};p.play();
+ const p=playbackHarness();let attempts=0;const load=p.audio.load;
+ p.audio.load=()=>{load();p.audio.readyState=3;p.audio.emit('canplay');};
+ p.audio.play=()=>{attempts++;throw Error('network');};p.play();
  p.advance(600000);assert.ok(attempts>=20&&attempts<=30,attempts);assert.equal(p.connection.state().wanted,true);
  p.stop();const before=attempts;p.window.emit('online');p.advance(600000);assert.equal(attempts,before);
 });
@@ -46,7 +242,7 @@ test('Späte Play-Ablehnung und Ereignisse können nach Stop keinen Neustart aus
 });
 test('Explizite Browserfreigabe wird verständlich verlangt ohne heimliche Wiederholungen',async()=>{
  const p=playbackHarness();let calls=0;p.audio.play=()=>{calls++;return Promise.reject({name:'NotAllowedError'});};p.play();await Promise.resolve();p.advance(600000);
- assert.equal(calls,1);assert.equal(p.connection.state().phase,'blocked');assert.match(p.document.getElementById('playback-status').textContent,/Freigabe/);
+ assert.equal(calls,1);assert.equal(p.connection.state().phase,'blocked');assert.match(p.document.getElementById('stream-badge').getAttribute('aria-label'),/Freigabe/);
 });
 test('Online-Signal zieht nur eine fällige Wiederverbindung vor, laufender Ton bleibt unangetastet',()=>{
  const p=playbackHarness();p.play();p.advance(5000);p.window.emit('online');assert.equal(p.audio.playCalls,1);
@@ -216,6 +412,8 @@ function providerClient(overrides={}){
   timers.delete(next[0]);now=next[1].at;next[1].fn();await flush();}now=end;await flush();}
  return {provider,calls,songs,document,state,flush,advance};
 }
+
+
 
 test('Erster Titel startet sofort auch während der Statusabruf noch aussteht',async()=>{
  let release;const gate=new Promise(resolve=>{release=resolve;}),p=providerClient({status:()=>gate});
@@ -403,4 +601,12 @@ test('Browser verwirft fremde Hosts, Zugangsdaten und gefährliche Feldpfade',as
 test('Aktive App und Backendquellen enthalten keinerlei alten Anbieter oder alte Endpunkte',()=>{
  const {runtimeFiles,isBinary}=require('../../tools/checks/lengths.cjs');
  for(const file of runtimeFiles.filter(f=>!isBinary(f)))assert.doesNotMatch(fs.readFileSync('app/'+file,'utf8'),/radioking/i,file);
+});
+
+test('Alte Wiedergabeberichte werden ohne Log, Antwort oder Fachänderung verworfen',()=>{
+ const h=createHarness(),user=h.user(23,'Hörer'),session=h.open(user),before=JSON.stringify(h.store.data);
+ const logs=h.logs.length,events=session.events.length;
+ for(const kind of ['error','recovery'])h.event(user,session,'mw:playback.error',{kind,code:'MEDIA_ERR_NETWORK',detail:{userAgent:'privat'}});
+ assert.equal(h.logs.length,logs);assert.equal(session.events.length,events);assert.equal(JSON.stringify(h.store.data),before);
+ assert.equal(h.runtime.logPlaybackError,undefined);
 });

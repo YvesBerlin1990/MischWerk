@@ -1,21 +1,21 @@
 {
-  "version": "0.1.392",
-  "buildNumber": 392,
+  "version": "0.1.402",
+  "buildNumber": 402,
   "files": [
     {
       "path": "MischWerk/www/index.html",
-      "bytes": 8344,
-      "sha256": "0AFDB48259CE2EF1AA557EBBCACD8221FCBCC26338A1169F8D9E47925661DACB"
+      "bytes": 8329,
+      "sha256": "A002ACFCFDD5B94A71654F0FEFC848C17AB659FF91F92F3D4E0708754E10DD99"
     },
     {
       "path": "MischWerk/www/js/start.js",
-      "bytes": 4958,
-      "sha256": "0E42E243FC9512EE4123984F888D073DCF54A4557A472435C3B8CA9C2358A841"
+      "bytes": 5003,
+      "sha256": "4557AADA5A3609136A1C8FA8B5B7D0C075CF7B8F6897E5A520957BFE6D26D4F8"
     },
     {
       "path": "MischWerk/www/js/ui/composition.js",
-      "bytes": 8423,
-      "sha256": "C0373C57C4E61F80EC020EDE68ED015EA3DD31199652D3A0038B5C8F623B60C6"
+      "bytes": 8556,
+      "sha256": "8FE992FA82FF217CD67C8548FC405B326F0213A773B786498553A7239FB54F81"
     },
     {
       "path": "MischWerk/www/js/core/model.js",
@@ -24,8 +24,8 @@
     },
     {
       "path": "MischWerk/www/js/radio/markup.js",
-      "bytes": 7240,
-      "sha256": "BA939232B5AC7BA37F956774BC043E1F7C2C118A2EDBAEF9147B75CD5CC8C534"
+      "bytes": 7192,
+      "sha256": "29197E46D335DE51DAC0C2D177116B840CABA3BEF3A41D50B1F7ECB2366A8BBD"
     },
     {
       "path": "MischWerk/www/js/radio/viewport.js",
@@ -69,13 +69,18 @@
     },
     {
       "path": "MischWerk/www/js/radio/volume.js",
-      "bytes": 8478,
-      "sha256": "7BFFC2B862A2040373393EE6FAAFF2333B60DF1E26C8B87ED30988324C379268"
+      "bytes": 3922,
+      "sha256": "7180B6BC6FC600A5D99E42987EF4F5F8EC3AA830BBB821E3685EA9F543A80DEF"
+    },
+    {
+      "path": "MischWerk/www/js/radio/connection.js",
+      "bytes": 8468,
+      "sha256": "534778F0091B02970750E6DC75E288226CD2DC7938EC6E99A6B9AA5A7212BB9D"
     },
     {
       "path": "MischWerk/www/js/radio/player.js",
-      "bytes": 5845,
-      "sha256": "A6C8270AF8E788F2F3F5BF3061433ECCCEB44EE96EB638C8D94AA95E25B550F7"
+      "bytes": 5669,
+      "sha256": "97C680B2F52C0A3A8A07D2BC1F8FEA78947DEF3370240B8BDA2EE053D62A5382"
     },
     {
       "path": "MischWerk/www/js/radio/ticker.js",

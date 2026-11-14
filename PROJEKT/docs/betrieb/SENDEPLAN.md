@@ -1,6 +1,6 @@
 # MischWerk – Sendeplan
 
-Stand **0.1.392 / Build 392**, 13.11.2026. Der rein lesende Tagesplan öffnet für alle verbundenen Hörer als natives Fenster mit 640 × 320 px Anfangsgröße und natürlicher Inhaltshöhe bis 600 px. Thema, Moderation und Uhrzeit folgen der öffentlichen Homepage. Davor, Jetzt im Programm und Danach beziehen sich auf die geplante Berliner Zeit einschließlich Sommer-/Winterzeit. Die Anzeige bestätigt keinen echten Encoderstatus.
+Stand **0.1.402 / Build 402**, 14.11.2026. Der rein lesende Tagesplan öffnet für alle verbundenen Hörer als natives Fenster mit 640 × 320 px Anfangsgröße und natürlicher Inhaltshöhe bis 600 px. Thema, Moderation und Uhrzeit folgen der öffentlichen Homepage. Davor, Jetzt im Programm und Danach beziehen sich auf die geplante Berliner Zeit einschließlich Sommer-/Winterzeit. Die Anzeige bestätigt keinen echten Encoderstatus.
 
 ## Daten direkt von der Homepage
 

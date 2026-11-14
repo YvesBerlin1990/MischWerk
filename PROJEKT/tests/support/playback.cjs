@@ -2,8 +2,9 @@
 const fs=require('node:fs'),vm=require('node:vm');
 const {TestClock}=require('../../tools/emulator/runtime/clock.cjs');
 const {createHarness}=require('./knuddels.cjs');
-function playbackHarness({performanceClock=false}={}){
+function playbackHarness({performanceClock=false,deterministicClock=false,realm}={}){
  const errors=[],clock=new TestClock(error=>{throw error;}),factories={},nodes={},listeners={},requests=[],slashes=[],providerPolls=[];
+ if(deterministicClock)clock.now=()=>1800000000000+clock.offset;
  function target(){const handlers={},attributes={};return {classList:{add(){},toggle(){},remove(){}},hidden:false,disabled:false,
   setAttribute(key,value){attributes[key]=String(value);},getAttribute:key=>attributes[key],removeAttribute(key){delete attributes[key];},
   addEventListener(type,callback){(handlers[type]||(handlers[type]=[])).push(callback);},
@@ -12,12 +13,14 @@ function playbackHarness({performanceClock=false}={}){
   querySelectorAll:()=>[],getElementById:id=>nodes[id]||(nodes[id]=target())});
  const window=target(),navigator={onLine:true};
  if(performanceClock){const origin=clock.now();window.performance={now:()=>clock.now()-origin};}
- const audio=Object.assign(target(),{paused:true,ended:false,seeking:false,error:null,readyState:0,volume:.1,muted:false,playCalls:0});
+ const audio=Object.assign(target(),{paused:true,ended:false,seeking:false,error:null,readyState:0,networkState:0,preload:'none',volume:.1,muted:false,playCalls:0,buffered:{length:0},played:{length:0}});
  let base=0,began=clock.now(),frozen=false,revision=1,sequence=0,ack='all',throwSlash=false;
  Object.defineProperty(audio,'currentTime',{get:()=>base+(audio.paused||frozen?0:(clock.now()-began)/1000),set:value=>{base=value;began=clock.now();}});
  audio.play=()=>{audio.playCalls++;audio.paused=false;audio.ended=false;audio.readyState=4;began=clock.now();audio.emit('playing');};
  audio.pause=()=>{base=audio.currentTime;audio.paused=true;audio.emit('pause');};
  audio.load=()=>{base=0;audio.readyState=0;audio.error=null;audio.ended=false;audio.seeking=false;audio.emit('emptied');};
+ // Beide Aufrufwege verwenden in dieser Medienfixture dasselbe kontrollierte Modell.
+ realm ||= {getPlay:()=>audio.play,dispose(){}};
  const h=createHarness(),user=h.user(1,'Otterchen','owner'),state=h.state(user,h.open(user));state.view='radio';
  function reply(id){const data={...state,revision:++revision,refreshRequestId:id};for(const callback of listeners['mw:state']||[])callback({data});}
  const bridge={pageData:state,getHostFrame:()=>({setTitle(){}}),addEventListener(type,fn){(listeners[type]||(listeners[type]=[])).push(fn);},
@@ -26,7 +29,7 @@ function playbackHarness({performanceClock=false}={}){
  const scope={window,document,navigator,Date:clock.Date,console,Array,isFinite,
   setInterval:(fn,ms)=>clock.add(fn,ms,true),clearInterval:id=>clock.clear(id),
   setTimeout:(fn,ms)=>clock.add(fn,ms),clearTimeout:id=>clock.clear(id),MischWerkUI:{define:(name,factory)=>{factories[name]=factory;}}};
- for(const file of ['core/signals','core/model','transport/commands','radio/connection','radio/player','radio/listener','transport/lifecycle']){
+ for(const file of ['core/signals','core/model','transport/commands','radio/realm','radio/connection','radio/player','radio/listener','transport/lifecycle']){
   vm.runInNewContext(fs.readFileSync('app/www/js/'+file+'.js','utf8'),scope,{filename:file});
  }
  const signals=factories.signals({}),model=factories.model({bridge,signals});
@@ -34,7 +37,7 @@ function playbackHarness({performanceClock=false}={}){
  const layout={notify:message=>errors.push(message),resizeBar(){},resizeDialog(){}};
  const commands=factories.commands({bridge,model,layout,signals});
  const provider={status:()=> 'started',poll:()=>{providerPolls.push(clock.now());return Promise.resolve();},hasStation:()=>true,dispose(){}};
- const connection=factories.radioConnection({audio,signals});
+ const connection=factories.radioConnection({audio,signals,realm});
  const player=factories.player({model,dom,signals,provider,connection,volume:{preparePlayback(){}},api:{audioUrl:()=>state.station?.streamUrl||'https://local.invalid/tone'}});
  const listenerPresence=factories.listenerPresence({player,audio,commands,model,signals});
  factories.lifecycle({bridge,model,dom,layout,commands,player,signals,provider,wishes:null,listenerPresence}).start([commands,player,listenerPresence]);
@@ -43,6 +46,7 @@ function playbackHarness({performanceClock=false}={}){
   play(){document.getElementById('play-button').emit('click');},stop:player.stop,
   ack(value){ack=value;},throwSlash(value){throwSlash=value;},
   shiftWall(value){scope.Date.now=()=>clock.now()+value;},
+  connectionTimers:()=>[...clock.tasks].filter(([,task])=>task.callback.name==='tick').map(([id])=>id),
   freeze(value){base=audio.currentTime;began=clock.now();frozen=value;},
   activityRequests:()=>requests.filter(r=>r.type==='mw:refresh'&&r.data.requestId?.startsWith('playback-'))};
 }

@@ -743,6 +743,17 @@ async function setup(t, { moderation = true, nativeSizing = false, hostSteps = f
     window.__contexts=[];
     window.AudioContext=window.webkitAudioContext=function(){window.__contexts.push('unexpected');throw new Error('Keine Audioanalyse vorgesehen');};
     if(realAudio){return;}
+    // Synthetische Medien behalten auch im zusätzlichen lokalen Realm ihr kontrolliertes Modell.
+    const append=Element.prototype.appendChild;
+    Element.prototype.appendChild=function(node){
+      const result=append.call(this,node);
+      if(node.tagName==='IFRAME'&&node.src==='about:blank')node.contentWindow.HTMLMediaElement.prototype.play=function(){return this.play();};
+      return result;
+    };
+    // Modellierte Medien bleiben vollständig synthetisch; auto darf keine echten Testdomains laden.
+    const preloads=new WeakMap();
+    Object.defineProperty(HTMLMediaElement.prototype,'preload',{configurable:true,
+      get(){return preloads.get(this)||this.getAttribute('preload')||'';},set(value){preloads.set(this,String(value));this.setAttribute('preload','none');}});
     if(activityAudio){
       const states=new WeakMap();function media(node){if(!states.has(node))states.set(node,{paused:true,began:performance.now()});return states.get(node);}
       Object.defineProperty(HTMLMediaElement.prototype,'currentTime',{configurable:true,get(){const s=media(this);return s.paused?0:(performance.now()-s.began)/1000;}});
@@ -1368,6 +1379,110 @@ test('Langsames Original-Logo blockiert weder bedienbare Radioleiste noch korrek
   }
 });
 
+for(const code of [1,2,3,4])test('Wiedergabefehler '+code+' bleibt im Hintergrund und erhält Leistenhöhe und Fokus ohne Nutzer-Fehlerlog',async t=>{
+ const {page,errors}=await setup(t,{station:true,clock:true,viewport:{width:412,height:320}});
+ const height=await page.locator('#radio-deck').evaluate(n=>n.getBoundingClientRect().height);
+ await page.locator('#play-button').click();
+ assert.equal(await page.locator('#playback-status').count(),0,'Keine zusätzliche Diagnosezeile beim Start');
+ await page.locator('#play-button').focus();
+ await page.locator('#radio-audio').evaluate((audio,code)=>{Object.defineProperty(audio,'error',{configurable:true,value:{code,message:'https://private.invalid/secret'}});audio.dispatchEvent(new Event('error'));},code);
+ const reports=await page.evaluate(()=>__sent.filter(e=>e.type==='mw:playback.error'));
+ assert.equal(reports.length,0);
+ assert.equal(await page.locator('#playback-status').count(),0);
+ assert.doesNotMatch(await page.locator('body').textContent(),/Medienfehler|private|secret/);
+ await page.locator('#radio-audio').evaluate(audio=>{Object.defineProperty(audio,'error',{configurable:true,value:null});});await page.clock.runFor(2100);
+ assert.equal(await page.locator('#radio-deck').evaluate(n=>n.getBoundingClientRect().height),height);
+ assert.match(await page.locator('#stream-label').textContent(),/Verbinden/);
+ assert.equal(await page.locator('#play-button').evaluate(n=>n===document.activeElement),true);
+ await page.locator('#radio-audio').evaluate(audio=>audio.dispatchEvent(new Event('playing')));
+ assert.equal(await page.locator('#playback-status').count(),0);assert.equal(await page.locator('body').evaluate(n=>n.classList.contains('playing')),true);
+ assert.deepEqual(errors,[]);
+});
+
+test('Browserablehnungen bleiben im Hintergrund und eine nötige Freigabe bleibt zugänglich',async t=>{
+ const {page,errors}=await setup(t,{station:true,clock:true});
+ for(const name of ['NotAllowedError','NotSupportedError','SecurityError','AbortError','Unbekannt']){
+  await page.locator('#play-button').click();
+  await page.evaluate(name=>__rejects.at(-1)({name,message:'<img src=x> https://private.invalid/secret'}),name);
+  assert.equal(await page.locator('#playback-status').count(),0);
+  assert.doesNotMatch(await page.locator('body').textContent(),/private|secret|<img/);
+  assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),String(name!=='NotAllowedError'));
+  if(name==='NotAllowedError'){
+   assert.match(await page.locator('#stream-label').textContent(),/Tippen zum Starten/);
+   assert.match(await page.locator('#stream-badge').getAttribute('aria-label'),/Freigabe/);
+   const calls=await page.evaluate(()=>__rejects.length);await page.clock.runFor(61000);
+   assert.equal(await page.evaluate(()=>__rejects.length),calls);
+   assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:playback.error')),false);
+   await page.locator('#play-button').click();
+  }
+  await page.locator('#play-button').click();assert.equal(await page.locator('#playback-status').count(),0);
+ }
+ assert.deepEqual(errors,[]);
+});
+
+for(const k3 of [true,false])test('Realm-Play umgeht eine eigene Play-Attrappe mit echtem Audio und verwendet ein iframe erneut in '+(k3?'K3':'STAPP'),async t=>{
+ const {page,errors}=await setup(t,{station:true,realAudio:true,k3});
+ await page.locator('#radio-audio').evaluate(audio=>{window.__ownCalls=0;window.__ownAudio=audio;window.__ownWrapper=function wrappedPlay(){__ownCalls++;return Promise.resolve();};audio.play=__ownWrapper;});
+ await page.locator('#play-button').click();await waitRadioPlaying(page);
+ assert.equal(await page.evaluate(()=>__ownCalls),0);assert.equal(await page.locator('iframe[src="about:blank"]').count(),1);
+ await page.evaluate(()=>{window.__realmFrame=document.querySelector('iframe[src="about:blank"]');});
+ await page.locator('#radio-audio').evaluate(audio=>{Object.defineProperty(audio,'error',{configurable:true,value:{code:2}});audio.dispatchEvent(new Event('error'));Object.defineProperty(audio,'error',{configurable:true,value:null});});
+ assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:playback.error')),false);
+ assert.equal(await page.evaluate(()=>__ownAudio.play===__ownWrapper),true);
+ await page.locator('#play-button').click();await page.locator('#play-button').click();await waitRadioPlaying(page);
+ assert.equal(await page.evaluate(()=>document.querySelector('iframe[src="about:blank"]')===__realmFrame&&document.getElementById('radio-audio')===__ownAudio&&__ownCalls===0),true);
+ await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));assert.equal(await page.locator('iframe[src="about:blank"]').count(),0);assert.deepEqual(errors,[]);
+});
+
+for(const k3 of [true,false])test('Startvarianten bleiben unverändert im einen Browserplayer in '+(k3?'K3':'STAPP'),async t=>{
+ const {page,errors}=await setup(t,{station:true,clock:true,k3});
+ await page.locator('#radio-audio').evaluate(audio=>{
+  window.__variantCalls=[];
+  Object.defineProperty(audio,'paused',{configurable:true,get:()=>true});Object.defineProperty(audio,'readyState',{configurable:true,get:()=>4});
+  audio.play=()=>{__variantCalls.push(audio.muted);audio.dispatchEvent(new Event('play'));return Promise.resolve();};
+ });
+ async function fail(){await page.clock.runFor(101);await page.locator('#radio-audio').evaluate(audio=>{Object.defineProperty(audio,'error',{configurable:true,value:{code:2}});audio.dispatchEvent(new Event('error'));Object.defineProperty(audio,'error',{configurable:true,value:null});});}
+ await page.locator('#play-button').click();await fail();await page.clock.runFor(2000);
+ assert.deepEqual(await page.evaluate(()=>__variantCalls),[false,false]);await fail();await page.clock.runFor(3000);
+ assert.deepEqual(await page.evaluate(()=>__variantCalls),[false,false,true]);await fail();await page.clock.runFor(5000);
+ assert.equal(await page.evaluate(()=>__variantCalls.length),3);await page.clock.runFor(4000);assert.equal(await page.evaluate(()=>__variantCalls.length),3);
+ await page.locator('#radio-audio').evaluate(audio=>audio.dispatchEvent(new Event('canplay')));assert.equal(await page.evaluate(()=>__variantCalls.length),4);
+ await fail();await page.clock.runFor(9000);assert.deepEqual(await page.evaluate(()=>__variantCalls),[false,false,true,false,false]);await fail();
+ assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:playback.error')),false);assert.deepEqual(errors,[]);
+});
+
+for(const k3 of [true,false])test('Pausenexperiment zählt drei Fortsetzungen im bestehenden Browserplayer ohne Nutzer-Fehlerdiagnose in '+(k3?'K3':'STAPP'),async t=>{
+ const {page,errors}=await setup(t,{station:true,clock:true,k3});
+ await page.locator('#radio-audio').evaluate(audio=>{
+  window.__resumeCalls=0;window.__resumeLoads=0;
+  for(const [key,value] of Object.entries({paused:true,readyState:3,currentTime:3.5,buffered:{length:1,end:()=>7},played:{length:2}}))
+   Object.defineProperty(audio,key,{configurable:true,get:()=>value});
+  audio.load=()=>{__resumeLoads++;};audio.play=()=>{__resumeCalls++;audio.dispatchEvent(new Event('play'));return Promise.resolve();};
+ });
+ await page.locator('#play-button').click();
+ await page.locator('#radio-audio').evaluate(audio=>{for(const type of ['timeupdate','timeupdate','volumechange','ratechange'])audio.dispatchEvent(new Event(type));});
+ await page.clock.runFor(2999);assert.equal(await page.evaluate(()=>__resumeCalls),1);
+ await page.clock.runFor(1001);assert.equal(await page.evaluate(()=>__resumeCalls),2);
+ await page.clock.runFor(4000);assert.equal(await page.evaluate(()=>__resumeCalls),3);
+ await page.clock.runFor(4000);assert.equal(await page.evaluate(()=>__resumeCalls),4);
+ assert.equal(await page.evaluate(()=>__resumeLoads),2,'Quelle und Puffer bis zum Budgetende erhalten');
+ await page.clock.runFor(4000);
+ const reports=await page.evaluate(()=>__sent.filter(e=>e.type==='mw:playback.error'));
+ assert.equal(reports.length,0);assert.match(await page.locator('#stream-label').textContent(),/Verbinde erneut/);
+ await page.locator('#play-button').click();const calls=await page.evaluate(()=>__resumeCalls);
+ await page.clock.runFor(60000);assert.equal(await page.evaluate(()=>__resumeCalls),calls);assert.deepEqual(errors,[]);
+});
+
+test('Startzeitablauf wird nach 30 Sekunden intern gemeldet und Stop beendet die Wiederholung',async t=>{
+ const {page,errors}=await setup(t,{station:true,clock:true});await page.locator('#play-button').click();
+ await page.clock.runFor(29900);assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:playback.error')),false);
+ await page.clock.runFor(201);assert.match(await page.locator('#stream-label').textContent(),/Verbinde erneut/);assert.equal(await page.evaluate(()=>__sent.some(e=>e.type==='mw:playback.error')),false);
+ assert.equal(await page.locator('#playback-status').count(),0);
+ await page.locator('#play-button').click();const count=await page.evaluate(()=>__sent.filter(e=>e.type==='mw:playback.error').length);
+ await page.clock.runFor(61000);assert.equal(await page.evaluate(()=>__sent.filter(e=>e.type==='mw:playback.error').length),count);assert.deepEqual(errors,[]);
+});
+
+
 test('Verspätete Play-Ablehnung eines alten Versuchs stoppt keinen neuen Start', async t => {
   const { page, errors } = await setup(t, { station: true });
   await page.locator('#play-button').click(); await page.locator('#play-button').click(); await page.locator('#play-button').click();
@@ -1376,7 +1491,8 @@ test('Verspätete Play-Ablehnung eines alten Versuchs stoppt keinen neuen Start'
   assert.equal(await page.locator('#radio-audio').getAttribute('src'), 'https://stream.example.com/test-radio'); assert.deepEqual(errors, []);
 });
 test('Synchroner Verbindungsfehler hält Hörwunsch und kündigt Wiederherstellung an',async t=>{
- const {page,errors}=await setup(t,{station:true,throwingPlay:true,clock:true});await page.locator('#play-button').click();await page.locator('#playback-status').filter({hasText:'automatisch wieder'}).waitFor();
+ const {page,errors}=await setup(t,{station:true,throwingPlay:true,clock:true});await page.locator('#play-button').click();
+ assert.equal(await page.locator('#playback-status').count(),0);assert.match(await page.locator('#stream-badge').getAttribute('aria-label'),/automatisch wieder/);
  assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'true');await page.clock.runFor(60000);assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'true');await page.locator('#play-button').click();assert.deepEqual(errors,[]);
 });
 test('Späte Medienereignisse nach bewussten Stop bleiben wirkungslos',async t=>{
@@ -2772,8 +2888,20 @@ test('Ansichtswechsel und Popup unterbrechen keinen Radioton; Seitenende stoppt 
 test('Radioton funktioniert ohne Web-Audio-Schnittstelle und ohne Stream-CORS-Freigabe', async t=>{
   for(const cors of [true,false]){
     const {page,errors}=await setup(t,{station:true,realAudio:true,cors,viewport:{width:1200,height:160}});
+    assert.equal(await page.locator('#radio-audio').getAttribute('preload'),null);
+    assert.equal(await page.locator('#radio-audio').getAttribute('src'),null,'Kein Streamabruf vor bewusstem Play');
     if(!cors){await page.evaluate(()=>{window.AudioContext=window.webkitAudioContext=undefined;});}
+    await page.locator('#radio-audio').evaluate(audio=>{
+      window.__nativeMedia=[];
+      for(const type of ['load','play']){const native=audio[type];audio[type]=function(){
+        __nativeMedia.push({type,src:this.src,preload:this.preload,activation:navigator.userActivation.isActive});return native.call(this);
+      };}
+    });
     await page.locator('#play-button').click();await waitRadioPlaying(page);
+    const calls=await page.evaluate(()=>__nativeMedia),play=calls.findIndex(c=>c.type==='play');
+    assert.ok(play>0);assert.equal(calls[play-1].type,'load');assert.equal(calls[play-1].preload,'auto');
+    assert.equal(calls[play-1].src,'https://stream.example.com/test-radio');assert.equal(calls[play].activation,true);
+    assert.equal(calls.slice(play+1).some(c=>c.type==='load'),false,'Kein nachträgliches load setzt den gestarteten Ton zurück');
     assert.equal(await page.locator('#radio-audio').getAttribute('crossorigin'),null);
     assert.equal(await page.locator('#radio-audio').evaluate(node=>node.volume),.1);
     assert.deepEqual(await page.evaluate(()=>window.__contexts),[]);

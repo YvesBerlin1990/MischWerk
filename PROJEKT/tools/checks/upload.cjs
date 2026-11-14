@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
 const { runtimeFiles, isBinary, checkText, checkRuntime } = require('./lengths.cjs');
 const { manifestGroups } = require('../lib/upload-manifests.cjs');
+const { resolveUploadRoot } = require('../lib/upload-path.cjs');
 const { readRelease, checkAppConfig, checkBackendConfig } = require('../lib/release-identity.cjs');
 const project = path.resolve(__dirname, '../..');
 const { createDelivery } = require('../build/prepare-upload.cjs');
@@ -13,8 +14,7 @@ function checkUpload(options = {}) {
   const source = options.project || project;
   const release = readRelease(source);
   const live = JSON.parse(fs.readFileSync(path.join(source, 'deployment/live.json'), 'utf8'));
-  assert.ok(typeof live.localUploadRoot === 'string' && path.isAbsolute(live.localUploadRoot), 'Absoluter lokaler Uploadpfad fehlt');
-  const upload = path.resolve(live.localUploadRoot);
+  const upload = resolveUploadRoot(live.localUploadRoot);
   assert.equal(path.basename(upload).toUpperCase(), 'UPLOAD');
   checkAppConfig(path.join(source, 'app', 'app.config'), release);
   checkAppConfig(path.join(upload, 'MischWerk', 'app.config'), release);

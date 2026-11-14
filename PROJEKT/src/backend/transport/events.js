@@ -7,6 +7,8 @@ MischWerkModules.attachEvents = function (runtime, config) {
             runtime.handleAndroidSettingsEvent(user, type, data, session); return;
         }
         if (!runtime.activeSession(user, session)) { return; }
+        // Alte Clients dürfen keine entfernte Wiedergabediagnose mehr auslösen.
+        if (type === 'mw:playback.error') { return; }
         if (type === 'mw:listenerPresence') { runtime.receiveListenerPresence(user, data, session); return; }
         if (typeof type !== 'string' || type.indexOf('mw:') !== 0) { return; }
         if (type.indexOf('mw:channelTexts.') === 0) { runtime.handleChannelTextEvent(user, type, data, session); return; }

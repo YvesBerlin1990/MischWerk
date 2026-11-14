@@ -1,6 +1,8 @@
 # MischWerk – Websiteprüfung 0.2.12
 
-Stand: **12.11.2026**, mit App **0.1.383 / Build 383** lokal geprüft.
+Aktueller Codeprüfstand: **14.11.2026**, mit App **0.1.398 / Build 398** lokal geprüft. Die vorhandenen Bildnachweise behalten ihren unten dokumentierten Aufnahmestand.
+
+Der gemeinsam eingebundene Appplayer besitzt keine zusätzliche sichtbare Fehler-/Bufferingzeile mehr. Die vorhandene Hintergrunddiagnose und Wiederverbindung bleiben erhalten; ohne nativen Nick sendet die App-Log-Anbindung keine Clientfehler vom öffentlichen Websiteplayer. Der Start verwendet weiterhin preload=auto und load() vor play(), beendet die 30-Sekunden-Startfrist bei Bereitschaft und bietet bei blockierter Freigabe einen zugänglichen Wiedergabestatus mit Tippen zum Starten an. Der zentralisierte Fehlerbefund einschließlich zeitlichem Medienverlauf bleibt vor dem Zurücksetzen eingefroren. Die Websiteprüfung besteht mit **26/26 Fällen**, einschließlich des echten öffentlichen Appplayers. Websitecode und Websiteversion 0.2.12 bleiben erhalten; die native A54-Abnahme wird dadurch nicht ersetzt. Temporärer Nachweis: MischWerk-398-Hintergrund-Website.log.
 
 ## Aktuelle Prüfungen und Bilder
 

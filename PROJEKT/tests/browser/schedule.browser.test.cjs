@@ -72,6 +72,9 @@ for(const client of ['k3','stapp'])test('Tagesplan in '+client+' wächst mit dem
  }
  await frame.locator('#schedule-next').click();await frame.locator('#schedule-message').filter({hasText:'Für diesen Tag sind keine Sendungen vorhanden.'}).waitFor();
  await frame.waitForFunction(()=>document.querySelectorAll('.schedule-show').length===0&&innerHeight<350);
+ // Größenantwort und anschließenden ResizeObserver vor dem unveränderten Vergleich abschließen.
+ await frame.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ await owner.page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
  const sizes=()=>lab.hub.trace.filter(e=>e.kind==='hostSize'&&e.mode==='Overlay'&&e.method==='setSize').length;
  const stable=sizes();assert.ok(stable>0);
  await frame.waitForTimeout(650);

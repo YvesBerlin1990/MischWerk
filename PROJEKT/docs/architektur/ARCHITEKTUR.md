@@ -1,6 +1,8 @@
-# MischWerk – Architektur 0.1.392 · Build 392
+# MischWerk – Architektur 0.1.402 · Build 402
 
-Stand 13.11.2026. Diese Übersicht beschreibt den lokalen Aufbau von Build 392; verbindliche Fach- und Entwicklungsregeln stehen ausschließlich in [AGENTS.md](../../AGENTS.md). Native Installation und gemeinsame Firebase-/Live-Studio-Abnahme bleiben separat offen.
+Stand 14.11.2026. Diese Übersicht beschreibt den lokalen Aufbau von Build 402; verbindliche Fach- und Entwicklungsregeln stehen ausschließlich in [AGENTS.md](../../../AGENTS.md). Native Installation und gemeinsame Firebase-/Live-Studio-Abnahme bleiben separat offen.
+
+Das vom Nutzer im Channel für alle Nutzer bestätigte Startverhalten von Build 401 bleibt vollständig erhalten: zuerst die Play-Methode aus dem eigenen wiederverwendeten about:blank-iframe, danach die bisherigen Wege im Zyklus 4 → 1 → 2 → 3. Dasselbe Audioelement, Mute-Wiederherstellung, canplay-Warteweg, Drei-Sekunden-Fortsetzungen, Startfrist, Backoff und Browserfreigabe bleiben erhalten. Entfernt sind ausschließlich Nutzer-Wiedergabediagnose, Erholungsberichte, Methoden-/Umgebungsproben, Medienverläufe, Resolve-Nachmessungen und deren Übertragung bzw. App-Log-Ausgabe. Reguläre Backendwarnungen und App-Start-/Stopprotokolle bleiben erhalten.
 
 ## Gemeinsame Wunschweiterleitung
 
@@ -28,16 +30,16 @@ Der Server-Ladeplan besitzt einen reinen Prüfzweig: Bei einer ausdrücklichen D
 
 `index.html` fordert CSS und `js/start.js` während des Parsens über `Client.includeCSS/includeJS` an. Das berücksichtigt die `document.write`-Implementierung des SDK. `ui/composition` verdrahtet die benötigten Komponenten einmalig. Vollständiges Markup, registrierte Module und geladenes CSS geben das Anfangslayout frei. Ein langsames Logo blockiert die Radioleiste nicht; fehlende Pflichtressourcen erzeugen einen sichtbaren Fehler. Der einmalige 15-Sekunden-Wächter erkennt einen still fehlgeschlagenen Start.
 
-45 Frontendkomponenten und 18 Stylesheets sind in ansichtsabhängigen Ladeplänen registriert. Dazu kommt die getrennt inventarisierte Betreiber-HTML-Datei; ihr Einstellungscontroller wird ebenfalls in der Verwaltung verwendet. Das aktuelle Inventar ergibt sich aus `tools/build/backend.cjs`, `tools/lib/frontend-files.cjs` und `tools/checks/lengths.cjs`:
+46 Frontendkomponenten und 18 Stylesheets sind in ansichtsabhängigen Ladeplänen registriert. Dazu kommt die getrennt inventarisierte Betreiber-HTML-Datei; ihr Einstellungscontroller wird ebenfalls in der Verwaltung verwendet. Das aktuelle Inventar ergibt sich aus `tools/build/backend.cjs`, `tools/lib/frontend-files.cjs` und `tools/checks/lengths.cjs`:
 
-| Bestand in Build 392 | Dateien | Davon Textdateien |
+| Bestand in Build 402 | Dateien | Davon Textdateien |
 | --- | ---: | ---: |
 | Backendlaufzeit unter `app/server/` | 84 | 84 |
-| Browseroberfläche und Medien aus dem Frontendinventar | 84 | 71 |
+| Browseroberfläche und Medien aus dem Frontendinventar | 85 | 72 |
 | Getrennt inventarisierte Betreiberdatei `app/www/relay-settings.html` | 1 | 1 |
 | Einstieg `app/main.js` und Konfiguration `app/app.config` | 2 | 2 |
-| App-Arbeitsbestand insgesamt | **171** | **158** |
-| Gebündeltes Uploadpaket insgesamt | **124** | **111** |
+| App-Arbeitsbestand insgesamt | **172** | **159** |
+| Gebündeltes Uploadpaket insgesamt | **125** | **112** |
 
 Das Uploadpaket enthält 52 Serverdateien; sein längster Text umfasst 9494 UTF-16-Zeichen. Das reproduzierbare Auslieferungsinventar bündelt vollständige benachbarte Module unter der Zeichengrenze; Quellen und Reihenfolge bleiben erhalten. Die fünf Manifeste belegen die tatsächlichen Paketbytes. [Frontendarchitektur](ARCHITEKTUR-FRONTEND.md).
 

@@ -8,6 +8,7 @@ const { spawnSync } = require('node:child_process');
 const { buildBackend, modules } = require('./backend.cjs');
 const { runtimeFiles, isBinary, checkText, checkRuntime } = require('../checks/lengths.cjs');
 const { manifestGroups } = require('../lib/upload-manifests.cjs');
+const { resolveUploadRoot } = require('../lib/upload-path.cjs');
 const { readRelease, checkAppConfig } = require('../lib/release-identity.cjs');
 const { renderUpdatePlan } = require('../lib/update-plan.cjs');
 const root = path.resolve(__dirname, '../..');
@@ -135,8 +136,7 @@ function build() {
   assert.equal(live.installId, live.developerId + '.' + live.appKey);
   new vm.Script(fs.readFileSync(path.join(appRoot, 'main.js'), 'utf8'), { filename: 'main.js' });
   checkRuntime(appRoot);
-  assert.ok(typeof live.localUploadRoot === 'string' && path.isAbsolute(live.localUploadRoot), 'Absoluter lokaler Uploadpfad fehlt');
-  const uploadRoot = path.resolve(live.localUploadRoot);
+  const uploadRoot = resolveUploadRoot(live.localUploadRoot);
   assert.equal(path.basename(uploadRoot).toUpperCase(), 'UPLOAD', 'Uploadwurzel muss UPLOAD heißen');
   const installation = path.join(root, 'deployment', 'manifests');
   const manifestFolders = [...new Set([installation, path.join(path.dirname(uploadRoot), 'PROJEKT', 'deployment', 'manifests')])];
@@ -158,7 +158,8 @@ function build() {
   const retiredSchedule = ['calendar','markup','controller','editor','view','pages','window'].map(name => 'www/js/schedule/' + name + '.js')
     .concat(['www/css/schedule/schedule.css','www/css/schedule/schedule-options.css']);
   const retiredStudio = ["www/js/studio/pages.js","server/radio/pin-access.js","www/js/studio/login.js","www/js/history/controller.js","www/js/history/data.js","www/js/history/view.js","www/js/studio/ticker.js","www/css/history/history.css","www/css/studio/ticker.css"];
-  const retiredRadio = ['www/js/radio/dancers.js','www/img/knuddel-figur-gelb.png',
+  const retiredRadio = ['server/core/playback-evidence.js','www/js/radio/diagnostics.js',
+    'www/js/radio/dancers.js','www/img/knuddel-figur-gelb.png',
     'server/radio/curtain.js','www/js/radio/curtain.js','www/js/radio/curtain-markup.js',
     'www/css/radio/curtain.css','www/img/curtain-velvet.png','www/audio/werbung.mp3'];
   for (const file of [...runtimeFiles.filter(file => !delivery.has(file)), ...retiredSchedule, ...retiredStudio, ...retiredRadio]) {

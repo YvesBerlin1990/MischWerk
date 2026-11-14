@@ -12,6 +12,17 @@ const { frontendFilesForView } = require('../../tools/lib/frontend-files.cjs');
 const { runtimeFiles, isBinary } = require('../../tools/checks/lengths.cjs');
 const { checkUpload } = require('../../tools/checks/upload.cjs');
 const { manifestGroups } = require('../../tools/lib/upload-manifests.cjs');
+const { desktopUploadRoot, resolveUploadRoot } = require('../../tools/lib/upload-path.cjs');
+test('Verbindlicher Uploadpfad verwendet jeden Nutzerdesktop einschließlich umgeleitetem Desktop ohne Rückfrage', () => {
+  const live = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../deployment/live.json'), 'utf8'));
+  assert.equal(live.localUploadRoot, desktopUploadRoot);
+  for (const desktop of ['C:/Users/Yves/Desktop', 'C:/Users/alexk/Desktop', 'C:/Users/Hans/Desktop', 'D:/OneDrive/Büro/Desktop']) {
+    const folder = path.resolve(desktop);
+    assert.equal(resolveUploadRoot(live.localUploadRoot, () => folder), path.join(folder, 'MischWerk', 'UPLOAD'));
+  }
+  assert.throws(() => resolveUploadRoot('desktop:anderer-ordner'), /Absoluter lokaler Uploadpfad/);
+  assert.throws(() => resolveUploadRoot(desktopUploadRoot, () => ''), /Absoluter Desktopordner/);
+});
 function fixture(t, bundled = false) {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'MischWerk-Uploadpruefung-'));
   assert.ok(path.resolve(base).startsWith(path.join(os.tmpdir(), 'MischWerk-Uploadpruefung-')));
@@ -195,7 +206,7 @@ test('Uploadprüfung validiert Bündel gegen die Quellmodule und weist nachgehas
 });
 
 test('Serverbündel werden an der strikten Zeichengrenze wieder in vollständige Einzelmodule getrennt', t => {
-  const f = fixture(t), first = 'core/runtime.js', second = 'core/diagnostics.js';
+  const f = fixture(t), first = 'core/changes.js', second = 'core/relay-results.js';
   const file = path.join(f.project, 'app/server', first), original = fs.readFileSync(file, 'utf8');
   const next = fs.readFileSync(path.join(f.project, 'app/server', second), 'utf8');
   for (const length of [9499, 9500]) {

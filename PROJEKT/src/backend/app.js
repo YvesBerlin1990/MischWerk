@@ -1,4 +1,3 @@
-/* Backend-Ladeplan mit Dateiprobe. */
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ null /* update-files:end */);
 } else {

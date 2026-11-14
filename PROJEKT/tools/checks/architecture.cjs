@@ -71,6 +71,8 @@ function checkArchitecture() {
   const radioConnection = read('app/www/js/radio/connection.js');
   assert.doesNotMatch(radioConnection, /provider|fetch\(|XMLHttpRequest|AudioContext|new Audio/, 'Ein direkter nativer Stream ohne parallele Anbieter-/Audiowege');
   assert.equal((radioConnection.match(/setTimeout\(/g) || []).length, 1, 'Ein Timer für Verbindung und Wiederherstellung');
+  assert.doesNotMatch(frontend, /playbackDiagnostics|mw:playback\.error|playback-recovery|Function\.prototype\.toString|Object\.getOwnPropertyNames/, 'Nutzer-Wiedergabediagnose einschließlich Übertragung und Methodenproben entfernt');
+  assert.doesNotMatch(read('app/www/js/radio/realm.js'), /setTimeout|setInterval|\.call\(audio\)|fetch\(|XMLHttpRequest/, 'Lokaler Realm bleibt ohne eigenen Audioweg oder Timer');
   assert.doesNotMatch(frontend, /sharedViews|model\.shared|switchView|view-select|view-changed|enterView|dialogLimit|studioHostTimer|mw:view/, 'Alte gemeinsame Navigation und automatische Overlaygrößen entfernt');
   assert.doesNotMatch(read('app/www/js/ui/layout.js'), /getHostFrame|setSize|setMinSize|setMaxSize|setResizable/, 'Overlaylayout verändert keine nativen Fenstermaße');
   const wishWindow = read('app/www/js/wishes/window.js');

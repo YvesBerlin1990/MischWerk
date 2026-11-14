@@ -22,6 +22,7 @@
     ['presentation', 'radio/presentation.js', 'radio'],
     ['provider', 'radio/provider.js', 'radio'],
     ['volume', 'radio/volume.js', 'radio'],
+    ['playbackRealm', 'radio/realm.js', 'radio'],
     ['radioConnection', 'radio/connection.js', 'radio'],
     ['player', 'radio/player.js', 'radio'],
     ['listenerPresence', 'radio/listener.js', 'radio'],
