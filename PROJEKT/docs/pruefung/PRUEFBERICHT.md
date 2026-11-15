@@ -1,5 +1,10 @@
 # MischWerk – Prüfbericht 0.1.445 / Build 445
 
+## GitHub-Header im MischWerk-Stil · 15.11.2026
+
+Den bisherigen freistehenden 120-px-Logokopf durch ein breites Banner mit dunkler Werkhallenfläche, Goldakzenten, unverändertem Originallogo und lokaler Outfit-Schrift ersetzt. Eine eigene schmale Komposition wird über picture/source bis 600 px ausgewählt; Alttext bleibt verfügbar. Beide PNGs liegen bei der GitHub-README und werden nicht ausgeliefert. Lokale Bilddarstellung bei 320, 600 und 900 px ohne Überbreite geprüft und visuell kontrolliert. Reine Dokumentations-/Medienänderung: App 0.1.445 / Build 445 und Website 0.2.12 unverändert; Runtime-, UPLOAD- und Manifesthashes sowie relative Dateiverweise vor GitHub-Abschluss abgeglichen. Kein erneuter App-/Emulatorlauf.
+
+
 ## GitHub-Abschluss und vollständig erneuerte öffentliche Prüfbilder · 15.11.2026
 
 Alle 37 öffentlichen PNGs neu am tatsächlichen Paket 0.1.445 / Build 445 aufgenommen: 23 Radioansichten und Details, vier Wunschboxzustände vor/nach Versand bei 320/560 px, sechs Verwaltungsansichten und vier Sendeplanansichten einschließlich AutoDJ und Fehlerzustand. Bestehende Bildnamen bleiben erhalten. README-Galerie und Designbeschreibung auf denselben Stand abgeglichen; private Moderations-/Übergabebilder bleiben ausschließlich temporär.

@@ -1,6 +1,9 @@
-<img src="../PROJEKT/app/www/img/mischwerk-logo.png" alt="MischWerk" width="120" height="120">
+<picture>
+  <source media="(max-width: 600px)" srcset="mischwerk-header-schmal.png">
+  <img src="mischwerk-header.png" alt="MischWerk – Radio und Community bei Knuddels. Musik hören, Wünsche teilen, gemeinsam erleben." width="1600">
+</picture>
 
-# MischWerk
+# MischWerk · Radio & Community
 
 Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderation, Sendeplan und eigener Homepage.
 
