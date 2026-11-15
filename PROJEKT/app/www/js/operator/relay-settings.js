@@ -44,8 +44,8 @@
             var post = state.operation && state.operation.lastPost;
             status.textContent = running ? post && post.accepted ? 'Aktiv – Daten werden übertragen.' :
                 'Verbindung aktiv – Übertragung noch nicht bestätigt.' : state.enabled && state.runtimeVerified ?
-                'Freigegeben – Übertragung ruht.' : 'Verbindung ausgeschaltet.';
-            document.getElementById('relay-key-state').textContent = state.hasSyncSecret ? 'Schlüssel ist hinterlegt.' : 'Noch kein Schlüssel hinterlegt.';
+                'Verbindung freigegeben – derzeit keine Übertragung.' : 'Verbindung ausgeschaltet.';
+            document.getElementById('relay-key-state').textContent = state.hasSyncSecret ? 'Ein Verbindungsschlüssel ist hinterlegt.' : 'Zum Aktivieren wird ein Verbindungsschlüssel benötigt.';
         } else {
         status.textContent = 'In Knuddels hinterlegt: Sync-Schlüssel ' + (state.hasSyncSecret ? 'ja' : 'nein') +
             '. Verbindung ' +

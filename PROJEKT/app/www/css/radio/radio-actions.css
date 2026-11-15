@@ -35,10 +35,3 @@
 .bar-utility-links { grid-column:5; grid-row:1; display:flex; flex-direction:column; justify-self:center; width:100%; max-width:156px; min-width:0; }
 .radio-listener-brand { position:relative; grid-column:5; grid-row:1; justify-self:center; width:100px; aspect-ratio:1; }
 .radio-listener-logo { display:block; width:100%; height:auto; object-fit:contain; background:transparent; mix-blend-mode:lighten; }
-.radio-listener-emblem { display:block; width:100%; height:74.286%; overflow:hidden; }
-.radio-listener-wordmark { position:absolute; top:73.571%; left:0; width:100%; height:19.286%; overflow:hidden; }
-.radio-listener-wordmark .radio-listener-logo { position:absolute; top:-314.815%; left:50%; width:82.143%; height:auto; transform:translateX(-50%); }
-
-@media (min-width:1500px) {
-  .radio-bar:not(.has-wishes) { grid-template-columns:170px 120px minmax(300px,1fr) 156px 156px; }
-}

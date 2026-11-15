@@ -15,7 +15,9 @@ MischWerkUI.setComposer(function (factories) {
     var radioTicker = null;
     if (factories.radioTicker) { radioTicker = factories.radioTicker({ model:model, dom:dom, signals:signals }); }
     var viewport = null;
-    if (factories.viewport) { viewport = factories.viewport({ bridge: bridge, model: model, dom: dom, signals: signals }); }
+    var workshop = null;
+    if (factories.workshop) { workshop = factories.workshop({}); }
+    if (factories.viewport) { viewport = factories.viewport({ bridge: bridge, model: model, dom: dom, signals: signals, workshop:workshop }); }
     var layout = factories.layout({ model: model, dom: dom, signals: signals, viewport: viewport });
     var commands = factories.commands({ bridge: bridge, model: model, layout: layout, signals: signals });
     var metadata = null;
@@ -49,6 +51,8 @@ MischWerkUI.setComposer(function (factories) {
     if (factories.wishRelay) { wishRelay = factories.wishRelay({ bridge:bridge, model:model, dom:dom, commands:commands, signals:signals }); }
     var wishDrawer = null;
     if (factories.wishDrawer) { wishDrawer = factories.wishDrawer({ bridge:bridge, model:model, dom:dom, commands:commands, signals:signals }); }
+    var wishTracking = null;
+    if (factories.wishTracking) { wishTracking = factories.wishTracking({ model:model, dom:dom, signals:signals }); }
     var wishWindow = null;
     if (factories.wishWindow) { wishWindow = factories.wishWindow({ bridge:bridge, model:model, dom:dom, signals:signals }); }
     var reader=null;
@@ -58,8 +62,10 @@ MischWerkUI.setComposer(function (factories) {
     var studioWindow=null;
     var studio = null;
     if (factories.studio) { studio = factories.studio({ model: model, dom: dom, layout: layout, commands: commands, signals: signals }); }
+    var queueActions = null;
+    if (factories.queueActions) { queueActions = factories.queueActions({ model:model, dom:dom, commands:commands, signals:signals }); }
     var queue = null;
-    if (factories.queue) { queue = factories.queue({ model: model, dom: dom, commands: commands, signals: signals, bridge:bridge }); }
+    if (factories.queue) { queue = factories.queue({ model: model, dom: dom, commands: commands, signals: signals, bridge:bridge, actions:queueActions }); }
     if(factories.studioWindow){studioWindow = factories.studioWindow({model:model,signals:signals,dom:dom,bridge:bridge});}
     var handover = null;
     if (factories.handover) { handover = factories.handover({ model: model, dom: dom, layout: layout, commands: commands, signals: signals, reader:reader }); }
@@ -84,6 +90,6 @@ MischWerkUI.setComposer(function (factories) {
       presentation: presentation, signals: signals });
     var lifecycle = factories.lifecycle({ bridge: bridge, model: model, dom: dom, layout: layout,
       commands: commands, wishes: wishes, provider: provider, player: player, signals: signals, listenerPresence:listenerPresence });
-    lifecycle.start([viewport, layout, commands, volume, player, listenerPresence, radioTicker, wishes, wishFeedback, wishRelay, wishDrawer, wishWindow,
-      studioWindow, workspace, reader, studio, handover, queue, team, channelTextsLayout, channelTexts, teamConnection, teamNavigation, scheduleView, schedule, updates, overlays]);
+    lifecycle.start([viewport, layout, commands, volume, player, listenerPresence, radioTicker, wishes, wishFeedback, wishRelay, wishDrawer, wishTracking, wishWindow,
+      studioWindow, workspace, reader, studio, handover, queueActions, queue, team, channelTextsLayout, channelTexts, teamConnection, teamNavigation, scheduleView, schedule, updates, overlays]);
 });

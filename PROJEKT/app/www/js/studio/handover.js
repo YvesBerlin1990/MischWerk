@@ -61,9 +61,9 @@ MischWerkUI.define('handover', function (dependencies) {
     if (!opened) { layout.resizeDialog(); return; }
     dom.el('handover-panel').hidden = false;
     dom.setText('handover-title', incoming ? 'Sendung übernehmen' : 'Sendung übergeben');
-    dom.setText('handover-description', incoming ? incoming.nick + ' möchte dir die Sendung übergeben. Bestätige, sobald du sendebereit bist.' :
-      outgoing ? 'Warte auf ' + outgoing.nick + '. Bis zur Annahme bleibst du ON AIR.' :
-      handover.candidates.length ? 'Wähle den nächsten Moderator. Du bleibst bis zur Annahme ON AIR.' : 'Aktuell ist kein weiterer Radiomoderator im Channel.');
+    dom.setText('handover-description', incoming ? incoming.nick + ' möchte dir die Sendung übergeben. Übernimm, wenn du bereit bist.' :
+      outgoing ? 'Warte auf ' + outgoing.nick + '. Bis zur Annahme bleibt deine Moderation aktiv.' :
+      handover.candidates.length ? 'Wähle die nächste Moderation. Bis zur Annahme bleibst du angemeldet.' : 'Zurzeit ist keine weitere Moderation im Channel verfügbar.');
     dom.el('handover-request-form').hidden = !!incoming || !!outgoing || !handover.candidates.length;
     dom.el('handover-accept-form').hidden = !incoming;
     dom.el('handover-cancel').hidden = !outgoing;

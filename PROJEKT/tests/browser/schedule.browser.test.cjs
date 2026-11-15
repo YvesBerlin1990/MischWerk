@@ -55,10 +55,14 @@ async function setup(t,client='k3',options={}){
  return {...instance,context,runtime,backend,posts,reply,join,command,date,week,errors,external,requests,publish,publicRows,gets,publicControl};
 }
 async function overlay(page,kind='schedule'){const selector='#overlays iframe[title$=" · '+kind+'"]';await page.frameLocator(selector).locator('html.mw-ready').waitFor();return await(await page.locator(selector).elementHandle()).contentFrame();}
-async function openSchedule(person){await person.radio.locator('#open-schedule:not([disabled])').click();const frame=await overlay(person.page);await frame.waitForFunction(()=>document.querySelector('.schedule-topic')||document.getElementById('schedule-message').textContent==='Für diesen Tag sind keine Sendungen vorhanden.');return frame;}
+async function openSchedule(person){await person.radio.locator('#open-schedule:not([disabled])').click();const frame=await overlay(person.page);await frame.waitForFunction(()=>document.querySelector('.schedule-topic')||document.getElementById('schedule-message').textContent==='Für diesen Tag sind keine Sendungen eingetragen.');return frame;}
 
 for(const client of ['k3','stapp'])test('Tagesplan in '+client+' wächst mit dem Inhalt und wird beim leeren Tag wieder kompakt',async t=>{
  const lab=await setup(t,client),owner=await lab.join(),frame=await openSchedule(owner);
+ await frame.evaluate(()=>document.fonts.ready);
+ await require('../support/studio-browser.cjs').settle(frame);
+ await owner.page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
+ await require('../support/studio-browser.cjs').settle(frame);
  await frame.waitForFunction(()=>innerHeight<350);
  const compact=await frame.evaluate(()=>innerHeight);
  lab.publish([lab.command('size-one','18:00','20:00','Ein langes Sendungsthema mit deutlich mehr Text für die schmale Ansicht')]);
@@ -70,7 +74,7 @@ for(const client of ['k3','stapp'])test('Tagesplan in '+client+' wächst mit dem
   await frame.locator('.schedule-show').last().scrollIntoViewIfNeeded();
   assert.equal(await frame.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  }
- await frame.locator('#schedule-next').click();await frame.locator('#schedule-message').filter({hasText:'Für diesen Tag sind keine Sendungen vorhanden.'}).waitFor();
+ await frame.locator('#schedule-next').click();await frame.locator('#schedule-message').filter({hasText:'Für diesen Tag sind keine Sendungen eingetragen.'}).waitFor();
  await frame.waitForFunction(()=>document.querySelectorAll('.schedule-show').length===0&&innerHeight<350);
  // Größenantwort und anschließenden ResizeObserver vor dem unveränderten Vergleich abschließen.
  await frame.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -95,7 +99,7 @@ for(const client of ['k3','stapp'])for(const sizing of ['ignored','stepped','cla
  const sizes=()=>lab.hub.trace.filter(e=>e.kind==='hostSize'&&e.mode==='Overlay'&&e.method==='setSize').length;
  const stable=sizes();assert.ok(stable>0);assert.ok(stable<5,'Begrenzte Größenantwort erzeugt keine Wiederholung');
  await frame.waitForTimeout(650);assert.equal(sizes(),stable);
- await frame.locator('#schedule-next').click();await frame.locator('#schedule-message').filter({hasText:'Für diesen Tag sind keine Sendungen vorhanden.'}).waitFor();
+ await frame.locator('#schedule-next').click();await frame.locator('#schedule-message').filter({hasText:'Für diesen Tag sind keine Sendungen eingetragen.'}).waitFor();
  if(sizing!=='ignored')await frame.waitForFunction(()=>innerHeight<350);
  assert.equal(await frame.locator('.schedule-show').count(),0);
  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
@@ -120,7 +124,7 @@ for(const client of ['k3','stapp'])test('Homepage-Tagesplan in '+client+' zeigt 
   const folder=path.resolve(__dirname,'../../docs/pruefung/oberflaeche/sendeplan');fs.mkdirSync(folder,{recursive:true});
   if(client==='k3'&&[640,320].includes(width))await frame.locator('.dialog-shell').screenshot({path:path.join(folder,'sendeplan-tag-'+width+'.png')});
  }
- await frame.locator('#schedule-next').click();await frame.locator('#schedule-date-label').filter({hasText:'11. November'}).waitFor();await frame.locator('#schedule-message').filter({hasText:'Für diesen Tag sind keine Sendungen vorhanden.'}).waitFor();
+ await frame.locator('#schedule-next').click();await frame.locator('#schedule-date-label').filter({hasText:'11. November'}).waitFor();await frame.locator('#schedule-message').filter({hasText:'Für diesen Tag sind keine Sendungen eingetragen.'}).waitFor();
  assert.equal(await frame.locator('.schedule-show').count(),0);assert.equal(await frame.locator('.schedule-hours').count(),0);
  await frame.locator('#schedule-today').click();await frame.locator('.schedule-current .schedule-topic').filter({hasText:'MischWerk Radio Show'}).waitFor();
  await frame.locator('#close-overlay').click();await owner.page.locator('#overlays iframe').waitFor({state:'detached'});assert.equal(await owner.radio.locator('#open-schedule').evaluate(n=>n===document.activeElement),true);
@@ -132,12 +136,12 @@ for(const client of ['k3','stapp'])test('Homepage-Tagesplan in '+client+' zeigt 
 
 for(const client of ['k3','stapp'])test('Homepage-Inhalte in '+client+' erscheinen unverändert; leere Tage erhalten keine erfundenen Sendungen',async t=>{
  const lab=await setup(t,client),owner=await lab.join(),frame=await openSchedule(owner);
- assert.equal(await frame.locator('.schedule-show').count(),0);assert.equal(await frame.locator('#schedule-message').textContent(),'Für diesen Tag sind keine Sendungen vorhanden.');
+ assert.equal(await frame.locator('.schedule-show').count(),0);assert.equal(await frame.locator('#schedule-message').textContent(),'Für diesen Tag sind keine Sendungen eingetragen.');
  const row=lab.command('dynamic','18:00','20:00','<img src=x onerror=alert(1)> Mein Thema','otterchen');lab.publish([row]);await frame.locator('.schedule-topic').filter({hasText:row.entry.topic}).waitFor();assert.equal(await frame.locator('#schedule-list img, #schedule-list script').count(),0);
  assert.equal(await frame.locator('.schedule-topic').textContent(),row.entry.topic);assert.equal(await frame.locator('.schedule-presenter').textContent(),row.entry.nick);assert.equal(await frame.locator('.schedule-show').count(),1);
  await frame.locator('#schedule-next').focus();lab.publish([{...row,commandId:'edit-dynamic',expectedRevision:1,entry:{...row.entry,topic:'Thema von der Homepage aktualisiert'}}]);await frame.locator('.schedule-topic').filter({hasText:'Thema von der Homepage aktualisiert'}).waitFor();assert.equal(await frame.locator('#schedule-next').evaluate(n=>n===document.activeElement),true);
  lab.publish([{...row,commandId:'autodj-dynamic',expectedRevision:2,entry:{...row.entry,kind:'autodj',timing:'allDay',start:'00:00',end:'',topic:'MischWerk Radio Show',nick:'MischWerk am Pult'}}]);await frame.locator('.schedule-topic').filter({hasText:'MischWerk Radio Show',exact:true}).waitFor();assert.equal(await frame.locator('.schedule-presenter').textContent(),'MischWerk am Pult');assert.equal(await frame.locator('.schedule-show').count(),1);assert.equal(await frame.locator('.schedule-hours').textContent(),'Ganztägig');
- lab.publish([{...row,commandId:'delete-dynamic',operation:'delete',expectedRevision:3,entry:null}]);await frame.locator('#schedule-message').filter({hasText:'Für diesen Tag sind keine Sendungen vorhanden.'}).waitFor();assert.equal(await frame.locator('.schedule-show').count(),0);
+ lab.publish([{...row,commandId:'delete-dynamic',operation:'delete',expectedRevision:3,entry:null}]);await frame.locator('#schedule-message').filter({hasText:'Für diesen Tag sind keine Sendungen eingetragen.'}).waitFor();assert.equal(await frame.locator('.schedule-show').count(),0);
  assert.equal(lab.publicRows.size,0);assert.equal(lab.runtime.persistence.api().getObject('mischwerk.schedule.v1.'+lab.week,null),null);
  if(client==='k3'){const folder=path.resolve(__dirname,'../../docs/pruefung/oberflaeche/sendeplan');fs.mkdirSync(folder,{recursive:true});await frame.locator('.dialog-shell').screenshot({path:path.join(folder,'sendeplan-autodj.png')});}
  await frame.evaluate(()=>Client.sendEvent('mw:schedule.save',{requestId:'readonly',week:'2026-11-09',expectedRevision:4,date:'2026-11-10',start:'12:00',end:'13:00',nick:'Otterchen',topic:'Verboten'}));await owner.page.waitForFunction(()=>EmulatorLab.trace.some(e=>e.eventType==='mw:schedule.result'&&e.eventData.requestId==='readonly'&&e.eventData.ok===false));assert.equal(lab.runtime.persistence.api().getObject('mischwerk.schedule.v1.'+lab.week,null),null);
@@ -151,7 +155,7 @@ test('Ausfall oder verspätete Antwort wird nicht als AutoDJ ausgegeben; Wiederh
  await frame.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
  await owner.page.waitForFunction(()=>EmulatorLab.trace.some(e=>e.kind==='droppedServer'&&e.eventType==='mw:schedule.data'));
  assert.equal(await frame.locator('.schedule-show').count(),0);await owner.page.clock.runFor(15001);await frame.locator('#schedule-message.error').waitFor();assert.equal(await frame.locator('.schedule-show').count(),0);
- await frame.locator('#schedule-retry').click();await frame.locator('#schedule-message:not(.error)').filter({hasText:'Für diesen Tag sind keine Sendungen vorhanden.'}).waitFor();
+ await frame.locator('#schedule-retry').click();await frame.locator('#schedule-message:not(.error)').filter({hasText:'Für diesen Tag sind keine Sendungen eingetragen.'}).waitFor();
  const deliver=lab.hub.sendUser.bind(lab.hub),held=[];lab.hub.sendUser=(nick,message)=>{if(message.type==='sessionEvent'&&message.eventType==='mw:schedule.data'&&!held.length)held.push(()=>deliver(nick,message));else deliver(nick,message);};
  await frame.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await owner.page.waitForTimeout(100);assert.equal(held.length,1);lab.hub.sendUser=deliver;
  await frame.locator('#schedule-next').click();await frame.locator('#schedule-date-label').filter({hasText:'11. November'}).waitFor();held[0]();assert.match(await frame.locator('#schedule-date-label').textContent(),/11\. November/);

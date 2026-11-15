@@ -57,7 +57,7 @@ MischWerkUI.define('team', function (dependencies) {
     list.textContent = '';
     if (!model.current().user.canManageRadioModerators) { return; }
     if (!model.current().radioModerators.length) {
-      list.appendChild(dom.element('p', 'empty-copy', 'Dein Radio-Team ist noch leer.'));
+      list.appendChild(dom.element('p', 'empty-copy', 'Es sind noch keine Mitglieder freigeschaltet.'));
       if (hadFocus) { dom.el('team-list-heading').focus(); }
       return;
     }
@@ -134,7 +134,7 @@ MischWerkUI.define('team', function (dependencies) {
       if (response.ok && response.action === 'mw:addRadioModerator') { dom.el('radio-moderator-form').reset(); }
       if (!response.ok && response.action === 'mw:removeRadioModerator' && removal) {
         var feedback = removal.box.querySelector('.team-removal-feedback');
-        feedback.textContent = response.message || 'Studiozugriff konnte nicht entzogen werden.'; feedback.hidden = false;
+        feedback.textContent = response.message || 'Die Berechtigung konnte nicht entzogen werden.'; feedback.hidden = false;
         availability();
         if (document.activeElement === document.body) { removal.box.querySelector('[data-confirm-removal]').focus(); }
       }

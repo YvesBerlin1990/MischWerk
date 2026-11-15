@@ -1,4 +1,4 @@
-/* Statisches Vinyl, dunkle Deckfläche und an echte Wiedergabe gebundene Kontur. */
+/* Dunkle Deckfläche, Vinyl-Bedientaste und an echte Wiedergabe gebundene Kontur. */
 html[data-view=radio] { --canvas:#000000; }
 html[data-view=radio],html[data-view=radio] body,.radio-bar { background:var(--canvas); }
 html[data-view=radio] body { display:flex; flex-direction:column; }
@@ -25,146 +25,30 @@ html[data-view=radio] body::after {
 .radio-bar { flex-shrink:0; }
 /* Eigene Druck- und Fokuszustände für alle Leistentasten, einschließlich Lauftext. */
 .radio-deck button { -webkit-tap-highlight-color:transparent; }
-.radio-deck {
-  --mw-vinyl-groove:rgba(222,230,240,.045);
-  --mw-deck-grooves:
-    radial-gradient(ellipse at 55% -18%,rgba(112,129,148,.085),transparent 62%),
-    repeating-radial-gradient(circle at 92% -150px,transparent 0 19px,var(--mw-vinyl-groove) 20px 21px,transparent 22px 35px);
-  --mw-deck-schematic:
-    repeating-radial-gradient(circle at 86% -220px,transparent 0 16px,rgba(220,227,237,.035) 17px 18px,transparent 19px 32px),
-    linear-gradient(116deg,transparent 30%,rgba(207,216,229,.028) 61%,transparent 91%);
-  --mw-halo-core:rgba(236,244,255,.76);
-  --mw-halo-near:rgba(205,226,248,.53);
-  --mw-halo-medium:rgba(164,195,229,.36);
-  --mw-halo-far:rgba(111,150,196,.21);
-}
-/* Die vorhandenen Dekorationsflächen erhalten nur die beiden ZIP-Effekte.
-   Raster, Grundfarbe, linke Schallplatte und sämtliche Bedienflächen bleiben erhalten. */
-.radio-bar::before {
-  content:"";
-  position:absolute;
-  inset:var(--deck-top,18px) var(--deck-x,20px);
-  border-radius:var(--deck-radius,24px);
-  z-index:-2;
-  pointer-events:none;
-  background:var(--mw-deck-grooves);
-  -webkit-mask-image:linear-gradient(90deg,transparent 8%,rgba(0,0,0,.18) 42%,#000 100%);
-  mask-image:linear-gradient(90deg,transparent 8%,rgba(0,0,0,.18) 42%,#000 100%);
-  opacity:.7;
-}
 .radio-program-face { overflow:hidden; border:1px solid #3a3a3a; border-radius:24px; background:#141414; box-shadow:none; }
-.radio-program-face::before { content:""; position:absolute; left:0; top:50%; width:var(--vinyl-size); height:var(--vinyl-size); transform:translateY(-50%); border:2px solid #827354; border-radius:50%; background:radial-gradient(circle,#171817 0 calc(var(--play-size) / 2 + 9px),transparent calc(var(--play-size) / 2 + 10px)),repeating-radial-gradient(circle,#050505 0 9px,#262626 10px 11px,#050505 12px 20px); }
-.radio-program-face::after {
-  content:"";
-  position:absolute;
-  inset:1px;
-  border-radius:inherit;
-  pointer-events:none;
-  background:var(--mw-deck-schematic);
-  opacity:.9;
-}
-/* body.playing gehört bereits dem Player: kein eigener Klickzustand oder Timer.
-   Ohne Übergang erlischt der Halo auch beim Nachladen oder Fehler unmittelbar. */
-.playing .radio-program-face,
-.radio-has-ticker .playing .radio-deck::before {
-  animation:mw-halo-rgb 42s linear infinite;
-  border-color:#f0f4fa;
-  box-shadow:
-    0 0 0 1px rgba(238,244,251,.43),
-    0 0 11px 1px var(--mw-halo-core),
-    0 0 27px 4px var(--mw-halo-near),
-    0 0 48px 9px var(--mw-halo-medium),
-    0 0 84px 16px var(--mw-halo-far),
-    inset 0 0 21px rgba(211,227,244,.075);
-}
-/* Gleich lange Farbübergänge mit identischen Schattenmaßen und Deckkräften.
-   0 und 100 Prozent teilen dieselbe Farbe: kein Sprung am Schleifenende.
-   Bei reduced-motion bleibt über foundation.css der statische Halo oben bestehen. */
-@keyframes mw-halo-rgb {
-  0%,100% {
-    border-color:#d2e6ff;
-    box-shadow:
-      0 0 0 1px rgba(210,230,255,.43),
-      0 0 11px 1px rgba(144,190,255,.76),
-      0 0 27px 4px rgba(92,150,255,.53),
-      0 0 48px 9px rgba(62,112,235,.36),
-      0 0 84px 16px rgba(44,92,204,.21),
-      inset 0 0 21px rgba(144,190,255,.075);
-  }
-  16.666667% {
-    border-color:#eed8ff;
-    box-shadow:
-      0 0 0 1px rgba(238,216,255,.43),
-      0 0 11px 1px rgba(202,156,255,.76),
-      0 0 27px 4px rgba(165,112,250,.53),
-      0 0 48px 9px rgba(140,80,219,.36),
-      0 0 84px 16px rgba(105,60,186,.21),
-      inset 0 0 21px rgba(202,156,255,.075);
-  }
-  33.333333% {
-    border-color:#ffdae5;
-    box-shadow:
-      0 0 0 1px rgba(255,218,229,.43),
-      0 0 11px 1px rgba(255,150,176,.76),
-      0 0 27px 4px rgba(250,100,140,.53),
-      0 0 48px 9px rgba(223,69,110,.36),
-      0 0 84px 16px rgba(185,52,91,.21),
-      inset 0 0 21px rgba(255,150,176,.075);
-  }
-  50% {
-    border-color:#ffeecc;
-    box-shadow:
-      0 0 0 1px rgba(255,238,204,.43),
-      0 0 11px 1px rgba(255,211,141,.76),
-      0 0 27px 4px rgba(249,177,80,.53),
-      0 0 48px 9px rgba(222,144,42,.36),
-      0 0 84px 16px rgba(182,111,27,.21),
-      inset 0 0 21px rgba(255,211,141,.075);
-  }
-  66.666667% {
-    border-color:#d7fadf;
-    box-shadow:
-      0 0 0 1px rgba(215,250,223,.43),
-      0 0 11px 1px rgba(148,232,170,.76),
-      0 0 27px 4px rgba(88,204,129,.53),
-      0 0 48px 9px rgba(52,171,98,.36),
-      0 0 84px 16px rgba(35,137,69,.21),
-      inset 0 0 21px rgba(148,232,170,.075);
-  }
-  83.333333% {
-    border-color:#d2f7fa;
-    box-shadow:
-      0 0 0 1px rgba(210,247,250,.43),
-      0 0 11px 1px rgba(140,224,238,.76),
-      0 0 27px 4px rgba(80,194,219,.53),
-      0 0 48px 9px rgba(51,159,194,.36),
-      0 0 84px 16px rgba(31,123,159,.21),
-      inset 0 0 21px rgba(140,224,238,.075);
-  }
-}
-/* Größere goldene Vinyl-Taste; vorhandenes Material und ruhige Zustände. */
+.radio-program-face::before { content:""; position:absolute; left:calc(var(--pair-offset) + var(--brand-width) + var(--pair-gap) + (var(--transport-width) - var(--vinyl-size)) / 2 - 1px); top:50%; width:var(--vinyl-size); height:var(--vinyl-size); transform:translateY(-50%); border:1px solid #746344; border-radius:50%; background:radial-gradient(circle,#0d0f10 0 calc(var(--play-size) / 2 + 6px),transparent calc(var(--play-size) / 2 + 7px)),linear-gradient(145deg,#736446,#302a20 24%,#101214 50%,#51432d 78%,#95815a); box-shadow:inset 0 0 0 3px #111315,inset 0 0 0 4px #3f382a,0 1px 2px #0006; }
+/* Gedrehte Metallfassung, dunkler Sitz und eine klar abgegrenzte Bedientaste. */
 .play-button {
   position:relative; border:1px solid #ad9360; color:#e6c77b; background:
-    radial-gradient(circle at 38% 25%,#3c3524,transparent 65%),
-    radial-gradient(circle,#25231e 0 59%,transparent 61%),
-    repeating-radial-gradient(circle,#171817 0 3px,#38362f 4px,#171817 5px 7px);
-  box-shadow:0 0 0 5px #11120f,0 0 0 6px #6f6043,inset 0 1px 0 #fff2,inset 0 -2px 4px #0008;
+    radial-gradient(ellipse at 35% 20%,rgba(255,223,147,.12),transparent 60%),
+    linear-gradient(155deg,#3b3527,#171a1b 65%,#24231f);
+  box-shadow:0 0 0 4px #0b0d0e,0 0 0 5px #6b5838,inset 0 1px 0 #fff2,inset 0 -2px 5px #0009;
 }
-.play-button:hover:enabled { border-color:#ffe2a1; color:#ffe2a1; box-shadow:0 0 0 5px #171711,0 0 0 6px #ad9360,inset 0 1px 0 #fff4; }
-.play-button:active:enabled { border-color:#ad9360; color:#e6c77b; box-shadow:0 0 0 5px #11120f,0 0 0 6px #6f6043,inset 0 3px 8px #000b; }
+.play-button:hover:enabled { border-color:#ffe2a1; color:#ffe2a1; box-shadow:0 0 0 4px #101211,0 0 0 5px #ad9360,inset 0 1px 0 #fff4; }
+.play-button:active:enabled { border-color:#ad9360; color:#e6c77b; box-shadow:0 0 0 4px #0b0d0e,0 0 0 5px #6b5838,inset 0 3px 8px #000b; }
 .play-button:focus-visible { outline:2px solid #ffe2a1; outline-offset:-5px; }
-.play-button:disabled { opacity:1; border-color:#5a5c57; color:#b4b4b0; background:#252525; box-shadow:0 0 0 5px #141414,0 0 0 6px #454740; }
+.play-button:disabled { opacity:1; border-color:#5a5c57; color:#b4b4b0; background:#252525; box-shadow:0 0 0 4px #141414,0 0 0 5px #454740; }
 .play-button.is-offline:disabled { background:#555; transition:none; }
 #play-icon { filter:none; }
 /* Der vorhandene echte Wiedergabestatus schaltet den warmen Goldschein direkt. */
-.playing .play-button:enabled { border-color:#ffe2a1; color:#ffe2a1; }
+.playing .radio-program-face::before { border-color:#ac8c4f; box-shadow:inset 0 0 0 3px #111315,inset 0 0 0 4px #77603a,0 1px 2px #0006; }
+.playing .play-button:enabled { border-color:#ffe1a0; color:#fff2c9; background:radial-gradient(circle at 38% 24%,rgba(255,226,161,.26),transparent 65%),linear-gradient(145deg,#58472b,#24221c 70%,#332b1e); }
 .playing .play-button:enabled::after {
-  content:""; position:absolute; inset:-6px; border-radius:50%; pointer-events:none;
-  box-shadow:0 0 14px 3px #e6c77bb3,0 0 28px 5px #e6c77b59;
+  content:""; position:absolute; inset:-5px; border-radius:50%; pointer-events:none;
+  box-shadow:0 0 0 1px rgba(255,222,153,.52),0 0 10px 2px rgba(230,199,123,.45),0 0 20px 3px rgba(230,199,123,.18);
 }
-.playing .play-button:enabled #play-icon { filter:drop-shadow(0 0 6px #e6c77b99); }
+.playing .play-button:enabled #play-icon { filter:drop-shadow(0 0 4px rgba(255,222,153,.55)); }
 #radio-panel svg { stroke-width:1.8; }
-.volume-control.is-high { --volume-thumb:#ff8a7e; }
 /* Kleine sichtbare Scheibe mit Abstand zum Leistenrand; Bedienfläche bleibt 44 px. */
 .volume-control #mute-button { position:relative; border:0; border-radius:50%; background:transparent; color:#e6c77b; box-shadow:none; }
 .volume-control #mute-button::before {
@@ -176,7 +60,7 @@ html[data-view=radio] body::after {
 .volume-control #mute-button:hover:enabled::before { border-color:#e6c77b; background:#302b21; }
 .volume-control #mute-button:active:enabled::before { background:#141414; }
 .volume-control #mute-button:focus-visible { outline:2px solid #e6c77b; outline-offset:-3px; }
-.volume-control #mute-button[aria-pressed=true] { color:#ff9a8f; }
-.volume-control #mute-button[aria-pressed=true]::before { border-color:#a06e65; background:#2a1c19; }
-.volume-control.is-high output { color:#ff9a8f; border-color:#ff8a7e; background:#2a1613; padding-inline:1px; }
-.volume-control.is-high output::before { content:"!"; display:inline-grid; place-items:center; width:12px; height:12px; flex-shrink:0; margin-right:4px; border:1px solid currentColor; border-radius:50%; font-size:12px; line-height:1; }
+.volume-control #mute-button[aria-pressed=true] { color:#96968f; }
+.volume-control #mute-button[aria-pressed=true]::before { border-color:#555; background:#181818; }
+
+.volume-control input:focus-visible { outline:2px solid #e6c77b; outline-offset:-8px; border-radius:12px; }

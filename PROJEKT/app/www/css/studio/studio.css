@@ -23,8 +23,7 @@ html[data-view=studio] .dialog-header h1 { font-size:23px; }
 #studio-host { margin:0; font-size:20px; line-height:1.35; overflow-wrap:anywhere; }
 .studio-session-actions { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0; }
 .studio-session-actions .notice { flex-basis:100%; }
-#studio-schedule-note { margin:10px 0 0; font-size:12px; line-height:1.5; }
-#studio-schedule-note.error,#studio-wish-state.error { color:var(--error); }
+#studio-wish-state.error { color:var(--error); }
 .studio-wishes { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .studio-wishes > div { min-width:0; }
 #studio-panel h3,.studio-section-heading label { margin:0; font-size:15px; line-height:1.4; font-weight:500; }

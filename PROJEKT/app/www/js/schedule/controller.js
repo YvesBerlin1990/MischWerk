@@ -46,7 +46,7 @@ MischWerkUI.define('schedule', function (dependencies) {
     if(disposed||document.hidden||!bridge||!connected()||pending)return;
     pending={date:date,background:background,restarts:0};
     batch={entries:[],signature:null}; if(!background)lastRead=Date.now();
-    if(!data&&!background)view.message('Programm wird geladen …',false);
+    if(!data&&!background)view.message('Sendeplan wird geladen …',false);
     packet(0);
   }
   function preload() {
@@ -65,12 +65,12 @@ MischWerkUI.define('schedule', function (dependencies) {
   function receive(event) {
     var value=event.data,job=pending;
     if(disposed||!job||!value||value.requestId!==job.id)return;
-    if(!cache.validPacket(value,job.date)) { fail('Ungültige Programmdaten. Bitte erneut laden.'); return; }
+    if(!cache.validPacket(value,job.date)) { fail('Der Sendeplan konnte nicht gelesen werden. Bitte erneut laden.'); return; }
     serverAt=value.serverTime;localAt=Date.now();
     if(!cache.contains(value.date,cache.today(now()))){select('',true);return;}
     if(!value.unchanged) {
       if(!Array.isArray(value.entries)||!Number.isInteger(value.page)||!Number.isInteger(value.pages)||value.pages<1) {
-        fail('Ungültige Programmdaten. Bitte erneut laden.');return;
+        fail('Der Sendeplan konnte nicht gelesen werden. Bitte erneut laden.');return;
       }
       if(value.page!==job.page||(batch.signature!==null&&batch.signature!==value.signature)) {
         if(++job.restarts>2) {fail('Das Programm wird gerade geändert. Bitte erneut laden.');return;}
@@ -78,7 +78,7 @@ MischWerkUI.define('schedule', function (dependencies) {
       }
       if(value.entries.some(function(entry){return !entry||typeof entry.topic!=='string'||typeof entry.nick!=='string'||
           !Number.isFinite(entry.from)||!Number.isFinite(entry.until)||entry.until<=entry.from||
-          typeof entry.start!=='string'||typeof entry.end!=='string';})) {fail('Ungültige Programmdaten. Bitte erneut laden.');return;}
+          typeof entry.start!=='string'||typeof entry.end!=='string';})) {fail('Der Sendeplan konnte nicht gelesen werden. Bitte erneut laden.');return;}
       batch.signature=value.signature;batch.entries=batch.entries.concat(value.entries);
       if(value.page+1<value.pages) {packet(value.page+1);return;}
       value.entries=batch.entries;

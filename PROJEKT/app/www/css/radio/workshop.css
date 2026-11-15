@@ -1,0 +1,36 @@
+/* Studio-Werkhalle: höchstens zwei vollständige Diagonalen mit aufsteigendem Licht.
+   Keine Kacheln: jede Linie passt mit ihrer gesamten Länge in ihre Freifläche. */
+.radio-program-face {
+  background-color:#141414;
+  /* Großzügige versetzte Paneele statt einer gleichmäßig flachen Fläche.
+     Nur die Oberfläche erhält Licht und Schatten; die Mitte bleibt ruhig. */
+  background-image:var(--workshop-material);
+}
+.radio-program-face::after {
+  --workshop-line:linear-gradient(135deg,transparent calc(50% - 1.6px),rgba(91,65,27,.5) calc(50% - 1px),rgba(245,220,161,.58) 50%,rgba(165,124,58,.38) calc(50% + .8px),transparent calc(50% + 1.6px));
+  /* Länglicher Metallreflex mit weichem Nachlauf und kleinem Champagnerkern.
+     Lokales Vektormuster entlang derselben Diagonale, ohne Medienabruf. */
+  --workshop-light:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Cdefs%3E%3ClinearGradient id='gold' gradientUnits='userSpaceOnUse' x1='12' y1='84' x2='84' y2='12'%3E%3Cstop stop-color='%23d5a952' stop-opacity='0'/%3E%3Cstop offset='.42' stop-color='%23e6bf70' stop-opacity='.12'/%3E%3Cstop offset='.72' stop-color='%23f5d795' stop-opacity='.6'/%3E%3Cstop offset='.82' stop-color='%23fff4d7'/%3E%3Cstop offset='.91' stop-color='%23f3d28b' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%23e6bf70' stop-opacity='0'/%3E%3C/linearGradient%3E%3Cfilter id='soft' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='2'/%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M12 84L84 12' fill='none' stroke='url(%23gold)' stroke-width='9' opacity='.38' filter='url(%23soft)'/%3E%3Cpath d='M12 84L84 12' fill='none' stroke='url(%23gold)' stroke-width='2.4'/%3E%3Cpath d='M12 84L84 12' fill='none' stroke='url(%23gold)' stroke-width='.7'/%3E%3Ccircle cx='71' cy='25' r='2.2' fill='%23fff0cb' opacity='.45' filter='url(%23soft)'/%3E%3C/svg%3E");
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  opacity:var(--workshop-opacity,0);
+  background-image:var(--workshop-line),var(--workshop-light),var(--workshop-line),var(--workshop-light);
+  background-size:var(--workshop-height,0px) var(--workshop-height,0px),96px 96px,var(--workshop-height,0px) var(--workshop-height,0px),96px 96px;
+  background-position:var(--workshop-first,-9999px) 0,calc(var(--workshop-first,-9999px) - 96px) var(--workshop-height,0px),var(--workshop-second,-9999px) 0,calc(var(--workshop-second,-9999px) + var(--workshop-height,0px) / 2 - 48px) calc(var(--workshop-height,0px) / 2 - 48px);
+  background-repeat:no-repeat;
+  clip-path:var(--workshop-space,inset(50%));
+  animation:mw-workshop-rise 18s linear infinite;
+}
+/* Zwei um einen halben Durchlauf versetzte Reflexe steigen unabhängig auf.
+   Der jeweilige Rücksprung liegt vollständig außerhalb der sichtbaren Fläche. */
+@keyframes mw-workshop-rise {
+  50% { background-position:var(--workshop-first,-9999px) 0,calc(var(--workshop-first,-9999px) + var(--workshop-height,0px) / 2 - 48px) calc(var(--workshop-height,0px) / 2 - 48px),var(--workshop-second,-9999px) 0,calc(var(--workshop-second,-9999px) + var(--workshop-height,0px)) -96px; }
+  50.001% { background-position:var(--workshop-first,-9999px) 0,calc(var(--workshop-first,-9999px) + var(--workshop-height,0px) / 2 - 48px) calc(var(--workshop-height,0px) / 2 - 48px),var(--workshop-second,-9999px) 0,calc(var(--workshop-second,-9999px) - 96px) var(--workshop-height,0px); }
+  to { background-position:var(--workshop-first,-9999px) 0,calc(var(--workshop-first,-9999px) + var(--workshop-height,0px)) -96px,var(--workshop-second,-9999px) 0,calc(var(--workshop-second,-9999px) + var(--workshop-height,0px) / 2 - 48px) calc(var(--workshop-height,0px) / 2 - 48px); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .radio-program-face::after { animation:none; background-position:var(--workshop-first,-9999px) 0,calc(var(--workshop-first,-9999px) + var(--workshop-height,0px) / 2 - 48px) calc(var(--workshop-height,0px) / 2 - 48px),var(--workshop-second,-9999px) 0,calc(var(--workshop-second,-9999px) + var(--workshop-height,0px) / 2 - 48px) calc(var(--workshop-height,0px) / 2 - 48px); }
+}

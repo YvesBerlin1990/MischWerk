@@ -28,6 +28,8 @@ async function readText(page,selector,area='studio'){
 async function fits(page){
  await settle(page);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1||document.documentElement.scrollHeight>innerHeight+1),false);
  for(const button of await page.locator('#studio-panel button:visible').all()){
+  // Regieaktionen liegen bewusst in der einen scrollbaren Wunschliste.
+  if(await button.evaluate(n=>!!n.closest('#queue-body')))await button.scrollIntoViewIfNeeded();
   const rect=await button.boundingBox();assert.ok(rect&&rect.width>=44&&rect.height>=44);
   const viewport=await page.evaluate(()=>({width:innerWidth,height:innerHeight}));
   assert.ok(rect.x>=-1&&rect.x+rect.width<=viewport.width+1&&rect.y>=-1&&rect.y+rect.height<=viewport.height+1,'Bedienziel vollständig im Fenster: '+await button.getAttribute('id'));
@@ -38,7 +40,7 @@ async function login(page){
  await reveal(page,'#on-air');await page.locator('#on-air').click();
  await page.locator('#off-air:not([disabled])').waitFor();return true;
 }
-// Bestehende Backendverträge unabhängig von der jetzt rein lesenden Wunschliste prüfen.
+// Direkter Backendaufruf für Prüfungen außerhalb der nativen Regiebedienung.
 async function resolveRequest(page,outcome='done',id){
  await page.evaluate(({outcome,id})=>Client.sendEvent('mw:resolveRequest',{
   id:id||Number(document.querySelector('.queue-item').dataset.wishId),outcome}),{outcome,id});

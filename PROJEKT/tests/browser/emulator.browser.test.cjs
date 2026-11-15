@@ -9,6 +9,143 @@ const {reveal:revealStudio}=require('../support/studio-browser.cjs');
 const studioPictures=path.join(require('node:os').tmpdir(),'MischWerk-Pruefbilder','moderation-neu');fs.mkdirSync(studioPictures,{recursive:true});
 let browser;
 
+for(const client of ['k3','stapp'])test('Wunschbox mit Live-Status begleitet den eigenen Wunsch ohne fremde Daten in '+client,async t=>{
+ const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client,1280),guest=await lab.join('Polaroid',client,320);
+ await owner.radio.evaluate(()=>Client.sendEvent('mw:wish.submit',{submissionId:'live-foreign',text:'Privater fremder Wunsch'}));
+ await guest.radio.locator('#play-button').click();await guest.radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
+ await guest.radio.evaluate(()=>{window.__liveWishAudio=document.getElementById('radio-audio');__liveWishAudio.loop=true;});
+ await guest.radio.locator('#open-wishes').click();let surface=await overlayView(guest.page,'wishes',false);
+ assert.match(await surface.locator('.wish-intro').textContent(),/Platz und Status/);
+ assert.equal(await surface.locator('#wish-tracking').isVisible(),false);
+ lab.hub.faults.failPersistence=true;await surface.locator('#wish-text').fill('Queen – Mein eigener Wunsch');await surface.locator('#submit-wish').click();
+ await surface.locator('#wish-feedback.error').waitFor();assert.equal(await surface.locator('#wish-tracking').isVisible(),false,'Fehlgeschlagener Versand erzeugt keinen Live-Platz');
+ assert.equal(await surface.locator('#wish-text').inputValue(),'Queen – Mein eigener Wunsch');lab.hub.faults.failPersistence=false;
+ await surface.locator('#submit-wish').click();await surface.locator('#wish-tracking-rank').filter({hasText:'Platz 2',exact:true}).waitFor();
+ assert.match(await surface.locator('#wish-tracking-title').textContent(),/Dein Wunsch ist dabei/);assert.equal(await surface.locator('#wish-feedback').isVisible(),false,'Nur der Live-Status bestätigt den Versand');
+ assert.equal(await guest.radio.locator('#own-wish-position').isVisible(),false,'Schmale Radioleiste bleibt kompakt');
+ assert.equal(await surface.locator('#wish-tracking-song').textContent(),'Queen – Mein eigener Wunsch');
+ assert.doesNotMatch(await surface.locator('#wishes-panel').innerText(),/Privater fremder Wunsch/);
+ await owner.radio.locator('#studio-tab').click();const studio=await overlayView(owner.page,'studio');await studio.locator('#studio-queue-tab').click();
+ const action=(id,name)=>studio.locator('[data-wish-id="'+id+'"] [data-queue-action="'+name+'"]');
+ await action(2,'prepare').click();await surface.locator('#wish-tracking-stage').filter({hasText:'In Vorbereitung',exact:true}).waitFor();
+ assert.equal(await surface.locator('#wish-tracking-steps [aria-current=step]').textContent(),'In Vorbereitung');
+ await action(1,'done').click();await surface.locator('#wish-tracking-rank').filter({hasText:'Platz 1',exact:true}).waitFor();
+ await action(2,'play').click();await surface.locator('#wish-tracking-stage').filter({hasText:'Jetzt dran',exact:true}).waitFor();
+ await surface.locator('#wish-back-radio').click();await guest.page.locator('#overlays iframe').waitFor({state:'detached'});
+ assert.equal(await guest.radio.locator('#open-wishes').evaluate(n=>document.activeElement===n),true);
+ await guest.radio.locator('#open-wishes').click();surface=await overlayView(guest.page,'wishes',false);
+ assert.equal(await surface.locator('#wish-tracking-stage').textContent(),'Jetzt dran','Wiederöffnung erhält den echten Status');
+ await surface.locator('#wish-compose-open').click();await surface.locator('#wish-text').fill('Mein zweiter eigener Wunsch');await surface.locator('#submit-wish').click();
+ await surface.locator('#wish-tracking-more').filter({hasText:'2 offene Wünsche'}).waitFor();
+ assert.equal(await surface.locator('#wish-tracking-song').textContent(),'Queen – Mein eigener Wunsch','Bei mehreren Wünschen bleibt der nächste eindeutig');
+ await surface.waitForTimeout(5300);assert.equal(await surface.locator('#wish-feedback').isVisible(),false);assert.equal(await surface.locator('#wish-tracking').isVisible(),true,'Live-Status bleibt nach der kurzen Quittung sichtbar');
+ await action(2,'done').click();await surface.locator('#wish-tracking-song').filter({hasText:'Mein zweiter eigener Wunsch',exact:true}).waitFor();
+ await action(3,'discard').click();await action(3,'discard').click();await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist nicht mehr offen',exact:true}).waitFor();
+ assert.equal(await surface.locator('#wish-tracking-rank').isVisible(),false);assert.equal(await surface.locator('#wish-tracking-steps').isVisible(),false);
+ assert.equal(await guest.radio.evaluate(()=>document.getElementById('radio-audio')===__liveWishAudio&&!__liveWishAudio.paused),true);
+ assert.equal(lab.hub.trace.filter(e=>e.kind==='clientEvent'&&e.eventType==='mw:wish.submit').length,4,'Nur fremder Wunsch, bestätigter Retry und zweiter eigener Wunsch werden gesendet');
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);assert.deepEqual(lab.hub.runtime.errors,[]);
+});
+
+for(const client of ['k3','stapp'])test('Mittiger Player erhält Rollen, Wünsche, lange Themen und Audio in '+client,async t=>{
+ const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client,1280),listener=await lab.join('Polaroid',client,1280);
+ const long='Musik zum Feierabend – Lieblingssongs, neue Entdeckungen und eure Wünsche heute';
+ async function settle(target){await require('../support/studio-browser.cjs').settle(target.radio);await target.page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);await require('../support/studio-browser.cjs').settle(target.radio);}
+ for(const target of [owner,listener]){
+  if(target===listener){await owner.radio.evaluate(()=>Client.sendEvent('mw:setTopic',{topic:'MischWerk Radio Show'}));await listener.radio.locator('#show-topic').filter({hasText:'MischWerk Radio Show',exact:true}).waitFor();}
+  await target.radio.evaluate(()=>document.fonts.ready);await target.radio.locator('#play-button').click();await target.radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);await target.radio.evaluate(()=>{window.__centerAudio=document.getElementById('radio-audio');__centerAudio.loop=true;});
+  for(const withWish of [false,true]){
+   if(withWish){await target.page.locator('#width').fill('1280');await target.page.locator('#width').dispatchEvent('change');await target.radio.waitForFunction(()=>innerWidth===1280);await settle(target);await target.radio.evaluate(submissionId=>Client.sendEvent('mw:wish.submit',{submissionId,text:'Queen – Radio Ga Ga'}),target===owner?'center-owner':'center-listener');await target.radio.locator('#own-wish-position:not([hidden])').waitFor();await owner.radio.evaluate(topic=>Client.sendEvent('mw:setTopic',{topic}),long);await target.radio.locator('#show-topic').filter({hasText:long}).waitFor();}
+   for(const width of [1200,1280,1499,1500,2290,3840,1199,700,320]){
+    await target.page.locator('#width').fill(String(width));await target.page.locator('#width').dispatchEvent('change');await target.radio.waitForFunction(w=>innerWidth===w,width);await settle(target);
+    const geometry=await target.radio.evaluate(()=>{const box=s=>document.querySelector(s).getBoundingClientRect(),p=box('#play-button'),m=box('.now-playing'),c=box('.radio-context'),v=box('.volume-control'),wish=box('#own-wish-position');return {width:innerWidth,height:innerHeight,center:p.x+p.width/2,music:m.toJSON(),topic:c.toJSON(),wish:wish.toJSON(),volume:v.toJSON(),play:p.toJSON(),bar:box('#radio-panel').toJSON(),face:box('.radio-program-face').toJSON(),leftLogo:box('.bar-logo').toJSON(),listener:box('#radio-listener-brand img').toJSON(),actionGroup:box('.bar-actions').toJSON(),schedule:box('#open-schedule').toJSON(),buttons:[...document.querySelectorAll('#radio-panel button')].filter(n=>n.getClientRects().length).map(n=>{const r=n.getBoundingClientRect();return {id:n.id,width:r.width,height:r.height,top:r.top,bottom:r.bottom,hit:n.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)),inside:r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight};})};});
+    assert.ok(geometry.buttons.every(n=>n.width>=44&&n.height>=44&&n.hit&&n.inside),JSON.stringify(geometry));assert.deepEqual((await require('../support/layout-browser.cjs').inspectLayout(target.radio)).issues,[]);
+    if(!withWish&&width>=1920)assert.ok(geometry.bar.height<=(target===listener?238:200),'Kurze breite Leiste bleibt kompakt: '+JSON.stringify(geometry.bar));
+    if(target===listener){assert.ok(geometry.buttons.filter(n=>n.id==='open-schedule'||n.id==='open-wishes').every(n=>n.height>=52),'Hörertasten bleiben auch kompakt gut bedienbar');if(width>=1200){assert.ok(geometry.listener.top>=geometry.face.top+5,'Hörerlogo bleibt innerhalb des sichtbaren Rahmens');assert.ok(geometry.buttons.filter(n=>n.id==='open-schedule'||n.id==='open-wishes').every(n=>n.top>=geometry.face.top+5&&n.bottom<=geometry.face.bottom-5),'Aktionen bleiben mit Innenabstand im Rahmen');assert.equal(geometry.listener.width,geometry.leftLogo.width,'Beide Logos haben dieselbe Größe');assert.ok(Math.abs(geometry.listener.top-geometry.leftLogo.top)<1,'Beide Logos stehen auf derselben Höhe');assert.ok(geometry.actionGroup.left>geometry.topic.right,'Aktionen stehen rechts neben den Sendungsinformationen');assert.ok(geometry.actionGroup.right<=geometry.listener.left+1,'Bediengruppe bleibt vom rechten Logo getrennt');assert.ok(Math.abs((geometry.actionGroup.top+geometry.actionGroup.bottom-geometry.listener.top-geometry.listener.bottom)/2)<1,'Tasten und Logos teilen dieselbe Höhenmitte');}}
+    if(width>=1200){assert.ok(Math.abs(geometry.center-width/2)<=1);assert.ok(geometry.music.right<geometry.play.left&&geometry.play.right<geometry.topic.left);if(!withWish)assert.ok(Math.abs(geometry.music.width-geometry.topic.width)<=1);assert.ok(Math.abs(geometry.volume.top-geometry.topic.bottom)<=1,'Thema und Lautstärke bleiben auch mit Wunsch direkt zusammen');assert.ok(Math.abs((geometry.play.left-16-geometry.music.right)-(geometry.topic.left-geometry.play.right-16))<=1,'Gleicher Abstand beidseits des Metallrings');assert.ok(geometry.play.left-16-geometry.music.right>=31,'Mindestens 32 px Luft zum Metallring');if(withWish){if(target===owner||width>=1800){assert.ok(geometry.wish.left>=geometry.topic.right+15,'Eigener Wunsch steht getrennt rechts neben der Sendung: '+JSON.stringify({width,owner:target===owner,topic:geometry.topic,wish:geometry.wish}));assert.ok(Math.abs(geometry.wish.top-geometry.music.top)<=1,'Wunsch gehört in eine eigene Spalte statt unter die laufende Musik');}else{assert.ok(Math.abs(geometry.wish.left-geometry.topic.left)<1&&geometry.wish.top>=geometry.volume.bottom+7,'Eigener Wunsch bleibt rechts unter der Sendung sichtbar');assert.ok(geometry.wish.bottom<=geometry.height-16,'Eigener Wunsch passt vollständig in die native Höhe');}assert.ok(geometry.play.right<geometry.wish.left);}}
+    assert.equal(await target.radio.evaluate(()=>document.getElementById('radio-audio')===__centerAudio&&!__centerAudio.paused),true);
+   }
+  }
+ }
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const dpr of [1,1.25,1.5,2])test('STAPP-Goldlinien bleiben bei Full-HD und Skalierung '+dpr+' zwischen allen Bedienelementen sichtbar',async t=>{
+ const lab=await setup(t,{provider:'online'},false,{viewport:{width:4300,height:1080},deviceScaleFactor:dpr});
+ const owner=await lab.join('Otterchen','stapp',1920),listener=await lab.join('Polaroid','stapp',1920);
+ for(const long of [false,true]){
+  if(long){await owner.radio.evaluate(()=>Client.sendEvent('mw:setTopic',{topic:'Musik zum Feierabend – Lieblingssongs, neue Entdeckungen und eure Wünsche heute'}));await listener.radio.evaluate(()=>Client.sendEvent('mw:wish.submit',{submissionId:'fullhd-wish',text:'Ein persönlicher Musikwunsch mit einem lieben Gruß an das MischWerk-Team '.repeat(5).slice(0,300)}));}
+  for(const target of [owner,listener])for(const width of [1536,1707,1920,2560,3840]){
+   const {page,radio}=target;await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await radio.waitForFunction(w=>innerWidth===w,width);await radio.evaluate(()=>document.fonts.ready);
+   await require('../support/studio-browser.cjs').settle(radio);await page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);await require('../support/studio-browser.cjs').settle(radio);
+   const result=await radio.evaluate(()=>{
+    const face=document.querySelector('.radio-program-face'),box=face.getBoundingClientRect(),height=face.clientHeight,rects=[];
+    document.querySelectorAll('#radio-panel button,#radio-panel input,#radio-panel output,#radio-panel img,#radio-panel svg,.volume-control,.transport').forEach(n=>{if(!n.closest('[hidden]'))rects.push(n.getBoundingClientRect());});
+    const walker=document.createTreeWalker(document.getElementById('radio-panel'),NodeFilter.SHOW_TEXT);let node;
+    while(node=walker.nextNode()){if(!node.textContent.trim()||node.parentElement.closest('[hidden],.sr-only'))continue;const range=document.createRange();range.selectNodeContents(node);rects.push(...range.getClientRects());}
+    const positions=['--workshop-first','--workshop-second'].map(name=>parseFloat(face.style.getPropertyValue(name))).filter(x=>x>=0);
+    const collisions=positions.flatMap(x=>rects.filter(r=>{const top=Math.max(0,r.top-box.top-8),bottom=Math.min(height,r.bottom-box.top+8);return r.width&&r.height&&bottom>top&&x+height-top>=r.left-box.left-8&&x+height-bottom<=r.right-box.left+8;}).map(r=>({x,left:r.left-box.left,right:r.right-box.left})));
+    return {width:innerWidth,height,opacity:getComputedStyle(face,'::after').opacity,positions,collisions,box:box.toJSON()};
+   });
+   assert.ok(result.positions.length>=1&&result.opacity==='1','Goldlinien sichtbar bei '+JSON.stringify({dpr,long,...result}));assert.deepEqual(result.collisions,[],'Vollständige Diagonalen einschließlich Abstand bleiben frei');
+   const shot=await page.locator('#headerbars iframe').screenshot({scale:'css'});
+   const missing=await radio.evaluate(async ({base64,result})=>{const img=new Image();img.src='data:image/png;base64,'+base64;await img.decode();const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const pixels=ctx.getImageData(0,0,img.width,img.height).data;return result.positions.map(start=>{let missing=0;for(let y=2;y<result.height-2;y++){let gold=false;const center=Math.round(result.box.left+start+result.height-y),py=Math.round(result.box.top+y);for(let x=center-4;x<=center+4;x++){const i=(py*img.width+x)*4;if(pixels[i]-pixels[i+1]>=4&&pixels[i+1]-pixels[i+2]>=6)gold=true;}if(!gold)missing++;}return missing;});},{base64:shot.toString('base64'),result});
+   if(missing.some(Boolean))fs.writeFileSync(path.join(os.tmpdir(),'MischWerk-Goldlinien-Pixelfehler.png'),shot);
+   assert.deepEqual(missing,result.positions.map(()=>0),'Goldlinie ist im echten Screenshot über die gesamte Höhe gezeichnet: '+JSON.stringify({dpr,long,width,result}));
+   if(target===listener&&dpr===1.25&&width===1536&&long)fs.writeFileSync(path.join(os.tmpdir(),'MischWerk-Goldlinien-STAPP-1536.png'),shot);
+  }
+ }
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])for(const hostSizing of ['normal','stepped'])test('Breite Radioleiste wächst bei langem Thema ohne inneres Scrollen in '+client+' bei '+hostSizing,async t=>{
+ const lab=await setup(t,{provider:'online',hostSizing}),{page,radio}=await lab.join('Otterchen',client,1200);
+ await radio.locator('#play-button').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
+ await radio.evaluate(()=>{window.__autoHeightAudio=document.getElementById('radio-audio');__autoHeightAudio.loop=true;});
+ async function settle(){await require('../support/studio-browser.cjs').settle(radio);await page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);await require('../support/studio-browser.cjs').settle(radio);await radio.waitForFunction(()=>{const panel=document.getElementById('radio-panel'),ticker=document.getElementById('radio-ticker');return innerHeight===Math.min(500,(parseFloat(getComputedStyle(document.getElementById('radio-deck')).marginTop)||0)+Math.max(160,Math.ceil(panel.getBoundingClientRect().height))+(ticker&&!ticker.hidden?Math.ceil(ticker.getBoundingClientRect().height):0)+16);});}
+ async function topic(text){await radio.evaluate(topic=>Client.sendEvent('mw:setTopic',{topic}),text);await radio.locator('#show-topic').filter({hasText:text,exact:true}).waitFor();await settle();}
+ const long='Musik zum Feierabend – Lieblingssongs, neue Entdeckungen und eure Wünsche heute';
+ for(const width of [1200,1280,1500,2290]){
+  await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await radio.waitForFunction(w=>innerWidth===w,width);
+  await topic('Feierabend');const short=await radio.evaluate(()=>innerHeight),shortLogo=await radio.locator('.bar-logo').evaluate(n=>n.getBoundingClientRect().width),shortLabel=await radio.locator('.track-eyebrow').evaluate(n=>parseFloat(getComputedStyle(n).fontSize));assert.ok(shortLogo>=160,'Auch bei kurzem Thema wird das Logo mindestens 160 px groß dargestellt');assert.ok(shortLabel>=20,'Goldene Überschriften sind auch bei kurzer breiter Leiste gut sichtbar');
+  const shortPlay=await radio.locator('#play-button').evaluate(n=>n.getBoundingClientRect().width);assert.ok(shortPlay>=96,'Breiter Playbutton ist mindestens 96 px groß');
+  await topic(long);
+  const largePlay=await radio.locator('#play-button').evaluate(n=>n.getBoundingClientRect().width);assert.ok(largePlay>=shortPlay&&largePlay<=120,'Player wächst begrenzt mit der Leistenhöhe');if(width===1280)assert.ok(largePlay>shortPlay,'Langes Thema vergrößert auch Play');
+  const geometry=await radio.evaluate(()=>{const m=document.getElementById('radio-metadata'),panel=document.getElementById('radio-panel');return {height:innerHeight,natural:Math.ceil(panel.getBoundingClientRect().height)+16+(parseFloat(getComputedStyle(document.getElementById('radio-deck')).marginTop)||0),top:document.querySelector('.radio-program-face').getBoundingClientRect().top,innerScroll:m.scrollHeight>m.clientHeight+1,scrollTop:m.scrollTop,fullyVisible:['show-topic','host-name','volume','volume-value'].every(id=>{const n=document.getElementById(id),r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight-16+.5&&n.scrollHeight<=n.clientHeight+1;})};});
+  assert.ok(geometry.top>=18,'Über dem sichtbaren Rahmen bleiben wieder mindestens 18 px für den Glow');assert.equal(geometry.innerScroll,false,'Thema, Moderation und Lautstärke brauchen keinen inneren Scrollbereich: '+JSON.stringify({width,geometry}));
+  assert.ok(geometry.fullyVisible&&Math.abs(geometry.height-geometry.natural)<=1,'Hosthöhe folgt dem vollständigen Inhalt: '+JSON.stringify({width,geometry}));
+  if(width<=1280)assert.ok(geometry.height>short,'Langes Thema vergrößert die bisher feste breite Leiste');
+  const logo=await radio.locator('.bar-logo').evaluate(n=>{const r=n.getBoundingClientRect(),panel=document.getElementById('radio-panel').getBoundingClientRect(),play=document.getElementById('play-button').getBoundingClientRect();return {width:r.width,height:r.height,center:r.y+r.height/2,panelCenter:panel.y+panel.height/2,left:r.left,right:r.right,panelLeft:panel.left,playCenter:play.x+play.width/2};});
+  assert.equal(logo.width,logo.height,'Logo bleibt proportional');assert.ok(Math.abs(logo.center-logo.panelCenter)<=1,'Logo bleibt vertikal mittig');assert.ok(logo.left>logo.panelLeft&&Math.abs(logo.playCenter-width/2)<=1,'Logo bleibt innerhalb der Leiste und Play mittig');
+  if(width===1280){assert.ok(logo.width>shortLogo,'Das Logo wächst mit dem langen Sendungsthema');assert.ok(await radio.locator('.track-eyebrow').evaluate((n,short)=>parseFloat(getComputedStyle(n).fontSize)>short,shortLabel),'Jetzt läuft wächst passend zur höheren Leiste');}
+  assert.deepEqual((await require('../support/layout-browser.cjs').inspectLayout(radio)).issues,[]);
+  await topic('Feierabend');assert.equal(await radio.locator('#play-button').evaluate(n=>n.getBoundingClientRect().width),shortPlay,'Play kehrt bei kurzem Thema zur Ausgangsgröße zurück');assert.equal(await radio.evaluate(()=>innerHeight),short,'Kurzes Thema verkleinert die Leiste wieder');assert.equal(await radio.locator('.bar-logo').evaluate(n=>n.getBoundingClientRect().width),shortLogo,'Das Logo schrumpft ohne Rückkopplung auf seine ursprüngliche Größe');assert.equal(await radio.locator('.track-eyebrow').evaluate(n=>parseFloat(getComputedStyle(n).fontSize)),shortLabel,'Die Überschrift schrumpft bei kurzem Thema wieder');
+ }
+ await page.locator('#width').fill('1200');await page.locator('#width').dispatchEvent('change');await radio.waitForFunction(()=>innerWidth===1200);
+ await radio.evaluate(()=>Client.executeSlashCommand('/lauftext Radio MischWerk – eure Musik zum Feierabend'));await radio.locator('#radio-ticker:not([hidden])').waitFor();
+ await topic(long);await settle();
+ assert.equal(await radio.evaluate(()=>{const volume=document.getElementById('volume-value').getBoundingClientRect(),ticker=document.getElementById('radio-ticker').getBoundingClientRect();return volume.bottom<=ticker.top&&ticker.bottom<=innerHeight&&document.getElementById('radio-metadata').scrollHeight<=document.getElementById('radio-metadata').clientHeight+1;}),true,'Auch mit Lauftext bleibt alles ohne Scrollen sichtbar');
+ const count=()=>lab.hub.trace.filter(e=>e.kind==='hostSize'&&e.mode==='Headerbar'&&e.method==='setSize').length,before=count();
+ await radio.evaluate(()=>dispatchEvent(new Event('resize')));await radio.waitForTimeout(450);assert.equal(count(),before,'Keine weiteren Größenaufträge bei unverändertem Inhalt');
+ const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','radio-autohoehe');fs.mkdirSync(folder,{recursive:true});await page.locator('#headerbars iframe').screenshot({path:path.join(folder,lab.hub.runtime.context.MischWerkConfig.buildNumber+'-'+client+'-'+hostSizing+'.png'),scale:'css'});
+ assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__autoHeightAudio&&!__autoHeightAudio.paused),true,'Audioknoten und laufende Wiedergabe bleiben erhalten');
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])for(const width of [320,640])test('Sendeplanfehler zeigt Erneut laden vollständig ohne Scrollen in '+client+' bei '+width,async t=>{
+ const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,width);
+ await radio.locator('#open-schedule').click();const frame=await overlayView(page,'schedule',false);
+ await frame.locator('#schedule-message.error').waitFor();await frame.locator('#schedule-retry:not([hidden])').waitFor();
+ await require('../support/studio-browser.cjs').settle(frame);
+ await page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
+ const geometry=await frame.locator('#schedule-retry').evaluate(n=>{const r=n.getBoundingClientRect();return {bottom:r.bottom,height:innerHeight,left:r.left,right:r.right,width:innerWidth,buttonHeight:r.height,hit:n.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))};});
+ assert.ok(geometry.bottom<=geometry.height-10,'Fehleraktion hat vollständig Platz samt unterem Abstand: '+JSON.stringify(geometry));
+ assert.ok(geometry.left>=0&&geometry.right<=geometry.width&&geometry.buttonHeight>=44&&geometry.hit,'Fehleraktion ist vollständig bedienbar');
+ const folder=path.join(os.tmpdir(),'MischWerk-Pruefbilder','designaudit');fs.mkdirSync(folder,{recursive:true});
+ await page.locator('#overlays iframe').screenshot({path:path.join(folder,'sendeplan-fehler-'+lab.hub.runtime.context.MischWerkConfig.buildNumber+'-'+client+'-'+width+'.png'),scale:'css'});
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
 for(const client of ['k3','stapp'])test('Fernregie verändert dieselbe native Wunschliste und erhält Radioaudio in '+client,async t=>{
  const lab=await setup(t,{provider:'online'}),owner=await lab.join('Otterchen',client,640),listener=await lab.join('Polaroid',client,640);
  await owner.radio.locator('#play-button').click();await owner.radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
@@ -44,7 +181,7 @@ for(const client of ['k3','stapp'])test('Fernregie verändert dieselbe native Wu
  await owner.radio.locator('#studio-tab').click();const studio=await overlayView(owner.page,'studio');
  await studio.locator('#studio-queue-tab').click();await studio.waitForFunction(()=>document.querySelectorAll('.queue-item').length===1);
  assert.deepEqual(await studio.locator('.request-text').allTextContents(),['Queen – Radio Ga Ga']);
- assert.equal(await studio.locator('.queue-item button').count(),0,'Bestehendes natives Menü erhält keine neuen Regieknöpfe');
+ assert.ok(await studio.locator('.request-actions').count()>0,'Native Liste stellt die bestehenden Regieaktionen bereit');
  assert.equal(act('prepare','received').studioWishUpdates[0].state,'preparing');
  assert.equal(act('playing','preparing').studioWishUpdates[0].state,'playing');
  const done=act('done','playing');assert.deepEqual(done.studioWishUpdates[0],{submissionId:exported.submissionId,state:'done',position:null});
@@ -148,7 +285,7 @@ for(const client of ['k3','stapp','android'])test('Wunschbox wird für Hörer er
  await studio.locator('#on-air').click();await studio.locator('#off-air').waitFor();await guest.radio.locator('#open-wishes:not([disabled])').waitFor();
  assert.equal(await wish.isVisible(),true);
  if(client==='k3'&&!process.env.MISCHWERK_TEST_UPLOAD)await guest.radio.locator('#radio-panel').screenshot({path:path.join(pictures,'radio-wunschbox-live.png')});
- await wish.click();let surface=await overlayView(guest.page,'wishes',false);await surface.locator('#wish-text').fill('Mein Entwurf für die Live-Sendung');
+ await wish.click();let surface=await overlayView(guest.page,'wishes',false);await surface.locator('#close-wishes').focus();const editorBefore=await surface.locator('.wish-editor').evaluate(n=>getComputedStyle(n).borderColor);await surface.locator('#wish-text').click();assert.equal(await surface.locator('.wish-editor').evaluate(n=>getComputedStyle(n).borderColor),editorBefore,'Beim Klicken bleibt die bestehende Feldkante unverändert');assert.equal(await surface.locator('.wish-editor').evaluate(n=>getComputedStyle(n).outlineStyle),'none','Kein farbiger Fokusrahmen am Wunschfeld');assert.equal(await surface.locator('#wish-text').evaluate(n=>getComputedStyle(n).outlineStyle),'none','Kein zusätzlicher Textarea-Fokusrahmen');await surface.locator('#wish-text').fill('Mein Entwurf für die Live-Sendung');
  await surface.locator('#close-wishes').click();await guest.page.locator('#overlays iframe').waitFor({state:'detached'});
  await owner.radio.evaluate(()=>Client.sendEvent('mw:setRequests',{enabled:false}));await wish.waitFor({state:'hidden'});
  await wish.evaluate(n=>n.dispatchEvent(new MouseEvent('click',{bubbles:true})));assert.equal(await guest.page.locator('#overlays iframe').count(),0);
@@ -205,6 +342,7 @@ for(const [client,density] of [['k3',1],['stapp',1.25],['k3',1.5],['android',2]]
   const geometry=await targetRadio.evaluate(()=>{
    const music=document.querySelector('.now-playing'),brand=document.querySelector('.radio-brand'),line=getComputedStyle(document.getElementById('radio-panel'),'::after');
    return {width:innerWidth,music:music.getBoundingClientRect().toJSON(),brand:brand.getBoundingClientRect().toJSON(),
+    separatorX:document.getElementById('radio-metadata').getBoundingClientRect().left-parseFloat(getComputedStyle(document.getElementById('radio-panel')).columnGap),
     logo:document.querySelector('.bar-logo').getBoundingClientRect().toJSON(),play:document.getElementById('play-button').getBoundingClientRect().toJSON(),
     logoHeight:parseFloat(line.height),logoDisplay:line.display,musicBorder:getComputedStyle(music).borderRightWidth};
   });
@@ -219,7 +357,7 @@ for(const [client,density] of [['k3',1],['stapp',1.25],['k3',1.5],['android',2]]
    const img=new Image();img.src='data:image/png;base64,'+base64;await img.decode();const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;
    const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const data=ctx.getImageData(0,0,img.width,img.height).data;
    const top=Math.ceil(geometry.music.top)+2,bottom=Math.floor(geometry.music.bottom)-2;
-   return {top,bottom,imageHeight:img.height,missing:[geometry.brand.right,geometry.music.right].map(edge=>{
+   return {top,bottom,imageHeight:img.height,missing:[geometry.separatorX,geometry.music.right].map(edge=>{
     let missing=0;for(let y=top;y<bottom;y++){
      let visible=false;for(let x=Math.floor(edge)-3;x<=Math.ceil(edge)+1;x++){
       const i=(y*img.width+x)*4,rgb=[data[i],data[i+1],data[i+2]];
@@ -246,19 +384,19 @@ for(const [client,density] of [['k3',1],['stapp',1.25],['k3',1.5],['android',2]]
    return {music:music.toJSON(),topic:topic.toJSON(),play:play.toJSON(),logo:box('.bar-logo').toJSON(),volume:volume.toJSON(),range:box('#volume').toJSON(),orientation:getComputedStyle(document.getElementById('volume')).writingMode,actions:actions.toJSON(),height:box('#radio-panel').height,overflow:document.documentElement.scrollWidth>innerWidth,
     separator:getComputedStyle(document.querySelector('.now-playing')).borderRightWidth,
     separatorColor:getComputedStyle(document.querySelector('.now-playing')).borderRightColor,brand:box('.radio-brand').toJSON(),
-    brandLine:{height:parseFloat(getComputedStyle(document.getElementById('radio-panel'),'::after').height),width:getComputedStyle(document.getElementById('radio-panel'),'::after').width,display:getComputedStyle(document.getElementById('radio-panel'),'::after').display},discCenter:face.left+parseFloat(disc.left)+parseFloat(disc.width)/2,
+    brandLine:{height:parseFloat(getComputedStyle(document.getElementById('radio-panel'),'::after').height),width:getComputedStyle(document.getElementById('radio-panel'),'::after').width,display:getComputedStyle(document.getElementById('radio-panel'),'::after').display},discCenter:face.left+document.querySelector('.radio-program-face').clientLeft+parseFloat(disc.left)+parseFloat(disc.width)/2,
     face:face.toJSON(),disc:{top:face.top+document.querySelector('.radio-program-face').clientTop+parseFloat(disc.top)-parseFloat(disc.height)/2,
      bottom:face.top+document.querySelector('.radio-program-face').clientTop+parseFloat(disc.top)+parseFloat(disc.height)/2,
      centerY:face.top+document.querySelector('.radio-program-face').clientTop+parseFloat(disc.top)}};
   });
   assert.equal(layout.overflow,false);
-  if(width>700){
+  if(width>700&&width<1200){
    assert.ok(Math.abs(layout.brand.top-layout.music.top)<=1&&Math.abs(layout.brand.bottom-layout.music.bottom)<=1,'Logotrenner nutzt die volle Informationshöhe');
    assert.ok(Math.abs(layout.brandLine.height-layout.music.height)<=1,'Logotrenner reicht unabhängig vom Bild über die gesamte Informationszeile');
    assert.equal(layout.brandLine.width,'1px');
    assert.ok(layout.music.bottom>=layout.volume.bottom-1,'Musiktrenner reicht durchgehend bis unter die Lautstärkezeile');
    assert.equal(layout.separator,'1px');
-   assert.equal(layout.separatorColor,'rgb(58, 58, 58)','Informationstrenner entspricht dem neutralgrauen Screenshot 2');
+   assert.equal(layout.separatorColor,'rgb(43, 43, 43)','Informationstrenner verwendet das freigegebene dezente Dunkelgrau');
   }
   assert.ok(layout.disc.top>=layout.face.top+1&&layout.disc.bottom<=layout.face.bottom-1,'Alle Kreise passen vollständig in die Leistenhöhe: '+JSON.stringify({width,...layout}));
   assert.ok(Math.abs(layout.disc.centerY-(layout.play.top+layout.play.height/2))<=1,'Play und Kreise teilen denselben Höhenmittelpunkt');
@@ -266,10 +404,10 @@ for(const [client,density] of [['k3',1],['stapp',1.25],['k3',1.5],['android',2]]
   assert.ok(layout.range.width>=layout.range.height&&layout.range.height>=44,'Waagerechte Spur und 44-px-Bedienhöhe bei '+width);
   assert.ok(layout.volume.top>=layout.topic.bottom-.5,'Lautstärke folgt unter Thema und Moderationsname bei '+width);
   assert.ok(Math.abs((layout.volume.left+layout.volume.right-layout.topic.left-layout.topic.right)/2)<=1,'Lautstärke und Thema sind gemeinsam zentriert bei '+width);
-  if(width>=1200){assert.equal(layout.play.left,36);assert.equal(layout.play.width,80);assert.equal(layout.logo.left,width<1500?198:200);assert.equal(layout.logo.width,100);assert.equal(layout.height,160);}
+  if(width>=1200){assert.ok(layout.logo.left>=layout.face.left+8&&layout.logo.right+16<=layout.play.left,'Logo und Play stehen mit Abstand zum Rand und zueinander in der freigegebenen Reihenfolge');assert.equal(layout.play.width,80);assert.equal(layout.logo.width,100);assert.equal(layout.height,192);assert.ok(Math.abs(layout.play.left+layout.play.width/2-width/2)<=1,'Play sitzt exakt in der Leistenmitte');assert.equal(layout.brandLine.display,'none');assert.equal(layout.separator,'0px');}
   if(width>700&&width<1200){
    assert.ok(Math.abs((layout.play.top+layout.play.bottom-layout.music.top-layout.music.bottom)/2)<=1,'Player mittig in der verfügbaren Musikzeile');
-   assert.ok(layout.play.right<layout.logo.left&&layout.logo.right<layout.music.left,'Wie im Hauptlayout steht Play vor Logo und Musik: '+JSON.stringify({width,...layout}));
+   assert.ok(layout.logo.right<layout.play.left&&layout.play.right<layout.music.left,'Wie im Hauptlayout stehen Logo, Play und Musik hintereinander: '+JSON.stringify({width,...layout}));
    assert.equal(layout.separator,'1px','Dezenter Trenner zwischen Musik und Thema bei '+width);
    assert.ok(Math.abs(layout.discCenter-(layout.play.left+layout.play.width/2))<=1,'Vinyl bleibt am Mittelpunkt des Playbuttons');
    assert.ok(Math.abs(layout.music.top-layout.topic.top)<=1&&layout.music.right<=layout.topic.left,'Musik und Sendung stehen nebeneinander statt mit großem Leerraum untereinander: '+JSON.stringify({width,...layout}));
@@ -647,7 +785,7 @@ for(const client of ['k3','stapp'])for(const sizing of ['normal','stepped','igno
   assert.equal(geometry.pager,false,'Feedback darf keine zweite Seite erzeugen: '+JSON.stringify(geometry));
   assert.equal(await frame.locator('#studio-topic').isVisible(),true);
   assert.equal(await frame.locator('#on-air').isVisible(),false);
-  assert.match(await frame.locator('#studio-wish-state').textContent(),/offen/);
+  assert.match(await frame.locator('#studio-wish-state').textContent(),/geöffnet/);
   assert.equal(await frame.locator('#studio-wish-state').getAttribute('aria-live'),'polite');
   assert.equal(await frame.locator('#notice').isVisible(),false);
   assert.equal(await frame.locator('#studio-topic').inputValue(),'Mein ungespeichertes Thema');
@@ -661,7 +799,7 @@ for(const client of ['k3','stapp'])for(const sizing of ['normal','stepped','igno
   await frame.waitForTimeout(100);
   await radio.waitForFunction(()=>document.getElementById('open-wishes').classList.contains('wishes-closed'));
   assert.deepEqual(await radioButtons(),disabledButtons,'Serverbestätigtes erneutes Sperren erhält dieselbe Appleistengeometrie');
-  assert.match(await frame.locator('#studio-wish-state').textContent(),/geschlossen/);
+  assert.match(await frame.locator('#studio-wish-state').textContent(),/pausiert/);
   assert.equal(await frame.locator('#studio-paging').isVisible(),false);
   assert.deepEqual(await frame.evaluate(()=>{__wishPagerObserver.disconnect();return __wishPagerFrames;}),[],'Auch zwischen den Zustandsereignissen erscheint keine zweite Seite');
   if(sizing==='normal'){
@@ -752,12 +890,12 @@ for (const client of ['k3', 'stapp']) {
     assert.equal(await wishes.locator('#wish-text').inputValue(), 'Erster gespeicherter Wunsch');
     lab.hub.faults.failPersistence = false;
     await wishes.locator('#submit-wish:not([disabled])').click();
-    await wishes.locator('#wish-feedback.success').waitFor();
+    await wishes.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
     const attempts = lab.hub.trace.filter(row => row.kind === 'clientEvent' && row.eventType === 'mw:wish.submit');
     assert.equal(attempts.length, 2); assert.equal(attempts[0].eventData.submissionId, attempts[1].eventData.submissionId);
     await wishes.locator('#wish-compose-open').click();
     await wishes.locator('#wish-text').fill('Zweiter gespeicherter Wunsch');
-    await wishes.locator('#submit-wish').click(); await wishes.locator('#wish-feedback.success').waitFor();
+    await wishes.locator('#submit-wish').click(); await wishes.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
     await wishes.locator('#close-wishes').click();
     await radio.locator('#studio-tab').click(); const studio = await overlayView(page, 'studio');
     await studio.locator('#studio-queue-tab').click();
@@ -775,7 +913,7 @@ for (const client of ['k3', 'stapp']) {
     await reopened.locator('#studio-queue-tab').click();
     await reopened.locator('#request-queue').filter({ hasText: 'Erster gespeicherter Wunsch' }).waitFor();
     await restored.locator('#own-wish-stage').filter({hasText:'In Vorbereitung'}).waitFor();
-    assert.equal(await reopened.locator('.request-stage,.queue-item button').count(),0);
+    assert.equal(await reopened.locator('.request-actions').count(),2);assert.match(await reopened.locator('.request-stage').first().innerText(),/In Vorbereitung/);
     assert.deepEqual(await reopened.locator('.request-text').allTextContents(),['Erster gespeicherter Wunsch','Zweiter gespeicherter Wunsch']);
     assert.deepEqual(lab.errors, []); assert.deepEqual(lab.external, []);
   });
@@ -802,6 +940,9 @@ for(const client of ['k3','stapp']) {
     lab.hub.runtime.command('Otterchen','lauftext','Du hörst Radio MischWerk. Dein Mix aus Musik und guter Laune.');
     await owner.radio.locator('#radio-ticker').waitFor();
     await owner.radio.evaluate(()=>document.fonts.ready);
+    await require('../support/studio-browser.cjs').settle(owner.radio);
+    await owner.page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
+    await require('../support/studio-browser.cjs').settle(owner.radio);
     const face=await owner.radio.locator('#radio-ticker-track > span').first().evaluate(n=>({
       family:getComputedStyle(n).fontFamily,weight:getComputedStyle(n).fontWeight,
       loaded:[...document.fonts].some(f=>f.family==='Rajdhani'&&f.weight==='500'&&f.status==='loaded'),text:n.textContent
@@ -826,7 +967,7 @@ for(const client of ['k3','stapp']) {
     assert.equal(glow.faceBackground,'rgb(20, 20, 20)','Ursprüngliche Deckfläche bleibt als Mischhintergrund für das Logo erhalten');
     assert.notEqual(glow.faceBorder,'rgba(0, 0, 0, 0)','Unterer Appleistenrahmen bleibt sichtbar');
     assert.deepEqual(glow.lowerCorners,['0px','0px'],'Am Anschluss keine innenliegenden Rundungen oder Eckkeile');
-    assert.match(glow.faceTexture,/repeating-radial-gradient/,'Appleiste behält ihr ursprüngliches Muster');
+    assert.match(glow.faceTexture,/linear-gradient\(135deg/,'Appleiste behält ihre freigegebenen diagonalen Metallfugen');
     assert.equal(glow.glowSpace,originalGlowSpace,'Unterer Glow erhält wieder denselben Auslauf wie vor dem Lauftext');
     assert.deepEqual(await owner.radio.evaluate(()=>['radio-panel','play-button','radio-metadata','open-schedule','open-wishes','studio-tab'].map(id=>({id,...document.getElementById(id).getBoundingClientRect().toJSON()}))),originalBar,'Lauftext verändert weder Maße noch Bedienelemente der Appleiste');
     assert.equal(glow.texture,'none','Gemeinsame Fläche unter der Laufleiste enthält kein Muster');
@@ -1066,34 +1207,25 @@ for(const client of ['k3','stapp'])for(const initialWidth of [320,780])test('Stu
  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
-for (const client of ['k3','stapp']) test('Alle Overlaylogos sind in '+client+' groß und vollständig sichtbar, mit mittigem Titel und freiem Schließen', async t => {
+for (const client of ['k3','stapp']) test('Alle Menüköpfe zeigen in '+client+' lesbaren Schriftzug, mittigen Titel und freies Schließen', async t => {
   const lab=await setup(t,{},false,{deviceScaleFactor:client==='stapp'?2:1}),{page,radio}=await lab.join('Otterchen',client);
   await page.setViewportSize({width:1800,height:1600});
-  async function assertHeader(frame,minimum) {
+  const menuMaterials=new Set();
+  async function assertHeader(frame) {
     await frame.evaluate(()=>document.fonts.ready);
     const geometry=await frame.evaluate(()=>{
-      const head=[...document.querySelectorAll('.dialog-header')].find(node=>node.getClientRects().length);
-      const logo=head.querySelector('.dialog-brand img'),heading=head.querySelector('.dialog-heading'),close=head.querySelector('button'),brand=head.querySelector('.dialog-brand');
-      const range=document.createRange();range.selectNodeContents(heading.querySelector('h1,h2'));
-      const rect=node=>node.getBoundingClientRect().toJSON();
-      const point=close.getBoundingClientRect();
-      return {logo:rect(logo),head:rect(head),heading:rect(heading),close:rect(close),brand:rect(brand),text:range.getBoundingClientRect().toJSON(),
-        fit:getComputedStyle(logo).objectFit,blend:getComputedStyle(logo).mixBlendMode,background:getComputedStyle(logo).backgroundColor,
-        source:logo.getAttribute('src'),hit:document.elementFromPoint(point.x+point.width/2,point.y+point.height/2)?.closest('button')===close,
-        width:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth};
+      const head=[...document.querySelectorAll('.dialog-header')].find(n=>n.getClientRects().length),heading=head.querySelector('.dialog-heading'),brand=heading.querySelector('.eyebrow'),close=head.querySelector('button');
+      const range=document.createRange();range.selectNodeContents(heading.querySelector('h1,h2'));const rect=n=>n.getBoundingClientRect().toJSON(),p=close.getBoundingClientRect();
+      return {head:rect(head),heading:rect(heading),close:rect(close),text:range.getBoundingClientRect().toJSON(),brand:rect(brand),headingColor:getComputedStyle(heading.querySelector('h1,h2')).color,wordmark:brand.textContent,font:getComputedStyle(brand).fontFamily,material:getComputedStyle(head).backgroundImage,shellMaterial:getComputedStyle(head.closest('.dialog-shell,.wish-drawer')).backgroundImage,canvas:getComputedStyle(document.body).backgroundColor,images:head.querySelectorAll('img').length,hit:close.contains(document.elementFromPoint(p.x+p.width/2,p.y+p.height/2)),overflow:document.documentElement.scrollWidth>innerWidth};
     });
-    assert.ok(geometry.logo.width>=minimum,'Erkennbares Logo: '+JSON.stringify(geometry));
-    assert.ok(Math.abs(geometry.logo.width-geometry.logo.height)<.1,'Quadratische, proportional gefüllte Bildfläche');
-    assert.ok(geometry.logo.top>=geometry.head.top+1&&geometry.logo.bottom<=geometry.head.bottom-1,'Logo nicht vertikal beschnitten');
-    assert.ok(geometry.logo.right<geometry.brand.right&&geometry.logo.right+4<=geometry.text.left,'Logo vor Trennlinie und Titel');
+    menuMaterials.add(geometry.material);
+    assert.equal(geometry.headingColor,'rgb(230, 199, 123)','Menütitel verwendet MischWerk-Gold');assert.equal(geometry.images,0,'Header benötigt kein unlesbares Bildlogo');assert.equal(geometry.wordmark,'MischWerk');assert.match(geometry.font,/Arial/);assert.equal(geometry.shellMaterial,'none','Lesefläche bleibt ruhig ohne Paneelmuster');assert.match(geometry.material,/repeating-linear-gradient/);assert.equal(geometry.canvas,'rgb(20, 20, 20)');
+    assert.ok(geometry.brand.width>0&&geometry.brand.top>=geometry.head.top&&geometry.brand.bottom<=geometry.text.top,'Lesbarer Schriftzug über dem Titel');
     assert.ok(geometry.text.right+4<=geometry.close.left&&geometry.text.top>=geometry.head.top&&geometry.text.bottom<=geometry.head.bottom,'Titel bleibt vom Schließen getrennt');
     assert.ok(Math.abs(geometry.heading.x+geometry.heading.width/2-geometry.head.x-geometry.head.width/2)<1,'Titel exakt mittig');
-    assert.ok(geometry.close.width>=44&&geometry.close.height>=44&&geometry.hit,'Schließen bleibt direkt bedienbar');
-    assert.equal(geometry.overflow,false);assert.equal(geometry.fit,'contain');assert.equal(geometry.blend,'lighten');
-    assert.equal(geometry.background,'rgba(0, 0, 0, 0)');assert.equal(geometry.source,'img/mischwerk-logo.png');
-    return geometry;
+    assert.ok(geometry.close.width>=44&&geometry.close.height>=44&&geometry.hit,'Schließen bleibt direkt bedienbar');assert.equal(geometry.overflow,false);return geometry;
   }
-  for(const [button,kind] of [['open-wishes','wishes'],['studio-tab','studio'],['team-tab','team']]) {
+  for(const [button,kind] of [['open-wishes','wishes'],['studio-tab','studio'],['team-tab','team'],['open-schedule','schedule']]) {
     await page.locator('#width').fill('1280');await page.locator('#width').dispatchEvent('change');
     await openRadioAction(radio,button);const frame=await overlayView(page,kind);
     await assertHeader(frame,64);
@@ -1108,6 +1240,7 @@ for (const client of ['k3','stapp']) test('Alle Overlaylogos sind in '+client+' 
     await frame.locator(kind==='wishes'?'#close-wishes':'#close-overlay').click();
     await page.locator('#overlays iframe').waitFor({state:'detached'});
   }
+  assert.ok(menuMaterials.size>1,'Auch die Menühintergründe richten ihre Paneelkanten nach dem tatsächlichen Fensterformat aus');
   assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
@@ -1126,7 +1259,7 @@ for (const client of ['k3','stapp']) test('Neue Verwaltung in '+client+' zeigt T
       return {font:getComputedStyle(title).fontFamily,bg:getComputedStyle(head).backgroundColor,decoration:getComputedStyle(head,'::before').content,
         scroll:pane.scrollHeight-pane.clientHeight,outer:document.documentElement.scrollHeight-innerHeight,width:document.documentElement.scrollWidth-innerWidth};
     });
-    assert.match(metrics.font,/Outfit/);assert.equal(metrics.bg,'rgb(23, 25, 28)');assert.ok(['none','normal','""'].includes(metrics.decoration));
+    assert.match(metrics.font,/Outfit/);assert.equal(metrics.bg,'rgb(20, 20, 20)');assert.ok(['none','normal','""'].includes(metrics.decoration));
     assert.ok(metrics.scroll<=1&&metrics.outer<=1&&metrics.width<=1,JSON.stringify(metrics));
     assert.equal(await team.locator('#team-add-heading').textContent(),'Mitglied hinzufügen');
     await team.waitForTimeout(180);
@@ -1573,18 +1706,18 @@ for(const client of ['k3','stapp'])test('Erster HTML-Anstrich zeigt in '+client+
    assert.equal(await frame.locator('#dialog-title').textContent(),title);
    assert.equal(await frame.evaluate(()=>document.documentElement.classList.contains('mw-ready')),false);
    assert.equal(await frame.evaluate(()=>getComputedStyle(document.documentElement).colorScheme),'dark');
-   const earlyLogo=await frame.locator('.dialog-brand img').boundingBox();
+   const earlyLogo=await frame.locator('.dialog-heading > .eyebrow').boundingBox();
    const earlyHead=await frame.locator('.dialog-header:visible').boundingBox();
-   assert.ok(earlyLogo.width>=64&&Math.abs(earlyLogo.width-earlyLogo.height)<.1,'Schon der HTML-Anstrich reserviert das große proportionale Logo');
+   assert.ok(earlyLogo.width>0&&earlyLogo.height===14,'Schon der HTML-Anstrich zeigt den lesbaren Schriftzug');
    // Eigene HTML-Ebene separat prüfen; im normalen Ablauf deckt der native Loader sie noch ab.
    await page.locator('#overlays .app-loading').evaluate(n=>{n.style.visibility='hidden';});
    await assertDarkPicture(page,page.locator('#overlays .app-window'));
    await page.locator('#overlays .app-loading').evaluate(n=>{n.style.visibility='visible';});
    const resume=release;release=null;resume();await overlayView(page,kind);
    const readyHead=await frame.locator('.dialog-header:visible').boundingBox();
-   const readyLogo=await frame.locator('.dialog-brand img:visible').boundingBox();
+   const readyLogo=await frame.locator('.dialog-heading > .eyebrow:visible').boundingBox();
    assert.ok(Math.abs(earlyHead.height-readyHead.height)<=1&&Math.abs(earlyLogo.width-readyLogo.width)<=1,
-     'Kopf und Logo wechseln beim Sichtbarwerden nicht ihre Größe: '+JSON.stringify({kind,earlyHead,readyHead,earlyLogo,readyLogo}));
+     'Kopf und Schriftzug wechseln beim Sichtbarwerden nicht ihre Größe: '+JSON.stringify({kind,earlyHead,readyHead,earlyLogo,readyLogo}));
    if(client==='k3'&&kind==='wishes')await page.locator('#overlays iframe').screenshot({path:path.join(__dirname,'../../docs/pruefung/oberflaeche/wunschbox/wunschbox-flach-'+(width===320?320:560)+'.png')});
    await frame.locator(kind==='wishes'?'#close-wishes':'#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});
   }}
@@ -1696,25 +1829,38 @@ for(const client of ['k3','stapp'])test('Studioanmeldung zeigt in '+client+' ein
  await radio.locator('#on-air-sign').filter({hasText:'MischWerk am Pult'}).waitFor();
  const neutral='rgb(180, 180, 176)',goldColor='rgb(230, 199, 123)';
  assert.equal(await radio.locator('#on-air-sign').evaluate(n=>getComputedStyle(n).color),neutral);
+ async function aligned(){
+  await require('../support/studio-browser.cjs').settle(radio);await page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);await require('../support/studio-browser.cjs').settle(radio);
+  assert.equal(await radio.evaluate(()=>{const a=getComputedStyle(document.querySelector('.track-eyebrow')),b=getComputedStyle(document.querySelector('.topic-label'));return a.fontSize===b.fontSize&&a.lineHeight===b.lineHeight&&a.fontWeight===b.fontWeight&&a.fontFamily===b.fontFamily;}),true,'Beide goldenen Überschriften verwenden dieselbe dynamische Typografie');
+  if(await radio.evaluate(()=>innerWidth>=1200))assert.ok(await radio.evaluate(()=>{const a=document.querySelector('.track-eyebrow').getBoundingClientRect(),b=document.querySelector('.topic-label').getBoundingClientRect();return a.height>0&&b.height>0&&Math.abs(a.top+a.height/2-b.top-b.height/2)<.6;}),'Die goldene Themenüberschrift steht exakt auf Höhe von Jetzt läuft');
+  assert.deepEqual((await require('../support/layout-browser.cjs').inspectLayout(radio)).issues,[]);
+ }
+ for(const width of [1920,1280,1024,1920]){await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await radio.waitForFunction(w=>innerWidth===w,width);await aligned();}
  // Die vergrößerte Moderationsanzeige bleibt gegenüber dem Musiktitel nachgeordnet.
  assert.equal(await radio.locator('#on-air-sign').evaluate(n=>parseFloat(getComputedStyle(n).fontSize)),15,'Besser lesbare AutoDJ-Anzeige');
  await radio.locator('#play-button:not([disabled])').click();await radio.waitForFunction(()=>!document.getElementById('radio-audio').paused);
  await radio.evaluate(()=>{window.__moderatorNameAudio=document.getElementById('radio-audio');window.__moderatorAudioEvents=[];for(const type of ['playing','pause','emptied','error','ended'])window.__moderatorNameAudio.addEventListener(type,()=>window.__moderatorAudioEvents.push(type));});
  await radio.locator('#studio-tab:not([disabled])').click();let studio=await overlayView(page,'studio');
- await require('../support/studio-browser.cjs').login(studio);await studio.locator('#studio-host').filter({hasText:'Otterchen ist am Mikrofon'}).waitFor();
+ await require('../support/studio-browser.cjs').login(studio);await studio.locator('#studio-host').filter({hasText:'Otterchen moderiert'}).waitFor();assert.equal(await studio.locator('#studio-schedule-note').count(),0,'Kein veralteter Hinweis auf automatische öffentliche Sendeplaneinträge');assert.doesNotMatch(await studio.locator('#studio-panel').innerText(),/Automatischer Eintrag im Sendeplan|Sendeplaneintrag fehlt noch/);
  await studio.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});
  assert.equal(await radio.locator('#on-air-sign').textContent(),'Es moderiert');
  assert.equal(await radio.locator('#host-name').textContent(),'Otterchen');assert.equal(await radio.locator('#host-name').getAttribute('data-prefix'),'');
  assert.equal(await radio.locator('.presenter').getAttribute('data-mode'),'moderation');
  assert.equal(await radio.locator('.live-topic-label').count(),0);
  assert.equal(await radio.locator('.presenter-mic').isVisible(),true);
- assert.equal(await radio.locator('.topic-label').isVisible(),false);
+ assert.equal(await radio.locator('.topic-label').isVisible(),true);
+ await aligned();
+ await radio.evaluate(()=>Client.sendEvent('mw:setTopic',{topic:'Musik zum Feierabend – Lieblingssongs, neue Entdeckungen und eure Wünsche heute'}));
+ await radio.locator('#show-topic').filter({hasText:'Musik zum Feierabend'}).waitFor();
+ for(const width of [1920,1280,1024,700,320]){await page.locator('#width').fill(String(width));await page.locator('#width').dispatchEvent('change');await radio.waitForFunction(w=>innerWidth===w,width);await aligned();if(width===1920)await page.locator('#headerbars iframe').screenshot({path:path.join(os.tmpdir(),'MischWerk-Ueberschriften-Moderation.png'),scale:'css'});}
+ await page.locator('#width').fill('1920');await page.locator('#width').dispatchEvent('change');await radio.waitForFunction(()=>innerWidth===1920);await aligned();
+ await radio.evaluate(()=>Client.sendEvent('mw:setTopic',{topic:''}));await radio.locator('#show-topic').filter({hasText:'MischWerk Radio Show',exact:true}).waitFor();await aligned();
  for(const selector of ['#on-air-sign','#host-name'])assert.equal(await radio.locator(selector).evaluate(n=>getComputedStyle(n).color),selector==='#host-name'?goldColor:neutral);
  assert.doesNotMatch(await radio.locator('.presenter').textContent(),/MischWerk am Pult|Im Studio angemeldet/);
  await radio.locator('#studio-tab:not([disabled])').click();studio=await overlayView(page,'studio');
- await studio.locator('#off-air:not([disabled])').click();await studio.locator('#studio-host').filter({hasText:'Keine Moderation angemeldet'}).waitFor();
+ await studio.locator('#off-air:not([disabled])').click();await studio.locator('#studio-host').filter({hasText:'Noch keine Moderation'}).waitFor();
  await radio.locator('#host-name').waitFor({state:'hidden'});assert.equal(await radio.locator('#on-air-sign').textContent(),'MischWerk am Pult','Abmeldung schaltet bei unverändertem AutoDJ sichtbar zurück');
- await require('../support/studio-browser.cjs').login(studio);await studio.locator('#studio-host').filter({hasText:'Otterchen ist am Mikrofon'}).waitFor();
+ await require('../support/studio-browser.cjs').login(studio);await studio.locator('#studio-host').filter({hasText:'Otterchen moderiert'}).waitFor();
  await radio.locator('#on-air-sign').filter({hasText:'Es moderiert'}).waitFor();
  await studio.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});
  live=true;await radio.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
@@ -1777,9 +1923,10 @@ for(const client of ['k3','stapp'])test('Studioanmeldung zeigt in '+client+' ein
  assert.equal(await radio.locator('#show-topic').evaluate(n=>n.scrollHeight<=n.clientHeight+1),true);
  assert.ok(await radio.evaluate(()=>document.getElementById('show-topic').getBoundingClientRect().bottom<=document.getElementById('volume').getBoundingClientRect().top));
  const liveHeight=await radio.locator('#radio-panel').evaluate(n=>n.getBoundingClientRect().height);
- assert.ok(liveHeight<=312,'Live bleibt bei 320 px kompakt mit vollständigem Thema: '+liveHeight);
+ const labelHeight=await radio.locator('.topic-label').evaluate(n=>n.getBoundingClientRect().height+parseFloat(getComputedStyle(n).marginBottom));
+ assert.ok(liveHeight<=312+labelHeight,'Live bleibt bei 320 px kompakt einschließlich der nun sichtbaren Themenüberschrift: '+liveHeight);
  await radio.locator('#studio-tab:not([disabled])').click();const back=await overlayView(page,'studio');
- await back.locator('#off-air:not([disabled])').click();await back.locator('#studio-host').filter({hasText:'Keine Moderation angemeldet'}).waitFor();
+ await back.locator('#off-air:not([disabled])').click();await back.locator('#studio-host').filter({hasText:'Noch keine Moderation'}).waitFor();
  await radio.locator('#host-name').waitFor({state:'hidden'});assert.equal(await radio.locator('#on-air-sign').textContent(),'MischWerk spielt live','Kein falscher AutoDJ aus einer App-Abmeldung');
  live=false;await radio.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
  await radio.locator('#on-air-sign').filter({hasText:'MischWerk am Pult'}).waitFor();
@@ -1979,20 +2126,20 @@ for(const client of ['k3','stapp','android'])for(const hostSizing of ['normal','
 });
 
 for (const client of ['k3','stapp']) {
-  test('Wunschbox bündelt in '+client+' nach Versand nur Bestätigung und weiteren Wunsch; Information bleibt in der Appleiste',async t=>{
+  test('Wunschbox bündelt in '+client+' nach Versand eigenen Live-Status und weiteren Wunsch auch bei schmaler Leiste',async t=>{
     const lab=await setup(t,{hostSizing:'stepped'}),{page,radio}=await lab.join('Otterchen',client,320);
     await radio.locator('#open-wishes:not([disabled])').click();
     const surface=await view(page,'Overlay');
     const appearance=await surface.evaluate(()=>({background:getComputedStyle(document.getElementById('wishes-panel')).backgroundColor,font:getComputedStyle(document.getElementById('inline-wish-title')).fontFamily,button:getComputedStyle(document.getElementById('submit-wish')).backgroundColor}));
-    assert.equal(appearance.background,'rgb(23, 25, 28)');assert.match(appearance.font,/Outfit/);assert.equal(appearance.button,'rgb(230, 199, 123)');
+    assert.equal(appearance.background,'rgb(20, 20, 20)');assert.match(appearance.font,/Outfit/);assert.equal(appearance.button,'rgb(230, 199, 123)');
     await surface.waitForFunction(()=>Math.abs(document.getElementById('wishes-panel').getBoundingClientRect().height-innerHeight)<=1);
     const pictures=path.join(os.tmpdir(),'MischWerk-Pruefbilder','wunschbox-neu');fs.mkdirSync(pictures,{recursive:true});
-    await surface.locator('#wishes-panel').screenshot({path:path.join(pictures,'wunschbox-build-355-'+client+'-320.png')});
+    await surface.locator('#wishes-panel').screenshot({path:path.join(pictures,'wunschbox-live-status-443-'+client+'-320.png')});
     const song='Langer Interpret und vollständiger Musikwunsch '.repeat(7).slice(0,300);
     for(const text of [song,'Mein zweiter Wunsch']) {
       if(await surface.locator('#wish-compose-open').isVisible())await surface.locator('#wish-compose-open').click();
       await surface.locator('#wish-text').fill(text);await surface.locator('#submit-wish').click();
-      await surface.locator('#wish-feedback.success').waitFor();
+      await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
       await surface.locator('#wish-compose-open').waitFor();
     }
     await radio.locator('#own-wish-more').filter({hasText:'+1'}).waitFor({state:'attached'});
@@ -2000,7 +2147,7 @@ for (const client of ['k3','stapp']) {
     assert.equal(await radio.locator('#own-wish-title').textContent(),song);
     assert.equal(await radio.locator('#own-wish-position').getAttribute('title'),'Dein Musikwunsch');
     assert.equal(await surface.locator('#wish-positions,#refresh-wish-positions,#wish-positions-pages').count(),0);
-    assert.doesNotMatch(await surface.locator('#wishes-panel').innerText(),/Deine offenen Wünsche|Platz 1|Mein zweiter Wunsch/);
+    assert.equal(await surface.locator('#wish-tracking-rank').textContent(),'Platz 1');assert.equal(await surface.locator('#wish-tracking-song').textContent(),song);assert.match(await surface.locator('#wish-tracking-more').textContent(),/2 offene Wünsche/);assert.equal(await surface.locator('#wish-tracking').isVisible(),true);
     await radio.waitForTimeout(600);
     const headerHeight=await radio.evaluate(()=>innerHeight);
     await surface.locator('#wish-compose-open').click();
@@ -2106,7 +2253,7 @@ test('Zwei echte Nutzer: natives Overlay, Entwurf, doppeltes Senden und Erledigt
   await send(listener.page, { type: 'faults', value: { duplicateNext: true } });
   await listener.page.waitForFunction(() => window.EmulatorLab.state.faults.duplicateNext === true);
   await surface.locator('#submit-wish').click();
-  await surface.locator('#wish-feedback').filter({ hasText: 'an die Moderation gesendet' }).waitFor();
+  await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
   await listener.radio.locator('#own-wish-rank').filter({ hasText: 'Platz 1' }).waitFor();
   await owner.radio.locator('#studio-tab').click(); const studio = await view(owner.page, 'Overlay');
   const queueTab = studio.locator('#studio-queue-tab');
@@ -2129,7 +2276,7 @@ test('Verlorene Quittung: Timeout und Wiederholung behalten dieselbe submissionI
   await surface.locator('#wish-feedback').filter({ hasText: /bestätigt|Verbindung|erneut|Rückmeldung/ }).waitFor({ timeout: 20000 });
   await surface.locator('#submit-wish:not([disabled])').waitFor();
   await surface.locator('#submit-wish').click();
-  await surface.locator('#wish-feedback').filter({ hasText: /an die Moderation gesendet/ }).waitFor();
+  await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
   const submissions = lab.hub.trace.filter(item => item.kind === 'clientEvent' && item.eventType === 'mw:wish.submit');
   assert.equal(submissions.length, 2);
   assert.equal(submissions[0].eventData.submissionId, submissions[1].eventData.submissionId);
@@ -2299,11 +2446,11 @@ for(const client of ['k3','stapp'])test('Übergabe in '+client+' bleibt bei höc
   await owner.page.locator('#overlays .app-window').evaluate(node=>{node.style.height='360px';});
   await source.waitForFunction(()=>innerWidth===320&&innerHeight===360);await revealStudio(source,'#handover-open');await source.locator('#handover-open').click();
   const notes='Private Notizen für die nächste Sendung. '.repeat(14).slice(0,500).trim();
-  await revealStudio(source,'#handover-notes','handover');await source.locator('#handover-notes').fill(notes);
+  await revealStudio(source,'#handover-notes','handover');await source.locator('#handover-notes').fill(notes);assert.equal(await source.locator('#handover-notes').evaluate(n=>getComputedStyle(n).outlineStyle),'none','Private Übergabenotizen ohne farbigen Fokusrahmen');
   await revealStudio(source,'#handover-request','handover');await source.locator('#handover-request').click();await source.locator('#handover-cancel').waitFor();
   await dj.radio.locator('#studio-tab').click();const target=await overlayView(dj.page,'studio');await revealStudio(target,'#handover-open');await revealStudio(target,'#handover-open');await target.locator('#handover-open').click();
   assert.equal(await require('../support/studio-browser.cjs').readText(target,'#handover-note-text','handover'),notes);
-  await revealStudio(target,'#handover-topic','handover');await target.locator('#handover-topic').fill('Die neue bestätigte Sendung');
+  await revealStudio(target,'#handover-topic','handover');await target.locator('#handover-topic').fill('Die neue bestätigte Sendung');assert.equal(await target.locator('#handover-topic').evaluate(n=>getComputedStyle(n).outlineStyle),'none','Übernahmethema ohne farbigen Fokusrahmen');
   await revealStudio(target,'#handover-accept','handover');lab.hub.faults.dropServerType='mw:result';lab.hub.faults.dropServer=1;
   await target.locator('#handover-accept').click();await target.locator('#handover-panel').waitFor({state:'hidden'});
   await revealStudio(target,'#off-air');assert.equal(await target.locator('#off-air').isDisabled(),false);
@@ -2313,6 +2460,42 @@ for(const client of ['k3','stapp'])test('Übergabe in '+client+' bleibt bei höc
   assert.ok(lab.hub.trace.some(e=>e.kind==='droppedServer'&&e.nick==='DJ-Test'&&e.eventType==='mw:result'));
   for(const person of [owner,dj])assert.equal(await person.radio.locator('#radio-audio').evaluate(a=>!a.paused&&a.currentTime>0),true);
   assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
+for(const client of ['k3','stapp'])test('Native Wunschregie bearbeitet Einträge vollständig und erhält Fehler, Reihenfolge und Audio in '+client,async t=>{
+ const lab=await setup(t,{provider:'online'}),{page,radio}=await lab.join('Otterchen',client,1280);
+ await radio.locator('#play-button').click();await radio.waitForFunction(()=>document.getElementById('radio-audio').currentTime>.1);
+ await radio.evaluate(()=>{window.__wishAudio=document.getElementById('radio-audio');__wishAudio.loop=true;});
+ for(let i=1;i<=3;i++)await radio.evaluate(i=>Client.sendEvent('mw:wish.submit',{submissionId:'regie-'+i,text:('Wunsch '+i+' mit vollständigem Gruß. ').repeat(6).slice(0,300)}),i);
+ await radio.locator('#studio-tab').click();let studio=await overlayView(page,'studio');await studio.locator('#studio-queue-tab').click();
+ const row=id=>studio.locator('[data-wish-id="'+id+'"]'),action=(id,name)=>row(id).locator('[data-queue-action="'+name+'"]');
+ await action(1,'prepare').waitFor({state:'visible',timeout:3000});
+ await page.locator('#overlays .app-window').evaluate(n=>{n.style.width='320px';});await studio.waitForFunction(()=>innerWidth===320);
+ await action(2,'prepare').click();await row(2).locator('.request-stage').filter({hasText:'In Vorbereitung'}).waitFor();
+ assert.equal(await action(2,'play').isVisible(),false,'Nur Platz 1 darf als laufend markiert werden');
+ await action(2,'reset').click();await row(2).locator('.request-stage').filter({hasText:'Wartet'}).waitFor();
+ const beforePrepare=lab.hub.trace.filter(e=>e.kind==='clientEvent'&&e.eventType==='mw:setWishStage').length;
+ await action(1,'prepare').evaluate(n=>{n.click();n.click();});await action(1,'play').waitFor();
+ assert.equal(lab.hub.trace.filter(e=>e.kind==='clientEvent'&&e.eventType==='mw:setWishStage').length,beforePrepare+1,'Doppelklick sendet nur eine Mutation');await action(1,'play').click();
+ await row(1).locator('.request-stage').filter({hasText:'Als laufend markiert'}).waitFor();
+ assert.deepEqual(await studio.locator('.queue-item').evaluateAll(ns=>ns.map(n=>n.dataset.wishId)),['1','2','3']);
+ lab.hub.faults.failPersistence=true;await action(1,'done').click();await studio.locator('#notice.error').waitFor();assert.equal(await row(1).count(),1);
+ lab.hub.faults.failPersistence=false;await action(1,'done').click();await row(1).waitFor({state:'detached'});
+ await action(2,'discard').click();await action(2,'cancel').click();assert.equal(await row(2).count(),1);
+ await action(2,'discard').click();await action(2,'discard').click();await row(2).waitFor({state:'detached'});
+ assert.match(await row(3).locator('.request-stage').innerText(),/Platz 1/);
+ await require('../support/studio-browser.cjs').settle(studio);
+ for(const button of await row(3).locator('button:visible').all()){
+  await button.scrollIntoViewIfNeeded();assert.equal(await button.evaluate(n=>{const r=n.getBoundingClientRect();return r.width>=44&&r.height>=44&&n.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}),true);
+ }
+ await page.locator('#overlays iframe').screenshot({path:path.join(studioPictures,'wunschregie-'+client+'-320.png'),scale:'css'});
+ await studio.locator('#close-overlay').click();await page.locator('#overlays iframe').waitFor({state:'detached'});await radio.locator('#studio-tab').click();studio=await overlayView(page,'studio');await studio.locator('#studio-queue-tab').click();
+ await row(3).waitFor();assert.equal(await studio.locator('.queue-item').count(),1);
+ await page.locator('#overlays iframe').screenshot({path:path.join(studioPictures,'wunschregie-'+client+'-640.png'),scale:'css'});
+ await action(3,'done').click();await studio.locator('#queue-count').filter({hasText:'0'}).waitFor();
+ assert.equal(await studio.locator('.request-actions').count(),0);
+ assert.equal(await radio.evaluate(()=>document.getElementById('radio-audio')===__wishAudio&&!__wishAudio.paused),true);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
 
 test('Native Wunschliste quittiert nur Texte innerhalb der sichtbaren Scrollfläche',async t=>{
@@ -2328,7 +2511,7 @@ test('Native Wunschliste quittiert nur Texte innerhalb der sichtbaren Scrollflä
  assert.equal(acks().some(e=>e.eventData.id===15),false);
  await studio.locator('#queue-body').evaluate(n=>{n.scrollTop=n.scrollHeight;});
  await assertEventually(()=>acks().some(e=>e.eventData.id===15));
- assert.equal(await studio.locator('#studio-requests nav,.queue-item button').count(),0);
+ assert.equal(await studio.locator('#studio-requests nav').count(),0);assert.equal(await studio.locator('.request-actions').count(),15);
  assert.equal(lab.hub.trace.filter(e=>e.kind==='contentShow'&&e.mode==='Overlay').length,1);
  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
@@ -2430,10 +2613,9 @@ for(const client of ['k3','stapp'])test('Overlaydesign: kompakte Rückmeldungen 
   const deliver=lab.hub.sendUser.bind(lab.hub),receipts=[];
   lab.hub.sendUser=(nick,message)=>{if(message.type==='sessionEvent'&&message.eventType==='mw:wish.receipt')receipts.push(()=>deliver(nick,message));else deliver(nick,message);};
   await frame.locator('#wish-text').fill('a-ha – Take On Me');await frame.locator('#submit-wish').click();await frame.locator('#wish-feedback.pending').waitFor();
-  lab.hub.sendUser=deliver;receipts.splice(0).forEach(send=>send());await frame.locator('#wish-feedback.success').waitFor();
-  assert.equal(await frame.locator('#wish-feedback').evaluate(n=>{const s=getComputedStyle(n);return s.fontSize==='13px'&&s.boxShadow==='none'&&n.scrollWidth<=n.clientWidth+1;}),true);
-  assert.equal(await frame.locator('#wish-feedback').evaluate(n=>getComputedStyle(n).position==='relative'&&parseFloat(getComputedStyle(n).paddingLeft)>=38&&getComputedStyle(n,'::before').width==='18px'),true,'Quittungssymbol bleibt innerhalb der zugehörigen Rückmeldung');
-  assert.equal(await frame.locator('#wish-rules').textContent(),'Welcher Song darf’s sein?');
+  lab.hub.sendUser=deliver;receipts.splice(0).forEach(send=>send());await frame.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
+  assert.equal(await frame.locator('#wish-feedback').isVisible(),false,'Keine zusätzliche Versandmeldung unter dem Live-Status');assert.equal(await frame.locator('#wish-tracking-title').isVisible(),true);
+  assert.equal(await frame.locator('#wish-rules').textContent(),'Interpret, Titel und optional ein Gruß. Bitte ohne Links.');
   assertAllowedOverlaySizes(lab);
   assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });
@@ -2459,7 +2641,7 @@ for(const client of ['k3','stapp'])for(const width of [320,390,2290])test('Wunsc
   }
   for(const text of ['Aha - Take On Me',('Interpret und ein vollständiger langer Songtitel. ').repeat(7).slice(0,300)]){
     if(await frame.locator('#wish-compose-open').isVisible())await frame.locator('#wish-compose-open').click();
-    await frame.locator('#wish-text:not([disabled])').fill(text);await frame.locator('#submit-wish').click();await frame.locator('#wish-feedback.success').waitFor();await frame.locator('#wish-compose-open').waitFor();await fits();
+    await frame.locator('#wish-text:not([disabled])').fill(text);await frame.locator('#submit-wish').click();await frame.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();await frame.locator('#wish-compose-open').waitFor();await fits();
     assert.equal(await page.locator('#overlays iframe').getAttribute('src'),source,'Kein Ersetzen oder erneutes Öffnen nach dem Absenden');
   }
   assert.equal(await frame.locator('#wish-positions,#refresh-wish-positions,#wish-positions-pages').count(),0);
@@ -2523,7 +2705,7 @@ for(const client of ['k3','stapp'])test('Wunschrelay in '+client+' bündelt glei
  await Promise.all(users.map(item=>item.surface.locator('#wish-text').pressSequentially(item.text,{delay:25})));
  // Ohne Wartezeit schließen: der noch gebündelte Rest muss vorher übernommen werden.
  await Promise.all(users.map(async item=>{await item.surface.locator('#close-wishes').click();await item.page.locator('#overlays iframe').waitFor({state:'detached'});await item.radio.locator('#open-wishes:not([disabled])').click();item.surface=await overlayView(item.page,'wishes');assert.equal(await item.surface.locator('#wish-text').inputValue(),item.text);}));
- await Promise.all(users.map(async item=>{await item.surface.locator('#submit-wish:not([disabled])').click();await item.surface.locator('#wish-feedback.success').waitFor();await item.radio.locator('#own-wish-title').filter({hasText:item.text}).waitFor();}));
+ await Promise.all(users.map(async item=>{await item.surface.locator('#submit-wish:not([disabled])').click();await item.surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();await item.radio.locator('#own-wish-title').filter({hasText:item.text}).waitFor();}));
  const sent=records.slice(begin).filter(e=>e.kind==='sessionEvent'),peaks={};
  for(const item of users){const messages=sent.filter(e=>e.nick===item.nick).sort((a,b)=>a.realAt-b.realAt);let start=0,peak=0;for(let end=0;end<messages.length;end++){while(messages[end].realAt-messages[start].realAt>=5000)start++;peak=Math.max(peak,end-start+1);}peaks[item.nick]=peak;assert.ok(peak<=40,JSON.stringify({client,peaks}));const submissions=records.slice(begin).filter(e=>e.kind==='clientEvent'&&e.nick===item.nick&&e.eventType==='mw:wish.submit');assert.equal(submissions.length,1);assert.equal(submissions[0].eventData.text,item.text);const state=records.findLast(e=>e.kind==='sessionEvent'&&e.nick===item.nick&&e.eventType==='mw:state').eventData;assert.equal(state.wishPositions.total,1);assert.equal(state.wishPositions.nextItem.text,item.text);}
  assert.equal(await users[0].radio.evaluate(()=>document.getElementById('radio-audio')===window.__relayAudio&&!__relayAudio.paused),true);

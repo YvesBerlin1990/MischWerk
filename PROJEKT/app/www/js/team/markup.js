@@ -18,11 +18,11 @@ MischWerkUI.define('teamMarkup', function (dependencies) {
           <button id="add-radio-moderator" class="primary-button" type="submit">Hinzufügen</button>
         </div>
       </form>
-      <p id="team-add-help" class="form-hint">Kann moderieren und Wünsche bearbeiten.</p>
+      <p id="team-add-help" class="form-hint">Freigabe für Moderation und Musikwünsche.</p>
     </section>
     <section class="team-members-list" aria-labelledby="team-list-heading">
       <div class="team-list-heading">
-        <h2 id="team-list-heading" tabindex="-1">Mitglieder <span class="count-badge" id="radio-moderator-count">0</span></h2>
+        <h2 id="team-list-heading" tabindex="-1">Dein Radio-Team <span class="count-badge" id="radio-moderator-count">0</span></h2>
         <span id="team-refresh-feedback" role="status" aria-live="polite" aria-atomic="true"></span>
         <button class="icon-button" id="refresh-radio-team" type="button" aria-label="Team aktualisieren" title="Team aktualisieren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-12-2L4 11m2 4a7 7 0 0 0 12 2l2-4"/></svg></button>
       </div>
@@ -38,25 +38,25 @@ MischWerkUI.define('teamMarkup', function (dependencies) {
   <div id="channel-texts-slot"></div>
   <section id="team-connection-panel" role="tabpanel" aria-labelledby="team-connection-tab" hidden>
     <div class="connection-content">
-      <h2>Homepage &amp; App</h2>
-      <p class="form-hint">Senderdaten und Musikwünsche bleiben verbunden.</p>
+      <h2>Homepage und App</h2>
+      <p class="form-hint">Verbindet Senderdaten und Musikwünsche mit Homepage und App.</p>
       <p id="relay-status" class="connection-status" role="status">Status wird geladen …</p>
       <p id="relay-key-state" class="form-hint"></p>
       <div class="connection-actions">
         <button id="relay-activate" type="button" class="primary-button" disabled>Aktivieren</button>
         <button id="relay-deactivate" type="button" class="secondary-button" disabled>Ausschalten</button>
       </div>
-      <details class="connection-secret"><summary>Verbindungsschlüssel ändern</summary>
-        <p class="form-hint">Nur bei Bedarf ändern. Speichern schaltet die Verbindung aus.</p>
+      <details class="connection-secret"><summary>Schlüssel verwalten</summary>
+        <p class="form-hint">Beim Speichern wird die Verbindung ausgeschaltet. Danach erneut aktivieren.</p>
         <form id="relay-form" autocomplete="off" data-private>
           <label for="relay-sync">Neuer Schlüssel</label>
           <input id="relay-sync" type="password" autocomplete="off" minlength="43" maxlength="128" pattern="[A-Za-z0-9_-]{43,128}" disabled spellcheck="false">
-          <button id="relay-save" type="submit" class="secondary-button" disabled>Speichern</button>
+          <button id="relay-save" type="submit" class="secondary-button" disabled>Schlüssel speichern</button>
         </form>
       </details>
     </div>
     <div class="connection-footer">
-      <button id="relay-refresh" type="button" class="secondary-button" disabled>Aktualisieren</button>
+      <button id="relay-refresh" type="button" class="secondary-button" disabled>Status aktualisieren</button>
       <p id="relay-result" class="form-hint" role="status" aria-live="polite"></p>
     </div>
   </section>

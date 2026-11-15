@@ -12,7 +12,12 @@ MischWerkUI.define('scheduleView', function (dependencies) {
     var shell = document.querySelector('.dialog-shell'), style = getComputedStyle(list);
     var natural = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
     Array.from(list.children).forEach(function (row) { natural += row.getBoundingClientRect().height; });
-    var width = Math.ceil(innerWidth), height = Math.ceil(shell.getBoundingClientRect().height - list.getBoundingClientRect().height + natural);
+    // Feste Meldungen und Aktionen können aus einem zuvor kompakten Fenster ragen.
+    // Auch diesen Überlauf samt Rahmen zählen, statt nur die geklemmte Shellhöhe.
+    var shellStyle = getComputedStyle(shell);
+    var shellHeight = Math.max(shell.getBoundingClientRect().height,
+      shell.scrollHeight + parseFloat(shellStyle.borderTopWidth) + parseFloat(shellStyle.borderBottomWidth));
+    var width = Math.ceil(innerWidth), height = Math.ceil(shellHeight - list.getBoundingClientRect().height + natural);
     height = Math.max(220, Math.min(600, height));
     var geometry = width + ':' + height;
     if (width < 1 || !Number.isFinite(height) || requested === geometry) { return; }
@@ -60,7 +65,7 @@ MischWerkUI.define('scheduleView', function (dependencies) {
     if (key === renderKey) {
       current = data; receivedAt = Date.now(); date(data.date,data.today);
       if (typeof scroll === 'number') { list.scrollTop = scroll; }
-      message(data.entries.length ? '' : 'Für diesen Tag sind keine Sendungen vorhanden.',false); mark(); return;
+      message(data.entries.length ? '' : 'Für diesen Tag sind keine Sendungen eingetragen.',false); mark(); return;
     }
     renderKey = key;
     var previousScroll = typeof scroll === 'number' ? scroll : list.scrollTop;
@@ -77,7 +82,7 @@ MischWerkUI.define('scheduleView', function (dependencies) {
       row.appendChild(dom.element('div', 'schedule-presenter', entry.nick));
       list.appendChild(row);
     });
-    date(data.date, data.today); message(data.entries.length ? '' : 'Für diesen Tag sind keine Sendungen vorhanden.', false); mark();
+    date(data.date, data.today); message(data.entries.length ? '' : 'Für diesen Tag sind keine Sendungen eingetragen.', false); mark();
     var restored = from && Array.from(list.children).find(function (row) { return row.dataset.from === from; });
     list.scrollTop = restored && !initial ? restored.offsetTop - list.offsetTop - offset : previousScroll;
     if (initial && typeof scroll !== 'number' && list.scrollHeight > list.clientHeight) {

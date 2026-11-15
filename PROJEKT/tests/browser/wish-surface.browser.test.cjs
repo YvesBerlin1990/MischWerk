@@ -34,6 +34,7 @@ async function setup(t,{width=1200,surfaceK3=true}={}){
   const page=await context.newPage();await page.goto(base+'/channel.html');
   const radio=await(await page.locator('#radio-frame').elementHandle()).contentFrame();
   await radio.waitForFunction(()=>document.documentElement.classList.contains('mw-ready'));
+  await radio.waitForFunction(()=>innerHeight===Math.min(500,Math.max(160,Math.ceil(document.getElementById('radio-panel').getBoundingClientRect().height))+16+(parseFloat(getComputedStyle(document.getElementById('radio-deck')).marginTop)||0)));
   async function open(enabled=true){
     await radio.locator('#open-wishes:not([disabled])').click();
     await page.locator('#overlay-frame:not([hidden])').waitFor();
@@ -54,7 +55,7 @@ test('Native Wunschbox überlagert den Channel ohne Leerbereich und erhält Entw
   const before=await page.locator('#channel').boundingBox(),pages=context.pages().length;
   let surface=await open();
   assert.equal((await page.locator('#channel').boundingBox()).y,before.y);
-  assert.equal((await page.locator('#radio-frame').boundingBox()).height,160);
+  assert.equal((await page.locator('#radio-frame').boundingBox()).height,await radio.locator('#radio-panel').evaluate(n=>Math.min(500,Math.max(160,Math.ceil(n.getBoundingClientRect().height))+16+(parseFloat(getComputedStyle(document.getElementById('radio-deck')).marginTop)||0))));
   assert.equal(await radio.locator('#wishes-panel').isVisible(),false);
   assert.equal(await surface.locator('#wishes-panel').getAttribute('role'),'dialog');
   await surface.locator('#wish-text').fill('Dieser Entwurf bleibt in der Radio-Sitzung');
@@ -63,14 +64,16 @@ test('Native Wunschbox überlagert den Channel ohne Leerbereich und erhält Entw
   surface=await open();
   assert.equal(await surface.locator('#wish-text').inputValue(),'Dieser Entwurf bleibt in der Radio-Sitzung');
   await surface.locator('#submit-wish').click();
-  await surface.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
+  await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
   await radio.locator('#own-wish-rank').filter({hasText:'Platz 3'}).waitFor();
   assert.equal(await surface.locator('#wish-positions').count(),0);
   assert.equal(await surface.locator('#wish-text').inputValue(),'');
   const submits=sent.filter(e=>e.type==='mw:wish.submit');
   assert.equal(submits.length,1);assert.equal(submits[0].sessionId,await radio.evaluate(()=>MischWerkDemoData.sessionId));
   assert.equal(context.pages().length,pages);
-  assert.equal((await page.locator('#channel').boundingBox()).y,before.y);
+  await radio.waitForFunction(()=>innerHeight===Math.min(500,Math.max(160,Math.ceil(document.getElementById('radio-panel').getBoundingClientRect().height))+16+(parseFloat(getComputedStyle(document.getElementById('radio-deck')).marginTop)||0)));
+  const submittedRadio=await page.locator('#radio-frame').boundingBox();
+  assert.equal((await page.locator('#channel').boundingBox()).y,submittedRadio.y+submittedRadio.height,'Kein zusätzlicher Headerplatz neben der natürlichen Radiohöhe mit Wunsch');
   assert.deepEqual(errors,[]);
 });
 
@@ -93,7 +96,7 @@ test('Wunsch-Overlay bleibt bei 320 und 2290 Pixeln auf seine Fläche begrenzt u
     await radio.locator('#own-wish-rank').filter({hasText:'Platz 3'}).waitFor({state:width<1200?'attached':'visible'});
     assert.equal(await radio.locator('#own-wish-position').isVisible(),width>=1200);
   assert.equal(await surface.locator('#wish-positions').count(),0);
-    await surface.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
+    await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
 
     assert.equal(await surface.locator('#wish-form').isVisible(),false,'Leeres Formular weicht der Aktion für einen weiteren Wunsch');
     assert.equal(await surface.locator('#wish-compose-open').isVisible(),true);
@@ -102,8 +105,10 @@ test('Wunsch-Overlay bleibt bei 320 und 2290 Pixeln auf seine Fläche begrenzt u
       await surface.waitForTimeout(250);
       await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/wunschbox/wunschbox-'+width+'.png')});
     }
+    await radio.waitForFunction(()=>innerHeight===Math.min(500,Math.max(160,Math.ceil(document.getElementById('radio-panel').getBoundingClientRect().height))+16+(parseFloat(getComputedStyle(document.getElementById('radio-deck')).marginTop)||0)));
+    const submittedRadioHeight=(await page.locator('#radio-frame').boundingBox()).height;
     await surface.locator('#close-wishes').click();await page.locator('#overlay-frame').waitFor({state:'hidden'});
-    assert.equal((await page.locator('#radio-frame').boundingBox()).height,radioBox.height,'Wunsch-Overlay erhält die bestehende natürliche Radiohöhe');
+    assert.equal((await page.locator('#radio-frame').boundingBox()).height,submittedRadioHeight,'Schließen erhält die natürliche Radiohöhe einschließlich des neuen eigenen Wunsches');
     assert.equal(await radio.locator('#open-wishes').evaluate(n=>document.activeElement===n),true);
     assert.deepEqual(errors,[]);
   }
@@ -124,7 +129,7 @@ test('Schließen während bestätigtem Versand erhält die späte Quittung und e
   assert.equal(await radio.locator('#wish-text').inputValue(),'a-ha – Take On Me');
   release();await radio.waitForFunction(()=>document.getElementById('wish-text').value==='');
   surface=await open();
-  await surface.locator('#wish-feedback').filter({hasText:'an die Moderation gesendet'}).waitFor();
+  await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
   assert.equal(sent.filter(e=>e.type==='mw:wish.submit').length,1);assert.deepEqual(errors,[]);
 });
 
@@ -147,7 +152,7 @@ test('Overlay wartet beim sofortigen Schließen auf die Übernahme der letzten E
 test('Linkprüfung und Versandfehler bleiben im ursprünglichen Wunschcontroller; Wiederholung nutzt dieselbe submissionId',async t=>{
   const {page,open,sent,errors}=await setup(t);const surface=await open();
   await surface.locator('#wish-text').fill('https://example.com');await surface.locator('#submit-wish').click();
-  await surface.locator('#wish-feedback.error').filter({hasText:'Keine Links'}).waitFor();
+  await surface.locator('#wish-feedback.error').filter({hasText:'ohne Links'}).waitFor();
   assert.equal(sent.filter(e=>e.type==='mw:wish.submit').length,0);
   let fail=true;
   await page.route('**/api/event',async route=>{
@@ -160,7 +165,7 @@ test('Linkprüfung und Versandfehler bleiben im ursprünglichen Wunschcontroller
   await surface.locator('#wish-feedback.error').filter({hasText:'erneut senden'}).waitFor();
   assert.equal(await surface.locator('#wish-text').inputValue(),'Unsere Band – Unser Song');
   await surface.locator('#submit-wish').click();
-  await surface.locator('#wish-feedback.success').waitFor();
+  await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
   const primary=sent.filter(e=>e.type==='mw:wish.submit');assert.equal(primary.length,2);
   assert.equal(primary[0].data.submissionId,primary[1].data.submissionId);assert.deepEqual(errors,[]);
 });
@@ -253,22 +258,22 @@ test('Verzögertes Overlay-CSS erhält den langen Entwurf und misst das Textfeld
 });
 
 test('STAPP-Wunschoberfläche passt vom Öffnen bis zur nächsten Eingabe ihre native Höhe vollständig an',async t=>{
-  const {page,open,errors}=await setup(t,{surfaceK3:false});const surface=await open();
+  const {page,radio,open,errors}=await setup(t,{surfaceK3:false});const surface=await open();
   await surface.waitForFunction(()=>__overlayHostCalls.length>0);
   await surface.waitForFunction(()=>Math.abs(document.getElementById('wishes-panel').getBoundingClientRect().height-innerHeight)<=1);
   const initialHeight=await surface.evaluate(()=>innerHeight);
-  assert.ok(initialHeight<340,'Das normale Formular braucht keine leere Höhenreserve');
+  assert.ok(initialHeight<480,'Formular einschließlich Live-Status-Hinweis bleibt kompakt');
   await surface.locator('#wish-text').fill('Test im STAPP-Overlay');await surface.locator('#submit-wish').click();
-  await surface.locator('#wish-feedback.success').waitFor();
+  await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
   await surface.waitForFunction(()=>document.getElementById('wishes-panel').getBoundingClientRect().height<=innerHeight&&document.body.scrollHeight<=document.body.clientHeight+1);
   const calls=await surface.evaluate(()=>__overlayHostCalls);
   assert.ok(calls.length>0);assert.ok(calls.every(c=>c.method==='setSize'&&c.width>0&&c.height>0));
   assert.equal(await surface.locator('#wish-compose-open').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),true);
   const confirmationHeight=await surface.evaluate(()=>innerHeight);
-  assert.ok(confirmationHeight<initialHeight,'Die kurze Bestätigung verkleinert das Fenster');
+  assert.equal(await surface.locator('#wish-tracking').isVisible(),true);assert.equal(await surface.locator('#wish-feedback').isVisible(),false,'Kein Platz für eine doppelte Versandbestätigung');await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch im Blick',exact:true}).waitFor();await surface.waitForFunction(()=>Math.abs(document.getElementById('wishes-panel').getBoundingClientRect().height-innerHeight)<=1);assert.equal(await surface.evaluate(()=>innerHeight),confirmationHeight,'Der Quittungsablauf hinterlässt keine zusätzliche Fläche oder Höhensprünge');
   await surface.locator('#wish-compose-open').click();
   await surface.locator('#wish-text').fill('Langer Interpret und ausführlicher Titel '.repeat(8).slice(0,300));
   await surface.waitForFunction(h=>innerHeight>h&&document.body.scrollHeight<=innerHeight+1,confirmationHeight);
   assert.equal(await surface.locator('#wish-text').evaluate(n=>n.scrollHeight<=n.clientHeight+1),true);
-  assert.equal((await page.locator('#radio-frame').boundingBox()).height,160);assert.deepEqual(errors,[]);
+  await radio.waitForFunction(()=>innerHeight===Math.min(500,Math.max(160,Math.ceil(document.getElementById('radio-panel').getBoundingClientRect().height))+16+(parseFloat(getComputedStyle(document.getElementById('radio-deck')).marginTop)||0)));assert.equal((await page.locator('#radio-frame').boundingBox()).height,await radio.locator('#radio-panel').evaluate(n=>Math.min(500,Math.max(160,Math.ceil(n.getBoundingClientRect().height))+16+(parseFloat(getComputedStyle(document.getElementById('radio-deck')).marginTop)||0))));assert.deepEqual(errors,[]);
 });

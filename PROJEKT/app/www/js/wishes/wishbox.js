@@ -34,14 +34,14 @@ MischWerkUI.define('wishes', function (dependencies) {
     if (lastWish && sameWish(data, lastWish.data)) { submissionId = lastWish.submissionId; }
     lastWish = { submissionId: submissionId, data: { text: data.text } };
     wishPending = { submissionId: submissionId };
-    showWishFeedback('Wird gesendet …', false, true);
+    showWishFeedback('Dein Wunsch wird gesendet …', false, true);
     refreshControls();
     clearTimeout(wishTimer);
     wishTimer = setTimeout(function () {
       if (!wishPending || wishPending.submissionId !== submissionId) { return; }
       wishPending = null;
       refreshControls();
-      showWishFeedback('Noch keine Bestätigung. Bitte erneut prüfen.', true);
+      showWishFeedback('Noch keine Bestätigung. Prüfe die Verbindung und versuche es erneut.', true);
       commands.send('mw:refresh', {}, false);
     }, 15000);
     try { bridge.sendEvent('mw:wish.submit', { submissionId: submissionId, text: data.text }); }
@@ -49,7 +49,7 @@ MischWerkUI.define('wishes', function (dependencies) {
       wishPending = null;
       clearTimeout(wishTimer);
       refreshControls();
-      showWishFeedback('Senden nicht bestätigt. Bitte erneut prüfen.', true);
+      showWishFeedback('Der Versand wurde nicht bestätigt. Bitte versuche es erneut.', true);
     }
   }
   
@@ -85,11 +85,11 @@ MischWerkUI.define('wishes', function (dependencies) {
     var enabled = live && model.current().requestsEnabled;
     dom.el('wish-text').maxLength = limits.maxTextLength || 300;
     dom.el('wish-fields').disabled = !enabled || !!commands.pending() || !!wishPending;
-    dom.setText('wish-status', enabled ? '' : !model.current().requestsEnabled ? 'WUNSCHBOX DEAKTIVIERT' : 'VERBINDUNG FEHLT');
+    dom.setText('wish-status', enabled ? '' : !model.current().requestsEnabled ? 'Wunschbox geschlossen' : 'Verbindung unterbrochen');
     dom.el('wish-status').hidden = model.view !== 'wishes' || enabled;
     var hint = '';
     if (!live) { hint = 'Verbindung zum Channel unterbrochen. Bitte öffne MischWerk erneut.'; }
-    else if (!enabled) { hint = 'Wunschbox deaktiviert.'; }
+    else if (!enabled) { hint = 'Die Wunschbox ist gerade geschlossen.'; }
     dom.setText('wish-hint', hint);
     dom.el('wish-hint').hidden = !hint;
   
@@ -114,7 +114,7 @@ MischWerkUI.define('wishes', function (dependencies) {
       event.preventDefault();
       if (dom.el('wish-fields').disabled || !this.reportValidity()) { return; }
       var values = wishValues();
-      if (containsWishLink(values.text)) { showWishFeedback('Nur Interpret + Titel. Keine Links.', true); return; }
+      if (containsWishLink(values.text)) { showWishFeedback('Bitte gib deinen Musikwunsch ohne Links ein.', true); return; }
       submitWish(values);
     });
   

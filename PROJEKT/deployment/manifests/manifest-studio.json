@@ -1,11 +1,11 @@
 {
-  "version": "0.1.402",
-  "buildNumber": 402,
+  "version": "0.1.445",
+  "buildNumber": 445,
   "files": [
     {
       "path": "MischWerk/server/website/access.js",
-      "bytes": 4639,
-      "sha256": "2CF5FE7F5871DDA92196CF0A0C52D27C48CCE942B6B7D49515A7A5B8462D5AF8"
+      "bytes": 3255,
+      "sha256": "8071E12D38BAA5C4A0366656CC29081ED48DD57EE765ECA37CE9DBD7118F2484"
     },
     {
       "path": "MischWerk/server/android/signing.js",
@@ -69,13 +69,13 @@
     },
     {
       "path": "MischWerk/www/js/studio/markup.js",
-      "bytes": 6834,
-      "sha256": "0E89978D45AA5FB1E0B78EB9125CD8D4F19A94E5D5BDA7D89423985753A68104"
+      "bytes": 6725,
+      "sha256": "9D512912EC94E0908CDFDC14E87DD7F3C4BE66EE30EAFB7B6D901A7BB7972093"
     },
     {
       "path": "MischWerk/www/js/team/markup.js",
-      "bytes": 6784,
-      "sha256": "CAFFEFDC1340532F964DEDCD9E76C30D925F3A9662058EB41298141EF1E9F245"
+      "bytes": 6867,
+      "sha256": "5B67A22516F3CDF92CB2A08B5F25422726F02E7C3EC7334E5DD85559AF8E17D6"
     },
     {
       "path": "MischWerk/www/js/team/layout.js",
@@ -84,13 +84,13 @@
     },
     {
       "path": "MischWerk/www/js/studio/controls.js",
-      "bytes": 8199,
-      "sha256": "6C36A37F406287E4595FDB2C36F9C67E82717D94871E8A894C1CBA750E3C152B"
+      "bytes": 7854,
+      "sha256": "0B0B3AE1AA1CF483B19E930F4B15EC9D18BD755531B48750065367E8C41BEE44"
     },
     {
       "path": "MischWerk/www/js/studio/handover.js",
-      "bytes": 8819,
-      "sha256": "23ECD773771A52B37F89EF9A28295966FE1457C82BE888B66598FAB6C059476E"
+      "bytes": 8834,
+      "sha256": "AC8F4AB132B1C24FDBCF077B504E6F3D74A5DC025BFA3BE9D5F27865F5FA34CF"
     },
     {
       "path": "MischWerk/www/js/studio/workspace.js",
@@ -99,28 +99,28 @@
     },
     {
       "path": "MischWerk/www/js/studio/reader.js",
-      "bytes": 3331,
-      "sha256": "C6005EC3BB9B14DB024050E414CBFA97A68FA8B52CF2F0D30BF74E7412C76667"
+      "bytes": 6604,
+      "sha256": "3D27BBE1D7D1E9AB5833861AB5AD64D2F8957C11CF21F8C2717B76D7D12A6CB4"
     },
     {
       "path": "MischWerk/www/js/studio/queue.js",
-      "bytes": 7391,
-      "sha256": "E4FFD95729B96BA3691C2E21B743DFA5B1695A78E874A5F49E69AE0CA96CB5AC"
+      "bytes": 8237,
+      "sha256": "8AC73872A197048A8EEC6EDC4CD4ADE18CD68E746DF9DC74D8C8D1EBC505DD7D"
     },
     {
       "path": "MischWerk/www/js/team/management.js",
-      "bytes": 8577,
-      "sha256": "0623AAFA1D44C2076BEEA591361180667F6EC8EBAA5FF79B32672FF0B1029508"
+      "bytes": 8595,
+      "sha256": "AEB60D91FC058468A574A7B95B7BDFB0DA5383684F3E9337A53A98434C0BF03D"
     },
     {
       "path": "MischWerk/www/js/team/channel-texts.js",
-      "bytes": 7685,
-      "sha256": "EE32C1687AB8AD14DF3E91ACF853231AAF466C94A3C12615B87F3C8C1C95C082"
+      "bytes": 7716,
+      "sha256": "484204CC76FB5E40983CFE0CB265BFCA7755475A3AFEAE102655435EE4B40484"
     },
     {
       "path": "MischWerk/www/js/operator/relay-settings.js",
-      "bytes": 8252,
-      "sha256": "BF89A4EA7686AD6A293E8B1E784D5170BBD3FACFBF09900A300AF9AF2B65D467"
+      "bytes": 8311,
+      "sha256": "2C6BF85B01494E47A39817A68FD25E05BDC6A96492D1C3358832AEFEDD49F9D7"
     },
     {
       "path": "MischWerk/www/js/team/navigation.js",
@@ -129,8 +129,8 @@
     },
     {
       "path": "MischWerk/www/css/studio/studio.css",
-      "bytes": 8699,
-      "sha256": "DE24F36A4479750443EEF79197AD3E14631D6F35F319C980C3CDEBC369F27E82"
+      "bytes": 8902,
+      "sha256": "7C5C881A607F35B594AF66C3EEC85140F64BEFAC30FAB69A4BEF6453B9A40453"
     },
     {
       "path": "MischWerk/www/css/studio/handover.css",

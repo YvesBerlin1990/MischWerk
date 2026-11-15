@@ -2,7 +2,7 @@
 MischWerkUI.define('queue', function (dependencies) {
   'use strict';
   var model=dependencies.model,dom=dependencies.dom,commands=dependencies.commands;
-  var signals=dependencies.signals,bridge=dependencies.bridge;
+  var signals=dependencies.signals,bridge=dependencies.bridge,actions=dependencies.actions;
   var rows=[],stamp=null,complete=null,pending=null,buffer=[],renderKey=null,attempts={},disposed=false,loadError=false;
   function requestText(item){
     return typeof item.text==='string'?item.text:
@@ -21,10 +21,13 @@ MischWerkUI.define('queue', function (dependencies) {
   }
   function draw(){
     var list=dom.el('request-queue'),body=dom.el('queue-body');
-    var key=JSON.stringify(rows.map(function(item){return [item.id,sender(item),item.createdAt,requestText(item)];}));
+    if(actions)actions.update(rows,complete===stamp&&!pending&&!loadError);
+    var key=JSON.stringify(rows.map(function(item){return [item.id,sender(item),item.createdAt,requestText(item),item.stage];}));
     if(key===renderKey)return;
     renderKey=key;
-    var scroll=body.scrollTop,old={};
+    var scroll=body.scrollTop,old={},focus=document.activeElement;
+    var focusedRow=focus&&focus.closest('[data-wish-id]');
+    var focusedId=focusedRow&&focusedRow.dataset.wishId,focusedAction=focus&&focus.dataset.queueAction;
     Array.from(list.children).forEach(function(node){old[node.dataset.wishId]=node;});
     var fragment=document.createDocumentFragment();
     rows.forEach(function(item){
@@ -43,7 +46,13 @@ MischWerkUI.define('queue', function (dependencies) {
       fragment.appendChild(row);
     });
     list.textContent='';list.appendChild(fragment);
-    if(!rows.length)list.appendChild(dom.element('p','empty-copy','Noch keine Musikwünsche eingegangen.'));
+    if(!rows.length)list.appendChild(dom.element('p','empty-copy','Hier erscheinen die eingegangenen Musikwünsche.'));
+    if(actions)actions.update(rows,complete===stamp&&!pending&&!loadError);
+    if(focusedId&&focusedAction){
+      var target=list.querySelector('[data-wish-id="'+focusedId+'"] [data-queue-action="'+focusedAction+'"]');
+      if(!target||target.hidden||target.disabled)target=list.querySelector('[data-wish-id="'+focusedId+'"] button:not([hidden]):not(:disabled)');
+      (target||dom.el('queue-heading')).focus({preventScroll:true});
+    }
     body.scrollTop=scroll;signals.emit('studio-layout');
   }
   function read(){
@@ -57,8 +66,9 @@ MischWerkUI.define('queue', function (dependencies) {
   }
   function failed(){
     loadError=true;
+    if(actions)actions.update(rows,false);
     pending=null;buffer=[];dom.el('queue-body').removeAttribute('aria-busy');
-    dom.el('queue-refresh-feedback').textContent='Liste nicht vollständig geladen. Bitte aktualisieren.';
+    dom.el('queue-refresh-feedback').textContent='Die Wunschliste ist unvollständig. Bitte aktualisieren.';
     dom.el('queue-refresh-feedback').classList.add('refresh-error');
   }
   function receive(event){
@@ -74,7 +84,7 @@ MischWerkUI.define('queue', function (dependencies) {
     if(data.next<data.total){read();return;}
     rows=buffer;buffer=[];complete=stamp;
     if(loadError){
-      dom.el('queue-refresh-feedback').textContent='In Eingangsreihenfolge';
+      dom.el('queue-refresh-feedback').textContent='Nach Eingang sortiert';
       dom.el('queue-refresh-feedback').classList.remove('refresh-error');loadError=false;
     }
     dom.el('queue-body').removeAttribute('aria-busy');draw();acknowledgeQueue();
@@ -95,6 +105,7 @@ MischWerkUI.define('queue', function (dependencies) {
     });
   }
   function clear(){
+    if(actions)actions.update([],false);
     rows=[];buffer=[];pending=null;stamp=null;complete=null;renderKey=null;attempts={};
     loadError=false;
     dom.el('request-queue').textContent='';dom.el('queue-body').removeAttribute('aria-busy');

@@ -74,9 +74,9 @@ MischWerkUI.define('layout', function (dependencies) {
     if (!state || (model.view !== 'studio' && model.view !== 'team')) { return; }
     var live = model.connected();
     dom.el('studio-connection').hidden = live;
-    dom.setText('studio-connection', live ? '' : 'Verbindung fehlt');
+    dom.setText('studio-connection', live ? '' : 'Verbindung unterbrochen');
     dom.el('studio-connection').classList.toggle('connection-lost', !live);
-    dom.el('studio-connection').title = live ? 'Channelverbindung bestätigt' : 'Verbindung fehlt – bitte aktualisieren';
+    dom.el('studio-connection').title = live ? 'Channelverbindung bestätigt' : 'Verbindung unterbrochen – bitte aktualisieren';
   }
   return { start:start, notify:notify, renderView:renderView, availability:availability,
     resizeDialog:resizeDialog, resizeBar:resizeBar };

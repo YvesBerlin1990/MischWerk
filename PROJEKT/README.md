@@ -1,6 +1,6 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.402 · Build 402 · Website 0.2.12** · Stand: 14.11.2026.
+**App 0.1.445 · Build 445 · Website 0.2.12** · Stand: 15.11.2026.
 
 MischWerk verbindet Radio, dauerhafte Musikwünsche, Moderation, Lauftext und Sendeplan in einer Knuddels-UserApp. Die eigenständige Website und der Android-Rückkanal verwenden die vorhandenen Appverträge.
 

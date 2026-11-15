@@ -1,8 +1,8 @@
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
  "schema": 1,
- "version": "0.1.402",
- "buildNumber": 402,
+ "version": "0.1.445",
+ "buildNumber": 445,
  "directories": {
   "": [
    "main.js",
@@ -136,6 +136,7 @@ if (typeof MischWerkUpdateProbe === 'function') {
   ],
   "www/js/radio": [
    "markup.js",
+   "workshop.js",
    "viewport.js",
    "metadata.js",
    "requests.js",
@@ -155,7 +156,8 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "feedback.js",
    "relay.js",
    "drawer.js",
-   "window.js"
+   "window.js",
+   "tracking.js"
   ],
   "www/js/studio": [
    "markup.js",
@@ -165,6 +167,7 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "workspace.js",
    "window.js",
    "reader.js",
+   "queue-actions.js",
    "queue.js"
   ],
   "www/js/team": [
@@ -193,14 +196,18 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "radio.css",
    "radio-actions.css",
    "radio-surface.css",
+   "halo.css",
+   "workshop.css",
    "metadata-layout.css",
-   "radio-responsive.css"
+   "radio-responsive.css",
+   "center-layout.css"
   ],
   "www/css/shared": [
    "foundation.css",
    "dialogs.css",
    "feedback.css",
-   "dialogs-responsive.css"
+   "dialogs-responsive.css",
+   "workshop-menus.css"
   ],
   "www/css/studio": [
    "studio.css",

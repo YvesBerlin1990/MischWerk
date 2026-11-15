@@ -8,14 +8,14 @@ Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderati
 [![Build](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FYvesBerlin1990%2FMischWerk%2Fmain%2FPROJEKT%2Fpackage.json&query=%24.buildNumber&label=Build&color=e6c77b&labelColor=141414)](../PROJEKT/package.json)
 [![Website-Version](https://img.shields.io/github/package-json/v/YvesBerlin1990/MischWerk/main?filename=PROJEKT%2Fwebsite%2Fpackage.json&label=Website&color=e6c77b&labelColor=141414)](../PROJEKT/website/README.md)
 
-**App 0.1.402 · Build 402 · Website 0.2.12** · Stand: 14. November 2026.
+**App 0.1.445 · Build 445 · Website 0.2.12** · Stand: 15. November 2026.
 
 ![Lokale Testansicht der Radioleiste](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
 
 ## Funktionen
 
 - **Radio:** Play/Stop, aktuelle Titel und Lautstärke mit Stummschaltung. Die Radioleiste öffnet automatisch; die Wiedergabe beginnt nach Play.
-- **Musikwünsche:** Ein freies Textfeld für den Wunsch. Für Hörer erscheint die Wunschbox bei angemeldeter Moderation und freigegebener Wunschannahme. Bestätigte offene Wünsche bleiben über Appupdates und Neustarts gespeichert.
+- **Musikwünsche:** Ein freies Textfeld für den Wunsch. Nach dem Absenden zeigt der persönliche Live-Status den bestätigten Platz und die Schritte der Moderation – auch in schmalen Ansichten. Für Hörer erscheint die Wunschbox bei angemeldeter Moderation und freigegebener Wunschannahme. Bestätigte offene Wünsche bleiben über Appupdates und Neustarts gespeichert.
 - **Moderation:** Native Anmeldung ohne persönliche PIN, Sendungsthema, Wunschliste und bestätigte Übergabe. Der Lauftext wird über `/lauftext` gepflegt.
 - **Sendeplan:** Öffentliche Tagesübersicht aus der Homepage mit Navigation durch vergangene, aktuelle und nächste Kalenderwoche. Die redaktionelle Planung erfolgt auf der Homepage.
 - **Verwaltung:** Radio-Team, Bot-Texte und Verbindungseinstellungen für den Channelinhaber über `/mw admin`.
@@ -26,6 +26,8 @@ Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderati
 | Schmale Radioleiste | Wunschbox | Verwaltung |
 | --- | --- | --- |
 | <img src="../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-schmal.png" alt="Radioleiste bei 320 Pixeln" width="240"> | <img src="../PROJEKT/docs/pruefung/oberflaeche/wunschbox/wunschbox-flach-320.png" alt="Wunschbox mit einem freien Textfeld" width="240"> | <img src="../PROJEKT/docs/pruefung/oberflaeche/verwaltung/verwaltung-verbindung-560.png" alt="Verbindungseinstellungen im Verwaltungsmenü" width="300"> |
+
+<img src="../PROJEKT/docs/pruefung/oberflaeche/wunschbox/wunschbox-nach-versand-320.png" alt="Persönlicher Live-Status nach dem Absenden" width="320">
 
 ![Tagesplan mit Sendung davor und danach](../PROJEKT/docs/pruefung/oberflaeche/sendeplan/sendeplan-tag-640.png)
 

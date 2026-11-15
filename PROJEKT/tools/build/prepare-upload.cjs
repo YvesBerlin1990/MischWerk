@@ -33,11 +33,11 @@ function createDelivery(project = root) {
   }
   for (const match of imports) {
     const file = match[1];
-    // Konfiguration separat prüfbar halten; private Android-Dateien behalten ihre Manifestzuordnung.
-    if (file === 'config.js') { flushServer(); continue; }
+    // Einstieg, Konfiguration und private Website-Anmeldung bleiben eigenständige Module.
+    if (['config.js', 'core/composition.js', 'website/access.js'].includes(file)) { flushServer(); continue; }
     const candidate = [...serverGroup, file].map(backend).join('\n;\n');
     if (serverGroup.length && (candidate.length >= 9500 ||
-      file.startsWith('android/') !== serverGroup[0].startsWith('android/'))) flushServer();
+      path.posix.dirname(file) !== path.posix.dirname(serverGroup[0]))) flushServer();
     serverGroup.push(file);
   }
   flushServer();
@@ -72,7 +72,8 @@ function createDelivery(project = root) {
     }
     for (const file of files) {
       const candidate = [...group,file].map(read).join(separator);
-      if (group.length && (membership(group[0]) !== membership(file) || candidate.length >= 9500)) flush();
+      if (group.length && (path.posix.dirname(group[0]) !== path.posix.dirname(file) ||
+        membership(group[0]) !== membership(file) || candidate.length >= 9500)) flush();
       group.push(file);
     }
     flush();

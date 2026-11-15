@@ -94,6 +94,13 @@ test('Auslieferungsbündel erhalten alle vollständigen Module und ihre Reihenfo
     const sourceCSS = expected.filter(file => file.endsWith('.css'));
     assert.equal(scripts.map(delivered).join('\n;\n'), sourceJS.map(read).join('\n;\n'), 'JS unverändert: '+view);
     assert.equal(styles.map(delivered).join('\n'), sourceCSS.map(read).join('\n'), 'CSS unverändert: '+view);
+    for (const [loaded, sources] of [[scripts, sourceJS], [styles, sourceCSS]]) {
+      loaded.forEach((file, index) => {
+        const start = sources.indexOf(file), end = index + 1 < loaded.length ? sources.indexOf(loaded[index + 1]) : sources.length;
+        assert.ok(sources.slice(start, end).every(source => path.posix.dirname(source) === path.posix.dirname(file)),
+          'Browserbündel bleibt im Fachordner: ' + file);
+      });
+    }
     assert.ok(scripts.length < sourceJS.length, 'Weniger parserzeitige SDK-Skriptaufrufe: '+view);
     for (const file of [...scripts,...styles]) {
       required.add('www/'+file);
@@ -117,6 +124,14 @@ test('Serverbündel laden jedes vollständige Modul genau einmal in derselben Re
     ['server/app.js', ...imports.map(file => 'server/' + file)].sort());
   assert.ok(imports.length < modules.length - 1, 'Weniger execute-Aufrufe');
   assert.ok(delivery.get('server/config.js').equals(Buffer.from(read('config.js'))), 'Konfiguration separat erhalten');
+  imports.forEach((file, index) => {
+    const start = modules.indexOf(file), end = modules.indexOf(imports[index + 1] || 'app.js');
+    assert.ok(modules.slice(start, end).every(source => path.posix.dirname(source) === path.posix.dirname(file)),
+      'Serverbündel bleibt im Fachordner: ' + file);
+  });
+  for (const file of ['core/composition.js', 'website/access.js']) {
+    assert.equal(delivery.get('server/' + file).toString('utf8'), read(file), 'Eigenständige Verdrahtung/Anmeldung: ' + file);
+  }
   const { createHarness } = require('../support/knuddels.cjs');
   const appDir = path.join(f.upload, 'MischWerk'), h = createHarness(undefined, { appDir });
   assert.deepEqual(h.loadedFiles, ['main.js', 'server/app.js', ...imports.map(file => 'server/' + file)]);

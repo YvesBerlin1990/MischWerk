@@ -124,7 +124,7 @@ test('Bestätigte Übergabe im Browser: Auswahl, Warten, Annahme mit Thema und g
   await reveal(target,'#handover-accept','handover');await target.locator('#handover-accept').click();
   await target.locator('#handover-panel').waitFor({state:'hidden'});
   await reveal(target,'#off-air');await target.locator('#off-air:not([disabled])').waitFor();
-  await source.locator('#studio-host').filter({ hasText: 'Nächster DJ ist am Mikrofon' }).waitFor();
+  await source.locator('#studio-host').filter({ hasText: 'Nächster DJ moderiert' }).waitFor();
   assert.equal(await target.locator('#studio-topic').inputValue(), 'Die nächste Sendung');
   assert.equal(await target.locator('#handover-panel').isVisible(), false);
   assert.equal(h.bot.messages.at(-1), '🎙️ Otterchen macht Platz im Studio – Nächster DJ ist jetzt live ON AIR bei Radio MischWerk!');

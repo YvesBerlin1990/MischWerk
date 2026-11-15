@@ -35,9 +35,9 @@ MischWerkUI.define('channelTexts', function (dependencies) {
       option.value = String(index); picker.appendChild(option);
       var row = dom.element('div', 'channel-texts-entry'), heading = dom.element('div', 'channel-texts-entry-heading');
       row.hidden = index !== textIndex;
-      var label = dom.element('label', '', 'Nachricht'), field = dom.element('textarea');
+      var label = dom.element('label', '', 'Nachrichtentext'), field = dom.element('textarea');
       field.id = 'channel-text-entry-' + (++sequence); field.maxLength = 300; field.rows = 2; field.value = text;
-      field.placeholder = 'Deine Nachricht …'; label.htmlFor = field.id;
+      field.placeholder = 'Text für den Channel eingeben …'; label.htmlFor = field.id;
       var counter = dom.element('span', 'channel-texts-counter', text.length + ' / 300');
       counter.id = field.id + '-count'; field.setAttribute('aria-describedby', counter.id);
       var remove = dom.element('button', 'channel-texts-remove', 'Entfernen'); remove.type = 'button';
@@ -63,9 +63,9 @@ MischWerkUI.define('channelTexts', function (dependencies) {
     saved = data;
     if (!dirty && revision !== data.revision) { fill(data); revision = data.revision; }
     if (dirty && revision === null) { revision = data.revision; }
-    dom.setText('channel-texts-status', data.enabled ? 'Ein · alle ' + data.interval + ' Minuten' : 'Automatisches Senden ist aus.');
+    dom.setText('channel-texts-status', data.enabled ? 'Aktiv · alle ' + data.interval + ' Minuten' : 'Automatischer Versand ist aus.');
     if (dirty && revision !== data.revision) {
-      dom.setText('channel-texts-feedback', 'Es gibt neuere Texte. Lade sie zuerst. Dein Entwurf bleibt bis dahin erhalten.');
+      dom.setText('channel-texts-feedback', 'Texte wurden geändert. Lade den neuen Stand. Bis dahin bleibt dein Entwurf erhalten.');
     }
     availability();
   }

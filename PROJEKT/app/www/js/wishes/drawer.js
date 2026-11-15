@@ -55,10 +55,11 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
     feedback.className = 'wish-feedback' + (data.error ? ' error' : data.pending ? ' pending' : ' success');
     feedback.setAttribute('role', data.error ? 'alert' : 'status');
     feedback.setAttribute('aria-live', data.error ? 'assertive' : 'polite');
-    feedback.textContent = data.feedback; feedback.hidden = data.feedbackHidden;
+    feedback.textContent = data.feedback; feedback.hidden = data.feedbackHidden || (!data.error && !data.pending);
+    feedback.setAttribute('data-accepted', String(!data.feedbackHidden && !data.error && !data.pending));
     dom.setText('wish-hint', data.hint); dom.el('wish-hint').hidden = !data.hint;
     receiving = false;
-    showComposer(data);
+    showComposer(data);signals.emit('wish-presentation');
     focusInput();
     if (closing && acknowledged >= sequence) { clearTimeout(closeTimer); closing = false; signals.emit('overlay-dismiss'); }
   }
@@ -73,7 +74,7 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
     if (acknowledged >= sequence) { closing = false; signals.emit('overlay-dismiss'); }
     else {
       closing = true;
-      dom.setText('wish-hint', 'Deine Eingabe wird noch übernommen …'); dom.el('wish-hint').hidden = false;
+      dom.setText('wish-hint', 'Deine Eingabe wird übernommen …'); dom.el('wish-hint').hidden = false;
       clearTimeout(closeTimer);
       closeTimer = setTimeout(function () {
         dom.setText('wish-hint', 'Die Verbindung antwortet noch nicht. Deine Eingabe bleibt hier erhalten.');
@@ -109,6 +110,7 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
       event.preventDefault(); if (this.reportValidity()) { edit(true); }
     });
     dom.el('close-wishes').addEventListener('click', close);
+    dom.el('wish-back-radio').addEventListener('click', close);
     document.addEventListener('keydown', function (event) {
       if (model.view === 'wishes' && event.key === 'Escape') { event.preventDefault(); close(); }
     });

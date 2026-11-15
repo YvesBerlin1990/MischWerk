@@ -26,12 +26,8 @@ MischWerkUI.define('studio', function (dependencies) {
   function availability() {
     if (!model.current()) { return; }
     var live = model.connected();
-    dom.setText('studio-schedule-note', model.current().scheduleSyncPending ?
-      'Moderation bestätigt. Der Sendeplaneintrag steht noch aus. Bitte die Moderation erneut öffnen.' :
-      'Im Sendeplan automatisch vermerkt.');
-    dom.el('studio-schedule-note').classList.toggle('error', !!model.current().scheduleSyncPending);
     document.body.classList.toggle('moderator-on-air', live && !!model.current().moderator);
-    dom.setText('studio-host', !live ? 'Moderation unbestätigt' : model.current().moderator ? model.current().moderator.nick + ' ist am Mikrofon' : 'Keine Moderation angemeldet');
+    dom.setText('studio-host', !live ? 'Status nicht verfügbar' : model.current().moderator ? model.current().moderator.nick + ' moderiert' : 'Noch keine Moderation');
     var limits = model.current().limits || { maxTopicLength: 80 };
     dom.el('studio-topic').disabled = !live || !!commands.pending() || !model.current().user.canUseModeration;
     dom.el('studio-topic').maxLength = limits.maxTopicLength || 80;
@@ -50,7 +46,7 @@ MischWerkUI.define('studio', function (dependencies) {
     dom.setText('on-air', 'Anmelden');
     dom.setText('off-air', model.current().moderator && !model.current().user.isOnAir ? 'Moderation beenden' : 'Abmelden');
     dom.el('on-air').title = 'Als Moderation anmelden';
-    dom.el('off-air').title = !model.current().moderator ? 'Keine Moderation angemeldet' : model.current().user.canEndModeration ? 'Studio-Anmeldung beenden' : 'Nur aktive Moderation oder Channel-Besitzer dürfen abmelden';
+    dom.el('off-air').title = !model.current().moderator ? 'Noch keine Moderation' : model.current().user.canEndModeration ? 'Studio-Anmeldung beenden' : 'Nur aktive Moderation oder Channel-Besitzer dürfen abmelden';
     var requestsPending = commands.pending('mw:setRequests');
     if (!model.current().user.canToggleRequests) { requestsError = ''; }
     dom.el('toggle-wishes').setAttribute('aria-busy', String(requestsPending));
@@ -62,8 +58,8 @@ MischWerkUI.define('studio', function (dependencies) {
     status.setAttribute('role', error ? 'alert' : 'status');
     status.setAttribute('aria-live', error ? 'assertive' : 'polite');
     dom.setText('studio-wish-state', requestsPending ? 'Änderung wird gespeichert …' : error ? requestsError :
-      !live ? 'Verbindung fehlt' : model.current().requestsEnabled ?
-      (model.current().moderator ? 'Musikwünsche sind offen' : 'Nur für den Channelinhaber geöffnet') : 'Musikwünsche sind geschlossen');
+      !live ? 'Verbindung unterbrochen' : model.current().requestsEnabled ?
+      (model.current().moderator ? 'Musikwünsche geöffnet' : 'Nur für dich als Channelinhaber geöffnet.') : 'Musikwünsche pausiert');
   
   }
   function start() {
