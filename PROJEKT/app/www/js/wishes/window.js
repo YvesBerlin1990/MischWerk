@@ -24,6 +24,7 @@ MischWerkUI.define('wishWindow', function (dependencies) {
     observer = new ResizeObserver(schedule);
     observer.observe(dom.el('wishes-panel'));
     signals.on('initial-layout', schedule);
+    signals.on('dialog-layout', schedule);
     window.addEventListener('resize', schedule);
     document.addEventListener('visibilitychange', schedule);
     window.addEventListener('pagehide', function () {

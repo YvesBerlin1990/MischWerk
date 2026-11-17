@@ -5,9 +5,15 @@ MischWerkUI.define('model', function (dependencies) {
   var signals = dependencies.signals;
   var state = null;
   var lastStateAt = 0;
+  var showDeadline = 0;
+  var positionsDeadline = 0;
+  var rosterDeadline = 0;
+  function broadcastFresh() { return connected() && Date.now() >= lastStateAt && Date.now() < showDeadline; }
+  function positionsFresh() { return connected() && Date.now() >= lastStateAt && Date.now() < positionsDeadline; }
+  function rosterFresh() { return connected() && Date.now() >= lastStateAt && Date.now() < rosterDeadline; }
   var retiredWishGenerations = [];
   var initialView = bridge && bridge.pageData && bridge.pageData.view;
-  var view = initialView === 'wishes' || initialView === 'studio' || initialView === 'team' || initialView === 'schedule' ? initialView : 'radio';
+  var view = initialView === 'wishes' || initialView === 'team' || initialView === 'schedule' ? initialView : 'radio';
   document.documentElement.setAttribute('data-view', view);
   function connected() { return !!state && Date.now() - lastStateAt < 65000 && !state.shuttingDown; }
   
@@ -19,10 +25,12 @@ MischWerkUI.define('model', function (dependencies) {
     var oldStation = state && JSON.stringify(state.station);
     var previousPositions = state && state.wishPositions;
     var nextPositions = next.wishPositions;
+    var stalePositions = false;
     if (previousPositions && nextPositions) {
       if (retiredWishGenerations.indexOf(nextPositions.generation) !== -1 ||
           (previousPositions.generation === nextPositions.generation && nextPositions.revision < previousPositions.revision)) {
         next.wishPositions = previousPositions;
+        stalePositions = true;
         next.queue = next.user.canUseModeration === true ? state.queue : []; next.queueTotal = next.user.canUseModeration === true ? state.queueTotal : 0;
         next.queueWindow = next.user.canUseModeration === true ? state.queueWindow : []; next.queueStart = next.user.canUseModeration === true ? state.queueStart : 0;
         next.page = next.user.canUseModeration === true ? state.page : 0; next.pages = next.user.canUseModeration === true ? state.pages : 1;
@@ -32,7 +40,8 @@ MischWerkUI.define('model', function (dependencies) {
       }
     }
     next.radioModerators = Array.isArray(next.radioModerators) ? next.radioModerators : [];
-    next.radioModeratorTotal = typeof next.radioModeratorTotal === 'number' ? next.radioModeratorTotal : next.radioModerators.length;
+    next.radioModeratorsConfirmed = next.radioModeratorsConfirmed === true;
+    next.radioModeratorTotal = next.radioModeratorsConfirmed && typeof next.radioModeratorTotal === 'number' ? next.radioModeratorTotal : null;
     next.radioModeratorPage = typeof next.radioModeratorPage === 'number' ? next.radioModeratorPage : 0;
     next.radioModeratorPages = typeof next.radioModeratorPages === 'number' ? next.radioModeratorPages : 1;
     next.radioModeratorRevision = typeof next.radioModeratorRevision === 'number' ? next.radioModeratorRevision : 0;
@@ -42,9 +51,16 @@ MischWerkUI.define('model', function (dependencies) {
     next.user.canToggleRequests = next.user.canToggleRequests === true;
     next.user.canManageRadioModerators = next.user.canManageRadioModerators === true;
     state = next; lastStateAt = Date.now();
+    showDeadline = lastStateAt + Math.max(0, Math.min(45000, Number(next.broadcastRemainingMs) || 0));
+    rosterDeadline = next.radioModeratorsConfirmed ? lastStateAt + Math.max(0, Math.min(45000, Number(next.radioModeratorsRemainingMs) || 0)) : 0;
+    if (!stalePositions) {
+      positionsDeadline = lastStateAt + Math.max(0, Math.min(45000,
+        next.wishPositions && next.wishPositions.remainingMs === undefined ? 45000 : Number(next.wishPositions && next.wishPositions.remainingMs) || 0));
+    }
     signals.emit('snapshot', { previousStation: oldStation, refreshRequestId: next.refreshRequestId });
   }
   
-  var model = { view:view, current: function () { return state; }, connected: connected, receive: receive };
+  var model = { view:view, current: function () { return state; }, connected: connected, broadcastFresh:broadcastFresh,
+    positionsFresh:positionsFresh, rosterFresh:rosterFresh, receive: receive };
   return model;
 });

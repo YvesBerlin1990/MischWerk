@@ -20,8 +20,8 @@ MischWerkModules.attachSessions = function (runtime, config) {
     runtime.overlayDraftState = function (user, radio, kind) {
         if (!radio || !radio.overlayDrafts) { return null; }
         var drafts = radio.overlayDrafts;
-        if (!runtime.isModerator(user)) { delete drafts.studio; }
-        if (!runtime.canAdminister(user)) { delete drafts.team; }
+        delete drafts.studio;
+        if (!runtime.canUseAdministration(user)) { delete drafts.team; }
         return drafts[kind] || null;
     };
     function selection(opening, kind) {
@@ -29,20 +29,15 @@ MischWerkModules.attachSessions = function (runtime, config) {
         return radio && radio.overlaySelections && radio.overlaySelections[kind] || {};
     }
     function prepareView(user, kind, opening) {
-        if (['radio', 'wishes', 'studio', 'team', 'schedule'].indexOf(kind) === -1) { throw runtime.failure('Diese Ansicht ist nicht verfügbar.'); }
+        if (['radio', 'wishes', 'team', 'schedule'].indexOf(kind) === -1) { throw runtime.failure('Diese Ansicht ist nicht verfügbar.'); }
         if (!runtime.online(user)) { throw runtime.failure('Bitte öffne MischWerk im MyChannel.'); }
         if (kind !== 'radio' && (!opening || !opening.radioContent || !views.some(function (view) {
             return view.kind === 'radio' && view.userId === runtime.userId(user) && view.content === opening.radioContent && view.content.getSessions().length;
         }))) { throw runtime.failure('Bitte öffne die Ansicht in der Radioleiste.'); }
         runtime.load(); runtime.loadWishes();
-        if (kind === 'studio' && !runtime.isModerator(user)) { throw runtime.failure('Nur die Radio-Moderation darf das Moderationsmenü öffnen.'); }
-        if (kind === 'team' && !runtime.canAdminister(user)) { throw runtime.failure('Nur Otterchen als Channelinhaber darf die Verwaltung öffnen.'); }
-        runtime.prune();
+        if (kind === 'team' && !runtime.canUseAdministration(user)) { throw runtime.failure('Die Verwaltung ist nur für Otterchen als Channelinhaber und Polaroid verfügbar.'); }
         if (kind === 'wishes' && !runtime.requestsAvailable(user)) { throw runtime.failure('Die Wunschbox ist deaktiviert.'); }
         var selected = selection(opening, kind), page = selected.page || 0;
-        if (kind === 'studio' && selected.queueId) {
-            runtime.wishItems().some(function (item, index) { if (item.id !== selected.queueId) { return false; } page = Math.floor(index / runtime.pageSize); return true; });
-        }
         var data = runtime.snapshot(user, page, selected.myPage || 0, selected.feedbackId || null, selected.radioModeratorPage || 0, kind);
         delete data.user.pinSetupRequired;
         data.view = kind; data.overlay = kind !== 'radio';
@@ -99,7 +94,7 @@ MischWerkModules.attachSessions = function (runtime, config) {
             if (entry.transition && entry.transition.cancel) { entry.transition.cancel(); }
             if (entry.radioContent) {
                 var radio = views.filter(function (view) { return view.content === entry.radioContent; })[0];
-                if (radio && (closedKind !== 'studio' || runtime.isModerator(user)) && (closedKind !== 'team' || runtime.canAdminister(user))) {
+                if (radio && (closedKind !== 'team' || runtime.canUseAdministration(user))) {
                     if (!radio.overlaySelections) { radio.overlaySelections = {}; }
                     radio.overlaySelections[closedKind] = { page:entry.page, myPage:entry.myPage, queueId:entry.queueId, radioModeratorPage:entry.radioModeratorPage };
                 }

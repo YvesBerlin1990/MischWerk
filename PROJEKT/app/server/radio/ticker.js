@@ -12,7 +12,7 @@ MischWerkModules.attachTicker = function (runtime) {
                 Math.floor(value.revision) === value.revision ? value.revision : 0 };
     };
     runtime.changeTicker = function (user, data) {
-        if (!runtime.isModerator(user)) { throw runtime.failure('Nur Radiomoderatoren dürfen den Lauftext ändern.'); }
+        if (runtime.shuttingDown || !runtime.canUseAdministration(user)) { throw runtime.failure('Keine Berechtigung für die Lauftextverwaltung.'); }
         if (typeof data.requestId !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(data.requestId) ||
                 typeof data.enabled !== 'boolean' || [32, 48, 72].indexOf(data.speed) === -1 ||
                 ['left', 'right'].indexOf(data.direction) === -1) {

@@ -5,12 +5,12 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { parseArgs } = require('node:util');
 const { chromium } = require('playwright');
-const { createEmulator } = require('../emulator/server.cjs');
+const { createNativeTestLab } = require('../../tests/support/native-lab/server.cjs');
 async function measureStartup(appDir, { delay = 0, runs = 3 } = {}) {
   assert.ok(Number.isInteger(delay) && delay >= 0 && delay <= 10000);
   assert.ok(Number.isInteger(runs) && runs > 0 && runs <= 10);
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'MischWerk-Startmessung-'));
-  const lab = await createEmulator({ appDir, port:0, dataDir:directory });
+  const lab = await createNativeTestLab({ appDir, port:0, dataDir:directory });
   lab.hub.faults.resourceDelayMs = delay;
   const browser = await chromium.launch({ headless:true, channel:'msedge', args:['--mute-audio'] });
   const results = [];

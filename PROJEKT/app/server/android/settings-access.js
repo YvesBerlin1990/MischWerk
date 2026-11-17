@@ -2,12 +2,12 @@
 MischWerkModules.attachAndroidSettingsAccess = function (runtime) {
     'use strict';
     runtime.canUseAndroidSettings = function (user, entry, session) {
-        return !runtime.shuttingDown && runtime.isChannelOwner(user) && entry && (!entry.embedded || runtime.canAdminister(user)) &&
+        return !runtime.shuttingDown && entry && (entry.embedded ? runtime.canUseAdministration(user) : runtime.isChannelOwner(user)) &&
             entry.userId === runtime.userId(user) && runtime.activeSession(user, session) &&
             session.getAppContent() === entry.content && runtime.now() < entry.expires;
     };
     runtime.administrationSettingsEntry = function (user, session) {
-        if (runtime.shuttingDown || !runtime.canAdminister(user) || !runtime.activeSession(user, session)) { return null; }
+        if (runtime.shuttingDown || !runtime.canUseAdministration(user) || !runtime.activeSession(user, session)) { return null; }
         var view = runtime.getViews().filter(function (item) {
             return item.kind === 'team' && item.userId === runtime.userId(user) && item.content === session.getAppContent();
         })[0];

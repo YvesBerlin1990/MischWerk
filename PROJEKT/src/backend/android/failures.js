@@ -4,7 +4,8 @@ MischWerkModules.attachAndroidFailures = function (runtime) {
     var last = null;
     runtime.recordAndroidFailure = function (stage, status) {
         if (['prepare', 'send', 'timeout', 'http_response', 'response_url', 'response_size',
-                'response_json', 'response_contract', 'command_storage'].indexOf(stage) < 0) { return; }
+                'response_json', 'response_contract', 'contract_version', 'http_status', 'response_receipts',
+                'response_migration', 'response_projection', 'response_events', 'command_storage'].indexOf(stage) < 0) { return; }
         var now = runtime.now();
         if (typeof now !== 'number' || !isFinite(now) || Math.abs(now) > 8640000000000000) { return; }
         last = { stage: stage, httpStatus: typeof status === 'number' && isFinite(status) &&

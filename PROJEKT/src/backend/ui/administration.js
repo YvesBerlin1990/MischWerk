@@ -4,8 +4,8 @@ MischWerkModules.attachAdministration = function (runtime) {
     runtime.administrationCommand = function (user, params) {
         try {
             if (!runtime.online(user)) { throw runtime.failure('Bitte verwende /mw admin im MischWerk-Channel.'); }
-            if (!runtime.canAdminister(user)) {
-                throw runtime.failure('Nur Otterchen als Channelinhaber darf die Verwaltung öffnen.');
+            if (!runtime.canUseAdministration(user)) {
+                throw runtime.failure('Die Verwaltung ist nur für Otterchen als Channelinhaber und Polaroid verfügbar.');
             }
             var command = String(params || '').replace(/^\s+|\s+$/g, '').toLowerCase();
             if (command !== 'admin') {

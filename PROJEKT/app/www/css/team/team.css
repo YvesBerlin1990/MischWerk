@@ -80,3 +80,6 @@ html[data-view=team] #team-access-denied { align-self:flex-start; margin:16px 20
  .team-list-heading { flex-wrap:wrap; }
  #team-refresh-feedback { order:3; flex-basis:100%; max-width:none; }
 }
+
+.native-settings { display:grid; gap:8px; padding:0 0 16px; margin-bottom:16px; border-bottom:1px solid var(--line); }
+.native-settings textarea { width:100%; resize:none; }

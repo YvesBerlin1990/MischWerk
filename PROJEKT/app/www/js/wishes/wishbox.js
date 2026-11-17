@@ -82,7 +82,7 @@ MischWerkUI.define('wishes', function (dependencies) {
     if (!model.current()) { return; }
     var live = model.connected();
     var limits = model.current().limits || { maxTextLength: 300 };
-    var enabled = live && model.current().requestsEnabled;
+    var enabled = live && model.broadcastFresh() && model.current().requestsEnabled;
     dom.el('wish-text').maxLength = limits.maxTextLength || 300;
     dom.el('wish-fields').disabled = !enabled || !!commands.pending() || !!wishPending;
     dom.setText('wish-status', enabled ? '' : !model.current().requestsEnabled ? 'Wunschbox geschlossen' : 'Verbindung unterbrochen');
@@ -97,6 +97,7 @@ MischWerkUI.define('wishes', function (dependencies) {
   function receipt(event) {
       var receipt = event.data || {};
       if (!lastWish || receipt.submissionId !== lastWish.submissionId) { return; }
+      if (receipt.pending === true) { showWishFeedback(receipt.message, false, true); return; }
       if (wishPending && wishPending.submissionId === receipt.submissionId) { wishPending = null; }
       clearTimeout(wishTimer);
       if (receipt.accepted) {

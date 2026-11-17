@@ -13,24 +13,22 @@ MischWerkModules.createApp = function (config, androidWire) {
     MischWerkModules.attachPinConstants1(runtime);
     MischWerkModules.attachPinConstants2(runtime);
     MischWerkModules.attachPinBcrypt(runtime);
-    MischWerkModules.attachPinWork(runtime);
-    MischWerkModules.attachModerationPin(runtime);
     MischWerkModules.attachModeration(runtime, config);
     MischWerkModules.attachStudioAnnouncements(runtime);
     MischWerkModules.attachTicker(runtime);
-    MischWerkModules.attachTickerCommand(runtime);
+    MischWerkModules.attachDisplaySettings(runtime);
     MischWerkModules.attachUserGreetings(runtime);
     MischWerkModules.attachChannelTextFormat(runtime);
     MischWerkModules.attachChannelTextStorage(runtime);
     MischWerkModules.attachChannelTextSmileys(runtime);
     MischWerkModules.attachChannelTextScheduler(runtime);
     MischWerkModules.attachChannelTextTransport(runtime);
-    MischWerkModules.attachHandover(runtime);
     MischWerkModules.attachStateInitialization(runtime, config);
-    MischWerkModules.attachShow(runtime, config);
     MischWerkModules.attachWishExportState(runtime);
     MischWerkModules.attachWishControlState(runtime);
     MischWerkModules.attachWishStorage(runtime);
+    MischWerkModules.attachNativeMigration(runtime);
+    MischWerkModules.attachMigrationTransport(runtime);
     MischWerkModules.attachWishQueue(runtime, config);
     MischWerkModules.attachWishTransport(runtime, config);
     MischWerkModules.attachScheduleCalendar(runtime);
@@ -42,7 +40,6 @@ MischWerkModules.createApp = function (config, androidWire) {
     MischWerkModules.attachPublicScheduleData(runtime);
     MischWerkModules.attachPublicSchedule(runtime);
     MischWerkModules.attachScheduleDay(runtime);
-    MischWerkModules.attachScheduleBroadcasts(runtime);
     MischWerkModules.attachScheduleTransport(runtime);
     MischWerkModules.attachSnapshot(runtime, config);
     MischWerkModules.attachSessionState(runtime);
@@ -56,29 +53,25 @@ MischWerkModules.createApp = function (config, androidWire) {
     MischWerkModules.attachAdministration(runtime);
     MischWerkModules.attachMaintenance(runtime, config);
     MischWerkModules.attachChannelTextSettings(runtime);
-    MischWerkModules.attachWebsiteWishes(runtime);
-    MischWerkModules.attachWebsiteAccess(runtime);
     MischWerkModules.attachWebsitePublic(runtime, config);
-    MischWerkModules.attachWebsiteCommands(runtime);
     MischWerkModules.attachWebsiteTransport(runtime);
     MischWerkModules.attachAndroidSigning(runtime);
+    MischWerkModules.attachReceivedBroadcast(runtime);
+    MischWerkModules.attachNativeWishState(runtime);
+    MischWerkModules.attachNativeWishPositions(runtime);
+    MischWerkModules.attachNativeTransport(runtime);
     MischWerkModules.attachAndroidFailures(runtime);
     MischWerkModules.attachAndroidConnection(runtime);
     MischWerkModules.attachAndroidDiagnostics(runtime, config);
     MischWerkModules.attachAndroidSettingsAccess(runtime);
     MischWerkModules.attachAndroidSettings(runtime, config);
-    MischWerkModules.attachAndroidReceipts(runtime);
     MischWerkModules.attachAndroidIncoming(runtime);
-    MischWerkModules.attachAndroidStudioWishes(runtime);
-    MischWerkModules.attachStudioWishControl(runtime);
-    MischWerkModules.attachStudioWishCommands(runtime);
-    MischWerkModules.attachRelayProjection(runtime);
-    MischWerkModules.attachRelayCommands(runtime);
     MischWerkModules.attachAndroidPublisher(runtime);
     MischWerkModules.attachAndroidVerification(runtime, config);
     MischWerkModules.attachAndroidRelay(runtime, androidWire);
     MischWerkModules.attachAndroidOperation(runtime, config);
     MischWerkModules.attachLifecycle(runtime, config);
+    runtime.observeChanges(function(kind) { if (kind === 'station') { runtime.broadcast(); } });
     MischWerkModules.attachEvents(runtime, config);
     MischWerkModules.attachChatCommands(runtime);
     return {
@@ -90,7 +83,6 @@ MischWerkModules.createApp = function (config, androidWire) {
         onUserDeleted: runtime.userDeleted,
         onEventReceived: runtime.handleEvent,
         onPrivateMessage: runtime.receiveChannelSmiley,
-        chatCommands: { mw: runtime.chatCommand, update: runtime.requestUpdate,
-            lauftext: runtime.tickerCommand, settopic: runtime.setTopicCommand }
+        chatCommands: { mw: runtime.chatCommand, update: runtime.requestUpdate, settopic: runtime.setTopicCommand }
     };
 };

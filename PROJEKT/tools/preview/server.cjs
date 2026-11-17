@@ -28,8 +28,9 @@ const server = http.createServer(async (req, res) => {
   try {
     if (!/^(127\.0\.0\.1|localhost|\[::1\])(?::\d+)?$/.test(req.headers.host || '')) { respond(res, 403, 'text/plain', 'Local host required'); return; }
     const currentTime = Date.now();
-    for (const item of runtimes.values()) { item.harness.advance(currentTime - item.clockAt); item.clockAt = currentTime; }
-    const url = new URL(req.url, 'http://127.0.0.1');    if (req.method === 'POST' && ['/api/event', '/api/command'].includes(url.pathname)) {
+    for (const item of runtimes.values()) { item.harness.advance(currentTime - item.clockAt); item.clockAt = currentTime; item.completeSynthetic(); }
+    const url = new URL(req.url, 'http://127.0.0.1');
+    if (req.method === 'POST' && ['/api/event', '/api/command'].includes(url.pathname)) {
       if (req.headers.origin && req.headers.origin !== 'http://' + req.headers.host) { respond(res, 403, 'text/plain', 'Local origin required'); return; }
       let body = ''; for await (const chunk of req) { body += chunk; if (body.length > 12000) { respond(res, 413, 'text/plain', 'Too large'); return; } }
       let data;
@@ -40,9 +41,9 @@ const server = http.createServer(async (req, res) => {
       connection.touchedAt = Date.now();
       if (connection.runtime.publicRadio && (url.pathname === '/api/command' || !['mw:ready', 'mw:refresh'].includes(data.type))) { respond(res, 403, 'text/plain', 'Im Hörmodus ist nur der Player verfügbar.'); return; }
       if (url.pathname === '/api/command') {
-        if (data.command !== 'lauftext' || typeof data.params !== 'string') { respond(res, 400, 'text/plain', 'Invalid command'); return; }
+        if (data.command !== 'mw' || typeof data.params !== 'string') { respond(res, 400, 'text/plain', 'Invalid command'); return; }
         connection.runtime.harness.app.chatCommands[data.command](connection.user, data.params);
-      } else { connection.runtime.harness.event(connection.user, connection.session, data.type, data.data); }
+      } else { connection.runtime.harness.event(connection.user, connection.session, data.type, data.data); connection.runtime.completeSynthetic(); }
       respond(res, 200, 'application/json', JSON.stringify(drain(connection.session))); return;
     }
     if (req.method !== 'GET') { respond(res, 405, 'text/plain', 'Method not allowed'); return; }
@@ -53,7 +54,8 @@ const server = http.createServer(async (req, res) => {
       respond(res, 200, 'application/json', JSON.stringify(drain(connection.session))); return;
     }
     if (url.pathname === '/preview') {
-      const view = ['wishes', 'studio', 'team', 'schedule'].includes(url.searchParams.get('view')) ? url.searchParams.get('view') : 'radio';
+      if(url.searchParams.get('view')==='studio'){respond(res,403,'text/plain','Moderation erfolgt im Live Studio.');return;}
+      const view = ['wishes', 'team', 'schedule'].includes(url.searchParams.get('view')) ? url.searchParams.get('view') : 'radio';
       const sourceId = url.searchParams.get('sourceSession');
       const source = sourceId && sessions.get(sourceId);
       if (sourceId && (!source || source.session.removed)) { respond(res, 404, 'text/plain', 'Demo-Sitzung abgelaufen'); return; }

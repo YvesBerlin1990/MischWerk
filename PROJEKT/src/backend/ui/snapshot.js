@@ -1,72 +1,59 @@
-/* Berechtigte Ansichtsmodelle fuer Hoerer und Studio. */
-MischWerkModules.attachSnapshot = function (runtime, config) {
+/* Native Ansichtsmodelle mit zentralem Senderstand und ausschließlich eigenen Wünschen. */
+MischWerkModules.attachSnapshot = function(runtime, config) {
     'use strict';
 
-    runtime.requestText = function (item) {
-        if (typeof item.text === 'string') { return item.text; }
-        // Bereits gespeicherte Wünsche aus dem früheren Formular bleiben lesbar.
-        return [item.artist, item.title].filter(function (part) { return !!part; }).join(' – ') +
-            (item.message ? ' · ' + item.message : '');
-    };
-
-    runtime.requestView = function (item) {
-        var external = item.source === 'Android', website = item.senderKey.indexOf('website:') === 0;
-        var origin = external ? item.origin || null : website ? 'web' : 'knuddels';
-        var name = external ? item.displayName === undefined ? null : item.displayName : website ? null : item.nick;
-        return { id: item.id, nick: external ? name || (origin === 'web' ? 'Web' : origin === 'android' ? 'Android' : 'Extern') : item.nick,
-            displayName: name, origin: origin, artist: item.artist, title: item.title,
-            message: item.message, text: runtime.requestText(item), createdAt: item.createdAt,
-            delivery: item.delivery ? { nick: item.delivery.nick, at: item.delivery.at } : null,
-            stage: item.stage || 'queued' };
-    };
-
-    runtime.snapshot = function (user, page, myPage, feedbackId, radioModeratorPage, kind) {
-        var mod = runtime.isModerator(user);
-        var authorized = runtime.canUseModeration(user);
-        var showQueue = authorized && kind !== 'team' && kind !== 'schedule';
+    runtime.snapshot = function(user, page, myPage, feedbackId, radioModeratorPage, kind) {
         var station = runtime.station();
-        var presenter = runtime.moderatorIsActive() ? runtime.state.moderator : null;
+        var show = runtime.receivedShow();
+        var presenter = show.active ? {
+            nick: show.nick
+        } : null;
         var radioTeam = runtime.radioModeratorViews(user, radioModeratorPage);
-        var currentUserId = runtime.userId(user);
-        var requests = runtime.wishItems();
-        var totalPages = Math.max(1, Math.ceil(requests.length / runtime.pageSize));
-        page = Math.max(0, Math.min(totalPages - 1, Math.floor(Number(page) || 0)));
         return {
             station: station,
-            topic: runtime.state.topic,
+            topic: show.active ? show.topic : '',
+            broadcastRemainingMs: show.remainingMs || 0,
+            displaySettings: runtime.canUseAdministration(user) ? runtime.displaySettings() : null,
+            migration: runtime.canUseAdministration(user) ? runtime.migrationView() : null,
             ticker: runtime.tickerState(),
-            scheduleSyncPending: mod && !!runtime.state.scheduleSync,
+            scheduleSyncPending: false,
             revision: runtime.state.revision,
-            user: { nick: runtime.nick(user), canModerate: mod, canUseModeration: authorized,
-                pinSetupRequired: mod && !runtime.hasModerationPin(user),
-                canToggleRequests: authorized || runtime.canAdminister(user),
-                showModerationButton: runtime.canAdminister(user) ||
-                    (runtime.online(user) && runtime.state.radioModeratorUserIds.indexOf(currentUserId) !== -1),
-                canManageRadioModerators: runtime.canAdminister(user),
-                isOnAir: !!(mod && presenter && presenter.userId === currentUserId),
-                canEndModeration: !!(mod && presenter && (presenter.userId === currentUserId || runtime.canAdminister(user))) },
-            limits: { maxTextLength: 300, maxTopicLength: 80 },
+            user: {
+                nick: runtime.nick(user),
+                canModerate: false,
+                canUseModeration: false,
+                canToggleRequests: false,
+                showModerationButton: false,
+                canManageRadioModerators: runtime.canUseAdministration(user),
+                canAdminister: runtime.canUseAdministration(user),
+                isOnAir: false,
+                canEndModeration: false
+            },
+            limits: {
+                maxTextLength: 300,
+                maxTopicLength: 80
+            },
             requestsEnabled: runtime.requestsAvailable(user),
-            moderator: presenter ? { nick: presenter.nick, since: presenter.since,
-                sessionKey: runtime.moderatorKey() } : null,
-            handover: runtime.handoverSnapshot(user),
+            moderator: presenter,
             myRequests: [],
             myTotal: 0,
             myPage: 0,
             myPages: 1,
             requestFeedback: null,
-            wishPositions: runtime.wishPositions(user, myPage),
-            queue: showQueue ? requests.slice(page * runtime.pageSize, (page + 1) * runtime.pageSize).map(runtime.requestView) : [],
-            queueStart: showQueue ? Math.floor(page / 3) * 3 : 0,
-            queueWindow: showQueue ? requests.slice(Math.floor(page / 3) * 3, Math.floor(page / 3) * 3 + 3).map(runtime.requestView) : [],
-            queueTotal: showQueue ? requests.length : 0,
+            wishPositions: runtime.nativeWishPositions(user, myPage),
+            queue: [],
+            queueStart: 0,
+            queueWindow: [],
+            queueTotal: 0,
             radioModerators: radioTeam.items,
+            radioModeratorsConfirmed: radioTeam.confirmed,
+            radioModeratorsRemainingMs: radioTeam.remainingMs,
             radioModeratorTotal: radioTeam.total,
             radioModeratorPage: radioTeam.page,
             radioModeratorPages: radioTeam.pages,
             radioModeratorRevision: runtime.state.radioModeratorRevision,
-            page: showQueue ? page : 0,
-            pages: showQueue ? totalPages : 1,
+            page: 0,
+            pages: 1,
             serverTime: runtime.now(),
             shuttingDown: runtime.shuttingDown
         };

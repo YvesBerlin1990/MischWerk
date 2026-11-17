@@ -1,8 +1,8 @@
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
  "schema": 1,
- "version": "0.1.445",
- "buildNumber": 445,
+ "version": "0.1.448",
+ "buildNumber": 448,
  "directories": {
   "": [
    "main.js",
@@ -38,14 +38,10 @@ if (typeof MischWerkUpdateProbe === 'function') {
   "server/radio": [
    "station.js",
    "team.js",
-   "pin-work.js",
-   "pin.js",
    "moderation.js",
    "announcements.js",
    "ticker.js",
-   "ticker-command.js",
-   "handover.js",
-   "show.js"
+   "display-settings.js"
   ],
   "server/channel-texts": [
    "format.js",
@@ -59,9 +55,10 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "export-state.js",
    "control-state.js",
    "storage.js",
+   "migration.js",
+   "migration-transport.js",
    "queue.js",
-   "transport.js",
-   "website.js"
+   "transport.js"
   ],
   "server/schedule": [
    "calendar.js",
@@ -73,7 +70,6 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "public-data.js",
    "public.js",
    "day.js",
-   "broadcasts.js",
    "transport.js"
   ],
   "server/ui": [
@@ -92,25 +88,21 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "events.js"
   ],
   "server/website": [
-   "access.js",
    "public.js",
-   "commands.js",
    "transport.js"
   ],
   "server/android": [
    "signing.js",
+   "broadcast.js",
+   "native-state.js",
+   "native-positions.js",
+   "native-transport.js",
    "failures.js",
    "connection.js",
    "diagnostics.js",
    "settings-access.js",
    "settings.js",
-   "receipts.js",
    "incoming.js",
-   "studio-wishes.js",
-   "wish-control.js",
-   "wish-commands.js",
-   "projection.js",
-   "commands.js",
    "publisher.js",
    "verification.js",
    "relay.js",
@@ -159,23 +151,13 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "window.js",
    "tracking.js"
   ],
-  "www/js/studio": [
-   "markup.js",
-   "handover-markup.js",
-   "controls.js",
-   "handover.js",
-   "workspace.js",
-   "window.js",
-   "reader.js",
-   "queue-actions.js",
-   "queue.js"
-  ],
   "www/js/team": [
    "markup.js",
    "channel-texts-markup.js",
    "layout.js",
    "management.js",
    "channel-texts.js",
+   "connection-diagnosis.js",
    "navigation.js"
   ],
   "www/js/transport": [
@@ -208,12 +190,6 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "feedback.css",
    "dialogs-responsive.css",
    "workshop-menus.css"
-  ],
-  "www/css/studio": [
-   "studio.css",
-   "responsive.css",
-   "studio-queue.css",
-   "handover.css"
   ],
   "www/css/team": [
    "team.css",
@@ -268,24 +244,22 @@ KnuddelsServer.execute('server/radio/team.js');
 KnuddelsServer.execute('server/core/pin-constants-1.js');
 KnuddelsServer.execute('server/core/pin-constants-2.js');
 KnuddelsServer.execute('server/core/pin-bcrypt.js');
-KnuddelsServer.execute('server/radio/pin-work.js');
-KnuddelsServer.execute('server/radio/pin.js');
 KnuddelsServer.execute('server/radio/moderation.js');
 KnuddelsServer.execute('server/radio/announcements.js');
 KnuddelsServer.execute('server/radio/ticker.js');
-KnuddelsServer.execute('server/radio/ticker-command.js');
+KnuddelsServer.execute('server/radio/display-settings.js');
 KnuddelsServer.execute('server/users/greetings.js');
 KnuddelsServer.execute('server/channel-texts/format.js');
 KnuddelsServer.execute('server/channel-texts/storage.js');
 KnuddelsServer.execute('server/channel-texts/smileys.js');
 KnuddelsServer.execute('server/channel-texts/scheduler.js');
 KnuddelsServer.execute('server/channel-texts/transport.js');
-KnuddelsServer.execute('server/radio/handover.js');
 KnuddelsServer.execute('server/state/initialization.js');
-KnuddelsServer.execute('server/radio/show.js');
 KnuddelsServer.execute('server/wishes/export-state.js');
 KnuddelsServer.execute('server/wishes/control-state.js');
 KnuddelsServer.execute('server/wishes/storage.js');
+KnuddelsServer.execute('server/wishes/migration.js');
+KnuddelsServer.execute('server/wishes/migration-transport.js');
 KnuddelsServer.execute('server/wishes/queue.js');
 KnuddelsServer.execute('server/wishes/transport.js');
 KnuddelsServer.execute('server/schedule/calendar.js');
@@ -297,7 +271,6 @@ KnuddelsServer.execute('server/schedule/overview.js');
 KnuddelsServer.execute('server/schedule/public-data.js');
 KnuddelsServer.execute('server/schedule/public.js');
 KnuddelsServer.execute('server/schedule/day.js');
-KnuddelsServer.execute('server/schedule/broadcasts.js');
 KnuddelsServer.execute('server/schedule/transport.js');
 KnuddelsServer.execute('server/ui/snapshot.js');
 KnuddelsServer.execute('server/ui/session-state.js');
@@ -313,24 +286,19 @@ KnuddelsServer.execute('server/ui/administration.js');
 KnuddelsServer.execute('server/ui/commands.js');
 KnuddelsServer.execute('server/maintenance.js');
 KnuddelsServer.execute('server/channel-texts/settings.js');
-KnuddelsServer.execute('server/wishes/website.js');
-KnuddelsServer.execute('server/website/access.js');
 KnuddelsServer.execute('server/website/public.js');
-KnuddelsServer.execute('server/website/commands.js');
 KnuddelsServer.execute('server/website/transport.js');
 KnuddelsServer.execute('server/android/signing.js');
+KnuddelsServer.execute('server/android/broadcast.js');
+KnuddelsServer.execute('server/android/native-state.js');
+KnuddelsServer.execute('server/android/native-positions.js');
+KnuddelsServer.execute('server/android/native-transport.js');
 KnuddelsServer.execute('server/android/failures.js');
 KnuddelsServer.execute('server/android/connection.js');
 KnuddelsServer.execute('server/android/diagnostics.js');
 KnuddelsServer.execute('server/android/settings-access.js');
 KnuddelsServer.execute('server/android/settings.js');
-KnuddelsServer.execute('server/android/receipts.js');
 KnuddelsServer.execute('server/android/incoming.js');
-KnuddelsServer.execute('server/android/studio-wishes.js');
-KnuddelsServer.execute('server/android/wish-control.js');
-KnuddelsServer.execute('server/android/wish-commands.js');
-KnuddelsServer.execute('server/android/projection.js');
-KnuddelsServer.execute('server/android/commands.js');
 KnuddelsServer.execute('server/android/publisher.js');
 KnuddelsServer.execute('server/android/verification.js');
 KnuddelsServer.execute('server/android/relay.js');

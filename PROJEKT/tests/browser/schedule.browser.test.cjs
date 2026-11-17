@@ -2,13 +2,13 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {chromium}=require('playwright');
-const {createEmulator}=require('../../tools/emulator/server.cjs');
+const {createNativeTestLab}=require('../support/native-lab/server.cjs');
 let browser;
 test.before(async()=>{browser=await chromium.launch({headless:true,channel:'msedge',args:['--mute-audio']});});
 test.after(async()=>{await browser?.close();});
 async function setup(t,client='k3',options={}){
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'MischWerk-Day-'));
- const instance=await createEmulator({port:0,dataDir:directory,appDir:process.env.MISCHWERK_TEST_UPLOAD});
+ const instance=await createNativeTestLab({port:0,dataDir:directory,appDir:process.env.MISCHWERK_TEST_UPLOAD});
  Object.assign(instance.hub.faults,{provider:'online'},options);instance.hub.restart(false);
  const runtime=instance.hub.runtime,posts=[];runtime.shutdown();
  runtime.clock.offset=Date.parse(options.now||'2026-11-10T18:30:00Z')-Date.now();
@@ -128,7 +128,6 @@ for(const client of ['k3','stapp'])test('Homepage-Tagesplan in '+client+' zeigt 
  assert.equal(await frame.locator('.schedule-show').count(),0);assert.equal(await frame.locator('.schedule-hours').count(),0);
  await frame.locator('#schedule-today').click();await frame.locator('.schedule-current .schedule-topic').filter({hasText:'MischWerk Radio Show'}).waitFor();
  await frame.locator('#close-overlay').click();await owner.page.locator('#overlays iframe').waitFor({state:'detached'});assert.equal(await owner.radio.locator('#open-schedule').evaluate(n=>n===document.activeElement),true);
- await owner.radio.locator('#studio-tab').click();const studio=await overlay(owner.page,'studio');await require('../support/studio-browser.cjs').login(studio);await studio.locator('#off-air:not([disabled])').waitFor();await require('../support/studio-browser.cjs').reveal(studio,'#studio-topic');await studio.locator('#studio-topic').fill('Unverlorener Entwurf');frame=await openSchedule(owner);await owner.radio.locator('#studio-tab').click();const back=await overlay(owner.page,'studio');assert.equal(await back.locator('#studio-topic').inputValue(),'Unverlorener Entwurf');
  assert.equal(await owner.page.locator('#headerbars iframe').count(),headerCount);assert.equal(await owner.radio.evaluate(()=>__dayAudio===document.getElementById('radio-audio')&&!__dayAudio.paused&&!__dayAudio.error),true);
  const listener=await lab.join('Testhoerer');const publicPlan=await openSchedule(listener);await publicPlan.locator('.schedule-topic').filter({hasText:'MischWerk Radio Show'}).waitFor();assert.equal(await publicPlan.locator('#studio-history-tab').count(),0);
  assert.equal(lab.requests.some(r=>r.frame===publicPlan&&/\/fixture\//.test(r.url)),false);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);assert.deepEqual(lab.runtime.errors,[]);
@@ -176,8 +175,9 @@ for(const client of ['k3','stapp'])test('Direkter GET in '+client+' erhält beim
  const frame=await openSchedule(owner);await frame.locator('.schedule-topic').filter({hasText:'Bekannter Webplan'}).waitFor();
  lab.publicControl.failure=true;lab.publish([{...row,entry:{...row.entry,topic:'Neuer Webplan'}}]);
  await frame.locator('#schedule-message.error').waitFor();assert.equal(await frame.locator('.schedule-topic').textContent(),'Bekannter Webplan');
- assert.equal(await frame.locator('.schedule-show').count(),1);lab.publicControl.failure=false;
- await frame.locator('#schedule-retry').click();await frame.locator('.schedule-topic').filter({hasText:'Neuer Webplan'}).waitFor();
+ assert.equal(await frame.locator('.schedule-show').count(),1);assert.equal(await frame.locator('#schedule-retry').isVisible(),true);lab.publicControl.failure=false;
+ // Den tatsächlichen Klickhandler direkt auslösen: Die parallele automatische Erholung darf keine Actionability-Wartefrist erzeugen.
+ await frame.locator('#schedule-retry').evaluate(button=>button.click());await frame.locator('.schedule-topic').filter({hasText:'Neuer Webplan'}).waitFor();
  assert.equal(await frame.locator('#schedule-message').isVisible(),false);assert.ok(lab.gets.length>=3);
  assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);assert.deepEqual(lab.runtime.errors,[]);
 });
@@ -235,7 +235,11 @@ for(const client of ['k3','stapp'])for(const closed of [false,true])test('Drei-W
  const lab=await setup(t,client,{now:'2026-11-15T22:59:58Z'}),owner=await lab.join('Otterchen',true);
  let frame=await openSchedule(owner);await owner.page.clock.runFor(100);await preloaded(owner);
  const first=lab.backend.scheduleDay(lab.week,-7),steps=13;
- for(let i=0;i<steps;i++)await frame.locator('#schedule-previous').click();
+ for(let i=0;i<steps;i++){
+  await frame.locator('#schedule-previous').click();
+  const expected=lab.backend.scheduleDay(lab.date,-i-1);
+  await frame.waitForFunction(date=>document.getElementById('schedule-date-label').getAttribute('datetime')===date,expected);
+ }
  assert.equal(await frame.locator('#schedule-date-label').getAttribute('datetime'),first);
  if(closed){await frame.locator('#close-overlay').click();await owner.page.locator('#overlays iframe').waitFor({state:'detached'});}
  lab.runtime.clock.advance(3000);await owner.page.clock.runFor(20001);

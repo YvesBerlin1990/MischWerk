@@ -51,23 +51,15 @@ async function main() {
     const appOption = target ? ['-e', 'var mischWerkAppRoot = ' + JSON.stringify(path.resolve(target).replaceAll('\\', '/')) + ';'] : [];
     const result = spawnSync(javaExecutable(), ['-cp', jars.join(path.delimiter),
       'org.mozilla.javascript.tools.shell.Main', '-version', engine.language, '-encoding', 'UTF-8',
-      ...appOption, '-f', 'tests/rhino/wishes.js'],
+      ...appOption, '-f', 'tests/rhino/relay-v2.js'],
     { cwd: path.resolve(__dirname, '../..'), encoding: 'utf8', windowsHide: true, timeout: 60000 });
     if (result.stdout) { process.stdout.write(result.stdout); }
     if (result.stderr) { process.stderr.write(result.stderr); }
     assert.ifError(result.error);
     assert.equal(result.status, 0, 'Wunschweg in Rhino ' + engine.version + ' fehlgeschlagen; Java 11+ erforderlich.');
-    assert.match(result.stdout, /Rhino-Wunschweg OK:/, 'Rhino-Ergebnis fehlt');
+    assert.match(result.stdout, /Rhino-V2 OK:/, 'Rhino-Ergebnis fehlt');
     console.log('Engine: Rhino ' + engine.version + ', Sprachmodus ' + engine.language + ', SHA-256 verifiziert; App: ' + (target || 'app/'));
-    const budget = spawnSync(javaExecutable(), ['-cp', jars.join(path.delimiter),
-      'org.mozilla.javascript.tools.shell.Main', '-version', engine.language, '-opt', '-1', '-encoding', 'UTF-8',
-      ...appOption, '-f', 'tests/rhino/pin-budget.js'],
-    { cwd: path.resolve(__dirname, '../..'), encoding: 'utf8', windowsHide: true, timeout: 120000 });
-    if (budget.stdout) process.stdout.write(budget.stdout);
-    if (budget.stderr) process.stderr.write(budget.stderr);
-    assert.ifError(budget.error);
-    assert.equal(budget.status, 0, 'Interpretierte PIN-Budgetprüfung in Rhino ' + engine.version + ' fehlgeschlagen.');
-    assert.match(budget.stdout, /Rhino-PIN-Budget OK:/);
+
   }
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

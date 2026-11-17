@@ -37,7 +37,7 @@ MischWerkModules.attachAndroidVerification = function (runtime, config) {
         if (typeof now !== 'number' || !isFinite(now) || now < 0 ||
                 (lastAttempt !== null && now < lastAttempt)) { rejected('clock-invalid'); return; }
         if (lastAttempt !== null && now - lastAttempt < 30000) { rejected('retry-after-30-seconds'); return; }
-        var entry = { userId: runtime.userId(user), timer: null, cancel: null }, station;
+        var entry = { userId: runtime.userId(user), timer: null, cancel: null }, body;
         function complete(result, error) {
             if (active !== entry) { return; }
             active = null; clearTimeout(entry.timer);
@@ -71,12 +71,12 @@ MischWerkModules.attachAndroidVerification = function (runtime, config) {
         }
         try {
             if (!authProbe) {
-                station = runtime.androidStationProjection(); station.updatedAt = runtime.nextAndroidProjectionTimestamp();
-                report.request.stationUpdatedAt = station.updatedAt;
+                body = {contractVersion:2,transportId:'knuddels-native-probe',requestId:runtime.nativeUuid(),
+                    wishSubmissions:[],ownWishQueries:[],ownerDeletions:[],eventCursor:null,nickAccessCursor:null};
             }
             active = entry; lastAttempt = now;
             entry.timer = setTimeout(function () { complete(null, 'timeout'); }, 10000);
-            var cancel = runtime.sendAndroidVerification(authProbe ? {} : { station: station, wishUpdates: [] },
+            var cancel = runtime.sendAndroidVerification(authProbe ? {} : body,
                 function (result) { complete(result, null); }, authProbe);
             report.configuration.enabled = false; report.configuration.runtimeVerified = false;
             if (active === entry) { entry.cancel = cancel; }

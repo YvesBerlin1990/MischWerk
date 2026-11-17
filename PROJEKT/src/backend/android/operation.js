@@ -2,6 +2,18 @@
 MischWerkModules.attachAndroidOperation = function (runtime, config) {
     'use strict';
     var key = 'mischwerk.android.private.v1';
+    runtime.androidTargetKind = function (url) {
+        if (url === 'https://radio-mischwerk.web.app/api/publishKnuddelsState') { return 'hosting'; }
+        if (typeof url === 'string' && /^https:\/\/europe-west3-radio-mischwerk\.cloudfunctions\.net\//.test(url)) { return 'cloud-functions'; }
+        return typeof url === 'string' && /^https:\/\/[a-z0-9-]+\.a\.run\.app\/?$/.test(url) ? 'cloud-run' : 'unknown';
+    };
+    runtime.androidSourcePreflight = function () {
+        var source = runtime.wishSourcePreflight();
+        source.version = config.version;
+        source.buildNumber = config.buildNumber;
+        source.checkedAt = runtime.now();
+        return source;
+    };
     function complete(value) {
         function secret(text) { return typeof text === 'string' && /^[a-zA-Z0-9_-]{43,128}$/.test(text); }
         return secret(value.syncSecret) &&
@@ -9,7 +21,8 @@ MischWerkModules.attachAndroidOperation = function (runtime, config) {
     }
     runtime.androidOperationState = function () {
         var value = runtime.androidPublisherStatus();
-        value.transport = 'status-response-v1';
+        value.healthy = runtime.androidRelayHealthy();
+        value.transport = 'status-response-v2';
         value.queueReturn = runtime.androidIncomingStatus();
         return value;
     };

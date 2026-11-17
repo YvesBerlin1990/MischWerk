@@ -36,6 +36,26 @@ MischWerkModules.attachWishStorage = function (runtime) {
                     ['done', 'discarded'].indexOf(row.outcome) < 0) { invalid(); }
             submissions['$' + row.submissionId] = true;
         });
+        if(value.nativeRelay!==undefined){
+            var relay=value.nativeRelay;
+            if(!relay || relay.version!==2 || !Array.isArray(relay.entries) || !Array.isArray(relay.deletions) ||
+                    !integer(relay.eventSeq,0) || (relay.valueRevision!==undefined && !integer(relay.valueRevision,0)) ||
+                    (relay.eventCursor!==null && typeof relay.eventCursor!=='string')){invalid();}
+            var nativeIds={};
+            relay.entries.forEach(function(row){
+                if(!row || !integer(row.localId,1) || row.localId>=value.nextId || typeof row.submissionId!=='string' ||
+                        !/^knuddels:[A-Za-z0-9_-]{1,84}$/.test(row.submissionId) || nativeIds['$'+row.submissionId] ||
+                        typeof row.senderKey!=='string' || !/^[1-9][0-9]*$/.test(row.senderKey) ||
+                        typeof row.ownerKey!=='string' || !/^[a-f0-9]{64}$/.test(row.ownerKey) ||
+                        typeof row.text!=='string' || row.text.length>300 || typeof row.nick!=='string' || row.nick.length>50 ||
+                        (row.textDigest!==undefined && !/^[a-f0-9]{64}$/.test(row.textDigest)) ||
+                        ['unconfirmed','pending','rejected','queued','received','preparing','playing','done','discarded'].indexOf(row.state)<0){invalid();}
+                nativeIds['$'+row.submissionId]=true;
+            });
+            relay.deletions.forEach(function(row){if(!row || typeof row.nativeId!=='string' || !/^[1-9][0-9]*$/.test(row.nativeId) ||
+                    typeof row.requestId!=='string' || typeof row.applied!=='boolean' || (row.ownerKey!==null &&
+                    (typeof row.ownerKey!=='string' || !/^[a-f0-9]{64}$/.test(row.ownerKey)))){invalid();}});
+        }
         runtime.validateStudioWishState(value);
         runtime.validateWishControlState(value);
         value.submissionIds = {};
@@ -73,7 +93,7 @@ MischWerkModules.attachWishStorage = function (runtime) {
         var store = KnuddelsServer.getPersistence(), bank = head ? 1 - head.bank : 0;
         var value = { version: 1, nextId: queue.nextId, revision: queue.revision, items: queue.items, replays: queue.replays,
             studioNamespace: queue.studioNamespace, studioStamp: queue.studioStamp, studioExports: queue.studioExports,
-            controlVersions: queue.controlVersions, controlResults: queue.controlResults };
+            controlVersions: queue.controlVersions, controlResults: queue.controlResults, nativeRelay: queue.nativeRelay };
         validate(value);
         var text = JSON.stringify(value, function (name, entry) { return name === 'submissionIds' ? undefined : entry; });
         var next = { version: 1, bank: bank, pages: Math.ceil(text.length / 10000) };

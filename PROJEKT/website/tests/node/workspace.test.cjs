@@ -1,19 +1,18 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {startSite}=require('../support/site.cjs');
 
-test('Geschützte Themenaktion erhält geteiltes UTF-8 mit unverändertem Byte-Limit',async t=>{
- const f=await startSite(t);await f.login();f.h.event(f.owner,f.radio,'mw:onAir',{});
- const {postChunks}=require('../support/site.cjs'),session=await f.api('session'),headers={Cookie:f.cookie,'X-CSRF-Token':session.json.csrf};
- const topic='Grüße aus der Regie 🎵';
- const result=await postChunks(f.base,'/api/workspace/action',{type:'mw:setTopic',data:{topic},requestId:'utf8-workspace-topic-123'},headers);
- assert.equal(result.status,200);assert.equal(f.h.state(f.owner,f.radio).topic,topic);
- const oversized=await postChunks(f.base,'/api/workspace/action',{type:'mw:setTopic',data:{topic:'ü'.repeat(4300)},requestId:'utf8-workspace-large-123'},headers);
- assert.equal(oversized.status,413);assert.equal(f.h.state(f.owner,f.radio).topic,topic);
-});
-test('Geschützter Einstieg schützt Sitzungen mit HttpOnly, SameSite und CSRF und gibt keine Appzugriffstoken aus',async t=>{const f=await startSite(t),first=await f.api('session');assert.match(first.response.headers.get('set-cookie'),/HttpOnly; SameSite=Strict/);assert.doesNotMatch(JSON.stringify(first.json),/appToken|webhooks|Otterchen/);assert.equal((await f.api('login',{}, {'X-CSRF-Token':'0'.repeat(64)})).response.status,403);assert.equal((await f.api('login',{}, {'X-CSRF-Token':'ü'.repeat(64)})).response.status,403);assert.equal((await f.api('login',{}, {Origin:'https://other.example'})).response.status,403);assert.equal((await f.api('action',{type:'mw:setTopic',data:{topic:'Falsch'},requestId:'unauthed-command'})).response.status,401);for(const path of ['/.env','/server/sessions.cjs','/api/poll','/channel.html?role=moderator'])assert.equal((await fetch(f.base+path)).status,404);});
-test('HTTPS-Betrieb setzt Secure-Cookies; Codebestätigung rotiert Websitekennung und bleibt getrennt vom Apptoken',async t=>{const f=await startSite(t,{origin:'https://radio.example.test'}),first=await f.api('session');assert.match(first.response.headers.get('set-cookie'),/; Secure/);const before=f.cookie;const begin=await f.api('login',{});assert.match(begin.json.code,/^[a-f0-9]{32}$/);assert.equal((await f.api('login-status')).json.approved,false);f.h.app.chatCommands.mw(f.owner,'homepage ' + begin.json.code);const status=await f.api('login-status');assert.equal(status.json.approved,true);assert.notEqual(f.cookie,before);assert.deepEqual(Object.keys(status.json).sort(),['approved','csrf']);assert.equal((await f.api('state',{view:'studio'})).json.state.user.nick,f.owner.nick);await f.api('logout',{});await f.api('session');assert.equal((await f.api('state',{view:'studio'})).response.status,401);});
-test('Antwortverlust kann mit gleicher Kennung wiederholt werden, ohne doppelte Mutationen; Konflikte werden sichtbar abgewiesen',async t=>{const f=await startSite(t);await f.login();f.faults.loseNext=true;const input={type:'mw:onAir',data:{pin:'0123',pinConfirmation:'0123',expectedModerator:null},requestId:'lost-result-onair-123'};assert.equal((await f.api('action',input)).response.status,503);assert.equal(f.h.bot.messages.length,1);assert.equal((await f.api('action',input)).response.status,200);assert.equal(f.h.bot.messages.length,1);const state=(await f.api('state',{view:'studio'})).json.state;f.h.event(f.owner,f.radio,'mw:setTopic',{topic:'Geändert'});const result=await f.api('action',{type:'mw:setTopic',data:{previousTopic:state.topic,topic:'Alter Entwurf'},requestId:'stale-topic-12345'});assert.equal(result.response.status,400);assert.match(result.json.message,/inzwischen/);assert.equal(f.h.state(f.owner,f.radio).topic,'Geändert');});
-test('Websiteverwaltung bleibt dem Besitzer vorbehalten und Rechteentzug beendet auch eine bestätigte Browseranmeldung',async t=>{const f=await startSite(t);await f.login(f.dj);assert.equal((await f.api('state',{view:'team'})).response.status,400);f.h.event(f.owner,f.radio,'mw:removeRadioModerator',{userId:f.dj.id});assert.equal((await f.api('state',{view:'studio'})).response.status,401);assert.equal((await f.api('session')).json.approved,false);});
-test('Öffentlicher Produktionsplayer verwendet keine Testrollen und bleibt ohne Appanschluss erreichbar',async t=>{const f=await startSite(t,{enabled:false});const home=await(await fetch(f.base)).text();assert.match(home,/Arbeitsbereich/);assert.doesNotMatch(home,/channel.html|Testansichten|Pausiert/);const html=await(await fetch(f.base+'/player')).text();assert.match(html,/MischWerkPublicState/);assert.doesNotMatch(html,/MischWerkDemo|Testleitung|Otterchen|historyUrl|appToken/);assert.equal((await f.api('session')).json.available,false);assert.equal((await f.api('login',{})).response.status,503);});
+
+
+
+
+
+
 
 test('Öffentliche Teilbereiche haben direkte Adressen und die Startseite wählt nur das Radio vor',async t=>{const f=await startSite(t,{enabled:false});for(const [route,name] of Object.entries({'/':'radio','/sendeplan':'schedule','/team':'team','/mitmachen':'applications','/wunschbox':'wishes'})){const response=await fetch(f.base+route);assert.equal(response.status,200);const html=await response.text();assert.match(html,new RegExp('data-site-current="'+name+'"'));assert.match(html,/site-navigation.js/);assert.match(html,/data-player-src="\/player"/);}assert.equal((await fetch(f.base+'/site-navigation.js')).status,200);});
+
+test('Zusätzlicher Arbeitsbereich ist vollständig stillgelegt; alte Aktionen mutieren keine Appdaten',async t=>{
+ const f=await startSite(t),saved=JSON.stringify(f.h.store.data);
+ for(const route of ['/arbeitsbereich','/api/workspace/session','/api/workspace/login','/api/workspace/action'])for(const method of ['GET','POST']){const response=await fetch(f.base+route,{method});assert.equal(response.status,410);assert.equal(response.headers.get('set-cookie'),null);}
+ for(const asset of ['workspace.js','workspace-studio.js','workspace-team.js','workspace-schedule.js','workspace.css'])assert.equal((await fetch(f.base+'/'+asset)).status,404);
+ assert.equal(JSON.stringify(f.h.store.data),saved);assert.equal(f.calls.length,0);
+});

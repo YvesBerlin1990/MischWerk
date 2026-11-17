@@ -5,8 +5,6 @@ MischWerkUI.setComposer(function (factories) {
     var dom = factories.dom({});
     if (factories.radioMarkup) { factories.radioMarkup({ dom: dom }); }
     if (factories.wishesMarkup) { factories.wishesMarkup({ dom: dom }); }
-    if (factories.studioMarkup) { factories.studioMarkup({ dom: dom }); }
-    if (factories.handoverMarkup) { factories.handoverMarkup({ dom: dom }); }
     if (factories.teamMarkup) { factories.teamMarkup({ dom: dom }); }
     if (factories.channelTextsMarkup) { factories.channelTextsMarkup({ dom:dom }); }
     if (factories.scheduleMarkup) { factories.scheduleMarkup({ dom:dom }); }
@@ -55,28 +53,16 @@ MischWerkUI.setComposer(function (factories) {
     if (factories.wishTracking) { wishTracking = factories.wishTracking({ model:model, dom:dom, signals:signals }); }
     var wishWindow = null;
     if (factories.wishWindow) { wishWindow = factories.wishWindow({ bridge:bridge, model:model, dom:dom, signals:signals }); }
-    var reader=null;
-    if(factories.studioReader){reader = factories.studioReader({dom:dom,signals:signals});}
-    var workspace=null;
-    if(factories.studioWorkspace){workspace = factories.studioWorkspace({model:model,dom:dom,signals:signals});}
-    var studioWindow=null;
-    var studio = null;
-    if (factories.studio) { studio = factories.studio({ model: model, dom: dom, layout: layout, commands: commands, signals: signals }); }
-    var queueActions = null;
-    if (factories.queueActions) { queueActions = factories.queueActions({ model:model, dom:dom, commands:commands, signals:signals }); }
-    var queue = null;
-    if (factories.queue) { queue = factories.queue({ model: model, dom: dom, commands: commands, signals: signals, bridge:bridge, actions:queueActions }); }
-    if(factories.studioWindow){studioWindow = factories.studioWindow({model:model,signals:signals,dom:dom,bridge:bridge});}
-    var handover = null;
-    if (factories.handover) { handover = factories.handover({ model: model, dom: dom, layout: layout, commands: commands, signals: signals, reader:reader }); }
     var team = null;
     if (factories.team) { team = factories.team({ model: model, dom: dom, commands: commands, signals: signals }); }
     var channelTexts = null;
     var channelTextsLayout = null;
     if (factories.channelTextsLayout) { channelTextsLayout = factories.channelTextsLayout({ dom:dom, signals:signals }); }
     if (factories.channelTexts) { channelTexts = factories.channelTexts({ bridge:bridge, model:model, dom:dom, commands:commands, signals:signals }); }
-    var teamConnection = null, teamNavigation = null;
-    if (factories.teamConnection) { teamConnection = factories.teamConnection({ bridge:bridge, model:model, signals:signals }); }
+    var teamConnection = null, teamNavigation = null, teamConnectionDiagnosis = null;
+    if (factories.teamConnectionDiagnosis) { teamConnectionDiagnosis = factories.teamConnectionDiagnosis({ dom:dom }); }
+    if (factories.teamConnection) { teamConnection = factories.teamConnection({ bridge:bridge, model:model, signals:signals,
+      diagnosis:teamConnectionDiagnosis }); }
     if (factories.teamNavigation) { teamNavigation = factories.teamNavigation({ dom:dom, model:model, signals:signals }); }
     var scheduleCache = null;
     if (factories.scheduleCache) { scheduleCache = factories.scheduleCache({}); }
@@ -86,10 +72,10 @@ MischWerkUI.setComposer(function (factories) {
     if (factories.schedule) { schedule = factories.schedule({ bridge:bridge, model:model, dom:dom, commands:commands, signals:signals, view:scheduleView, cache:scheduleCache }); }
     var overlays = factories.overlays({ bridge:bridge, model:model, dom:dom, signals:signals, commands:commands, layout:layout, wishDrawer:wishDrawer });
     var updates = factories.updates({ model: model, dom: dom, layout: layout, commands: commands,
-      wishes: wishes, studio: studio, queue: queue, team: team, provider: provider, player: player,
+      wishes: wishes, team: team, provider: provider, player: player,
       presentation: presentation, signals: signals });
     var lifecycle = factories.lifecycle({ bridge: bridge, model: model, dom: dom, layout: layout,
       commands: commands, wishes: wishes, provider: provider, player: player, signals: signals, listenerPresence:listenerPresence });
     lifecycle.start([viewport, layout, commands, volume, player, listenerPresence, radioTicker, wishes, wishFeedback, wishRelay, wishDrawer, wishTracking, wishWindow,
-      studioWindow, workspace, reader, studio, handover, queueActions, queue, team, channelTextsLayout, channelTexts, teamConnection, teamNavigation, scheduleView, schedule, updates, overlays]);
+      team, channelTextsLayout, channelTexts, teamConnection, teamNavigation, scheduleView, schedule, updates, overlays]);
 });

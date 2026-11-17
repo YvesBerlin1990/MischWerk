@@ -5,17 +5,17 @@
   var publicRadio = home || parameters.get('radio') === 'public';
   var role = !publicRadio && parameters.get('role') === 'moderator' ? 'moderator' : 'listener';
   var radio = document.getElementById('radio-frame'), overlay = document.getElementById('overlay-frame');
-  var kinds = { wishes:true, studio:true, team:true, schedule:true };
+  var kinds = { wishes:true, team:true, schedule:true };
   document.body.classList.toggle('public-radio', publicRadio);
   if (!home) {
-    document.getElementById('mode-label').textContent = publicRadio ? 'Radio MischWerk' : 'Lokaler Test · ' + (role === 'moderator' ? 'Studio und Verwaltung' : 'Höreransicht');
+    document.getElementById('mode-label').textContent = publicRadio ? 'Radio MischWerk' : 'Lokaler Test · ' + (role === 'moderator' ? 'Verwaltung' : 'Höreransicht');
     document.getElementById('mode-title').textContent = publicRadio ? 'Die Mischung macht’s.' : 'Ein Blick hinter die Regler.';
     document.getElementById('mode-description').textContent = publicRadio ?
       'Drücke Play und hör rein. Titel und Interpret siehst du direkt im Player.' :
-      'Wunschbox und Tagesplan lassen sich oben öffnen. Im Studio-Test kannst du auch die Moderation und das Radio-Team ausprobieren.';
+      'Wunschbox und Tagesplan lassen sich oben öffnen. Im Verwaltungstest lassen sich lokale Anzeige und Bot-Texte ausprobieren.';
     document.getElementById('mode-note').textContent = publicRadio ?
       'Der Player startet leise. Du kannst die Lautstärke jederzeit anpassen.' :
-      'Dies ist ein Test mit Beispieldaten, ohne Radiostream. Wünsche, Studioanmeldungen und Sendeplaneinträge bleiben hier in der Vorschau. Sie erreichen weder das Radio noch einen echten Sendeplan.';
+      'Dies ist ein Test mit Beispieldaten, ohne Radiostream. Wünsche, Anzeigen und Sendeplaneinträge bleiben hier in der Vorschau. Sie erreichen weder das Radio noch einen echten Sendeplan.';
     document.querySelectorAll('.test-only').forEach(function (link) { link.hidden = publicRadio; });
     radio.src = '/preview?embedded=1&role=' + role + (publicRadio ? '&radio=public' : '');
   }

@@ -49,7 +49,7 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
     acknowledged = data.sequence;
     receiving = true;
     if (dom.el('wish-text').value !== data.text) { dom.el('wish-text').value = data.text; fitText(); }
-    var live = model.connected() && model.current() && model.current().requestsEnabled;
+    var live = model.connected() && model.broadcastFresh() && model.current() && model.current().requestsEnabled;
     dom.el('wish-fields').disabled = data.disabled || !live;
     var feedback = dom.el('wish-feedback');
     feedback.className = 'wish-feedback' + (data.error ? ' error' : data.pending ? ' pending' : ' success');
@@ -122,7 +122,7 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
     window.addEventListener('resize', fitText);
     window.addEventListener('pagehide', function () { clearTimeout(closeTimer); clearTimeout(editTimer); editQueued=false; });
     signals.on('controls', function () {
-      if (!model.connected() || !model.current().requestsEnabled) { dom.el('wish-fields').disabled = true; }
+      if (!model.connected() || !model.broadcastFresh() || !model.current().requestsEnabled) { dom.el('wish-fields').disabled = true; }
     });
     fitText();
     focusInput();

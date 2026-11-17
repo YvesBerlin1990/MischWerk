@@ -103,10 +103,7 @@ test('Bildtag bleibt gültig, wenn die Profilfunktion Anzeigetext maskiert oder 
 function fixture(options = {}) {
   const h = createHarness(undefined, { random: () => 0, ...options }), owner = h.user(1, 'Otterchen', 'owner');
   const session = h.open(owner);
-  const appoint = person => {
-    h.event(owner, session, 'mw:addRadioModerator', { nick: person.nick });
-    assert.equal(h.state(person, h.open(person)).user.canModerate, true);
-  };
+  const appoint = person => { person.role = 'moderator'; };
   return { h, owner, session, appoint };
 }
 
@@ -241,7 +238,7 @@ test('Doppelte Hooks, Appstart, Refresh, Wiederöffnung und Rollenänderung erze
   h.state(person, person.sessions[0]); h.open(person); appoint(person);
   h.app.onAppStart(); h.app.onUserJoined(person);
   assert.equal(h.bot.messages.length, 1);
-  assert.ok(h.store.data['mischwerk.state.v1'].radioModeratorUserIds.includes(2));
+  assert.deepEqual(h.store.data['mischwerk.state.v1']?.radioModeratorUserIds||[],[],'Keine native Ernennung durch Rollenwechsel');
   assert.ok(Object.keys(h.store.data).every(key => !/greet|welcome/i.test(key)));
 });
 
@@ -293,7 +290,7 @@ test('Botfehler werden einmal versucht, verraten keine Details und verhindern we
   assert.equal(attempts, 1); assert.equal(person.sessions.length, 1);
   const control=h.user(99,'Otterchen','owner'),controlSession=h.open(control);h.event(control,controlSession,'mw:onAir',{});
   const events = h.event(person, person.sessions[0], 'mw:wish.submit', { text: 'Interpret – Titel' });
-  assert.equal(events.find(event => event.type === 'mw:wish.receipt').data.accepted, true);
+  assert.equal(events.find(event => event.type === 'mw:wish.receipt').data.accepted, false, 'Ohne Firebase-Freigabe keine Wunschannahme');
   assert.ok(h.logs.some(entry => entry.message.includes('USER_GREETING')));
   assert.ok(!JSON.stringify(h.logs).includes('private-bot-detail'));
 });

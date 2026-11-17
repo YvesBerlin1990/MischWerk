@@ -42,10 +42,12 @@
         if (inline) {
             var running = state.operation && state.operation.publisherActive;
             var post = state.operation && state.operation.lastPost;
-            status.textContent = running ? post && post.accepted ? 'Aktiv – Daten werden übertragen.' :
+            status.textContent = running ? state.operation.healthy === true ? 'Aktiv – Daten werden übertragen.' :
                 'Verbindung aktiv – Übertragung noch nicht bestätigt.' : state.enabled && state.runtimeVerified ?
                 'Verbindung freigegeben – derzeit keine Übertragung.' : 'Verbindung ausgeschaltet.';
             document.getElementById('relay-key-state').textContent = state.hasSyncSecret ? 'Ein Verbindungsschlüssel ist hinterlegt.' : 'Zum Aktivieren wird ein Verbindungsschlüssel benötigt.';
+            if (dependencies.diagnosis) { dependencies.diagnosis.render(state.operation, state.targetKind); }
+            signals.emit('migration-preflight', state.sourcePreflight || null);
         } else {
         status.textContent = 'In Knuddels hinterlegt: Sync-Schlüssel ' + (state.hasSyncSecret ? 'ja' : 'nein') +
             '. Verbindung ' +
@@ -62,6 +64,7 @@
         if (!bridge || typeof bridge.sendEvent !== 'function' || typeof bridge.addEventListener !== 'function') { failed(); return; }
         function load() {
             clear(); ready = false; controls(); result.textContent = '';
+            if (inline) { signals.emit('migration-preflight', null); }
             if (!allowed()) { return; }
             try { bridge.sendEvent('mw:androidSettings.status', {}); } catch (ignored) { failed(); }
         }

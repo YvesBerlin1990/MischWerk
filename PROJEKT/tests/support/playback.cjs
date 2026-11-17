@@ -1,6 +1,6 @@
 // Echte Frontendmodule mit kontrollierter Medien-/Channelverbindung; kein nativer Idle-Server.
 const fs=require('node:fs'),vm=require('node:vm');
-const {TestClock}=require('../../tools/emulator/runtime/clock.cjs');
+const {TestClock}=require('./native-lab/runtime/clock.cjs');
 const {createHarness}=require('./knuddels.cjs');
 function playbackHarness({performanceClock=false,deterministicClock=false,realm}={}){
  const errors=[],clock=new TestClock(error=>{throw error;}),factories={},nodes={},listeners={},requests=[],slashes=[],providerPolls=[];

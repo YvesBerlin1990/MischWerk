@@ -1,8 +1,8 @@
 {
   "name": "mischwerk-website",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "private": true,
-  "description": "MischWerk Homepage und geschützter Arbeitsbereich mit dokumentierter App-Anbindung",
+  "description": "MischWerk öffentliche Homepage mit dokumentierter App-Anbindung",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
     "preview": "node server/server.cjs",

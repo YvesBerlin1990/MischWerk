@@ -60,10 +60,6 @@ var styles = [
   'css/radio/radio.css',
   'css/radio/radio-actions.css',
   'css/shared/dialogs.css',
-  'css/studio/studio.css',
-  'css/studio/responsive.css',
-  'css/studio/studio-queue.css',
-  'css/studio/handover.css',
   'css/team/team.css',
   'css/team/connection.css',
   'css/shared/feedback.css',
@@ -79,15 +75,15 @@ var styles = [
   'css/shared/workshop-menus.css'
 ];
 var initialView = typeof Client !== 'undefined' && Client.pageData && Client.pageData.view;
-var view = ['wishes', 'studio', 'team', 'schedule'].indexOf(initialView) !== -1 ? initialView : 'radio';
+var view = ['wishes', 'team', 'schedule'].indexOf(initialView) !== -1 ? initialView : 'radio';
 document.documentElement.setAttribute('data-view', view);
 if (view === 'wishes' && typeof Client !== 'undefined' && Client.pageData && Client.pageData.wishSurface) { document.documentElement.setAttribute('data-wish-surface', 'true'); }
 // Fachordner bestimmen die Ansichten; gemeinsame Dialoge besitzen eigene Zuordnungen.
-var styleViews = { radio:'radio', studio:'studio', team:'team', wishes:'radio wishes', schedule:'schedule' };
+var styleViews = { radio:'radio', team:'team', wishes:'radio wishes', schedule:'schedule' };
 var sharedStyleViews = {
-  'css/shared/dialogs.css':'radio wishes studio team schedule',
-  'css/shared/dialogs-responsive.css':'wishes studio team schedule',
-  'css/shared/workshop-menus.css':'wishes studio team schedule'
+  'css/shared/dialogs.css':'radio wishes team schedule',
+  'css/shared/dialogs-responsive.css':'wishes team schedule',
+  'css/shared/workshop-menus.css':'wishes team schedule'
 };
 function styleApplies(file) {
   var assignedViews = sharedStyleViews[file] || styleViews[file.split('/')[1]];
@@ -118,18 +114,16 @@ function startFrontend() {
   </header>
   <main class="dialog-content">
     <div id="wishes-placeholder"></div>
-    <div id="studio-placeholder"></div>
     <div id="team-placeholder"></div>
     <div id="schedule-placeholder"></div>
-    <section id="access-denied" class="card" hidden><h2>Kein Studiozugriff</h2><p>Das Moderationsmenü ist nur für berechtigte Moderatoren verfügbar.</p></section>
-    <section id="team-access-denied" class="card" hidden><h2>Keine Berechtigung</h2><p>Nur der Channelinhaber kann Radiomoderatoren verwalten.</p></section>
+    <section id="team-access-denied" class="card" hidden><h2>Keine Berechtigung</h2><p>Nur Otterchen als Channelinhaber darf die Verwaltung öffnen.</p></section>
   </main>
   <div id="dialog-notice-slot"></div>
 </div>
 <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
 <audio id="radio-audio"></audio>
 <script>
-document.getElementById('dialog-title').textContent = { wishes:'Wunschbox', studio:'Moderation', team:'Verwaltung', schedule:'Sendeplan' }[view] || 'MischWerk';
+document.getElementById('dialog-title').textContent = { wishes:'Wunschbox', team:'Verwaltung', schedule:'Sendeplan' }[view] || 'MischWerk';
 startFrontend();
 </script>
 <script>

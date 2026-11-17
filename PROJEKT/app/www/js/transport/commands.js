@@ -55,21 +55,13 @@ MischWerkUI.define('commands', function (dependencies) {
     if (model.view !== 'radio' && model.current()) { data.view = model.view; data.viewRevision = model.current().viewRevision; }
     var requestId;
     if (mutation) {
-      if (type === 'mw:onAir' || type === 'mw:offAir') { data.expectedModerator = model.current().moderator ? model.current().moderator.sessionKey || String(model.current().moderator.since) : null; }
-      if (type === 'mw:setTopic') { data.previousTopic = model.current().topic; }
-      if (type === 'mw:setRequests') { data.previousEnabled = model.current().requestsEnabled; }
-      if (type === 'mw:addRadioModerator' || type === 'mw:removeRadioModerator') { data.expectedRadioModeratorRevision = model.current().radioModeratorRevision; }
       requestId = nextId('mw');
       data.requestId = requestId;
       pending = { type: type, requestId: requestId, confirmed:confirmed }; refreshControls();
-      if (type === 'mw:setTopic') {
-        signals.emit('topic-started', { requestId: requestId, value: data.topic });
-      }
       if (type === 'mw:setTicker') { signals.emit('ticker-started', requestId); }
       pendingTimer = setTimeout(function () {
         pending = null; refreshControls();
         if (type === 'mw:setTicker') { signals.emit('ticker-error', 'Noch keine Bestätigung. Bitte aktuellen Stand prüfen. Dein Entwurf bleibt erhalten.'); }
-        else if (type === 'mw:setTopic') { signals.emit('topic-error', 'Noch keine Bestätigung. Bitte erneut prüfen und speichern.'); }
         else { layout.notify('Noch keine Bestätigung erhalten. Bitte aktualisiere vor einem erneuten Versuch.', true, type); }
         send('mw:refresh', {}, false);
       }, 15000);
@@ -79,7 +71,6 @@ MischWerkUI.define('commands', function (dependencies) {
       if (mutation && pending && pending.requestId === requestId) { pending = null; clearTimeout(pendingTimer); }
       refreshControls();
       if (type === 'mw:setTicker') { signals.emit('ticker-error', 'Speichern nicht bestätigt. Dein Entwurf bleibt erhalten.'); }
-      else if (type === 'mw:setTopic') { signals.emit('topic-error', 'Speichern nicht bestätigt. Bitte erneut versuchen.'); }
       else { layout.notify('Verbindung unterbrochen. Bitte erneut öffnen.', true, type); }
     }
   }
@@ -93,23 +84,20 @@ MischWerkUI.define('commands', function (dependencies) {
     pending = null; clearTimeout(pendingTimer);
     signals.emit('command-result', response);
     refreshControls();
-    if (response.action !== 'mw:setTopic' && response.action !== 'mw:setTicker' && response.action !== 'mw:channelTexts.save' && (!response.ok ||
-        (response.action !== 'mw:openWishes' && response.action !== 'mw:openStudio' && response.action !== 'mw:openRadioTeam' && response.action !== 'mw:openSchedule'))) {
-      if (response.action !== 'mw:removeRadioModerator' || response.ok || !document.getElementById('team-removal-confirm')) {
-        layout.notify(response.message, !response.ok, response.action);
-      }
+    if (!['mw:setTicker', 'mw:display.save', 'mw:channelTexts.save'].includes(response.action) &&
+        (!response.ok || !['mw:openWishes', 'mw:openRadioTeam', 'mw:openSchedule'].includes(response.action))) {
+      layout.notify(response.message, !response.ok, response.action);
     }
   }
   function start() {
     signals.on('snapshot', function (change) {
       var state = model.current();
       if (pending && typeof pending.confirmed === 'function' && model.connected() && pending.confirmed(state)) {
-        if (pending.type === 'mw:onAir') { layout.notify('',false,pending.type); }
         pending = null; clearTimeout(pendingTimer); refreshControls();
       }
       if (!manualRefresh || change.refreshRequestId !== manualRefresh.requestId) { return; }
       if (!model.connected()) { finishRefresh('Verbindung fehlt', true, 'Bitte öffne MischWerk gleich erneut.'); }
-      else if ((model.view === 'studio' && !state.user.canModerate) || (model.view === 'team' && !state.user.canManageRadioModerators)) {
+      else if ((model.view === 'team' && !state.user.canManageRadioModerators)) {
         finishRefresh('Zugriff beendet', true, 'Deine Berechtigung hat sich geändert.');
       } else { finishRefresh('Aktualisiert · ' + new Date().toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }), false); }
     });
@@ -117,8 +105,7 @@ MischWerkUI.define('commands', function (dependencies) {
       if (manualRefresh) { finishRefresh('Bitte aktualisieren', false); }
     });
     if (model.view !== 'radio') { return; }
-    [['open-wishes','mw:openWishes'], ['open-schedule','mw:openSchedule'],
-      ['studio-tab','mw:openStudio']].forEach(function (action) {
+    [['open-wishes','mw:openWishes'], ['open-schedule','mw:openSchedule']].forEach(function (action) {
       document.getElementById(action[0]).addEventListener('click', function () {
         if (!this.disabled && !this.hidden && model.connected()) { send(action[1], {}, true); }
       });

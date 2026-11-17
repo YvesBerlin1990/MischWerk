@@ -14,26 +14,27 @@ MischWerkUI.define('wishTracking', function (dependencies) {
     if (!next||next.position!==p.nextPosition) {
       next=p&&Array.isArray(p.items)?p.items.filter(function(item){return item.position===p.nextPosition;})[0]:null;
     }
-    var valid=live&&available&&total>0&&Number.isInteger(p.nextPosition)&&p.nextPosition>0&&!!next;
+    var valid=live&&model.positionsFresh()&&available&&total>0&&Number.isInteger(p.nextPosition)&&p.nextPosition>0&&!!next;
     var stage=valid&&['queued','received','preparing','playing'].indexOf(next.stage)!==-1?next.stage:'unknown';
-    var key=JSON.stringify([live,available,total,p&&p.nextPosition,next&&next.text,stage,accepted]);
+    var key=JSON.stringify([live,available,total,p&&p.nextPosition,next&&next.text,stage,accepted,model.positionsFresh(),p&&p.lastOutcome]);
     if (lastKey===key) { return; } lastKey=key;
     var panel=dom.el('wish-tracking'), visible=total>0||accepted||hadOpen;
     if (!visible&&panel.contains(document.activeElement)) { dom.el('wish-text').focus({preventScroll:true}); }
     panel.hidden=!visible;panel.classList.toggle('is-accepted',accepted);
     if (!visible) { return; }
     if (total>0) { hadOpen=true; }
-    var empty=live&&available&&total===0&&hadOpen;
-    dom.setText('wish-tracking-title', empty?'Dein Wunsch ist nicht mehr offen':accepted?'Dein Wunsch ist dabei!':total>1?'Dein nächster Wunsch':'Dein Wunsch im Blick');
+    var empty=live&&available&&model.positionsFresh()&&total===0&&hadOpen;
+    var played=empty&&model.positionsFresh()&&p.lastOutcome==='played';
+    dom.setText('wish-tracking-title', played?'Dein Wunsch wurde gespielt':empty?'Dein Wunsch ist nicht mehr offen':accepted?'Dein Wunsch ist dabei!':total>1?'Dein nächster Wunsch':'Dein Wunsch im Blick');
     dom.setText('wish-tracking-song', total&&next&&typeof next.text==='string'?next.text:'');
     dom.el('wish-tracking-song').hidden=!total||!next;
     dom.setText('wish-tracking-rank', valid?'Platz '+p.nextPosition:'');
     dom.el('wish-tracking-rank').hidden=!valid;
-    dom.setText('wish-tracking-stage', empty?'Die Moderation hat ihn abgeschlossen oder aus der Liste genommen.':!valid?'Status wird aktualisiert …':stage==='playing'?'Jetzt dran':stage==='preparing'?'In Vorbereitung':stage==='queued'||stage==='received'?'Wartet auf die Moderation':'Status wird aktualisiert …');
+    dom.setText('wish-tracking-stage', played?'Die Moderation hat deinen Wunsch als gespielt bestätigt.':empty?'Die Moderation hat ihn abgeschlossen oder aus der Liste genommen.':!valid?'Status wird aktualisiert …':stage==='playing'||stage==='preparing'?'In Vorbereitung':stage==='received'?'Angenommen':stage==='queued'?'Wartet auf Annahme':'Status wird aktualisiert …');
     dom.setText('wish-tracking-more', total>1?'Du hast '+total+' offene Wünsche. Hier siehst du deinen nächsten.':'');
     dom.el('wish-tracking-more').hidden=total<=1;
-    var steps=dom.el('wish-tracking-steps'), index=stage==='playing'?2:stage==='preparing'?1:stage==='queued'||stage==='received'?0:-1;
-    steps.hidden=!valid||index<0;
+    var steps=dom.el('wish-tracking-steps'), index=played?2:stage==='playing'||stage==='preparing'?1:stage==='received'?0:-1;
+    steps.hidden=(!valid&&!played)||index<0;
     Array.from(steps.children).forEach(function(step,i){
       step.classList.toggle('is-current',i===index);step.classList.toggle('is-done',i<index);
       if(i===index){step.setAttribute('aria-current','step');}else{step.removeAttribute('aria-current');}

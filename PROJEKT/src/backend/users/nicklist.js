@@ -20,9 +20,12 @@ MischWerkModules.attachNicklist = function (runtime) {
     }
     function desired(user) {
         if (!enabled || runtime.shuttingDown || excluded['u' + runtime.userId(user)] || !runtime.online(user)) { return []; }
-        var team = runtime.isModerator(user), icons = team ? ['team'] : [];
-        if (team && runtime.moderatorIsActive() && runtime.state.moderator.userId === runtime.userId(user)) { icons.push('moderator'); }
-        else if (listening(user)) { icons.push('listener'); }
+        var nick=runtime.nick(user).toLowerCase(),team=runtime.receivedRoster().some(function(value){return value.toLowerCase()===nick;});
+        var display = runtime.displaySettings();
+        var icons=team && display.teamSignsEnabled ? ['team'] : [];
+        var show=runtime.receivedShow();
+        if (display.microphoneEnabled && show.active && show.nick && show.nick.toLowerCase()===nick) { icons.push('moderator'); }
+        else if (display.headphonesEnabled && listening(user)) { icons.push('listener'); }
         return icons;
     }
     function reconcileUser(user, force) {
@@ -59,7 +62,6 @@ MischWerkModules.attachNicklist = function (runtime) {
         if (!enabled || reconciling) { return; }
         reconciling = true;
         try {
-            try { if (!runtime.shuttingDown && runtime.prune()) { runtime.broadcast(); } } catch (pruneError) { warn(); }
             KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).forEach(function (user) {
                 if (!excluded['u' + runtime.userId(user)]) { try { reconcileUser(user); } catch (error) { warn(); } }
             });

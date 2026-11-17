@@ -33,8 +33,8 @@ function createDelivery(project = root) {
   }
   for (const match of imports) {
     const file = match[1];
-    // Einstieg, Konfiguration und private Website-Anmeldung bleiben eigenständige Module.
-    if (['config.js', 'core/composition.js', 'website/access.js'].includes(file)) { flushServer(); continue; }
+    // Konfiguration und Composition Root bleiben eigenständige Module.
+    if (['config.js', 'core/composition.js'].includes(file)) { flushServer(); continue; }
     const candidate = [...serverGroup, file].map(backend).join('\n;\n');
     if (serverGroup.length && (candidate.length >= 9500 ||
       path.posix.dirname(file) !== path.posix.dirname(serverGroup[0]))) flushServer();
@@ -46,7 +46,7 @@ function createDelivery(project = root) {
     (line, file) => omitted.has('server/' + file) ? '' : line)));
   const read = file => fs.readFileSync(path.join(project, 'app/www', file), 'utf8');
   const plans = {};
-  for (const view of ['radio','wishes','studio','team','schedule']) {
+  for (const view of ['radio','wishes','team','schedule']) {
     const scripts = [], styles = [];
     const document = { readyState:'loading', addEventListener() {}, documentElement:{ getAttribute:() => view, setAttribute() {} } };
     const scope = { document, window:{}, setTimeout() {}, Client:{ pageData:{view},
@@ -113,7 +113,7 @@ function properties(text) {
 }
 function build() {
   buildBackend();
-  for (const args of [['--test', 'tests/node/backend.test.cjs', 'tests/node/moderation-auth.test.cjs', 'tests/node/administration.test.cjs', 'tests/node/channel-topic.test.cjs', 'tests/node/wish-positions.test.cjs', 'tests/node/wish-storage.test.cjs', 'tests/node/stream.test.cjs', 'tests/node/history.test.cjs', 'tests/node/upload.test.cjs', 'tests/node/preview.test.cjs', 'tests/node/schedule.test.cjs', 'tests/node/announcements.test.cjs', 'tests/node/greetings.test.cjs', 'tests/node/nicklist.test.cjs', 'tests/node/ticker.test.cjs', 'tests/node/channel-texts.test.cjs', 'tests/node/handover.test.cjs', 'tests/node/studio-features.test.cjs', 'tests/node/website.test.cjs', 'tests/node/android-signing.test.cjs', 'tests/node/android.test.cjs', 'tests/node/relay-plan-team.test.cjs', 'tests/node/public-schedule.test.cjs', 'tests/node/android-settings.test.cjs', 'tests/node/android-operation.test.cjs', 'tests/node/android-verification.test.cjs', 'tests/node/emulator.test.cjs'], ['tools/checks/project.cjs'], ['tools/checks/rhino.cjs']]) {
+  for (const args of [['--test', 'tests/node/backend.test.cjs', 'tests/node/relay-v2.test.cjs', 'tests/node/native-migration.test.cjs', 'tests/node/administration.test.cjs', 'tests/node/channel-topic.test.cjs', 'tests/node/wish-positions.test.cjs', 'tests/node/wish-storage.test.cjs', 'tests/node/stream.test.cjs', 'tests/node/history.test.cjs', 'tests/node/upload.test.cjs', 'tests/node/preview.test.cjs', 'tests/node/schedule.test.cjs', 'tests/node/announcements.test.cjs', 'tests/node/greetings.test.cjs', 'tests/node/nicklist.test.cjs', 'tests/node/ticker.test.cjs', 'tests/node/channel-texts.test.cjs', 'tests/node/website.test.cjs', 'tests/node/android-signing.test.cjs', 'tests/node/android.test.cjs', 'tests/node/public-schedule.test.cjs', 'tests/node/android-settings.test.cjs', 'tests/node/android-operation.test.cjs', 'tests/node/android-verification.test.cjs', 'tests/node/emulator.test.cjs', 'tests/node/shared-emulator.test.cjs'], ['tools/checks/project.cjs'], ['tools/checks/rhino.cjs']]) {
     const result = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit', windowsHide: true });
     assert.equal(result.status, 0, 'Prüfung fehlgeschlagen; Uploadordner nicht aktualisiert.');
   }
@@ -158,7 +158,7 @@ function build() {
   // Nur bekannte gebündelte oder ausdrücklich entfernte Dateien aus älteren Paketen bereinigen.
   const retiredSchedule = ['calendar','markup','controller','editor','view','pages','window'].map(name => 'www/js/schedule/' + name + '.js')
     .concat(['www/css/schedule/schedule.css','www/css/schedule/schedule-options.css']);
-  const retiredStudio = ["www/js/studio/pages.js","server/radio/pin-access.js","www/js/studio/login.js","www/js/history/controller.js","www/js/history/data.js","www/js/history/view.js","www/js/studio/ticker.js","www/css/history/history.css","www/css/studio/ticker.css"];
+  const retiredStudio = ['server/radio/handover.js','server/radio/show.js','server/radio/ticker-command.js','server/radio/pin-work.js','server/radio/pin.js','server/website/access.js','server/website/commands.js','server/android/receipts.js','server/android/studio-wishes.js','server/android/wish-control.js','server/android/wish-commands.js','server/android/projection.js','server/android/commands.js','server/schedule/broadcasts.js','server/wishes/website.js','www/js/studio/controls.js','www/js/studio/handover-markup.js','www/js/studio/handover.js','www/js/studio/markup.js','www/js/studio/queue-actions.js','www/js/studio/queue.js','www/js/studio/reader.js','www/js/studio/window.js','www/js/studio/workspace.js','www/css/studio/handover.css','www/css/studio/responsive.css','www/css/studio/studio-queue.css','www/css/studio/studio.css',"www/js/studio/pages.js","server/radio/pin-access.js","www/js/studio/login.js","www/js/history/controller.js","www/js/history/data.js","www/js/history/view.js","www/js/studio/ticker.js","www/css/history/history.css","www/css/studio/ticker.css"];
   const retiredRadio = ['server/core/playback-evidence.js','www/js/radio/diagnostics.js',
     'www/js/radio/dancers.js','www/img/knuddel-figur-gelb.png',
     'server/radio/curtain.js','www/js/radio/curtain.js','www/js/radio/curtain-markup.js',

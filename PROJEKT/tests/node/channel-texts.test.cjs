@@ -307,7 +307,7 @@ test('Nur aktuelle eigene Verwaltung des Channelinhabers darf speichern; alte Re
   f.h.event(f.owner,f.team,'mw:channelTexts.save',data);assert.deepEqual(f.h.store.data[key],before);
   f.h.event(f.owner,f.team,'mw:channelTexts.save',{...data,expectedRevision:1,viewRevision:0});assert.deepEqual(f.h.store.data[key],before);
   f.owner.role='listener';f.h.event(f.owner,f.team,'mw:refresh');
-  assert.equal(f.team.events.findLast(e=>e.type==='mw:channelTexts.state')?.data,null);
+  assert.equal(f.team.removed,true,'Rechteverlust schließt die geschützte Verwaltung');
   f.h.event(f.owner,f.team,'mw:channelTexts.save',{...data,expectedRevision:1});assert.deepEqual(f.h.store.data[key],before);
   f.team.remove();f.h.event(f.owner,f.team,'mw:channelTexts.save',data);assert.deepEqual(f.h.store.data[key],before);
 });
@@ -344,6 +344,6 @@ test('Maximaler Verwaltungsentwurf bleibt auch mit voller Wunschregie, Thema und
   assert.deepEqual(reopened.content.htmlFile.pageData.queueWindow,[],'Verwaltung benötigt keine duplizierte Studio-Wunschregie');
   assert.ok(JSON.stringify(reopened.content.htmlFile.pageData).length<8500);
   f.h.event(f.owner,f.radio,'mw:onAir',{});f.h.event(f.owner,f.radio,'mw:setTopic',{topic:'"'.repeat(80)});
-  const state=f.h.state(f.owner,reopened);assert.deepEqual(state.queueWindow,[]);assert.equal(state.topic,'"'.repeat(80));
-  assert.ok(f.h.state(f.owner,f.radio).queueWindow.length>0,'Radio-/Studio-Daten bleiben erhalten');
+  const state=f.h.state(f.owner,reopened);assert.deepEqual(state.queueWindow,[]);assert.equal(state.topic,'','Altes lokales Thema ist keine aktuelle Sendung');
+  assert.deepEqual(f.h.state(f.owner,f.radio).queueWindow,[],'Keine fremde Wunschregie in der Radioleiste');
 });

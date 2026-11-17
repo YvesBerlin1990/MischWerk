@@ -2,14 +2,14 @@
 MischWerkModules.attachOverlays = function (runtime) {
     'use strict';
     var sequence = 0;
-    var actions = { 'mw:openWishes':'wishes', 'mw:openStudio':'studio', 'mw:openRadioTeam':'team', 'mw:openSchedule':'schedule' };
+    var actions = { 'mw:openWishes':'wishes', 'mw:openRadioTeam':'team', 'mw:openSchedule':'schedule' };
     function find(user, session) {
         return runtime.getViews().filter(function (view) {
             return view.userId === runtime.userId(user) && view.content === session.getAppContent();
         })[0];
     }
     function allowed(user, kind) {
-        return kind === 'studio' ? runtime.isModerator(user) : kind === 'team' ? runtime.canAdminister(user) : true;
+        return kind === 'team' ? runtime.canUseAdministration(user) : ['radio', 'wishes', 'schedule'].indexOf(kind) >= 0;
     }
     function parent(view) {
         return runtime.getViews().filter(function (radio) { return radio.kind === 'radio' && radio.userId === view.userId && radio.content === view.radioContent; })[0];

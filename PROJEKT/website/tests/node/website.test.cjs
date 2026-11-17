@@ -18,7 +18,7 @@ function fixture() {
   const radio = h.open(owner), listenerRadio = h.open(listener);
   const invoke = (method = 'GET', body, query = 'week=2026-11-02&page=0') => {
     const result = h.webhooks.invoke('website', { method, body: JSON.stringify(body), query });
-    return { status: result.status, data: JSON.parse(result.body) };
+    return { status: result.status, data: result.body?JSON.parse(result.body):null };
   };
   return { h, owner, listener, radio, listenerRadio, invoke };
 }
@@ -32,27 +32,13 @@ test('WebHook veröffentlicht denselben Sendeplan ohne interne Identitäten oder
   assert.equal(publicPlan.status, 200); assert.equal(publicPlan.data.entries[0].moderator, 'Yves');
   assert.equal(publicPlan.data.entries[0].topic, 'Ein Abend mit Musik');
   assert.doesNotMatch(JSON.stringify(publicPlan.data), /Otterchen|userId|senderKey|canManage/);
-  assert.equal(f.invoke('DELETE').status, 405);
-  assert.equal(f.h.webhooks.invoke('website', {method:'POST',body:'{broken'}).status,400);
+  assert.equal(f.invoke('DELETE').status, 410);
+  assert.equal(f.h.webhooks.invoke('website', {method:'POST',body:'{broken'}).status,410);
   assert.equal(f.h.webhooks.invoke('website', {query:'week=%ZZ'}).status,400);
-  assert.equal(f.invoke('POST', { type: 'mw:schedule.delete', id: 1 }).status, 400);
+  assert.equal(f.invoke('POST', { type: 'mw:schedule.delete', id: 1 }).status, 410);
   assert.equal(f.invoke().data.entries.length, 1);
-  f.h.app.chatCommands.mw(f.listener,'homepage status'); assert.equal(f.listener.messages.length, 0);
-  f.h.app.chatCommands.mw(f.owner,'homepage status'); assert.match(f.owner.messages.at(-1), /https:\/\/emulator\.mischwerk\.invalid\/webhooks/);
 });
-test('Websitewunsch erscheint einmalig in der echten Moderationsqueue und gibt keine Channelidentität vor', () => {
-  const f = fixture();f.h.event(f.owner,f.radio,'mw:onAir',{pin:'0123',pinConfirmation:'0123'});const data = { text: 'a-ha – Take On Me', submissionId: 'web-test-12345', visitorId: 'a'.repeat(32) };
-  assert.equal(f.h.webhooks.invoke('website', {method:'POST',body:new String(JSON.stringify(data))}).status,200);
-  assert.equal(f.invoke('POST', data).status, 200);
-  const state = f.h.state(f.owner, f.radio);
-  assert.equal(state.queueTotal, 1); assert.equal(state.queue[0].nick, 'Website');
-  assert.equal(state.queue[0].text, data.text);
-  assert.equal(f.h.state(f.listener, f.listenerRadio).wishPositions.total, 0);
-  assert.equal(f.invoke('POST', { ...data, submissionId: 'web-link-12345', text: 'https://example.org' }).status, 400);
-  f.h.event(f.owner, f.radio, 'mw:setRequests', { enabled: false });
-  assert.equal(f.invoke('POST', { ...data, submissionId: 'web-disabled-12345' }).status, 400);
-  assert.equal(f.invoke().data.requestsEnabled, false);
-});
+
 async function start(t, options) {
   const handle = createSiteApi(options);
   const server = http.createServer(async (req, res) => { if (!await handle(req, res, new URL(req.url, 'http://local'))) { res.writeHead(404); res.end(); } });
@@ -117,7 +103,7 @@ test('Fehlende oder abgewiesene Mailzustellung behauptet keinen Erfolg und bleib
   const second = await start(t,{mail:rejected,bridge:{configured:false}});
   assert.equal((await second.post('applications',application)).status,503);
 });
-test('HTTP-Anschluss übermittelt Plan und Wünsche an den dokumentierten WebHook statt in die Demo', async t => {
+test('Öffentlicher HTTP-Anschluss liest den Plan; alter Wunsch-Schreibanschluss bleibt gesperrt', async t => {
   const f = fixture();f.h.event(f.owner,f.radio,'mw:onAir',{pin:'0123',pinConfirmation:'0123'});
   const bridge = createSiteBridge({ MISCHWERK_APP_WEBHOOK: 'https://bridge.example.test/website' }, async (url, options) => {
     const native = f.h.webhooks.invoke('website', { method: options.method, query: url.search.slice(1), body: options.body });
@@ -127,6 +113,6 @@ test('HTTP-Anschluss übermittelt Plan und Wünsche an den dokumentierten WebHoo
   const plan = await fetch(base + '/api/site/schedule?week=2026-11-02&page=0');
   assert.equal(plan.status, 200); assert.equal((await plan.json()).week, '2026-11-02');
   const wish = await post('wishes', { text: 'Band – Song', submissionId: 'website-http-wish-12345' });
-  assert.equal(wish.status, 200); assert.match(wish.headers.get('set-cookie'), /HttpOnly; SameSite=Strict/);
-  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 1);
+  assert.equal(wish.status, 503);
+  assert.equal(f.h.state(f.owner, f.radio).queueTotal, 0);
 });

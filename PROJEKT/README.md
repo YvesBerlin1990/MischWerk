@@ -1,8 +1,8 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.445 · Build 445 · Website 0.2.12** · Stand: 15.11.2026.
+**App 0.1.448 · Build 448 · Website 0.2.13** · Stand: 17.11.2026.
 
-MischWerk verbindet Radio, dauerhafte Musikwünsche, Moderation, Lauftext und Sendeplan in einer Knuddels-UserApp. Die eigenständige Website und der Android-Rückkanal verwenden die vorhandenen Appverträge.
+MischWerk zeigt Radio, zentrale Sendungsdaten, eigene Musikwünsche, Lauftext und Sendeplan in Knuddels. Sendung und Wunschregie liegen im MischWerk Live Studio mit Firebase; die App verwendet den vorhandenen signierten Abgleich.
 
 [Funktionen und Bilder](../.github/README.md) · [Verbindliche Projektregeln](../AGENTS.md) · [Architektur](docs/architektur/ARCHITEKTUR.md)
 
@@ -18,7 +18,7 @@ Alle folgenden Pfade liegen innerhalb von `PROJEKT/`.
 | [medien/](medien) | Originalmedien und MyChannel-Hintergründe |
 | [tools/build/](tools/build) · [tools/checks/](tools/checks) | Paketbau und Prüfwerkzeuge |
 | [tools/lib/](tools/lib) | Gemeinsame Hilfen, Inventar und Ladepläne |
-| [tools/emulator/](tools/emulator) · [tools/preview/](tools/preview) | Integriertes Testlabor und lokale Appvorschau |
+| [tools/userapp-emulator/](tools/userapp-emulator) · [tools/preview/](tools/preview) | Zentral geliefertes Emulator-Submodul und lokale Appvorschau |
 | [tests/](tests) | Node-, Browser- und Rhino-Prüfungen mit Fixtures und Support |
 | [website/](website/README.md) | Eigenständige Homepage und Webserver |
 | [docs/](docs) | Architektur, API-Nachweise, Betrieb und Prüfberichte |
@@ -28,20 +28,21 @@ Alle folgenden Pfade liegen innerhalb von `PROJEKT/`.
 
 ## Lokal arbeiten
 
-Voraussetzungen: **Node.js ab 20**, **pnpm 11.25.0**, Microsoft Edge für Browserprüfungen und **Java 11+** für Rhino. Die Website benötigt Node.js ab 22.
+Voraussetzungen: **Git**, **Node.js 24**, **pnpm 11.25.0**, Microsoft Edge für Browserprüfungen und **Java 11+** für Rhino. Der zentrale Emulator einschließlich Windows-Einrichtung verwendet Node.js 24. Die eigenständige Website benötigt Node.js ab 22.
 
 Befehle aus `PROJEKT/` ausführen; von der Repositorywurzel jeweils `pnpm --dir PROJEKT …` verwenden. Bei gesperrten PowerShell-Skripten funktioniert `pnpm.cmd`.
 
 | Befehl | Zweck |
 | --- | --- |
 | `pnpm install --frozen-lockfile` | Entwicklungsabhängigkeiten installieren |
-| `pnpm run emulator` | Interaktives Testlabor auf `http://127.0.0.1:8776` |
+| `pnpm run emulator` | Zentraler UserApp-Emulator auf `http://127.0.0.1:3105` |
+| `pnpm run emulator:setup` | Automatischen Windows-Abgleich für diese lokale Repositorykopie einrichten oder erneuern |
 | `pnpm run preview` | Appvorschau auf `http://127.0.0.1:8765` |
 | `pnpm run build:backend` | Backendlaufzeit aus den Quellen erzeugen |
 | `pnpm run check:backend` | Quell-/Laufzeitgleichheit prüfen |
 | `pnpm test` | Vollständige Node-Suite |
 | `pnpm run test:browser` | Browser- und Emulatorprüfungen mit Edge |
-| `pnpm run test:emulator` | Rhino und integrierte Emulatorprüfungen |
+| `pnpm run test:emulator` | MischWerk-Integration mit der tatsächlichen zentralen Laufzeit |
 | `pnpm run check` | Struktur, Syntax, API-Signaturen und Inventar |
 | `pnpm run check:rhino` | Rhino 1.7.7.2 und 1.9.1 |
 | `pnpm run check:lengths` | Textgrenzen der Laufzeitdateien |
@@ -51,13 +52,15 @@ Befehle aus `PROJEKT/` ausführen; von der Repositorywurzel jeweils `pnpm --dir 
 
 Rhino-JARs einmalig mit `node tools/checks/rhino.cjs --download` beziehen. `MISCHWERK_JAVA` wählt Java; `MISCHWERK_PLAYWRIGHT` eine externe Playwright-Installation. `build:live` ist ein Alias für `prepare:upload`. `MISCHWERK_TEST_UPLOAD` richtet die unterstützten Prüfwerkzeuge auf das gebündelte Appverzeichnis.
 
-## App im Testlabor prüfen
+## App im zentralen Emulator prüfen
 
-`pnpm run emulator` startet `127.0.0.1:8776`; alternativ [Start-Testlabor.ps1](tools/emulator/Start-Testlabor.ps1) verwenden. `-Port` bzw. `MISCHWERK_EMULATOR_PORT` wählt einen anderen Port, Strg+C beendet den Server.
+Nach `pnpm install --frozen-lockfile` startet `pnpm run emulator` aus `PROJEKT/` den lokalen Appbestand auf `127.0.0.1:3105`. Unter Windows initialisiert der Starter bei Bedarf das gebundene Submodul und ruft dessen zentrale Abgleichseinrichtung auf. Diese registriert die tatsächliche lokale Repositorykopie und beendet ihren ersten Abgleich einschließlich nötiger Emulatorabhängigkeiten vor dem Serverstart. `MISCHWERK_EMULATOR_PORT` wählt einen anderen Port, Strg+C beendet den Server.
 
-Das Labor lädt den lokalen Appcode und bietet Testnutzer, K3-/STAPP-Modelle, unterschiedliche Fenstergrößen sowie Ressourcen-, Provider- und Audiofälle. Testdaten und temporäre Aufnahmen liegen im System-Tempordner. Die Modelle ersetzen keine native Knuddels-Abnahme.
+`pnpm run emulator:setup` richtet den automatischen Abgleich ausdrücklich ein oder erneuert ihn. Auf einem weiteren Windows-Rechner oder nach Verschieben genügt derselbe Befehl beziehungsweise der erste normale Emulatorstart. Mehrere Kopien an unterschiedlichen Pfaden können nebeneinander registriert sein; die zentrale Einrichtung verwaltet eine gemeinsame stille Windows-Aufgabe bei der Benutzeranmeldung. Der Abgleich verwendet die jeweilige vorhandene Git-Anmeldung mit Zugriff auf die privaten Repositories. Maschinenpfade und Zugangsdaten werden nicht im Repository verteilt. Die Installation auf anderen Rechnern erfolgt durch deren lokalen Aufruf.
 
-[Bedienhilfe](tools/emulator/www/help.html) · [Codex-Zugriff](../AGENTS.md#codex-zugriff-auf-den-integrierten-emulator)
+Die Laufzeit stammt aus [Windows-K-UserAppEmulator](https://github.com/PolaroidK/Windows-K-UserAppEmulator), Branch `emulator-submodule`. Der kleine lokale Starter baut das Backend und übergibt den absoluten Apppfad; Emulatoränderungen werden ausschließlich im zentralen Repository gepflegt. Testdaten und Berichte liegen im System-Tempordner. Der bisherige Emulator ist veraltet; seine Modelle bleiben unter `tests/support/native-lab/` für bestehende Regressionstests erhalten. Die Modelle ersetzen keine native Knuddels-Abnahme.
+
+[Zentrale Dokumentation](tools/userapp-emulator/laufzeit-und-submodul.md) · [Codex-Zugriff](../AGENTS.md#codex-zugriff-auf-den-zentralen-emulator)
 
 ## Website und Anbindungen
 

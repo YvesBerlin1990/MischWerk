@@ -17,13 +17,10 @@ function checkArchitecture() {
     assert.doesNotMatch(backend[file], /getWebHookAccess|registerWebHook|relaySecret/, 'Android-Rückkanal ohne WebHook oder zusätzlichen Schlüssel: ' + file);
   }
   assert.equal((backend['android/verification.js'].match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Ein begrenzter Timeout je ausdrücklicher HTTP-Prüfung');
-  assert.equal((backend['radio/pin-work.js'].match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Ein zeitlich begrenzter PIN-Arbeitstimer, keine synchrone Hashschleife');
   assert.equal((backend['users/nicklist.js'].match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Ein gemeinsamer Nicklisten-Timeout für Rechte, Bereinigung und Hörerablauf');
   assert.equal((backend['schedule/public.js'].match(/\bsetTimeout\s*\(/g) || []).length, 1, 'Ein begrenzter GET-Timeout je tatsächlich gelesener Homepagewoche');
-  assert.equal((allBackend.match(/\bsetTimeout\s*\(/g) || []).length, 6, 'Bestehende Timer sowie der öffentliche Sendeplan-GET-Timeout');
-  assert.match(backend['website/transport.js'], /getWebHookAccess\(\)\.registerWebHook\('website', handle\)/, 'Website verwendet ausschließlich dokumentierten WebHook');
-  assert.doesNotMatch(backend['website/commands.js'], /handleEvent|handleScheduleEvent|handleChannelTextEvent|new User|sendAppContent/, 'Webadapter verwendet Fachaktionen ohne native Sitzungsattrappe');
-  assert.match(backend['website/access.js'], /runtime\.isModerator\(person\)/, 'Websitzung prüft aktuelle Channelrechte');
+  assert.equal((allBackend.match(/\bsetTimeout\s*\(/g) || []).length, 5, 'Bestehende Timer sowie der öffentliche Sendeplan-GET-Timeout');
+  assert.match(backend['website/transport.js'], /getWebHookAccess\(\)\.registerWebHook\('website',\s*function/, 'Website verwendet ausschließlich dokumentierten WebHook');
   for (const method of ['sendAppContent', 'overlayContent', 'headerbarContent', 'remove']) {
     assert.equal((allBackend.match(new RegExp('\\.' + method + '\\s*\\(', 'g')) || []).length, 1, 'Genau ein nativer Lebenszykluspfad: ' + method);
   }
@@ -78,11 +75,9 @@ function checkArchitecture() {
   const wishWindow = read('app/www/js/wishes/window.js');
   assert.doesNotMatch(wishWindow, /setMinSize|setMaxSize|setResizable|setTimeout|setInterval|screen\./, 'Wunschhöhe ohne alte Grenzen-/Warte-/Wiederholungsmechanik');
   assert.equal((wishWindow.match(/\.setSize\(/g) || []).length, 1, 'Ein dokumentierter Größenpfad für die Wunschbestätigung');
-  const studioWindow=read('app/www/js/studio/window.js');
-  assert.doesNotMatch(studioWindow,/setMinSize|setMaxSize|setResizable|setTimeout|setInterval/,'Studiohöhe ohne parallele Fenster-/Wiederholungsmechanik');
-  assert.equal((studioWindow.match(/\.setSize\(/g)||[]).length,1,'Ein dokumentierter Größenweg für die natürliche Wunschregiehöhe');
-  assert.match(studioWindow,/data-page-hidden/,'Bediengruppen bleiben über ausdrückliche Seitennavigation erreichbar');
-  for (const view of ['radio','wishes','studio','team','schedule']) {
+  assert.doesNotMatch(frontend, /mw:openStudio|mw:onAir|mw:offAir|mw:handover|studio-tab/, 'Native Moderationsoberfläche vollständig entfernt');
+  assert.doesNotMatch(allBackend, /runtime\.(changeModeration|transferModeration|changeHandover|invalidateModerator|prepareScheduleSync|flushScheduleSync)\s*=/, 'Keine lokale Sendungsautorität oder Ersatzcontroller');
+  for (const view of ['radio','wishes','team','schedule']) {
     assert.equal(frontendFilesForView(view).includes('js/wishes/window.js'), view === 'wishes', 'Native Wunschhöhe nur im Wunsch-Ladeplan');
   }
   assert.doesNotMatch(frontend, /(?:bridge|Client)\.close\s*\(|window\.open\s*\(|location\.(?:assign|replace)\s*\(/, 'Fensteraktionen müssen den gemeinsamen Ereignisweg verwenden');
@@ -105,7 +100,7 @@ function checkArchitecture() {
   }
   assert.deepEqual([...composed].sort(), Object.keys(factories).sort(), 'Unverdrahtete Frontendkomponenten');
   const used = new Set();
-  for (const view of ['radio', 'wishes', 'studio', 'team', 'schedule']) {
+  for (const view of ['radio', 'wishes', 'team', 'schedule']) {
     const loaded = [], built = [], scope = { window: {}, document: {
       documentElement: { getAttribute: () => view }
     }, Client: { pageData: { view }, includeJS: file => loaded.push(file) } };

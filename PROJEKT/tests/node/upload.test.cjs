@@ -81,7 +81,7 @@ test('Auslieferungsbündel erhalten alle vollständigen Module und ihre Reihenfo
   const delivered = file => (delivery.get('www/'+file) || Buffer.from(read(file))).toString('utf8');
   const required = new Set(runtimeFiles.filter(file => file.startsWith('www/') && !/^www\/(?:js|css)\//.test(file)));
   required.add('www/js/start.js'); required.add('www/js/operator/relay-settings.js');
-  for (const view of ['radio','wishes','studio','team','schedule']) {
+  for (const view of ['radio','wishes','team','schedule']) {
     const scripts = [], styles = [];
     const scope = { document:{readyState:'loading',addEventListener(){},documentElement:{getAttribute:() => view,setAttribute(){}}},
       Client:{pageData:{view},includeJS:file => scripts.push(file),includeCSS:file => styles.push(file)},setTimeout(){} };
@@ -129,22 +129,21 @@ test('Serverbündel laden jedes vollständige Modul genau einmal in derselben Re
     assert.ok(modules.slice(start, end).every(source => path.posix.dirname(source) === path.posix.dirname(file)),
       'Serverbündel bleibt im Fachordner: ' + file);
   });
-  for (const file of ['core/composition.js', 'website/access.js']) {
+  for (const file of ['core/composition.js']) {
     assert.equal(delivery.get('server/' + file).toString('utf8'), read(file), 'Eigenständige Verdrahtung/Anmeldung: ' + file);
   }
   const { createHarness } = require('../support/knuddels.cjs');
-  const appDir = path.join(f.upload, 'MischWerk'), h = createHarness(undefined, { appDir });
+  const appDir = path.join(f.upload, 'MischWerk'), relay = require('../fixtures/relay-v2.cjs').setup({appDir}), h=relay.h;relay.finish();
   assert.deepEqual(h.loadedFiles, ['main.js', 'server/app.js', ...imports.map(file => 'server/' + file)]);
   const owner = h.user(1, 'Otterchen', 'owner'), listener = h.user(2, 'Hörer');
   const os = h.open(owner), ls = h.open(listener);
-  h.event(owner,os,'mw:onAir',{});
   const receipt = h.event(listener, ls, 'mw:wish.submit', {text:'Bündelprüfung',submissionId:'bundle-wish'});
-  assert.equal(receipt.find(event => event.type === 'mw:wish.receipt').data.accepted, true);
-  assert.equal(h.state(owner, os).queueTotal, 1);
+  assert.equal(receipt.find(event => event.type === 'mw:wish.receipt').data.pending, true);
+  assert.equal(h.runtime.nativeRelayState().entries.length, 1);
   h.app.onPrepareShutdown(); h.app.onShutdown();
   const reboot = createHarness(h.store, { appDir, users:[{id:1,nick:'Otterchen',role:'owner'}] });
   const returnedOwner = reboot.user(1, 'Otterchen', 'owner');
-  assert.equal(reboot.state(returnedOwner, reboot.open(returnedOwner)).queue[0].text, 'Bündelprüfung');
+  assert.equal(reboot.runtime.nativeWishEntries()[0].text, 'Bündelprüfung');
 });
 
 test('Dateiplan beschreibt genau den modularen beziehungsweise tatsächlich gebündelten Appbestand', () => {

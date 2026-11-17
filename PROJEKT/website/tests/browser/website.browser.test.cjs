@@ -80,7 +80,7 @@ test('Websiteplayer: Play, freie Lautstärke, Mute, Stop und leiser Neustart ver
   await radio.locator('#track-title').filter({hasText:'Prüftitel'}).waitFor();
   await radio.locator('#play-button').click();
   await radio.locator('body.playing').waitFor();
-  assert.ok(await radio.locator('#radio-audio').evaluate(a => a.volume <= .1));
+  assert.ok(await radio.locator('#radio-audio').evaluate(a => a.volume <= .3));
   await radio.locator('#volume').press('End');
   assert.equal(await radio.locator('#radio-audio').evaluate(a => a.volume), 1);
   await radio.locator('#mute-button').click();
@@ -91,11 +91,11 @@ test('Websiteplayer: Play, freie Lautstärke, Mute, Stop und leiser Neustart ver
   assert.equal(await radio.locator('#radio-audio').getAttribute('src'), null);
   await radio.locator('#play-button').click();
   await radio.locator('body.playing').waitFor();
-  assert.ok(await radio.locator('#radio-audio').evaluate(a => a.volume <= .1));
+  assert.ok(await radio.locator('#radio-audio').evaluate(a => a.volume <= .3));
   await radio.locator('#play-button').click();
   assert.deepEqual(errors, []);
 });
-test('Testansichten: neutrale Rollen und Beschriftungen auch in Wunschbox, Sendeplan, Studio und Team', async t => {
+test('Testansichten: neutrale Rollen und Beschriftungen auch in Wunschbox, Sendeplan und Team', async t => {
   const {page, errors, external} = await setup(t);
   for (const role of ['listener','moderator']) {
     await page.goto(base + '/channel.html?role=' + role);
@@ -104,7 +104,7 @@ test('Testansichten: neutrale Rollen und Beschriftungen auch in Wunschbox, Sende
     await cleanText(page);
     if (role === 'moderator') {
 
-      for (const [id,view] of [['open-wishes','wishes'],['open-schedule','schedule'],['studio-tab','studio'],['team-tab','team']]) {
+      for (const [id,view] of [['open-wishes','wishes'],['open-schedule','schedule'],['team-tab','team']]) {
         if (view === 'team') {
           assert.equal(await radio.locator('#team-tab').count(),0);
           await radio.locator('html').evaluate(() => window.MischWerkPreviewCommand('/mw admin'));

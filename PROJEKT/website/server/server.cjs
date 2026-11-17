@@ -2,14 +2,12 @@
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 const {createSiteBridge}=require('./site-bridge.cjs');
 const {createSiteApi}=require('./site-api.cjs');
-const {createWorkspaceApi}=require('./workspace-api.cjs');
 const {createPublicPlayer}=require('./public-player.cjs');
 const root=path.resolve(__dirname,'../..'),assets=path.resolve(__dirname,'../public');
 function createSiteServer({env=process.env,bridge=createSiteBridge(env),clock=Date.now}={}){
- let workspace,siteApi,origin;const player=createPublicPlayer(root,bridge);
+ let siteApi,origin;const player=createPublicPlayer(root,bridge);
  const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.woff2':'font/woff2','.txt':'text/plain; charset=utf-8','.mp3':'audio/mpeg'};
- const files={'/':'index.html','/arbeitsbereich':'workspace.html','/preview.css':'css/preview.css','/sections.css':'css/sections.css','/sections.js':'js/site/sections.js','/site-components.js':'js/site/site-components.js','/calendar.js':'js/site/calendar.js','/site-navigation.js':'js/site/site-navigation.js','/channel.js':'js/site/public-home.js','/radio-site.css':'css/radio-site.css','/public-player.js':'js/site/public-player.js'};
- for(const name of ['workspace.css','workspace.js','workspace-studio.js','workspace-team.js','workspace-schedule.js'])files['/'+name]=name.endsWith('.css')?'css/'+name:'js/workspace/'+name;
+ const files={'/':'index.html','/preview.css':'css/preview.css','/sections.css':'css/sections.css','/sections.js':'js/site/sections.js','/site-components.js':'js/site/site-components.js','/calendar.js':'js/site/calendar.js','/site-navigation.js':'js/site/site-navigation.js','/channel.js':'js/site/public-home.js','/radio-site.css':'css/radio-site.css','/public-player.js':'js/site/public-player.js'};
  const pages={'/':'radio','/sendeplan':'schedule','/team':'team','/mitmachen':'applications','/wunschbox':'wishes'};
  for(const route of Object.keys(pages))files[route]='index.html';
  const server=http.createServer(async(req,res)=>{
@@ -18,9 +16,10 @@ function createSiteServer({env=process.env,bridge=createSiteBridge(env),clock=Da
   if(req.url.split('?')[0]==='/arbeitsbereich')res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
   const send=(status,type,body)=>{res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store'});res.end(body);};
   try{
-   if(!origin){origin=env.MISCHWERK_PUBLIC_ORIGIN||'http://127.0.0.1:'+server.address().port;const url=new URL(origin);if(url.origin!==origin||(!origin.startsWith('https:')&&!['127.0.0.1','localhost'].includes(url.hostname)))throw Error('Ungültiger Websiteursprung');workspace=createWorkspaceApi({bridge,origin,clock});siteApi=createSiteApi({env:{...env,MISCHWERK_PUBLIC_ORIGIN:origin},bridge});}
+   if(!origin){origin=env.MISCHWERK_PUBLIC_ORIGIN||'http://127.0.0.1:'+server.address().port;const url=new URL(origin);if(url.origin!==origin||(!origin.startsWith('https:')&&!['127.0.0.1','localhost'].includes(url.hostname)))throw Error('Ungültiger Websiteursprung');siteApi=createSiteApi({env:{...env,MISCHWERK_PUBLIC_ORIGIN:origin},bridge});}
    const url=new URL(req.url,origin);
-   if(await workspace(req,res,url)||await siteApi(req,res,url))return;
+   if(url.pathname==='/arbeitsbereich'||url.pathname.startsWith('/api/workspace/')){res.writeHead(410,{'Content-Type':'text/plain; charset=utf-8'});res.end('Dieser zusätzliche Arbeitsbereich ist stillgelegt. Bitte www.radio-mischwerk.de verwenden.');return;}
+   if(await siteApi(req,res,url))return;
    if(req.method!=='GET'){send(405,'text/plain','Nicht verfügbar.');return;}
    if(url.pathname==='/player'){send(200,types['.html'],await player.html());return;}
    if(url.pathname==='/api/public/radio'){send(200,'application/json',JSON.stringify(await player.data()));return;}

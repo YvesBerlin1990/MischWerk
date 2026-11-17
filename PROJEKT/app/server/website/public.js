@@ -2,8 +2,8 @@
 MischWerkModules.attachWebsitePublic = function (runtime, config) {
     'use strict';
     runtime.publicWebsiteRadio = function () {
-        var presenter = runtime.moderatorIsActive() && runtime.state.moderator;
-        return {topic:runtime.state.topic, moderator:presenter ? {nick:presenter.nick.toLowerCase() === config.ownerNick.toLowerCase() ? 'Yves' : 'Moderation'} : null};
+        var show=runtime.receivedShow();
+        return {topic:show.active?show.topic:'',moderator:show.active?{nick:show.nick}:null};
     };
     runtime.publicWebsitePlan = function (week, page) {
         var plan = runtime.schedulePage(null, week, page);

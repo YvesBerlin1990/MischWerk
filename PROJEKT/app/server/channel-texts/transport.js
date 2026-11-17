@@ -12,8 +12,8 @@ MischWerkModules.attachChannelTextTransport = function (runtime) {
             var view = runtime.getViews().filter(function (item) {
                 return item.userId === runtime.userId(user) && item.content === session.getAppContent();
             })[0];
-            if (!runtime.canAdminister(user) || !view || view.kind !== 'team' || data.view !== 'team' || data.viewRevision !== view.viewRevision) {
-                throw runtime.failure('Nur der Channelinhaber darf Bot-Texte in der Verwaltung ändern.');
+            if (!runtime.canUseAdministration(user) || !view || view.kind !== 'team' || data.view !== 'team' || data.viewRevision !== view.viewRevision) {
+                throw runtime.failure('Keine Berechtigung für die Bot-Text-Verwaltung.');
             }
             if (runtime.shuttingDown) { throw runtime.failure('MischWerk startet gerade neu. Bitte versuche es gleich erneut.'); }
             if (type !== 'mw:channelTexts.save') { throw runtime.failure('Diese Bot-Text-Aktion ist nicht verfügbar.'); }

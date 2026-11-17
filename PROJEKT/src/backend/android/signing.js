@@ -55,6 +55,10 @@ MischWerkModules.attachAndroidSigning = function (runtime) {
         for (i = 0; i < 32; i += 1) { result.push(state[i >> 2] >>> (24 - i % 4 * 8) & 255); }
         return result;
     }
+    runtime.androidSha256Text = function (text) {
+        if(typeof text!=='string'){throw new Error('ANDROID_HASH_INPUT');}
+        return sha256(utf8(text)).map(function(value){return ('0'+value.toString(16)).slice(-2);}).join('');
+    };
     runtime.androidHmacSha256 = function (key, text) {
         if (typeof key !== 'string' || typeof text !== 'string' || key.length > 4096 || text.length > 300000) {
             throw new Error('ANDROID_SIGN_INPUT');

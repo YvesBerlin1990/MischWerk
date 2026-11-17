@@ -1,52 +1,64 @@
-/* Öffentliche Nick-Bot-Meldungen bei tatsächlichem Wechsel der Studio-Moderation. */
-MischWerkModules.attachStudioAnnouncements = function (runtime) {
+/* Explizite zentrale Ereignisse: dauerhaft vor dem einen Botversuch markieren. */
+MischWerkModules.attachStudioAnnouncements = function(runtime) {
     'use strict';
     var initialized = false;
-    var lastModerator = null;
-
-    function currentModerator() {
-        if (!runtime.moderatorIsActive()) { return null; }
-        return { userId: runtime.state.moderator.userId, nick: String(runtime.state.moderator.nick) };
-    }
-
-    function announce(moderator, onAir, previous) {
-        try {
-            var message = previous ? '🎙️ ' + previous.nick.escapeKCode() + ' macht Platz im Studio – ' +
-                moderator.nick.escapeKCode() + ' ist jetzt live ON AIR bei Radio MischWerk!' :
-                '🎙️ ' + moderator.nick.escapeKCode() + (onAir ?
-                ' betritt das Studio – ab jetzt live ON AIR bei Radio MischWerk!' :
-                ' verlässt das Studio – danke fürs Zuhören und bis zum nächsten Mal bei Radio MischWerk!');
-            KnuddelsServer.getDefaultBotUser().sendPublicMessage(message);
-        } catch (error) {
-            // Ein Botfehler darf die bestätigte Moderation nicht zurücknehmen.
-            runtime.warn('STUDIO_ANNOUNCE');
+    runtime.acceptBroadcastEvents = function(reply, request) {
+        if (!Array.isArray(reply.broadcastEvents) || reply.broadcastEvents.length > 10 ||
+            (reply.eventCursor !== null && typeof reply.eventCursor !== 'string')) {
+            throw new Error('BROADCAST_EVENTS');
         }
-    }
-
-    runtime.initializeStudioAnnouncements = function () {
-        if (initialized) { return; }
-        try {
-            lastModerator = currentModerator();
-            initialized = true;
-        } catch (error) { runtime.warn('STUDIO_ANNOUNCE'); }
-    };
-
-    runtime.announceStudioStatus = function () {
-        try {
-            if (!initialized) { runtime.initializeStudioAnnouncements(); return; }
-            var moderator = currentModerator();
-            var previous = lastModerator;
-            // Vor dem Versand übernehmen: nach API-Fehlern keine ungewissen Wiederholungen senden.
-            lastModerator = moderator;
-            if (previous && moderator && previous.userId === moderator.userId) { return; }
-            if (previous && moderator) { announce(moderator, true, previous); return; }
-            if (previous) { announce(previous, false); }
-            if (moderator) { announce(moderator, true); }
-        } catch (error) { runtime.warn('STUDIO_ANNOUNCE'); }
-    };
-    runtime.notifyHandover = function (user, nick) {
-        try { user.sendPrivateMessage(nick.escapeKCode() +
-            ' möchte dir die Sendung übergeben. Bitte öffne das Moderationsmenü und wähle „Übergabe ansehen“.'); }
-        catch (error) { runtime.warn('HANDOVER_NOTICE'); }
+        var state = runtime.copy(runtime.nativeRelayState()),
+            fresh = [],
+            epoch = reply.station.protocolEpoch,
+            last = state.eventEpoch === epoch ? state.eventSeq : 0;
+        reply.broadcastEvents.forEach(function(row) {
+            if (!row || typeof row.eventId !== 'string' || !row.eventId || typeof row.eventSeq !==
+                'number' || row.eventSeq < 1 || Math.floor(row.eventSeq) !== row.eventSeq || ['start',
+                    'end', 'handover'
+                ].indexOf(row.type) < 0 || typeof row.createdAt !== 'number' || typeof row
+                .moderatorNick !== 'string' || row.moderatorNick.length > 50 ||
+                (row.previousModeratorNick !== null && typeof row.previousModeratorNick !== 'string')) {
+                throw new Error('BROADCAST_EVENT');
+            }
+            if (row.eventSeq <= last) {
+                return;
+            }
+            last = row.eventSeq;
+            if (reply.station.authority === 'studio' && initialized && state.eventEpoch === epoch &&
+                request.eventCursor !== null && reply.cursorReset !== true &&
+                row.createdAt <= reply.serverTime + 15000 && row.createdAt >= reply.serverTime - 45000
+                ) {
+                fresh.push(row);
+            }
+        });
+        state.eventEpoch = epoch;
+        state.eventSeq = last;
+        state.eventCursor = reply.eventCursor;
+        runtime.saveNativeRelayState(state);
+        initialized = true;
+        if (!runtime.displaySettings().announcementsEnabled) {
+            return;
+        }
+        fresh.forEach(function(row) {
+            var nick = row.moderatorNick.escapeKCode(),
+                message;
+            if (row.type === 'handover' && row.previousModeratorNick) {
+                message = '🎙️ ' + row.previousModeratorNick.escapeKCode() +
+                    ' macht Platz im Studio – ' + nick + ' ist jetzt live ON AIR bei Radio MischWerk!';
+            } else if (row.type === 'start') {
+                message = '🎙️ ' + nick +
+                    ' betritt das Studio – ab jetzt live ON AIR bei Radio MischWerk!';
+            } else if (row.type === 'end') {
+                message = '🎙️ ' + nick +
+                    ' verlässt das Studio – danke fürs Zuhören und bis zum nächsten Mal bei Radio MischWerk!';
+            }
+            if (message) {
+                try {
+                    KnuddelsServer.getDefaultBotUser().sendPublicMessage(message);
+                } catch (error) {
+                    runtime.warn('STUDIO_ANNOUNCE');
+                }
+            }
+        });
     };
 };

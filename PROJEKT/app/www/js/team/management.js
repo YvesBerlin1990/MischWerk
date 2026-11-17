@@ -1,144 +1,84 @@
-/* Radio-Team darstellen und Ernennungs-/Entfernungsaktionen auslösen. */
+/* Lokale Anzeige und Lauftext; Firebase-Freigaben ausschließlich lesen. */
 MischWerkUI.define('team', function (dependencies) {
   'use strict';
-  var model = dependencies.model;
-  var dom = dependencies.dom;
-  var commands = dependencies.commands;
-  var signals = dependencies.signals;
-  var rendered = null;
-  var removal = null;
-  function closeRemoval() {
-    if (!removal || commands.pending()) { return; }
-    var button = removal.button;
-    removal.box.remove(); removal = null;
-    button.setAttribute('aria-expanded', 'false');
-    button.removeAttribute('aria-controls');
-    if (button.isConnected) { button.focus(); }
+  var model=dependencies.model, dom=dependencies.dom, commands=dependencies.commands, signals=dependencies.signals;
+  var tickerRevision=null, displayRevision=null, tickerDirty=false, displayDirty=false, saved=null;
+  function fillTicker(value) {
+    dom.el('ticker-text').value=value.text;dom.el('ticker-enabled').checked=value.enabled;
+    dom.el('ticker-speed').value=String(value.speed);tickerRevision=value.revision;tickerDirty=false;
   }
-  function confirmRemoval(item, row, button) {
-    if (button.disabled) { return; }
-    if (removal && removal.button === button) { closeRemoval(); return; }
-    closeRemoval();
-    var box = dom.element('div', 'team-member-confirm');
-    box.id = 'team-removal-confirm';
-    box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Mitglied entfernen');
-    box.appendChild(dom.element('p', '', item.nick + ' aus dem Radio-Team entfernen?' + (model.current().moderator && model.current().moderator.nick === item.nick && model.current().user.nick !== item.nick ? ' Die laufende Moderation wird beendet.' : '')));
-    var actions = dom.element('div', 'button-row');
-    var feedback = dom.element('p', 'team-removal-feedback');
-    feedback.setAttribute('role', 'status'); feedback.hidden = true;
-    var confirm = dom.element('button', 'primary-button', 'Entfernen');
-    var cancel = dom.element('button', 'secondary-button', 'Abbrechen');
-    confirm.type = cancel.type = 'button';
-    confirm.dataset.confirmRemoval = String(item.userId);
-    confirm.addEventListener('click', function () {
-      if (this.disabled) { return; }
-      commands.send('mw:removeRadioModerator', { userId: item.userId }, true);
-    });
-    cancel.addEventListener('click', closeRemoval);
-    box.addEventListener('keydown', function (event) { if (event.key === 'Escape') { event.preventDefault(); closeRemoval(); } });
-    actions.appendChild(confirm); actions.appendChild(cancel); box.appendChild(actions); box.appendChild(feedback); row.appendChild(box);
-    button.setAttribute('aria-expanded', 'true');
-    button.setAttribute('aria-controls', box.id);
-    removal = { box: box, button: button }; cancel.focus();
-  }
-  function renderRadioTeam() {
-    var list = dom.el('radio-moderator-list');
-    dom.setText('radio-moderator-count', model.current().radioModeratorTotal);
-    dom.setText('radio-moderator-page-label', 'Seite ' + (model.current().radioModeratorPage + 1) + ' / ' + model.current().radioModeratorPages);
-    dom.el('radio-moderator-pagination').hidden = model.current().radioModeratorPages <= 1;
-    var key = JSON.stringify([model.current().user.canManageRadioModerators, model.current().radioModerators]);
-    if (key === rendered) { return; }
-    rendered = key;
-    var focusLostDuringRemoval = removal && document.activeElement === document.body;
-    var focusedRow = (focusLostDuringRemoval ? removal.button : document.activeElement).closest('.team-member');
-    var focusedId = focusedRow && focusedRow.dataset.memberId;
-    var hadFocus = list.contains(document.activeElement) || focusLostDuringRemoval;
-    removal = null;
-    list.textContent = '';
-    if (!model.current().user.canManageRadioModerators) { return; }
-    if (!model.current().radioModerators.length) {
-      list.appendChild(dom.element('p', 'empty-copy', 'Es sind noch keine Mitglieder freigeschaltet.'));
-      if (hadFocus) { dom.el('team-list-heading').focus(); }
-      return;
+  function render() {
+    var state=model.current(); if(!state){return;} saved=state;
+    if(!tickerDirty){fillTicker(state.ticker);}
+    if(!displayDirty&&state.displaySettings){
+      dom.el('team-signs-enabled').checked=state.displaySettings.teamSignsEnabled;
+      dom.el('microphone-enabled').checked=state.displaySettings.microphoneEnabled!==false;
+      dom.el('headphones-enabled').checked=state.displaySettings.headphonesEnabled!==false;
+      dom.el('announcements-enabled').checked=state.displaySettings.announcementsEnabled;
+      displayRevision=state.displaySettings.revision;
     }
-    model.current().radioModerators.forEach(function (item) {
-      var row = dom.element('div', 'team-member');
-      row.dataset.memberId = String(item.userId);
-      var copy = dom.element('div', 'team-member-copy');
-      copy.appendChild(dom.element('strong', '', item.nick));
-      row.appendChild(copy);
-      var button = dom.element('button', 'secondary-button', 'Entfernen');
-      button.type = 'button';
-      button.dataset.radioModeratorId = String(item.userId);
-      button.title = 'Aus dem Radio-Team entfernen';
-      button.setAttribute('aria-label', item.nick + ' entfernen');
-      button.setAttribute('aria-expanded', 'false');
-      button.addEventListener('click', function () {
-        confirmRemoval(item, row, button);
-      });
-      row.appendChild(button);
-      list.appendChild(row);
-    });
-    if (hadFocus) {
-      var replacement = Array.prototype.find.call(list.querySelectorAll('[data-radio-moderator-id]'), function (button) {
-        return button.dataset.radioModeratorId === focusedId;
-      });
-      (replacement || dom.el('team-list-heading')).focus();
-    }
+    renderRoster(state);availability();
   }
-  
+  function renderRoster(state) {
+    var confirmed=model.rosterFresh(),list=dom.el('radio-moderator-list');list.textContent='';
+    if(confirmed){state.radioModerators.forEach(function(item){list.appendChild(dom.element('div','team-member',item.nick));});}
+    if(!confirmed||!state.radioModerators.length){list.appendChild(dom.element('p','empty-copy',confirmed?'Keine freigegebenen Nicks.':'Freigaben derzeit nicht bestätigt.'));}
+    dom.setText('radio-moderator-count',confirmed?state.radioModeratorTotal:'?');
+    dom.setText('radio-moderator-page-label',confirmed?'Seite '+(state.radioModeratorPage+1)+' / '+state.radioModeratorPages:'Stand unbekannt');
+    dom.el('radio-moderator-pagination').hidden=!confirmed||state.radioModeratorPages<=1;
+  }
   function availability() {
-    if (!model.current()) { return; }
-    var live = model.connected();
-    dom.el('radio-moderator-nick').disabled = !!commands.pending() || !live || !model.current().user.canManageRadioModerators;
-    dom.el('add-radio-moderator').disabled = dom.el('radio-moderator-nick').disabled || !dom.el('radio-moderator-nick').value.trim();
-    dom.el('refresh-radio-team').disabled = !model.current().user.canManageRadioModerators;
-    dom.el('prev-radio-moderator-page').disabled = !live || !!commands.pending() || !model.current().user.canManageRadioModerators || model.current().radioModeratorPage <= 0;
-    dom.el('next-radio-moderator-page').disabled = !live || !!commands.pending() || !model.current().user.canManageRadioModerators || model.current().radioModeratorPage >= model.current().radioModeratorPages - 1;
-    document.querySelectorAll('[data-radio-moderator-id]').forEach(function (button) {
-      button.disabled = !!commands.pending() || !live || !model.current().user.canManageRadioModerators;
-    });
-    if (removal) {
-      removal.box.querySelectorAll('button').forEach(function (button) {
-        button.disabled = !!commands.pending() || !live || !model.current().user.canManageRadioModerators;
-      });
-    }
-  
+    var state=model.current(),blocked=!state||!state.user.canAdminister||!model.connected()||commands.pending();
+    if(state){renderRoster(state);}
+    ['display-form','ticker-form'].forEach(function(id){dom.el(id).querySelectorAll('input,textarea,select,button').forEach(function(field){field.disabled=blocked;});});
+    var migration=state&&state.migration;
+    dom.el('migration-start').disabled=blocked||!migration||!migration.prepared||['exported','invalidated','exporting'].includes(migration.phase);
+    dom.el('migration-abort').disabled=blocked||!migration||migration.phase!=='exporting';
+    dom.setText('migration-status',migration?(migration.message||'Export: '+migration.phase+' · Paket '+migration.chunkIndex):'Kein Import vorbereitet.');
+    dom.el('display-save').disabled=blocked||!displayDirty||displayRevision===null;
+    dom.el('ticker-save').disabled=blocked||!tickerDirty||tickerRevision===null;
+    dom.el('prev-radio-moderator-page').disabled=blocked||!state||!model.rosterFresh()||state.radioModeratorPage<=0;
+    dom.el('next-radio-moderator-page').disabled=blocked||!state||!model.rosterFresh()||state.radioModeratorPage>=state.radioModeratorPages-1;
   }
   function start() {
-    signals.on('overlay-capture', function (state) {
-      if (model.view !== 'team') { return; }
-      state.team = { nick:dom.el('radio-moderator-nick').value, page:model.current() && model.current().radioModeratorPage || 0,
-        removing:removal && removal.button.dataset.radioModeratorId };
+    signals.on('migration-preflight',function(value){
+      var known=value&&value.ready===true,namespace=known&&typeof value.sourceNamespace==='string'?value.sourceNamespace:null;
+      dom.el('migration-source').value=known?(namespace||'Quellenkennung noch nicht vorhanden'):'Vorprüfung nicht bestätigt';
+      dom.setText('migration-source-info',known&&typeof value.checkedAt==='number'?'App '+value.version+' / Build '+value.buildNumber+' · '+new Date(value.checkedAt).toISOString():'Vorprüfung nicht bestätigt.');
+      dom.setText('migration-counts',known?'Originalwünsche: '+value.originalCount+' · Endbelege: '+value.replayCount+' · V2-Vorgänge: '+value.outboxCount+' · Löschmarker: '+value.deletionCount:'');
     });
-    signals.on('overlay-restore', function (state) {
-      if (model.view !== 'team') { return; }
-      if (!state.team || !model.current().user.canManageRadioModerators) { return; }
-      if (typeof state.team.nick === 'string' && state.team.nick.length <= 100) { dom.el('radio-moderator-nick').value = state.team.nick; }
-      if (Number.isInteger(state.team.page) && state.team.page > 0 && state.team.page !== model.current().radioModeratorPage) { commands.send('mw:refresh', { radioModeratorPage:state.team.page }); }
-      var target = Array.from(document.querySelectorAll('[data-radio-moderator-id]')).find(function (button) { return button.dataset.radioModeratorId === state.team.removing; });
-      if (target) { target.click(); }
-      availability();
+    dom.el('migration-start').addEventListener('click',function(){commands.send('mw:migration.start',{},true);});
+    dom.el('migration-abort').addEventListener('click',function(){commands.send('mw:migration.abort',{},true);});
+    ['input','change'].forEach(function(type){
+      dom.el('ticker-form').addEventListener(type,function(){tickerDirty=true;availability();});
+      dom.el('display-form').addEventListener(type,function(){displayDirty=true;availability();});
     });
-    dom.el('radio-moderator-nick').addEventListener('input', availability);
-    dom.el('radio-moderator-form').addEventListener('submit', function (event) {
-      event.preventDefault();
-      if (dom.el('add-radio-moderator').disabled || !this.reportValidity()) { return; }
-      commands.send('mw:addRadioModerator', { nick: dom.el('radio-moderator-nick').value }, true);
+    dom.el('ticker-form').addEventListener('submit',function(event){event.preventDefault();if(dom.el('ticker-save').disabled){return;}
+      commands.send('mw:setTicker',{text:dom.el('ticker-text').value,enabled:dom.el('ticker-enabled').checked,
+        speed:Number(dom.el('ticker-speed').value),direction:saved.ticker.direction,expectedTickerRevision:tickerRevision},true);
     });
-    commands.bindRefresh('refresh-radio-team', 'team-refresh-feedback');
-    dom.el('prev-radio-moderator-page').addEventListener('click', function () { commands.send('mw:refresh', { radioModeratorPage: model.current().radioModeratorPage - 1 }); });
-    dom.el('next-radio-moderator-page').addEventListener('click', function () { commands.send('mw:refresh', { radioModeratorPage: model.current().radioModeratorPage + 1 }); });
-  
-    signals.on('command-result', function (response) {
-      if (response.ok && response.action === 'mw:addRadioModerator') { dom.el('radio-moderator-form').reset(); }
-      if (!response.ok && response.action === 'mw:removeRadioModerator' && removal) {
-        var feedback = removal.box.querySelector('.team-removal-feedback');
-        feedback.textContent = response.message || 'Die Berechtigung konnte nicht entzogen werden.'; feedback.hidden = false;
-        availability();
-        if (document.activeElement === document.body) { removal.box.querySelector('[data-confirm-removal]').focus(); }
-      }
+    dom.el('display-form').addEventListener('submit',function(event){event.preventDefault();if(dom.el('display-save').disabled){return;}
+      commands.send('mw:display.save',{teamSignsEnabled:dom.el('team-signs-enabled').checked,
+        microphoneEnabled:dom.el('microphone-enabled').checked,headphonesEnabled:dom.el('headphones-enabled').checked,
+        announcementsEnabled:dom.el('announcements-enabled').checked,expectedRevision:displayRevision},true);
+    });
+    dom.el('ticker-reload').addEventListener('click',function(){if(saved){fillTicker(saved.ticker);availability();}});
+    commands.bindRefresh('refresh-radio-team','team-refresh-feedback');
+    dom.el('prev-radio-moderator-page').addEventListener('click',function(){commands.send('mw:refresh',{radioModeratorPage:model.current().radioModeratorPage-1});});
+    dom.el('next-radio-moderator-page').addEventListener('click',function(){commands.send('mw:refresh',{radioModeratorPage:model.current().radioModeratorPage+1});});
+    signals.on('command-result',function(result){
+      if(result.action==='mw:setTicker'){if(result.ok){tickerDirty=false;}dom.setText('ticker-feedback',result.message);}
+      if(result.action==='mw:display.save'){if(result.ok){displayDirty=false;}dom.setText('display-feedback',result.message);}
+    });
+    signals.on('ticker-error',function(message){dom.setText('ticker-feedback',message);});
+    signals.on('overlay-capture',function(state){state.nativeSettings={tickerDirty:tickerDirty,tickerRevision:tickerRevision,
+      text:dom.el('ticker-text').value,enabled:dom.el('ticker-enabled').checked,speed:dom.el('ticker-speed').value,
+      displayDirty:displayDirty,displayRevision:displayRevision,team:dom.el('team-signs-enabled').checked,microphone:dom.el('microphone-enabled').checked,headphones:dom.el('headphones-enabled').checked,announcements:dom.el('announcements-enabled').checked};});
+    signals.on('overlay-restore',function(state){var draft=state.nativeSettings;if(!draft||!model.current().user.canAdminister){return;}
+      if(draft.tickerDirty&&typeof draft.text==='string'&&draft.text.length<=300){tickerDirty=true;tickerRevision=draft.tickerRevision;
+        dom.el('ticker-text').value=draft.text;dom.el('ticker-enabled').checked=draft.enabled===true;dom.el('ticker-speed').value=draft.speed;}
+      if(draft.displayDirty){displayDirty=true;displayRevision=draft.displayRevision;dom.el('team-signs-enabled').checked=draft.team===true;dom.el('microphone-enabled').checked=typeof draft.microphone==='boolean'?draft.microphone:model.current().displaySettings.microphoneEnabled!==false;dom.el('headphones-enabled').checked=typeof draft.headphones==='boolean'?draft.headphones:model.current().displaySettings.headphonesEnabled!==false;dom.el('announcements-enabled').checked=draft.announcements===true;}availability();
     });
   }
-  return { start: start, render: renderRadioTeam, availability: availability };
+  return {start:start,render:render,availability:availability};
 });

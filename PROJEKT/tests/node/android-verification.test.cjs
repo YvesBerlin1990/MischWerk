@@ -24,7 +24,7 @@ function fixture(options = {}) {
     result() { return JSON.parse(owner.messages.at(-1)); }
   };
 }
-test('Einmaltest sendet nur nach ausdrücklichem Inhaberaufruf echte Senderprojektion und keine Wünsche', () => {
+test('Einmaltest sendet nur nach ausdrücklichem Inhaberaufruf inneren V2-Vertrag und keine Wünsche', () => {
   const f = fixture(), before = JSON.stringify(f.h.store.data), publicBefore = f.h.bot.messages.length;
   f.runtime.state.topic = 'Aktuelles Thema';
   assert.equal(f.calls.length, 0); f.run(); assert.equal(f.calls.length, 1);
@@ -33,8 +33,7 @@ test('Einmaltest sendet nur nach ausdrücklichem Inhaberaufruf echte Senderproje
   assert.equal(p.header, undefined); assert.equal(p.headers, undefined);
   assert.equal(p.data.sig, require('node:crypto').createHmac('sha256', f.value.syncSecret)
     .update('v1.'+p.data.ts+'.'+p.data.nonce+'.'+p.data.payload).digest('hex'));
-  assert.equal(body.station.topic, 'Aktuelles Thema'); assert.equal(body.station.updatedAt, f.h.now());
-  assert.equal(body.station.wishboxOpen, f.runtime.state.requestsEnabled === true); assert.deepEqual(body.wishUpdates, []);
+  assert.equal(body.contractVersion,2);assert.equal(body.station,undefined);assert.deepEqual(body.wishSubmissions,[]);assert.deepEqual(body.ownWishQueries,[]);assert.deepEqual(body.ownerDeletions,[]);
   f.reply(); const result = f.result(); assert.equal(result.nativeResponseAccepted, true);
   assert.equal(result.http.status, 200); assert.equal(result.http.accepted, true);
   assert.equal(result.firestoreWriteConfirmed, null); assert.equal(result.configuration.enabled, false);
@@ -170,7 +169,7 @@ test('Auth-Probe und Statustest teilen Timeout, Wiederholungsabstand und physisc
   f.h.advance(20001); f.run(); assert.equal(f.calls.length,1);
   f.reply({status:400,failed:true,raw:'{"error":"invalid_payload"}'});
   f.h.advance(30000); f.run(); assert.equal(f.calls.length,2);
-  assert.ok(JSON.parse(f.calls[1].parameters.data.payload).station);
+  assert.equal(JSON.parse(f.calls[1].parameters.data.payload).contractVersion,2);
   f.reply(); assert.equal(f.result().nativeResponseAccepted,true);
 });
 

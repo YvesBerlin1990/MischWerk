@@ -13,7 +13,7 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         runtime.startAndroidRelay();
         try { runtime.refreshUiCache(); }
         catch (error) { runtime.warn('APP_UI_CACHE', error); }
-        KnuddelsServer.getDefaultLogger().info('MischWerk ' + config.version + ' (Build ' + config.buildNumber + '): Radioleiste mit Channel-Overlays für Moderation, Verwaltung, Wunschbox und Sendeplan gestartet. ' +
+        KnuddelsServer.getDefaultLogger().info('MischWerk ' + config.version + ' (Build ' + config.buildNumber + '): Radioleiste mit Channel-Overlays für Verwaltung, Wunschbox und Sendeplan gestartet. ' +
             (runtime.station().configured ? 'STREAMPANEL ist konfiguriert.' : 'STREAMPANEL-Hörerstream ist noch nicht konfiguriert.'));
         KnuddelsServer.getChannel().getOnlineUsers(UserType.Human).forEach(function (user) {
             try { runtime.open(user, true); } catch (error) { runtime.warn(); }
@@ -30,11 +30,9 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         runtime.shuttingDown = true;
         runtime.stopPublicSchedule();
         runtime.stopNicklist();
-        runtime.cancelModerationPin();
         runtime.clearUserGreetings();
         runtime.clearAndroidSettings();
         runtime.stopAndroidRelay();
-        runtime.clearWebsiteLogins();
         runtime.stopChannelTexts();
         runtime.broadcast();
     };
@@ -43,7 +41,6 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         runtime.shuttingDown = true;
         runtime.stopPublicSchedule();
         runtime.stopNicklist();
-        runtime.cancelModerationPin();
         runtime.clearUserGreetings();
         runtime.clearAndroidSettings();
         runtime.stopAndroidRelay();
@@ -55,41 +52,23 @@ MischWerkModules.attachLifecycle = function (runtime, config) {
         var changed = false;
         try {
             var userId = runtime.userId(user);
-            runtime.cancelModerationPin(userId);
             runtime.forgetUserGreeting(userId);
             runtime.clearAndroidSettings(userId);
             runtime.load();
-            runtime.dropWebsiteUser(userId);
-            if (!runtime.state.moderator && runtime.state.requestsOwnerId === userId) {
-                var closed = runtime.copy(runtime.state); closed.requestsEnabled = false; delete closed.requestsOwnerId; runtime.persist(closed); changed = true;
-            }
-            if (runtime.state.moderator && runtime.state.moderator.userId === userId) {
-                runtime.invalidateModerator();
-                changed = true;
-                var next = runtime.copy(runtime.state);
-                next.moderator = null;
-                next.requestsEnabled = false;
-                delete next.requestsOwnerId;
-                runtime.persist(next);
-            }
         } catch (error) { runtime.warn(); }
-        changed = runtime.dropHandoverForUser(userId) || changed;
         runtime.removeUserViews(userId);
         if (changed) { runtime.broadcast(); }
     };
 
     runtime.userDeleted = function (userId) {
         runtime.leaveNicklist(userId);
-        runtime.cancelModerationPin(runtime.numericUserId(userId));
         runtime.forgetUserGreeting(userId);
         runtime.clearAndroidSettings(runtime.numericUserId(userId));
         runtime.load();
         runtime.loadWishes();
-        try { runtime.removeWishesForUser(userId); }
+        try { runtime.queueNativeOwnerDeletion(userId); runtime.removeWishesForUser(userId); }
         catch (error) { runtime.warn('WISH_PURGE', error); }
         userId = runtime.numericUserId(userId);
-        runtime.dropWebsiteUser(userId);
-        runtime.dropHandoverForUser(userId, true);
         var next = runtime.copy(runtime.state);
         delete next.moderatorPins['u' + userId];
         if (next.moderator && next.moderator.userId === userId) { next.moderator = null; next.requestsEnabled = false; delete next.requestsOwnerId; }

@@ -33,14 +33,14 @@ MischWerkUI.define('presentation', function (dependencies) {
   }
   
   function renderTopic() {
-    var topic = model.current() && typeof model.current().topic === 'string' ? model.current().topic.trim() : '';
+    var topic = model.broadcastFresh() && model.current() && typeof model.current().topic === 'string' ? model.current().topic.trim() : '';
     document.documentElement.classList.add('has-topic');
     dom.setText('show-topic', topic || DEFAULT_TOPIC); dom.el('radio-topic').hidden = false;
     updateMetadataLayout();
   }
   function renderOnAirStatus() {
     var moderator = model.current() && model.current().moderator;
-    var active = model.connected() && !!moderator;
+    var active = model.broadcastFresh() && !!moderator;
     function fresh(at) { var age = Date.now() - at; return typeof at === 'number' && age >= 0 && age < 90000; }
     var transmitting = broadcast.status === 'started' && fresh(broadcast.statusAt);
     var confirmedMode = transmitting && fresh(broadcast.modeAt) && !document.hidden;
@@ -70,7 +70,7 @@ MischWerkUI.define('presentation', function (dependencies) {
     dom.el('own-wish-position').hidden = !positions || !positions.available || !positions.total;
     document.body.classList.toggle('has-own-wish', !dom.el('own-wish-position').hidden);
     var validPosition = positions && Number.isInteger(positions.nextPosition) && positions.nextPosition > 0;
-    var confirmedPosition = model.connected() && validPosition;
+    var confirmedPosition = model.positionsFresh() && validPosition;
     var wishLabel = positions && positions.total ? 'Dein Wunsch:' : '';
     var wishRank = positions && positions.total && confirmedPosition ? 'Platz ' + positions.nextPosition : '';
     var next = positions && positions.nextItem;
@@ -80,8 +80,8 @@ MischWerkUI.define('presentation', function (dependencies) {
       })[0] : null;
     }
     var text = next && typeof next.text === 'string' ? next.text : '';
-    var stage = !confirmedPosition ? 'Status unbestätigt' : next && next.stage === 'playing' ? 'Läuft gerade' :
-      next && next.stage === 'preparing' ? 'In Vorbereitung' : next && next.stage === 'queued' ? 'Wartet' : '';
+    var stage = !confirmedPosition ? 'Status unbestätigt' : next && next.stage === 'playing' ? 'In Vorbereitung' :
+      next && next.stage === 'preparing' ? 'In Vorbereitung' : next && next.stage === 'received' ? 'Angenommen' : next && next.stage === 'queued' ? 'Wartet auf Annahme' : '';
     var more = positions && positions.total > 1 ? positions.total - 1 : 0;
     dom.setText('own-wish-label', wishLabel); dom.setText('own-wish-rank', wishRank);
     dom.el('own-wish-rank').hidden = !wishRank;

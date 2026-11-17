@@ -7,7 +7,7 @@ MischWerkUI.define('wishesMarkup', function (dependencies) {
       <section id="wish-tracking" class="wish-tracking" aria-labelledby="wish-tracking-title" hidden>
         <p class="wish-live-label">Dein Live-Status</p><h3 id="wish-tracking-title" aria-live="polite" aria-atomic="true">Dein Wunsch im Blick</h3>
         <div class="wish-tracking-summary" role="status" aria-live="polite" aria-atomic="true"><strong id="wish-tracking-song"></strong><div class="wish-tracking-meta"><strong id="wish-tracking-rank"></strong><span id="wish-tracking-stage"></span></div><p id="wish-tracking-more"></p></div>
-        <ol id="wish-tracking-steps" class="wish-tracking-steps" aria-label="Wunschstatus"><li>Eingegangen</li><li>In Vorbereitung</li><li>Jetzt dran</li></ol>
+        <ol id="wish-tracking-steps" class="wish-tracking-steps" aria-label="Wunschstatus"><li>Angenommen</li><li>In Vorbereitung</li><li>Gespielt</li></ol>
         <p id="wish-tracking-location" class="wish-tracking-location">Deinen Platz und Status findest du hier – auch beim erneuten Öffnen. In breiten Radioleisten steht dein Wunsch zusätzlich rechts.</p>
         <p class="wish-tracking-note">Der Status kommt von der Moderation. Eine feste Spielzeit gibt es nicht.</p>
         <button id="wish-back-radio" class="primary-button" type="button">Zurück zum Radio</button>

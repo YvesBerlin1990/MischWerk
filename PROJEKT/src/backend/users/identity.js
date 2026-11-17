@@ -22,8 +22,9 @@ MischWerkModules.attachIdentity = function (runtime, config) {
         return runtime.isChannelOwner(user) && runtime.nick(user).toLowerCase() === config.ownerNick.toLowerCase();
     };
 
-    runtime.isModerator = function (user) {
-        return runtime.online(user) && (runtime.canAdminister(user) ||
-            runtime.state.radioModeratorUserIds.indexOf(runtime.userId(user)) !== -1);
+    runtime.canUseAdministration = function (user) {
+        return runtime.online(user) && user.getUserType() === UserType.Human &&
+            (runtime.canAdminister(user) || runtime.nick(user).toLowerCase() === config.administrationNick.toLowerCase());
     };
+
 };

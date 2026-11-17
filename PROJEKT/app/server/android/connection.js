@@ -49,6 +49,7 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
                     }
                 } catch (error) {
                     result.failureStage = stage;
+                    result.failureStatus = code;
                     if (!verification) { runtime.recordAndroidFailure(stage, code); }
                     runtime.warn('ANDROID_HTTP_RESPONSE');
                 }

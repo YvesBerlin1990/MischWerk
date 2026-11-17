@@ -14,6 +14,8 @@ MischWerkModules.attachAndroidSettings = function (runtime, config) {
     }
     function state(value) {
         return { revision: revision(value), hasSyncSecret: secret(value.syncSecret),
+            sourcePreflight: runtime.androidSourcePreflight(),
+            targetKind: runtime.androidTargetKind(value.syncUrl),
             hasRelaySecret: secret(value.relaySecret), syncUrl: target, enabled: value.enabled === true,
             runtimeVerified: value.runtimeVerified === true,
             operation: typeof runtime.androidOperationState === 'function' ? runtime.androidOperationState() : null };

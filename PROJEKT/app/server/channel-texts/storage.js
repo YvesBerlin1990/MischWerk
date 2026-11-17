@@ -52,7 +52,7 @@ MischWerkModules.attachChannelTextStorage = function (runtime) {
         cached = runtime.copy(next);
     };
     runtime.channelTextsView = function (user) {
-        if (!runtime.canAdminister(user)) { return null; }
+        if (!runtime.canUseAdministration(user)) { return null; }
         var state = runtime.readChannelTexts();
         return { revision:state.revision, enabled:state.enabled, interval:state.interval, texts:state.texts, nextAt:state.nextAt };
     };

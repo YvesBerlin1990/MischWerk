@@ -34,11 +34,7 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
         </div>
       </nav>
       </section>
-        <div id="radio-private-actions" class="bar-utility-links" aria-label="Radio verwalten" hidden>
-          <button id="studio-tab" class="wish-button studio-link" type="button" aria-label="Moderation" title="Moderation" aria-haspopup="dialog" hidden><span class="public-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3v8m0 4v6M12 3v2m0 4v12M19 3v10m0 4v4"/><circle cx="5" cy="13" r="2"/><circle cx="12" cy="7" r="2"/><circle cx="19" cy="15" r="2"/></svg></span><span class="wish-button-copy action-label"><strong>Moderation</strong></span></button>
-        </div>
-
-      <div id="radio-listener-brand" class="radio-listener-brand" aria-hidden="true" hidden><img class="radio-listener-logo" src="img/mischwerk-radio.png" width="140" height="140" loading="lazy" decoding="async" alt=""></div>
+      <div id="radio-listener-brand" class="radio-listener-brand" aria-hidden="true"><img class="radio-listener-logo" src="img/mischwerk-radio.png" width="140" height="140" loading="lazy" decoding="async" alt=""></div>
       <div class="sr-only"><span id="stream-badge" title="Wiedergabestatus" role="status"><span id="stream-label">Verbinde …</span></span><span id="metadata-status" role="status"></span><a id="station-link" tabindex="-1" target="_blank" rel="noopener noreferrer" hidden>Öffentlichen Radiostream öffnen</a></div>
     </main>
     <div id="radio-ticker-placeholder"></div>

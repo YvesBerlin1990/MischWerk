@@ -1,4 +1,14 @@
-# MischWerk – API-Nachweis 0.1.402 · Build 402
+# MischWerk – API-Nachweis 0.1.447 · Build 447
+
+## Aktueller zentraler V2-Abgleich
+
+Build 447 verwendet unverändert den dokumentierten ExternalServerAccess.postURL-, RandomOperations-, User-Icon-, AppContent- und Sessionweg. Neu ist der innere gemeinsame Datenvertrag 2. Vier Stringfelder payload/ts/nonce/sig, HMAC-SHA256 über v1.ts.nonce.payload und das Hostingziel bleiben erhalten. Lokale Moderation und private Studio-Sitzungskennungen werden nicht übertragen. Native Anmeldung/PIN/Übergabe/Regie und zusätzliche Node-Anmeldung sind entfernt.
+
+`android/broadcast` verarbeitet öffentliche authority/protocolEpoch, null-Thema bei ended/unknown und 64Hex-Freigaberevisionen. `native-state`/`incoming` korrelieren individuelle zentrale Quittungen. `wishes/migration` erhält Originaltexte und vorhandene technische Belege; fehlende ursprüngliche Inhaltsdigests terminaler Legacybelege sind ausdrücklich null. UI-, Persistenz- und HTTP-Grenzen werden getrennt geprüft. Build 447 trennt den Konsolennachweis für den echten Inhaber Otterchen und Polaroid vom bisherigen Inhabernachweis. Die drei Iconarten behalten dieselben dokumentierten add-/remove-Operationen; ausschließlich ihre lokalen Anzeigeoptionen sind getrennt. HTTP-Antwortdiagnose verwendet nur bereits dokumentierte Callbackwerte, feste Fehlerstufen und begrenzte Codes; kein neuer Plattform- oder Netzwerkweg.
+
+[ExternalServerAccess](https://developer.knuddels.de/docs/classes/ExternalServerAccess.html) · [RandomOperations](https://developer.knuddels.de/docs/classes/RandomOperations.html) · [User](https://developer.knuddels.de/docs/classes/User.html) · [Aktueller Prüfbericht](../pruefung/PRUEFBERICHT.md)
+
+Die folgenden datierten Abschnitte bleiben historische API-/Rhino-Befunde. Frühere native Moderations-, PIN-, Übergabe-, Fernregie- und Lauftextbefehle sind keine aktuellen Funktionsverträge; maßgeblich ist [AGENTS.md](../../../AGENTS.md).
 
 ## Erhaltene Wiedergabe ohne Nutzer-Fehlerlogs
 
@@ -980,7 +990,7 @@ Moderation seit 0.1.117: AppContent.popupContent initial 780 × 600. Client.Host
 
 ## Lokales Emulator-Testlabor · 02.11.2026
 
-tools/emulator modelliert ausschließlich die für MischWerk benötigte Plattform. Channelinhaber und AppManager werden getrennt geprüft; der Besitzer zählt gemäß API automatisch als AppManager. Ein Nutzername allein erzeugt keine Berechtigung. Sitzungsereignisse und Schließen sind an den tatsächlichen Besitzer der lokalen Verbindung gebunden. Quellen: [User](https://developer.knuddels.de/docs/classes/User.html), [App.onEventReceived](https://developer.knuddels.de/docs/classes/App.html#method_onEventReceived), [AppContentSession](https://developer.knuddels.de/docs/classes/AppContentSession.html).
+Der damalige Bestand unter `tools/emulator` modellierte ausschließlich die für MischWerk benötigte Plattform; seit 17.11.2026 bleibt er als Regressionstest-Fixture unter `tests/support/native-lab` erhalten. Der aktuelle Benutzerstart verwendet das zentrale Git-Submodul `tools/userapp-emulator`; Einstieg und getrennte Prüfungen stehen in der [Werkzeugübersicht](../../README.md). Channelinhaber und AppManager werden getrennt geprüft; der Besitzer zählt gemäß API automatisch als AppManager. Ein Nutzername allein erzeugt keine Berechtigung. Sitzungsereignisse und Schließen sind an den tatsächlichen Besitzer der lokalen Verbindung gebunden. Quellen: [User](https://developer.knuddels.de/docs/classes/User.html), [App.onEventReceived](https://developer.knuddels.de/docs/classes/App.html#method_onEventReceived), [AppContentSession](https://developer.knuddels.de/docs/classes/AppContentSession.html).
 
 Headerbar, Overlay und Popup besitzen getrennte Frames. HostFrame.getAppViewMode liefert HEADERBAR, OVERLAY oder POPUP. Headerbreite wird bei setSize ignoriert, Headerhöhe auf 20–500 px begrenzt; Popuprahmen und Inhalt ändern ihre Größe gemeinsam. Verzögerte, schrittweise oder ignorierte Größenantworten sind ausdrücklich lokale Fehlerprofile. Quellen: [AppContent](https://developer.knuddels.de/docs/classes/AppContent.html), [Client.HostFrame](https://developer.knuddels.de/docs/classes/Client.HostFrame.html). Signaturen gegen die unverändert erhaltenen lokalen Referenzen abgeglichen.
 
@@ -988,7 +998,7 @@ Der Parsermodus bindet JS/CSS während des HTML-Parsens mit document.write ein u
 
 Anbieterfälle verwenden ausschließlich emulator.mischwerk.invalid als eindeutig synthetische Adresse im Arbeitsspeicher. Der lokale Plattformadapter leitet Fetch, XHR und native Audioquellen vor der Netzanforderung auf den eigenen Loopbackserver um. Die echten URL-/Schema-Prüfungen der App laufen weiterhin unverändert. Zusätzlich sperrt die Frame-CSP fremde Verbindungen. Dies belegt lokale Fehlerbehandlung und HTML-Audiowiedergabe, keine tatsächliche STREAMPANEL-Kompatibilität.
 
-Die frühere Textsuche nach vermeintlich fehlenden Rhino-Funktionen wird nicht weiterverwendet. Der separate Knopf und pnpm run test:emulator rufen tools/checks/rhino.cjs auf: vorhandene Backendfälle in echten Rhino-Engines, getrennt von der Node-VM und ihren simulierten Plattformobjekten. Aktuelle Engineangabe: [offizielle Knuddels-FAQ](https://github.com/knuddelsgmbh/UserApps/wiki/FAQ). Eine vollständige native Knuddels-Ausführung wird damit nicht behauptet.
+Die frühere Textsuche nach vermeintlich fehlenden Rhino-Funktionen wird nicht weiterverwendet. `pnpm run check:rhino` ruft `tools/checks/rhino.cjs` auf: vorhandene Backendfälle in echten Rhino-Engines, getrennt von der Node-VM und ihren simulierten Plattformobjekten. `pnpm run test:emulator` prüft inzwischen die tatsächliche zentrale Laufzeit. Engineangabe: [offizielle Knuddels-FAQ](https://github.com/knuddelsgmbh/UserApps/wiki/FAQ). Eine vollständige native Knuddels-Ausführung wird damit nicht behauptet.
 
 ## Moderationserweiterung 0.1.118 · historisch, Assistent seit 177 entfernt
 

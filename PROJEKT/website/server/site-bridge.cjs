@@ -9,8 +9,7 @@ function createSiteBridge(env = process.env, request = fetch) {
   async function call(values, method = 'GET') {
     if (!endpoint) { throw Error('bridge unavailable'); }
     const url = new URL(endpoint);
-    const pinAction = values.operation === 'action' && ['mw:onAir', 'mw:handover.accept'].includes(values.type);
-    const options = { method, redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(pinAction ? 65000 : 10000) };
+    const options = { method, redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(10000) };
     if (method === 'GET') { for (const [key, value] of Object.entries(values)) url.searchParams.set(key, String(value)); }
     else { options.headers = { 'Content-Type': 'application/json' }; options.body = JSON.stringify(values); }
     for (;;) {
@@ -19,16 +18,11 @@ function createSiteBridge(env = process.env, request = fetch) {
       if (body.length > 20000) { throw Error('bridge response'); }
       const data = JSON.parse(body);
       if (!response.ok || !data || data.version !== 1 || data.ok !== true) { const error=Error(typeof data?.message==='string'?data.message:'Die Appanfrage konnte nicht bestätigt werden.');error.status=response.status;throw error; }
-      if (pinAction && data.pending === true) {
-        if (options.signal.aborted) throw Error('Die PIN-Prüfung dauert zu lange. Bitte erneut anmelden.');
-        await new Promise(resolve => setTimeout(resolve, 250)); continue;
-      }
       return data;
     }
   }
   return { configured: !!endpoint, publicRadio:()=>call({radio:1}),
     schedule: (week, page) => call({ week, page }),
-    wish: data => call({ text: data.text, submissionId: data.submissionId, visitorId: data.visitorId }, 'POST'),
-    control:(token,operation,values={})=>call({...values,token,operation},'POST') };
+    wish: async () => { throw Error('Der alte native Wunsch-Schreibanschluss ist stillgelegt.'); } };
 }
 module.exports = { createSiteBridge };
