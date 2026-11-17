@@ -1,0 +1,90 @@
+# Erzeugt aus Windows-K-UserAppEmulator/.github/scripts/render-consumer-workflows.mjs.
+name: Emulator automatisch aktualisieren
+
+on:
+  push:
+    branches: ['codex/emulator-update-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: emulator-update
+  cancel-in-progress: false
+
+env:
+  EMULATOR_PATH: PROJEKT/tools/userapp-emulator
+  UPDATE_BRANCH: ${{ github.ref_name }}
+  PROPOSAL_SHA: ${{ github.sha }}
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    outputs:
+      base_sha: ${{ steps.guard.outputs.base_sha }}
+      emulator_sha: ${{ steps.guard.outputs.emulator_sha }}
+    steps:
+      - name: Reproduzierbare Zeilenenden auf dem Testrechner verwenden
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          filter: blob:none
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - name: Festgelegtes pnpm installieren
+        run: npm install --global pnpm@11.25.0
+      - name: Aktualisierung auf genau einen Submodul-Verweis begrenzen
+        id: guard
+        run: node .github/scripts/emulator-consumer.mjs inspect
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Geprüften Emulator-Kandidaten laden
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: PolaroidK/Windows-K-UserAppEmulator
+          ref: ${{ steps.guard.outputs.emulator_sha }}
+          path: PROJEKT/tools/userapp-emulator
+          ssh-key: ${{ secrets.EMULATOR_READ_KEY }}
+          persist-credentials: false
+      - run: pnpm --dir PROJEKT install --frozen-lockfile
+      - run: npm ci --ignore-scripts --prefix PROJEKT/tools/userapp-emulator
+      - name: Emulator im App-Projekt prüfen
+        run: npm test --prefix PROJEKT/tools/userapp-emulator
+      - run: pnpm --dir PROJEKT run check
+      - run: pnpm --dir PROJEKT test
+      - name: Unveränderte App-Dateien bestätigen
+        run: git diff --exit-code -- . ':!PROJEKT/tools/userapp-emulator'
+
+  finalize:
+    needs: verify
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          filter: blob:none
+          sparse-checkout: .github/scripts
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - name: Erfolgreich geprüften Stand übernehmen
+        if: needs.verify.result == 'success'
+        run: node .github/scripts/emulator-consumer.mjs promote
+        env:
+          TESTED_BASE: ${{ needs.verify.outputs.base_sha }}
+          TESTED_EMULATOR: ${{ needs.verify.outputs.emulator_sha }}
+          VERIFICATION_RESULT: ${{ needs.verify.result }}
+      - name: Abgeschlossenen Prüfzweig entfernen
+        if: always()
+        run: node .github/scripts/emulator-consumer.mjs cleanup
+        env:
+          GH_TOKEN: ${{ github.token }}
