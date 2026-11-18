@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
 const { runtimeFiles, isBinary, checkText, checkRuntime } = require('./lengths.cjs');
 const { manifestGroups } = require('../lib/upload-manifests.cjs');
-const { resolveUploadRoot } = require('../lib/upload-path.cjs');
+const { resolveUploadLocation } = require('../lib/upload-path.cjs');
 const { readRelease, checkAppConfig, checkBackendConfig } = require('../lib/release-identity.cjs');
 const project = path.resolve(__dirname, '../..');
 const { createDelivery } = require('../build/prepare-upload.cjs');
@@ -14,18 +14,20 @@ function checkUpload(options = {}) {
   const source = options.project || project;
   const release = readRelease(source);
   const live = JSON.parse(fs.readFileSync(path.join(source, 'deployment/live.json'), 'utf8'));
-  const upload = resolveUploadRoot(live.localUploadRoot);
-  assert.equal(path.basename(upload).toUpperCase(), 'UPLOAD');
+  const location = resolveUploadLocation(live.localUploadRoot, live.appKey, options);
+  const upload = location.directory;
   checkAppConfig(path.join(source, 'app', 'app.config'), release);
-  checkAppConfig(path.join(upload, 'MischWerk', 'app.config'), release);
+  checkAppConfig(path.join(upload, 'app.config'), release);
   checkBackendConfig(path.join(source, 'app', 'server', 'config.js'), release);
-  checkBackendConfig(path.join(upload, 'MischWerk', 'server', 'config.js'), release);
+  checkBackendConfig(path.join(upload, 'server', 'config.js'), release);
   const folder = options.manifestFolder || path.join(source, 'deployment', 'manifests');
   const manifestFile = path.join(folder, 'manifest-live.json');
   checkText(manifestFile);
   const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
   assert.equal(manifest.delivery, 'upload-directory');
-  assert.equal(path.resolve(manifest.localUploadRoot), upload, 'Falsches lokales Uploadziel');
+  assert.equal(path.resolve(manifest.localUploadRoot), location.root, 'Falsches lokales Uploadziel');
+  assert.equal(path.resolve(manifest.localUploadDirectory || path.join(manifest.localUploadRoot, 'MischWerk')),
+    upload, 'Falscher lokaler Appordner');
   assert.equal(manifest.version, release.version);
   assert.equal(manifest.buildNumber, release.buildNumber, 'Upload-Buildnummer passt nicht zur Paketdatei');
   const files = [];
@@ -47,11 +49,11 @@ function checkUpload(options = {}) {
   }
   assert.equal(files.length, manifest.fileCount);
   assert.deepEqual(files.map(file => file.path).sort(), expectedFiles.map(file => 'MischWerk/' + file).sort());
-  assert.deepEqual(fs.readdirSync(upload).sort(), ['MischWerk'], 'Fremde Dateien neben der App');
-  const lengths = checkRuntime(path.join(upload, 'MischWerk'), expectedFiles);
+  if (!location.direct) { assert.deepEqual(fs.readdirSync(location.root).sort(), ['MischWerk'], 'Fremde Dateien neben der App'); }
+  const lengths = checkRuntime(upload, expectedFiles);
   checkRuntime(path.join(source, 'app'));
   for (const item of files) {
-    const file = path.join(upload, item.path);
+    const file = path.join(upload, item.path.slice('MischWerk/'.length));
     const original = path.join(source, 'app', item.path.slice('MischWerk/'.length));
     assert.equal(fs.statSync(file).size, item.bytes, item.path);
     assert.equal(hash(file), item.sha256, item.path);
@@ -59,7 +61,7 @@ function checkUpload(options = {}) {
     assert.equal(crypto.createHash('sha256').update(expected).digest('hex').toUpperCase(), item.sha256,
       'Upload weicht von den Quellen ab: ' + item.path);
   }
-  return { version: manifest.version, buildNumber: manifest.buildNumber, uploadRoot: upload, files: files.length, textFiles: lengths.length,
+  return { version: manifest.version, buildNumber: manifest.buildNumber, uploadRoot: location.root, uploadDirectory:upload, files: files.length, textFiles: lengths.length,
     maximumCharacters: Math.max(...lengths.map(item => item.characters)) };
 }
 if (require.main === module) { console.log('Uploadordner geprüft:', checkUpload()); }

@@ -1,4 +1,4 @@
-# MischWerk – Frontendarchitektur 0.1.448 · Build 448
+# MischWerk – Frontendarchitektur 0.1.449 · Build 449
 
 Die vier Ladepläne sind Radio, Wunschbox, Verwaltung und Sendeplan. `tools/lib/frontend-files.cjs` beschreibt die Reihenfolge und Ansichtszuordnung. `index.html` bindet ausschließlich über den dokumentierten Parserweg ein; `ui/composition.js` verbindet vorhandene Fabriken. Studio-Markup, Controller und Styles sind entfernt.
 

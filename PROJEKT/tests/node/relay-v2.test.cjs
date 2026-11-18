@@ -2,6 +2,33 @@ const test=require('node:test');const assert=require('node:assert/strict');
 const crypto=require('node:crypto');const {setup}=require('../fixtures/relay-v2.cjs');
 function last(events,type){return events.findLast(row=>row.type===type)?.data;}
 
+test('Zentraler Fünfsekundentakt erkennt einen DJ auch aus unbekanntem, beendetem oder Legacy-Stand',()=>{
+ for(const [authority,broadcastState] of [['studio','unknown'],['studio','ended'],['legacy','unknown']]){
+  const f=setup(),h=f.h,u=h.user(3,'Hörer'),session=h.open(u);
+  const inactive={...f.response().station,authority,broadcastState,onAir:false,wishboxOpen:false,moderatorNick:null,topic:null,validUntil:0,updatedAt:0};
+  for(let count=1;count<=3;count+=1){
+   f.finish(undefined,{station:inactive});assert.equal(h.state(u,session).moderator,null);
+   h.advance(4999);assert.equal(f.posts.length,count,'Kein vorzeitiger regulärer Abruf');
+   h.advance(1);assert.equal(f.posts.length,count+1,'Auch ohne bestätigte Sendung nach fünf Sekunden erneut lesen');
+  }
+  f.finish();assert.equal(last(session.events,'mw:state').moderator.nick,'DJ-Test','Bestätigter DJ wird direkt übertragen');
+  h.advance(4999);assert.equal(f.posts.length,4);h.advance(1);assert.equal(f.posts.length,5,'Aktive Sendung behält denselben Takt');
+ }
+});
+
+test('Fünfsekundentakt erhält Einzelanfrage, Zehnsekundenfrist, Fehlerbackoff und Abschaltung',()=>{
+ const f=setup(),h=f.h,first=f.posts[0];
+ h.advance(5000);assert.equal(f.posts.length,1,'Keine zweite Anfrage während laufendem Aufruf');
+ h.advance(5000);assert.equal(h.runtime.androidLastFailure().stage,'timeout');assert.equal(f.posts.length,1);
+ first.args.onSuccess(JSON.stringify(f.response()),{getResponseCode:()=>200,getURLString:()=>first.url});
+ assert.equal(h.runtime.receivedShow().active,false,'Verspäteter Erfolg aktiviert keinen DJ');
+ for(const delay of [10000,20000,40000,60000,60000]){
+  const count=f.posts.length;h.advance(delay-1);assert.equal(f.posts.length,count,'Fehlerpause vollständig erhalten');
+  h.advance(1);assert.equal(f.posts.length,count+1);f.finish(undefined,{},503);
+ }
+ h.runtime.stopAndroidPublisher();const count=f.posts.length;h.advance(120000);assert.equal(f.posts.length,count,'Abschaltung beendet den Abgleich');
+});
+
 test('Private Quellen-Vorprüfung liest vorhandene Namespace-Kennung ohne Export, Commit oder Portaufruf',()=>{
  const f=setup(),h=f.h,u=h.user(8,'Polaroid');h.open(u);h.app.chatCommands.mw(u,'admin');const session=u.sessions.find(s=>s.activeView==='team');
  require('../fixtures/legacy-wishes.cjs').seed(h,[{text:'Ungefrorenes Original'}]);

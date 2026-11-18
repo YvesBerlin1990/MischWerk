@@ -1,6 +1,6 @@
-# MischWerk – offene native und produktive Abnahme 0.1.448 / Build 448
+# MischWerk – offene native und produktive Abnahme 0.1.449 / Build 449
 
-Build 448 ist lokal umgesetzt, geprüft und paketiert. Der koordinierende Chat bestätigte inzwischen den tatsächlichen Originalexport aus der nativen 448-Verwaltung und anschließend „Aktiv – Daten werden übertragen.“ Die nachstehenden sichtbaren/native Fachprüfungen bleiben davon getrennt. Dieser Chat hat keine FTP-Übertragung, Firebase-Bereitstellung oder produktive Datenänderung ausgeführt. Ein lokaler Emulator- oder Rhino-Erfolg ist kein Nachweis echter Knuddels-Darstellung oder physischer Audioausgabe.
+Build 449 ändert den regulären zentralen Abgleich auf fünf Sekunden auch ohne bereits bestätigte Sendung. Die zusätzliche private Smileyfreigabe für Polaroid behält auf Nutzerwunsch denselben Build. Polaroids tatsächlicher Import und die native Smiley-Anzeige bleiben gesondert abzunehmen. Die zeitliche Folge von hörbarem Intro und DJ-Anzeige ist nach Installation nativ noch abzunehmen. Der koordinierende Chat bestätigte inzwischen den tatsächlichen Originalexport aus der nativen 448-Verwaltung und anschließend „Aktiv – Daten werden übertragen.“ Die nachstehenden sichtbaren/native Fachprüfungen bleiben davon getrennt. Dieser Chat hat keine FTP-Übertragung, Firebase-Bereitstellung oder produktive Datenänderung ausgeführt. Ein lokaler Emulator- oder Rhino-Erfolg ist kein Nachweis echter Knuddels-Darstellung oder physischer Audioausgabe.
 
 ## Zentraler V2-Betrieb
 

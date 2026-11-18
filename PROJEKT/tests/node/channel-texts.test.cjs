@@ -31,6 +31,46 @@ function learnSmiley(f, code = smileyCode, image = smileyImage, user = f.owner) 
     getText:() => new String('smiley ' + image) });
 }
 
+test('Polaroid übernimmt eigene Smileys ohne Inhaberrechte und erhält Zeitplan, Privatheit und Neustart', () => {
+  const f = setup(), user = f.h.user(702, 'Polaroid');
+  user.getNick = () => new String('Polaroid');
+  assert.equal(f.h.runtime.canAdminister(user), false);
+  assert.equal(save(f, {texts:['Grüße ' + smileyCode]}).ok, true);
+  const before = structuredClone(f.h.store.data[key]), ownerReplies = f.owner.messages.length;
+  learnSmiley(f, smileyCode, reportedSmileyMessage, user);
+  const stored = structuredClone(f.h.store.data[key]);
+  assert.match(user.messages.at(-1), /^Smiley gespeichert/);
+  assert.deepEqual(stored, {...before, smileys:[{code:smileyCode,image:'°>' + reportedSmileyPath + '<°'}]});
+  assert.equal(f.owner.messages.length, ownerReplies);
+  assert.deepEqual(f.h.bot.messages, []);
+  learnSmiley(f, smileyCode, reportedSmileyMessage, user);
+  assert.deepEqual(f.h.store.data[key], stored, 'Wiederholung verändert weder Zuordnung noch Zeitplan');
+  learnSmiley(f, smileyCode, smileyCode, user);
+  assert.match(user.messages.at(-1), /Empfangen/);
+  assert.equal(f.owner.messages.length, ownerReplies);
+  assert.deepEqual(f.h.store.data[key], stored, 'Formatdiagnose speichert nichts');
+  assert.equal(f.h.runtime.canAdminister(user), false);
+  f.h.app.onShutdown();
+  const restarted = setup(f.h.store);
+  restarted.h.advance(minutes(20));
+  assert.deepEqual(restarted.h.bot.messages, ['Grüße °>' + reportedSmileyPath + '<°']);
+});
+
+test('Polaroids Smileyfreigabe prüft Anwesenheit, Mensch, tatsächlichen Nick und Shutdown bei jeder Nachricht', () => {
+  for (const change of [user => { user.online = false; }, user => { user.userType = 'bot'; },
+      user => { user.getNick = () => 'Fremder'; }, (user, f) => { f.h.app.onPrepareShutdown(); }]) {
+    const f = setup(), user = f.h.user(703, 'Polaroid');
+    learnSmiley(f, smileyCode, smileyImage, user);
+    assert.match(user.messages.at(-1), /^Smiley gespeichert/);
+    const before = structuredClone(f.h.store.data[key]);
+    change(user, f);
+    learnSmiley(f, ':(weiterer):', '°>sm_private_diagnostic.gif<°', user);
+    assert.deepEqual(f.h.store.data[key], before);
+    assert.doesNotMatch(user.messages.at(-1), /Empfangen|sm_private_diagnostic|Smiley gespeichert/);
+    assert.deepEqual(f.h.bot.messages, []);
+  }
+});
+
 test('Die gemeldeten 111 Zeichen des echten Smiley-Bildcodes werden mit allen Punkten unverändert übernommen', () => {
   assert.equal(reportedSmileyMessage.length, 111);
   const f = setup(), image = '°>' + reportedSmileyPath + '<°';
@@ -132,7 +172,7 @@ test('Unbekanntes natives Format meldet keine Besitzbehauptung und liefert nur p
   }
 });
 
-test('Smileyimport prüft echten anwesenden Inhaber, menschlichen Autor und Shutdown', () => {
+test('Smileyimport sperrt andere Rollen, abwesenden Inhaber, Bots und Shutdown', () => {
   for (const role of ['listener','moderator','manager','owner']) {
     const f = setup(), other = f.h.user(700, 'Fremder', role);
     learnSmiley(f, smileyCode, smileyImage, other);

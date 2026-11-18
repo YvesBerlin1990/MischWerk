@@ -1082,7 +1082,7 @@ for(const client of ['k3','stapp'])test('Private Vorprüfung und unbekannte Frei
  await team.locator('.connection-secret summary').filter({hasText:'Originalbestand übertragen'}).click();
  const namespace=lab.posts[0].transportId;assert.equal(await team.locator('#migration-source').inputValue(),namespace);
  assert.equal(await team.locator('#migration-source').getAttribute('readonly'),'');
- assert.match(await team.locator('#migration-source-info').textContent(),/Build 448/);
+ assert.match(await team.locator('#migration-source-info').textContent(),new RegExp('Build '+require('../../package.json').buildNumber));
  assert.match(await team.locator('#migration-counts').textContent(),/Originalwünsche: 0/);
  const before=JSON.stringify(lab.hub.runtime.persistence.data),posts=lab.posts.length;await team.locator('#relay-refresh').click();
  await team.waitForFunction(value=>document.getElementById('migration-source').value===value,namespace);assert.equal(await team.locator('#migration-source').inputValue(),namespace);

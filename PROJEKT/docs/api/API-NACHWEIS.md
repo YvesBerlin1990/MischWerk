@@ -1,8 +1,10 @@
-# MischWerk – API-Nachweis 0.1.447 · Build 447
+# MischWerk – API-Nachweis 0.1.449 · Build 449
 
 ## Aktueller zentraler V2-Abgleich
 
-Build 447 verwendet unverändert den dokumentierten ExternalServerAccess.postURL-, RandomOperations-, User-Icon-, AppContent- und Sessionweg. Neu ist der innere gemeinsame Datenvertrag 2. Vier Stringfelder payload/ts/nonce/sig, HMAC-SHA256 über v1.ts.nonce.payload und das Hostingziel bleiben erhalten. Lokale Moderation und private Studio-Sitzungskennungen werden nicht übertragen. Native Anmeldung/PIN/Übergabe/Regie und zusätzliche Node-Anmeldung sind entfernt.
+Build 449 verwendet unverändert den dokumentierten ExternalServerAccess.postURL-, RandomOperations-, User-Icon-, AppContent- und Sessionweg. Neu ist der innere gemeinsame Datenvertrag 2. Vier Stringfelder payload/ts/nonce/sig, HMAC-SHA256 über v1.ts.nonce.payload und das Hostingziel bleiben erhalten. Lokale Moderation und private Studio-Sitzungskennungen werden nicht übertragen. Native Anmeldung/PIN/Übergabe/Regie und zusätzliche Node-Anmeldung sind entfernt.
+
+Seit Build 449 liest derselbe gemeinsame Publisher den zentralen Stand regulär alle fünf Sekunden, auch ohne bereits bestätigte Sendung. Der einzelne Timer, der belegte HTTP-Port, zehn Sekunden Antwortfrist und Fehlerbackoff 10/20/40/60 Sekunden bleiben erhalten. Dadurch beträgt die reguläre Abfragewartezeit etwa höchstens fünf Sekunden zuzüglich Transport und Verarbeitung; eine Gleichzeitigkeit mit dem hörbaren Intro ist nicht nachgewiesen.
 
 `android/broadcast` verarbeitet öffentliche authority/protocolEpoch, null-Thema bei ended/unknown und 64Hex-Freigaberevisionen. `native-state`/`incoming` korrelieren individuelle zentrale Quittungen. `wishes/migration` erhält Originaltexte und vorhandene technische Belege; fehlende ursprüngliche Inhaltsdigests terminaler Legacybelege sind ausdrücklich null. UI-, Persistenz- und HTTP-Grenzen werden getrennt geprüft. Build 447 trennt den Konsolennachweis für den echten Inhaber Otterchen und Polaroid vom bisherigen Inhabernachweis. Die drei Iconarten behalten dieselben dokumentierten add-/remove-Operationen; ausschließlich ihre lokalen Anzeigeoptionen sind getrennt. HTTP-Antwortdiagnose verwendet nur bereits dokumentierte Callbackwerte, feste Fehlerstufen und begrenzte Codes; kein neuer Plattform- oder Netzwerkweg.
 

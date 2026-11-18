@@ -1,21 +1,21 @@
 {
-  "version": "0.1.448",
-  "buildNumber": 448,
+  "version": "0.1.449",
+  "buildNumber": 449,
   "files": [
     {
       "path": "MischWerk/main.js",
       "bytes": 175,
-      "sha256": "AD823B959A4F02F29A3C3FF5178F609DA6A41CE749379685C9E7CF8024528A00"
+      "sha256": "30CB7FBA3240281D734D6AD6D2AA7BE64843B2D3E9B8BCF26B2F37161ACA6E25"
     },
     {
       "path": "MischWerk/app.config",
       "bytes": 545,
-      "sha256": "4CCAF4390A76100F242EF8AAA203B9691491BB7AFB8F36B9166F09A7160CB0BD"
+      "sha256": "324C44DEF439C3220F3D680EFDDE9D9E965C910D4F943D5783022ECDE2444192"
     },
     {
       "path": "MischWerk/server/config.js",
       "bytes": 1282,
-      "sha256": "4FF5E400AB451054A5B391F812387D024CBB302AB3924E40C69FDB23FE046DBE"
+      "sha256": "1DC3EC94ECCBDDD948888B07AC1D6F69E6133A9816F6CF8E8B722E2D0E246A55"
     },
     {
       "path": "MischWerk/server/core/runtime.js",
@@ -79,8 +79,8 @@
     },
     {
       "path": "MischWerk/server/channel-texts/smileys.js",
-      "bytes": 8092,
-      "sha256": "2AF77ADC8CF6ECF350B30433423C441CE896E99E88BB34A538F1738176DBB9DC"
+      "bytes": 8075,
+      "sha256": "7B5672E578A87AD95EB9EA7654271F4D51ED802ABA9E16B63507814ACE15751E"
     },
     {
       "path": "MischWerk/server/state/initialization.js",
@@ -225,7 +225,7 @@
     {
       "path": "MischWerk/server/app.js",
       "bytes": 6299,
-      "sha256": "EC9AC3BE7CE48D8749BFC0247BEFDF2E597116B9D9CA7D1C89C4C0A97952FED3"
+      "sha256": "AF5C11EC9B3110E5E5F35A4C4A8F20CB7B2FEFE8FD7CB8E5769761AA0ACEB2D3"
     }
   ]
 }

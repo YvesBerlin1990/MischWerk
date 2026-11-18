@@ -1,6 +1,6 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.448 · Build 448 · Website 0.2.13** · Stand: 17.11.2026.
+**App 0.1.449 · Build 449 · Website 0.2.13** · Stand: 18.11.2026.
 
 MischWerk zeigt Radio, zentrale Sendungsdaten, eigene Musikwünsche, Lauftext und Sendeplan in Knuddels. Sendung und Wunschregie liegen im MischWerk Live Studio mit Firebase; die App verwendet den vorhandenen signierten Abgleich.
 

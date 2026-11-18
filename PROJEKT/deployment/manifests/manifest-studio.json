@@ -1,6 +1,6 @@
 {
-  "version": "0.1.448",
-  "buildNumber": 448,
+  "version": "0.1.449",
+  "buildNumber": 449,
   "files": [
     {
       "path": "MischWerk/server/android/signing.js",
@@ -44,8 +44,8 @@
     },
     {
       "path": "MischWerk/server/android/publisher.js",
-      "bytes": 8120,
-      "sha256": "849C2DF5FCB1A5D62F15045AD79BE4D01AFD502DC7FD389B8412F89F1C608B6B"
+      "bytes": 8080,
+      "sha256": "CB948238F5FC3E922AF5BC1069A42A1BB2386A8884985BC7B7B6A3C5C277132D"
     },
     {
       "path": "MischWerk/server/android/verification.js",

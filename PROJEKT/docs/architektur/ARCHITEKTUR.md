@@ -1,4 +1,4 @@
-# MischWerk – Architektur 0.1.448 · Build 448
+# MischWerk – Architektur 0.1.449 · Build 449
 
 Die Knuddels-App empfängt zentrale Sendungsdaten und nimmt native Musikwünsche entgegen. Firebase führt Sendung, Thema, Wunschbox, Freigaben und Queue. MischWerk Live Studio steuert diese Daten. Native Studioanmeldung, PIN-Controller, Übergabe, vollständige Wunschregie und der zusätzliche Node-Arbeitsbereich sind entfernt.
 

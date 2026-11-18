@@ -12,7 +12,7 @@ const { frontendFilesForView } = require('../../tools/lib/frontend-files.cjs');
 const { runtimeFiles, isBinary } = require('../../tools/checks/lengths.cjs');
 const { checkUpload } = require('../../tools/checks/upload.cjs');
 const { manifestGroups } = require('../../tools/lib/upload-manifests.cjs');
-const { desktopUploadRoot, resolveUploadRoot } = require('../../tools/lib/upload-path.cjs');
+const { desktopUploadRoot, resolveUploadRoot, resolveUploadLocation } = require('../../tools/lib/upload-path.cjs');
 test('Verbindlicher Uploadpfad verwendet jeden Nutzerdesktop einschließlich umgeleitetem Desktop ohne Rückfrage', () => {
   const live = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../deployment/live.json'), 'utf8'));
   assert.equal(live.localUploadRoot, desktopUploadRoot);
@@ -68,6 +68,75 @@ function fixture(t, bundled = false) {
   fs.writeFileSync(file, JSON.stringify(manifest));
   return { project, upload };
 }
+
+test('Persönlicher Uploadordner gilt nur mit lokaler Einstellung und erhält auf anderen PCs das Desktopziel', t => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'MischWerk-Uploadziel-'));
+  t.after(() => fs.rmSync(base, {recursive:true,force:true}));
+  const settingsFile = path.join(base, 'build.json'), directory = path.join(base, 'Knuddels User Apps', 'MischWerk');
+  fs.writeFileSync(settingsFile, JSON.stringify({schemaVersion:1,uploadDirectory:directory}));
+  const desktop = () => path.join(base, 'Anderer PC', 'Desktop');
+  assert.deepEqual(resolveUploadLocation(desktopUploadRoot, 'MischWerk', {settingsFile,desktop}),
+    {root:directory,directory,direct:true});
+  fs.writeFileSync(settingsFile, JSON.stringify({schemaVersion:1,uploadDirectory:directory,approvalAppVersion:'0.1'}));
+  assert.equal(resolveUploadLocation(desktopUploadRoot, 'MischWerk', {settingsFile,desktop}).approvalAppVersion, '0.1');
+  const standard = path.join(desktop(), 'MischWerk', 'UPLOAD');
+  assert.deepEqual(resolveUploadLocation(desktopUploadRoot, 'MischWerk', {settingsFile:path.join(base,'nicht-vorhanden.json'),desktop}),
+    {root:standard,directory:path.join(standard,'MischWerk'),direct:false});
+  const isolated = path.join(base, 'UPLOAD');
+  assert.equal(resolveUploadLocation(isolated, 'MischWerk', {settingsFile,desktop}).directory, path.join(isolated,'MischWerk'));
+  for (const settings of [{schemaVersion:2,uploadDirectory:directory},{schemaVersion:1,uploadDirectory:'relativ'},
+      {schemaVersion:1,uploadDirectory:path.parse(directory).root}]) {
+    fs.writeFileSync(settingsFile, JSON.stringify(settings));
+    assert.throws(() => resolveUploadLocation(desktopUploadRoot, 'MischWerk', {settingsFile,desktop}));
+  }
+  fs.writeFileSync(settingsFile, '{ungültig');
+  assert.throws(() => resolveUploadLocation(desktopUploadRoot, 'MischWerk', {settingsFile,desktop}), SyntaxError);
+});
+
+test('Externe Freigabe entspricht MyChannel Deploy und erhält bei Fehlern die bisherige Freigabe', t => {
+  const f = fixture(t, true), directory = path.join(f.upload, 'MischWerk');
+  const {writeUploadApproval} = require('../../tools/lib/upload-approval.cjs');
+  const release = {...JSON.parse(fs.readFileSync(path.join(f.project,'package.json'),'utf8')),appName:'MischWerk'};
+  const delivery = createDelivery(f.project);
+  const file = writeUploadApproval(directory, release, delivery, '0.1');
+  const bytes = fs.readFileSync(file), approval = JSON.parse(bytes);
+  assert.equal(path.relative(directory,file).startsWith('..'),true,'Freigabe liegt außerhalb der Uploaddateien');
+  assert.equal(approval.schemaVersion,1);assert.equal(approval.appName,'MischWerk');
+  assert.equal(approval.appVersion,'0.1');assert.equal(approval.buildNumber,release.buildNumber);
+  assert.match(approval.releaseId,/^[0-9a-f-]{36}$/);
+  assert.deepEqual(approval.files.map(row=>row.path),[...delivery.keys()].sort());
+  for(const row of approval.files){
+    const actual = fs.readFileSync(path.join(directory,row.path));
+    assert.equal(row.size,actual.length);assert.equal(row.sha256,crypto.createHash('sha256').update(actual).digest('hex'));
+  }
+  assert.match(fs.readFileSync(path.join(directory,'app.config'),'utf8'),new RegExp('appVersion = '+release.version.replaceAll('.','\\.')));
+  assert.deepEqual(fs.readdirSync(directory).sort(),['app.config','main.js','server','www']);
+  fs.appendFileSync(path.join(directory,'main.js'),'\n');
+  assert.throws(()=>writeUploadApproval(directory,release,delivery,'0.1'),/geprüften Paket/);
+  assert.deepEqual(fs.readFileSync(file),bytes,'Fehlgeschlagener Abgleich ersetzt keine Freigabe');
+  assert.deepEqual(fs.readdirSync(path.dirname(file)),['MischWerk.json']);
+});
+
+test('Direkte lokale Uploadablage prüft echte Paketbytes ohne zweiten App-Unterordner und ohne Metadaten', t => {
+  const f = fixture(t, true), directory = path.join(f.upload, 'Persönliches Ziel');
+  fs.renameSync(path.join(f.upload, 'MischWerk'), directory);
+  const settingsFile = path.join(f.project, 'lokaler-test.json');
+  fs.writeFileSync(settingsFile, JSON.stringify({schemaVersion:1,uploadDirectory:directory}));
+  fs.writeFileSync(path.join(f.project,'deployment/live.json'), JSON.stringify({localUploadRoot:desktopUploadRoot}));
+  const mainFile = path.join(f.project,'deployment/manifests/manifest-live.json');
+  const manifest = JSON.parse(fs.readFileSync(mainFile,'utf8'));
+  manifest.localUploadRoot = directory; manifest.localUploadDirectory = directory;
+  fs.writeFileSync(mainFile, JSON.stringify(manifest));
+  const result = checkUpload({project:f.project,settingsFile});
+  assert.equal(result.uploadDirectory, directory);
+  assert.deepEqual(fs.readdirSync(directory).sort(), ['app.config','main.js','server','www']);
+  const file = path.join(directory,'main.js'), original = fs.readFileSync(file);
+  fs.appendFileSync(file,'\n');
+  assert.throws(() => checkUpload({project:f.project,settingsFile}), /main.js/);
+  fs.writeFileSync(file,original);
+  fs.writeFileSync(path.join(directory,'manifest.json'),'{}');
+  assert.throws(() => checkUpload({project:f.project,settingsFile}), /Unerwartete oder fehlende Laufzeitdateien/);
+});
 test('Uploadprüfung benötigt ausschließlich Appdateien und Dateimanifeste, kein Archiv', t => {
   const f = fixture(t), result = checkUpload({project:f.project});
   assert.equal(result.files, runtimeFiles.length); assert.equal(result.uploadRoot, f.upload);

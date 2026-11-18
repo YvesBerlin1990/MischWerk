@@ -1,4 +1,4 @@
-# MischWerk – Design 0.1.448 · Build 448
+# MischWerk – Design 0.1.449 · Build 449
 
 Build 446 entfernt die native Moderationstaste und das Studiofenster. Die Verwaltung für den echten Inhaber Otterchen und den anwesenden Polaroid enthält Anzeige, Bot-Texte und Verbindung; Teamzeichen, Mikrofon und Kopfhörer sind getrennt schaltbar; zentrale Nickfreigaben sind lesend. Die Radioleiste verwendet für alle Rollen die bisherige Höreranordnung. Neue Abbildungen dieses Stands und frühere unveränderte Gestaltungsbilder sind im aktuellen Prüfbericht getrennt benannt. Beschreibungen früherer Moderationsmenüs weiter unten sind historische Gestaltungsbefunde.
 

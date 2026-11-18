@@ -25,6 +25,10 @@ Object.keys(nativeCalls[0].parameters.data).forEach(function(key){check(typeof n
 check(nativeCalls[0].body.contractVersion===2 && nativeCalls[0].body.station===undefined,'Nur innerer V2-Vertrag, keine lokale Sendung');
 check(nativeCalls[0].body.nativeConfig===undefined,'Keine zentrale Konfigurationsmutation');
 check(currentRuntime.receivedRosterState().confirmed===false,'Unbekannte Freigaben bleiben unbestätigt');
+finish({station:{contractVersion:2,authority:'studio',protocolEpoch:'rhino-public',revision:0,broadcastState:'unknown',onAir:false,wishboxOpen:false,moderatorNick:null,topic:null,updatedAt:0,validUntil:0}});
+check(currentRuntime.receivedShow().active===false,'Unbekannter Stand aktiviert keinen DJ');
+advance(4999);check(nativeCalls.length===1,'Kein vorzeitiger regulärer Abgleich');
+advance(1);check(nativeCalls.length===2,'Ohne aktive Sendung nach fünf Sekunden erneut abgleichen');
 finish();App.onEventReceived(owner,'mw:refresh',{},os);
 check(currentRuntime.receivedRosterState().confirmed===true,'Vollständig empfangene Freigaben sind bestätigt');
 check(latest(os,'mw:state').user.showModerationButton===false,'Keine Moderationstaste auch für Inhaber');
@@ -54,6 +58,24 @@ App.onUserJoined(consoleUser);App.chatCommands.mw(consoleUser,'admin');
 var consoleSession=consoleUser.sessions.filter(function(session){return session.getAppContent().html.data.view==='team';})[0];
 check(!!consoleSession && currentRuntime.canUseAdministration(consoleUser),'Polaroid erhält die native Konsole aus authentifiziertem Java-Nick');
 check(currentRuntime.canAdminister(consoleUser)===false,'Konsolenzugang erteilt kein Inhaberrecht');
+var consoleSmileyCode=':(polaroid-test):',consoleSmileyImage='°>sm_fixture_polaroid.gif<°',consoleSmileyReplies=[];
+var consolePrivateReply=consoleUser.sendPrivateMessage;
+consoleUser.sendPrivateMessage=function(text){consoleSmileyReplies.push(String(text));};
+function consoleSmileyMessage(code,image){return {getAuthor:function(){return consoleUser;},
+ getRawText:function(){return new java.lang.String('smiley '+code);},getText:function(){return new java.lang.String('smiley '+image);}};}
+App.onPrivateMessage(consoleSmileyMessage(consoleSmileyCode,consoleSmileyImage));
+check(consoleSmileyReplies[0].indexOf('Smiley gespeichert')===0,'Polaroid importiert Smiley aus nativen Java-Strings ohne Inhaberrecht');
+check(currentRuntime.readChannelTexts().smileys[0].image===consoleSmileyImage,'Polaroids Smiley dauerhaft im vorhandenen Speicher');
+var consoleSmileyStored=JSON.stringify(currentRuntime.readChannelTexts());
+App.onPrivateMessage(consoleSmileyMessage(consoleSmileyCode,consoleSmileyImage));
+check(JSON.stringify(currentRuntime.readChannelTexts())===consoleSmileyStored,'Polaroids Smileywiederholung ist idempotent');
+var consoleOnline=consoleUser.isOnlineInChannel;
+consoleUser.isOnlineInChannel=function(){return false;};
+App.onPrivateMessage(consoleSmileyMessage(':(gesperrt):','°>sm_fixture_private.gif<°'));
+check(JSON.stringify(currentRuntime.readChannelTexts())===consoleSmileyStored && consoleSmileyReplies[2].indexOf('Empfangen')===-1,
+ 'Abwesender Polaroid erhält weder Import noch Formatdiagnose');
+consoleUser.isOnlineInChannel=consoleOnline;consoleUser.sendPrivateMessage=consolePrivateReply;
+check(currentRuntime.canAdminister(consoleUser)===false,'Smileyfreigabe erweitert keine Inhaberrechte');
 App.onEventReceived(consoleUser,'mw:androidSettings.status',{},consoleSession);
 check(latest(consoleSession,'mw:androidSettings.status').ok===true,'Polaroid liest die private Verbindung in aktueller Konsole');
 var preflightBefore=JSON.stringify(store.data),preflightCalls=nativeCalls.length;

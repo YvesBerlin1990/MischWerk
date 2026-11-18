@@ -7,8 +7,8 @@ MischWerkModules.attachChannelTextSmileys = function (runtime) {
             var raw = String(message.getRawText()).replace(/^\s+|\s+$/g, '');
             if (!/^smiley(?:\s|$)/.test(raw)) { return; }
             user = message.getAuthor();
-            if (!runtime.canAdminister(user) || user.getUserType() !== UserType.Human) {
-                throw runtime.failure('Nur Otterchen als anwesender Channelinhaber darf Bot-Smileys übernehmen.');
+            if (!runtime.canUseAdministration(user)) {
+                throw runtime.failure('Nur Otterchen als Channelinhaber oder Polaroid dürfen im Channel Bot-Smileys übernehmen.');
             }
             if (runtime.shuttingDown) { throw runtime.failure('MischWerk startet gerade neu. Bitte später versuchen.'); }
             var code = raw.replace(/^smiley\s*/, '');

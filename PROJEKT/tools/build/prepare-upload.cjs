@@ -8,7 +8,7 @@ const { spawnSync } = require('node:child_process');
 const { buildBackend, modules } = require('./backend.cjs');
 const { runtimeFiles, isBinary, checkText, checkRuntime } = require('../checks/lengths.cjs');
 const { manifestGroups } = require('../lib/upload-manifests.cjs');
-const { resolveUploadRoot } = require('../lib/upload-path.cjs');
+const { resolveUploadLocation } = require('../lib/upload-path.cjs');
 const { readRelease, checkAppConfig } = require('../lib/release-identity.cjs');
 const { renderUpdatePlan } = require('../lib/update-plan.cjs');
 const root = path.resolve(__dirname, '../..');
@@ -137,16 +137,21 @@ function build() {
   assert.equal(live.installId, live.developerId + '.' + live.appKey);
   new vm.Script(fs.readFileSync(path.join(appRoot, 'main.js'), 'utf8'), { filename: 'main.js' });
   checkRuntime(appRoot);
-  const uploadRoot = resolveUploadRoot(live.localUploadRoot);
-  assert.equal(path.basename(uploadRoot).toUpperCase(), 'UPLOAD', 'Uploadwurzel muss UPLOAD heißen');
+  const location = resolveUploadLocation(live.localUploadRoot, live.appKey);
+  if (process.argv.includes('--approve')) {
+    assert.ok(location.direct, 'Freigabe erfordert einen persönlichen direkten Uploadordner');
+  }
+  const uploadRoot = location.root, upload = location.directory;
   const installation = path.join(root, 'deployment', 'manifests');
-  const manifestFolders = [...new Set([installation, path.join(path.dirname(uploadRoot), 'PROJEKT', 'deployment', 'manifests')])];
-  const upload = path.join(uploadRoot, live.appKey);
+  const manifestFolders = location.direct ? [installation] :
+    [...new Set([installation, path.join(path.dirname(uploadRoot), 'PROJEKT', 'deployment', 'manifests')])];
   const delivery = createDelivery();
   const include = [...delivery.keys()];
   for (const folder of manifestFolders) { fs.mkdirSync(folder, { recursive: true }); }
   fs.mkdirSync(uploadRoot, { recursive: true });
-  assert.ok(fs.readdirSync(uploadRoot).every(name => name === live.appKey), 'Fremde Dateien neben dem Uploadziel');
+  if (!location.direct) {
+    assert.ok(fs.readdirSync(uploadRoot).every(name => name === live.appKey), 'Fremde Dateien neben dem Uploadziel');
+  }
   fs.mkdirSync(upload, { recursive: true });
   for (const file of include) {
     const input = path.join(appRoot, file); const output = path.join(upload, file);
@@ -183,6 +188,7 @@ function build() {
     stationConfigured, ftpHost: live.ftp.host, ftpUser: live.ftp.username,
     delivery: 'upload-directory', bundled:true, localUploadRoot: uploadRoot, fileCount: include.length, fileManifests: []
   };
+  if (location.direct) { manifest.localUploadDirectory = upload; }
   // Getrennte, vollständige Dateinachweise für Server und Oberfläche statt eines übergroßen JSON.
   for (const [name, files] of Object.entries(manifestGroups(include, isBinary))) {
     const file = path.join(installation, name);
@@ -194,7 +200,7 @@ function build() {
   }
   fs.writeFileSync(path.join(installation, 'manifest-live.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   checkText(path.join(installation, 'manifest-live.json'));
-  // Identische Dateinachweise auch neben dem verbindlichen Desktop-Upload bereitstellen.
+  // Beim Standardziel Dateinachweise auch neben dem Desktop-Upload bereitstellen.
   for (const folder of manifestFolders.filter(folder => folder !== installation)) {
     for (const name of ['manifest-live.json', ...manifest.fileManifests.map(item => item.path)]) {
       fs.copyFileSync(path.join(installation, name), path.join(folder, name));
@@ -205,8 +211,14 @@ function build() {
   const rhino = spawnSync(process.execPath, ['tools/checks/rhino.cjs'], { cwd:root, stdio:'inherit',
     windowsHide:true, env:{ ...process.env, MISCHWERK_TEST_UPLOAD:upload } });
   assert.equal(rhino.status, 0, 'Rhino-Prüfung des tatsächlichen Uploadpakets fehlgeschlagen.');
+  let approvalFile;
+  if (process.argv.includes('--approve')) {
+    checkUpload();
+    approvalFile = require('../lib/upload-approval.cjs').writeUploadApproval(upload,
+      {appName:config.appName,version,buildNumber}, delivery, location.approvalAppVersion || version);
+  }
   console.log(JSON.stringify({ version, buildNumber, appId: live.appId, remotePath: manifest.remotePath, uploadRoot,
-    upload, fileCount: include.length, stationConfigured: manifest.stationConfigured }, null, 2));
+    upload, approvalFile, fileCount: include.length, stationConfigured: manifest.stationConfigured }, null, 2));
 }
 module.exports = { properties, createDelivery };
 if (require.main === module) { try { build(); } catch (error) { console.error('Upload-Bereitstellung: ' + error.message); process.exitCode = 1; } }

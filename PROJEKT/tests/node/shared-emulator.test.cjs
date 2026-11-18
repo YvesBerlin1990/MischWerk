@@ -139,6 +139,6 @@ test('Zentrale Emulatoroberfläche öffnet echte Radio- und Verwaltungsframes oh
   const admin = await frame('team-panel'); await admin.locator('#team-connection-tab').click();
   await admin.locator('.connection-secret summary').filter({ hasText: 'Originalbestand übertragen' }).click();
   await admin.waitForFunction(() => document.getElementById('migration-source').value === 'Quellenkennung noch nicht vorhanden');
-  assert.match(await admin.locator('#migration-source-info').textContent(), /Build 448/);
+  assert.match(await admin.locator('#migration-source-info').textContent(), new RegExp('Build '+require('../../package.json').buildNumber));
   assert.deepEqual(errors, []);
 });

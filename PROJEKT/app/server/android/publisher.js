@@ -30,7 +30,7 @@ MischWerkModules.attachAndroidPublisher = function(runtime) {
     }
 
     function base() {
-        return runtime.receivedShow().active ? 5000 : 20000;
+        return 5000;
     }
 
     function cancel() {

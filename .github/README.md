@@ -7,11 +7,11 @@
 
 Radio-App für den Knuddels-MyChannel **MischWerk** mit Musikwünschen, Moderation, Sendeplan und eigener Homepage.
 
-[![App-Version](https://img.shields.io/badge/App-0.1.448-e6c77b?labelColor=141414)](../PROJEKT/package.json)
-[![Build](https://img.shields.io/badge/Build-448-e6c77b?labelColor=141414)](../PROJEKT/package.json)
+[![App-Version](https://img.shields.io/badge/App-0.1.449-e6c77b?labelColor=141414)](../PROJEKT/package.json)
+[![Build](https://img.shields.io/badge/Build-449-e6c77b?labelColor=141414)](../PROJEKT/package.json)
 [![Website-Version](https://img.shields.io/badge/Website-0.2.13-e6c77b?labelColor=141414)](../PROJEKT/website/README.md)
 
-**App 0.1.448 · Build 448 · Website 0.2.13** · Stand: 17. November 2026.
+**App 0.1.449 · Build 449 · Website 0.2.13** · Stand: 18. November 2026.
 
 ![Lokale Testansicht der Radioleiste](../PROJEKT/docs/pruefung/oberflaeche/radio/radio-harmonie-breit.png)
 
