@@ -2,6 +2,14 @@ const test=require('node:test');const assert=require('node:assert/strict');
 const crypto=require('node:crypto');const {setup}=require('../fixtures/relay-v2.cjs');
 function last(events,type){return events.findLast(row=>row.type===type)?.data;}
 
+test('Ausbleibender nativer Callback bleibt ein einzelner physischer POST und meldet die anschließende Blockade',()=>{
+ const f=setup();for(let step=0;step<18;step++)f.h.advance(10000);
+ assert.equal(f.posts.length,1,'Logischer Timeout darf keinen physisch offenen Aufruf freigeben');
+ assert.equal(f.h.runtime.androidRelayHealthy(),false);
+ assert.equal(f.h.runtime.receivedShow().active,false);
+ assert.equal(f.h.runtime.androidLastFailure().stage,'busy','Blockierter Transport ersetzt den alten Timeoutbefund');
+});
+
 test('Zentraler Fünfsekundentakt erkennt einen DJ auch aus unbekanntem, beendetem oder Legacy-Stand',()=>{
  for(const [authority,broadcastState] of [['studio','unknown'],['studio','ended'],['legacy','unknown']]){
   const f=setup(),h=f.h,u=h.user(3,'Hörer'),session=h.open(u);

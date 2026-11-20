@@ -1,6 +1,6 @@
 {
-  "version": "0.1.449",
-  "buildNumber": 449,
+  "version": "0.1.450",
+  "buildNumber": 450,
   "files": [
     {
       "path": "MischWerk/www/index.html",
@@ -64,8 +64,8 @@
     },
     {
       "path": "MischWerk/www/js/radio/presentation.js",
-      "bytes": 6467,
-      "sha256": "0E202D8407D22851F82F17C3ED68845A44B5997553975BB85D1AE9EEF462D610"
+      "bytes": 5881,
+      "sha256": "462992D40DB15151C58F0C7FC87F71CAAB07219C2B74D56D8F9C878D4B050EE9"
     },
     {
       "path": "MischWerk/www/js/radio/provider.js",

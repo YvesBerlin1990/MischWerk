@@ -1,21 +1,21 @@
 {
-  "version": "0.1.449",
-  "buildNumber": 449,
+  "version": "0.1.450",
+  "buildNumber": 450,
   "files": [
     {
       "path": "MischWerk/main.js",
       "bytes": 175,
-      "sha256": "30CB7FBA3240281D734D6AD6D2AA7BE64843B2D3E9B8BCF26B2F37161ACA6E25"
+      "sha256": "A1132AF246D83366548EC186204C30790868585A4A2AA3DD091E9CEB460240F5"
     },
     {
       "path": "MischWerk/app.config",
       "bytes": 545,
-      "sha256": "324C44DEF439C3220F3D680EFDDE9D9E965C910D4F943D5783022ECDE2444192"
+      "sha256": "58552936DC7BE0121FFC42F574AE355447320B37096205FE28E7D48E5BF6AA3F"
     },
     {
       "path": "MischWerk/server/config.js",
       "bytes": 1282,
-      "sha256": "1DC3EC94ECCBDDD948888B07AC1D6F69E6133A9816F6CF8E8B722E2D0E246A55"
+      "sha256": "84F4CE0D41E73AEA961AA8CA80588ED82EC89A4F7B59137F040FA2F59611236A"
     },
     {
       "path": "MischWerk/server/core/runtime.js",
@@ -225,7 +225,7 @@
     {
       "path": "MischWerk/server/app.js",
       "bytes": 6299,
-      "sha256": "AF5C11EC9B3110E5E5F35A4C4A8F20CB7B2FEFE8FD7CB8E5769761AA0ACEB2D3"
+      "sha256": "654784830C2009C81BDE841C527EEAE901C0807BB7B27C09186CB4FBD2737534"
     }
   ]
 }

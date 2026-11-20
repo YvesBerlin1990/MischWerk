@@ -41,20 +41,15 @@ MischWerkUI.define('presentation', function (dependencies) {
   function renderOnAirStatus() {
     var moderator = model.current() && model.current().moderator;
     var active = model.broadcastFresh() && !!moderator;
-    function fresh(at) { var age = Date.now() - at; return typeof at === 'number' && age >= 0 && age < 90000; }
+    function fresh(at) { var age = Date.now() - at; return typeof at === 'number' && age >= -30000 && age <= 45000; }
     var transmitting = broadcast.status === 'started' && fresh(broadcast.statusAt);
     var confirmedMode = transmitting && fresh(broadcast.modeAt) && !document.hidden;
     var mix = confirmedMode && broadcast.isLive === false;
-    var live = confirmedMode && broadcast.isLive === true;
-    var paused = broadcast.status === 'stopped' && fresh(broadcast.statusAt);
-    var label = active ? 'Es moderiert' : mix ? 'MischWerk am Pult' : live ? 'MischWerk spielt live' : paused ? 'Sendepause' :
-      moderator ? 'Moderation unbestätigt' : 'Radio MischWerk';
-    var description = mix ? 'Radio Mischwerk bestätigt die automatische Musikstrecke.' :
-      live ? 'Radio Mischwerk bestätigt eine Live-Sendung.' : paused ? 'Radio Mischwerk meldet eine Sendepause.' : 'Der Sendemodus ist derzeit nicht bestätigt.';
-    if (active) { description += ' Es moderiert ' + moderator.nick + ', durch die Studioanmeldung bestätigt.'; }
-    if (moderator && !active) { description += ' Die Moderationsanmeldung ist bei fehlender Channelverbindung unbestätigt.'; }
-    var mode = live ? 'live' : active ? 'moderation' : mix ? 'mix' : 'unconfirmed';
-    // Die bestätigte Moderation besitzt die Hauptanzeige; der tatsächliche Sendemodus bleibt getrennt.
+    var label = active ? 'Es moderiert' : mix ? 'MischWerk am Pult' : 'Moderation derzeit nicht verfügbar';
+    var description = active ? 'Es moderiert ' + moderator.nick + '.' : mix ?
+      'MischWerk am Pult.' : 'Moderation derzeit nicht verfügbar.';
+    var mode = active ? 'moderation' : mix ? 'mix' : 'unconfirmed';
+    // Wie Web und Android bestätigt ausschließlich die frische zentrale Projektion den Live-DJ.
     var showName = active;
     var presenter = document.querySelector('.presenter');
     var changed = presenter.getAttribute('data-mode') !== mode || dom.el('on-air-sign').textContent !== label || dom.el('host-name').hidden === showName;

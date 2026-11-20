@@ -8,7 +8,8 @@ MischWerkUI.define('teamConnectionDiagnosis', function (dependencies) {
     response_contract:'Antwortfelder nicht bestätigt', response_receipts:'Wunschquittungen nicht bestätigt',
     response_migration:'Exportquittung nicht bestätigt', response_projection:'Sender- oder Nickfreigaben nicht bestätigt',
     response_events:'Sendungsmeldungen nicht bestätigt', prepare:'Anfrage konnte nicht vorbereitet werden',
-    send:'Anfrage konnte nicht gesendet werden', timeout:'Antwortfrist überschritten'
+    send:'Anfrage konnte nicht gesendet werden', timeout:'Antwortfrist überschritten',
+    busy:'Eine frühere Anfrage wartet noch auf Rückmeldung'
   };
   function render(operation, targetKind) {
     var failure = operation && operation.lastFailure;

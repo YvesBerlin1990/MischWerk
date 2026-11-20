@@ -40,6 +40,7 @@ function fixture(t, bundled = false) {
   const file = path.join(folder, 'manifest-live.json');
   const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
   manifest.delivery = 'upload-directory'; manifest.bundled = bundled; manifest.localUploadRoot = upload;
+  manifest.localUploadDirectory = path.join(upload, 'MischWerk');
   const delivery = bundled ? createDelivery(project) : new Map();
   const files = bundled ? [...delivery.keys()] : runtimeFiles;
   for (const [relative, bytes] of delivery) fs.writeFileSync(path.join(upload, 'MischWerk', relative), bytes);

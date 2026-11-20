@@ -1,6 +1,6 @@
 {
-  "version": "0.1.449",
-  "buildNumber": 449,
+  "version": "0.1.450",
+  "buildNumber": 450,
   "files": [
     {
       "path": "MischWerk/server/android/signing.js",
@@ -19,8 +19,8 @@
     },
     {
       "path": "MischWerk/server/android/native-positions.js",
-      "bytes": 6826,
-      "sha256": "EFEE48C009ECE21BB88EBF211EE21066EE1CA4886887736D5B822CBC8E31DDB3"
+      "bytes": 6834,
+      "sha256": "1E909BDB279FF68BDFD518F950820972A5265BC05517EF321C9CC605C7309FE9"
     },
     {
       "path": "MischWerk/server/android/connection.js",
@@ -74,8 +74,8 @@
     },
     {
       "path": "MischWerk/www/js/team/channel-texts.js",
-      "bytes": 9364,
-      "sha256": "AC94CEA10FF6AF61BBE8EB98C77F9461CAC93BD17303B12FBBEC5CC6BF5878B6"
+      "bytes": 9427,
+      "sha256": "D0B5B828FDCCC3332E4F880BCCFBFE5CBA429F0D45BAF4C7E9769F76B1E39A5A"
     },
     {
       "path": "MischWerk/www/js/operator/relay-settings.js",

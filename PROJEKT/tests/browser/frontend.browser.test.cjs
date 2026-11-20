@@ -2136,6 +2136,23 @@ test('Alle direkten Radioaktionen passen bei 320 bis 3840 Pixeln in den natürli
 
 
 
+test('Live-DJ und Thema folgen zentraler Bestätigung und verfallen gemeinsam',async t=>{
+ for(const width of [320,1280]){
+  const {page,state,errors}=await setup(t,{clock:true,station:true,role:'listener',viewport:{width,height:760}});
+  assert.equal(await page.locator('#on-air-sign').textContent(),'Moderation derzeit nicht verfügbar');
+  await page.evaluate(state=>__emit('mw:state',{...state,revision:1,broadcastRemainingMs:1000,moderator:{nick:'Prüf-DJ'},topic:'Ätherklänge'}),state);
+  assert.equal(await page.locator('#on-air-sign').textContent(),'Es moderiert');
+  assert.equal(await page.locator('#host-name').textContent(),'Prüf-DJ');
+  assert.equal(await page.locator('#host-name').isVisible(),true);
+  assert.equal(await page.locator('#show-topic').textContent(),'Ätherklänge');
+  await page.clock.runFor(2001);
+  assert.equal(await page.locator('#on-air-sign').textContent(),'Moderation derzeit nicht verfügbar');
+  assert.equal(await page.locator('#host-name').isVisible(),false);
+  assert.equal(await page.locator('#show-topic').textContent(),'MischWerk Radio Show');
+  assert.deepEqual(errors,[]);
+ }
+});
+
 test('Zentrale Fristen sperren Wunschformular und eigene Platzanzeige vor Ablauf der Channelverbindung',async t=>{
  for(const surface of [false,true]){
   const {page,state,errors}=await setup(t,{clock:true,station:true,view:surface?'wishes':'radio',wishSurface:surface});
