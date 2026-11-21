@@ -31,7 +31,6 @@
     ['wishRelay', 'wishes/relay.js', 'radio'],
     ['wishDrawer', 'wishes/drawer.js', 'wishes'],
     ['wishWindow', 'wishes/window.js', 'wishes'],
-    ['wishTracking', 'wishes/tracking.js', 'wishes'],
     ['team', 'team/management.js', 'team'],
     ['channelTexts', 'team/channel-texts.js', 'team'],
     ['teamConnectionDiagnosis', 'team/connection-diagnosis.js', 'team'],

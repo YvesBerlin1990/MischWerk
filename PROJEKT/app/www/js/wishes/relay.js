@@ -26,6 +26,8 @@ MischWerkUI.define('wishRelay', function (dependencies) {
     dom.el('open-wishes').setAttribute('aria-haspopup', 'dialog');
     dom.el('open-wishes').setAttribute('aria-expanded', 'false');
     bridge.addEventListener('mw:wishes.open', function (event) {
+      var feedback = dom.el('wish-feedback');
+      if (feedback.classList.contains('success')) { feedback.hidden = true; }
       sequence = 0;
       surfaceId = event.data.surfaceId; surfaceRevision = event.data.viewRevision || 1; opened = true;
       dom.el('open-wishes').setAttribute('aria-expanded', 'true'); mirror(true);

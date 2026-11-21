@@ -1,6 +1,6 @@
 {
-  "version": "0.1.450",
-  "buildNumber": 450,
+  "version": "0.1.451",
+  "buildNumber": 451,
   "files": [
     {
       "path": "MischWerk/www/index.html",
@@ -9,13 +9,13 @@
     },
     {
       "path": "MischWerk/www/js/start.js",
-      "bytes": 4761,
-      "sha256": "AB0EE11C7530E4EEF9434B73BA4EC4DB06BC7B9DA063A720C24F4D5B185E60FD"
+      "bytes": 4801,
+      "sha256": "87F348DAC34C4FE2E69FC46983CE40F6B8622E5C685E88826861F085BDBDF2FF"
     },
     {
       "path": "MischWerk/www/js/ui/composition.js",
-      "bytes": 6175,
-      "sha256": "583A6630F2E14C8182A0AD69D43FA3BD4608447E6BF78B7535F7207D65103B6D"
+      "bytes": 6093,
+      "sha256": "8DD8FD0D637D693D7B6C27E70A5F38876DEB6AF8CDABA8D320215BBF8534487D"
     },
     {
       "path": "MischWerk/www/js/core/dom.js",
@@ -39,8 +39,8 @@
     },
     {
       "path": "MischWerk/www/js/wishes/markup.js",
-      "bytes": 3505,
-      "sha256": "AE431E803E72DF7E8C5BCF3D4E2F9EF0834F175624ACB3988898941931CE0E37"
+      "bytes": 2338,
+      "sha256": "B7E258C9625532F71FDFDA5B7BC2674F30898C6498D66505943586B8F1874C6D"
     },
     {
       "path": "MischWerk/www/js/ui/layout.js",
@@ -99,18 +99,13 @@
     },
     {
       "path": "MischWerk/www/js/wishes/relay.js",
-      "bytes": 3351,
-      "sha256": "107EAE94541B88619D242C4AF1CA04506CBB5850CFED138414EED5B2B9FD1A26"
+      "bytes": 3537,
+      "sha256": "6CB7A2629F61F5167939DF8CAF00AC70A53D3F3D59C8808E39E1DDC42271F695"
     },
     {
       "path": "MischWerk/www/js/wishes/drawer.js",
-      "bytes": 8880,
-      "sha256": "3543371E12E7A3DC66825E933AFF48DF7A99C0C4B62BB63522FD21C492F0593F"
-    },
-    {
-      "path": "MischWerk/www/js/wishes/tracking.js",
-      "bytes": 3463,
-      "sha256": "0092FB99B1B84E9F50C5B1D5322BD2FAE357D727B1BB2CCFEC4ED9B08216D015"
+      "bytes": 8939,
+      "sha256": "345F50F954E7C9D5E6DC53CDAA5915B890700E298C21C958EB387C9D1C8C63C4"
     },
     {
       "path": "MischWerk/www/js/schedule/markup.js",
@@ -169,8 +164,8 @@
     },
     {
       "path": "MischWerk/www/css/wishes/wishbox.css",
-      "bytes": 9084,
-      "sha256": "58C1E64C0E5FD6CF2350785F960CA571CE3EE0814D70FD601005C6CE906720DD"
+      "bytes": 7203,
+      "sha256": "DB30EFE90A8C82F19712E76AB28E69AC8B629DC57EA21BD8221CE9965433D198"
     },
     {
       "path": "MischWerk/www/css/radio/radio-surface.css",

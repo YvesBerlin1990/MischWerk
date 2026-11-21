@@ -1952,39 +1952,22 @@ function privatePositions(items, extra={}) {
     items,total:items.length,page:0,pages:1,...extra};
 }
 
-test('Eigener Wunsch zeigt drei Stufen und Gespielt nur aus ausdrücklicher frischer Bestätigung',async t=>{
+test('Wunschbox zeigt bei eigenen Statusänderungen ausschließlich das unveränderte Formular',async t=>{
  const {page,state,errors}=await setup(t,{view:'wishes',role:'listener',clock:true,parserIncludes:true,viewport:{width:320,height:600}});
  let revision=0;const emit=p=>page.evaluate(({state,p})=>__emit('mw:state',{...state,wishPositions:p}),{state,p});
- for(const [stage,label] of [['queued','Wartet auf Annahme'],['received','Angenommen'],['preparing','In Vorbereitung'],['playing','In Vorbereitung']]){
+ await page.locator('#wish-text').fill('Mein weiterer Entwurf');
+ for(const stage of ['queued','received','preparing','playing']){
   const item={id:7,text:'Eigener Wunsch',position:1,stage};await emit(privatePositions([item],{revision:++revision,nextItem:item}));
-  assert.equal(await page.locator('#wish-tracking-stage').textContent(),label);
+  assert.equal(await page.locator('#wish-tracking,#wish-back-radio').count(),0);
+  assert.equal(await page.locator('#wish-text').inputValue(),'Mein weiterer Entwurf');
  }
- await emit(privatePositions([],{revision:++revision,lastOutcome:'closed'}));assert.doesNotMatch(await page.locator('#wish-tracking-title').textContent(),/gespielt/);
- await emit(privatePositions([],{revision:++revision,lastOutcome:'played',remainingMs:45000}));assert.equal(await page.locator('#wish-tracking-title').textContent(),'Dein Wunsch wurde gespielt');
- assert.deepEqual(await page.locator('#wish-tracking-steps li').allTextContents(),['Angenommen','In Vorbereitung','Gespielt']);
- await page.clock.fastForward(45001);assert.doesNotMatch(await page.locator('#wish-tracking-title').textContent(),/gespielt/);assert.deepEqual(errors,[]);
+ for(const lastOutcome of ['closed','played']){
+  await emit(privatePositions([],{revision:++revision,lastOutcome,remainingMs:45000}));
+  assert.equal(await page.locator('#wish-tracking,#wish-back-radio').count(),0);
+ }
+ await page.clock.fastForward(66000);assert.equal(await page.locator('#wish-tracking').count(),0);assert.deepEqual(errors,[]);
 });
 
-test('Live-Wunschstatus verwirft alte Revisionen und zeigt offline keinen bestätigten Platz',async t=>{
- const {page,state,errors}=await setup(t,{view:'wishes',role:'listener',clock:true,parserIncludes:true,viewport:{width:320,height:600}});
- const emit=p=>page.evaluate(({state,p})=>__emit('mw:state',{...state,wishPositions:p}),{state,p});
- const item={id:7,text:'Mein eigener Song',position:3,stage:'preparing'};
- await emit(privatePositions([item],{revision:4,nextItem:item}));
- assert.equal(await page.locator('#wish-tracking-rank').textContent(),'Platz 3');
- assert.equal(await page.locator('#wish-tracking-stage').textContent(),'In Vorbereitung');
- await emit(privatePositions([{...item,position:9,stage:'queued'}],{revision:3,nextPosition:9}));
- assert.equal(await page.locator('#wish-tracking-rank').textContent(),'Platz 3');
- assert.equal(await page.locator('#wish-tracking-stage').textContent(),'In Vorbereitung');
- await page.clock.fastForward(66000);
- assert.equal(await page.locator('#wish-tracking-rank').isVisible(),false);
- assert.equal(await page.locator('#wish-tracking-steps').isVisible(),false);
- assert.match(await page.locator('#wish-tracking-stage').textContent(),/Status wird aktualisiert/);
- await emit(privatePositions([],{available:false,revision:5}));
- assert.doesNotMatch(await page.locator('#wish-tracking-title').textContent(),/nicht mehr offen/,'Fehlender Datenstand behauptet keinen Abschluss');
- await emit(privatePositions([],{revision:6}));
- assert.equal(await page.locator('#wish-tracking-title').textContent(),'Dein Wunsch ist nicht mehr offen');
- assert.deepEqual(errors,[]);
-});
 test('Wunschbox enthält keine doppelte Wunschübersicht und erhält den Eingabeentwurf bei privaten Updates',async t=>{
   const {page,state,errors}=await setup(t,{view:'wishes',role:'listener',parserIncludes:true,viewport:{width:320,height:560}});
   const emit=positions=>page.evaluate(({state,positions})=>window.__emit('mw:state',{...state,wishPositions:positions}),{state,positions});
@@ -1993,7 +1976,7 @@ test('Wunschbox enthält keine doppelte Wunschübersicht und erhält den Eingabe
   for(const positions of [privatePositions([{id:11,text:'<img src=x onerror=alert(1)> Mein Song',position:2}]),privatePositions([],{generation:'queue-restarted',revision:0})]){
     await emit(positions);
     assert.equal(await page.locator('#wish-positions,#refresh-wish-positions,#wish-positions-pages').count(),0);
-    if(positions.total){assert.equal(await page.locator('#wish-tracking-song').textContent(),positions.items[0].text);assert.equal(await page.locator('#wish-tracking-rank').textContent(),'Platz 2');assert.equal(await page.locator('#wish-tracking img').count(),0);}else assert.equal(await page.locator('#wish-tracking-rank').isVisible(),false);
+    assert.equal(await page.locator('#wish-tracking,#wish-back-radio').count(),0);
     assert.equal(await page.locator('#wish-text').inputValue(),'Dieser Entwurf bleibt');
     assert.equal(await page.locator('#wish-text').evaluate(n=>n===document.activeElement),true);
   }
@@ -2162,7 +2145,7 @@ test('Zentrale Fristen sperren Wunschformular und eigene Platzanzeige vor Ablauf
     ...(surface?{wishPresentation:{sequence:0,text:'Mein Entwurf',disabled:false,feedbackHidden:true,pending:false,error:false,feedback:'',hint:''}}:{})}),{state,wish,surface});
   if(surface)assert.equal(await page.locator('#wish-fields').evaluate(n=>n.disabled),false);else assert.equal(await page.locator('#own-wish-rank').textContent(),'Platz 7');
   await page.clock.runFor(2001);
-  if(surface){assert.equal(await page.locator('#wish-fields').evaluate(n=>n.disabled),true);assert.equal(await page.locator('#wish-text').inputValue(),'Mein Entwurf');assert.equal(await page.locator('#wish-tracking-rank').isVisible(),false);}
+  if(surface){assert.equal(await page.locator('#wish-fields').evaluate(n=>n.disabled),true);assert.equal(await page.locator('#wish-text').inputValue(),'Mein Entwurf');assert.equal(await page.locator('#wish-tracking').count(),0);}
   else{assert.equal(await page.locator('#open-wishes').isVisible(),false);assert.equal(await page.locator('#own-wish-rank').isVisible(),false);assert.equal(await page.locator('#open-schedule').isEnabled(),true);}
   assert.deepEqual(errors,[]);
  }

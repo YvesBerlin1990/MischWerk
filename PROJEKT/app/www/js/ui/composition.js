@@ -49,8 +49,6 @@ MischWerkUI.setComposer(function (factories) {
     if (factories.wishRelay) { wishRelay = factories.wishRelay({ bridge:bridge, model:model, dom:dom, commands:commands, signals:signals }); }
     var wishDrawer = null;
     if (factories.wishDrawer) { wishDrawer = factories.wishDrawer({ bridge:bridge, model:model, dom:dom, commands:commands, signals:signals }); }
-    var wishTracking = null;
-    if (factories.wishTracking) { wishTracking = factories.wishTracking({ model:model, dom:dom, signals:signals }); }
     var wishWindow = null;
     if (factories.wishWindow) { wishWindow = factories.wishWindow({ bridge:bridge, model:model, dom:dom, signals:signals }); }
     var team = null;
@@ -76,6 +74,6 @@ MischWerkUI.setComposer(function (factories) {
       presentation: presentation, signals: signals });
     var lifecycle = factories.lifecycle({ bridge: bridge, model: model, dom: dom, layout: layout,
       commands: commands, wishes: wishes, provider: provider, player: player, signals: signals, listenerPresence:listenerPresence });
-    lifecycle.start([viewport, layout, commands, volume, player, listenerPresence, radioTicker, wishes, wishFeedback, wishRelay, wishDrawer, wishTracking, wishWindow,
+    lifecycle.start([viewport, layout, commands, volume, player, listenerPresence, radioTicker, wishes, wishFeedback, wishRelay, wishDrawer, wishWindow,
       team, channelTextsLayout, channelTexts, teamConnection, teamNavigation, scheduleView, schedule, updates, overlays]);
 });

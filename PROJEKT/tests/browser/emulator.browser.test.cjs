@@ -656,7 +656,7 @@ for(const client of ['k3','stapp','android'])for(const hostSizing of ['normal','
 });
 
 for (const client of ['k3','stapp']) {
-  test('Wunschbox bündelt in '+client+' nach Versand eigenen Live-Status und weiteren Wunsch auch bei schmaler Leiste',async t=>{
+  test('Wunschbox bündelt in '+client+' nach Versand nur die Quittung und weitere Eingabe auch bei schmaler Leiste',async t=>{
     const lab=await setup(t,{hostSizing:'stepped'}),{page,radio}=await lab.join('Otterchen',client,320);
     await radio.locator('#open-wishes:not([disabled])').click();
     const surface=await view(page,'Overlay');
@@ -669,7 +669,7 @@ for (const client of ['k3','stapp']) {
     for(const text of [song,'Mein zweiter Wunsch']) {
       if(await surface.locator('#wish-compose-open').isVisible())await surface.locator('#wish-compose-open').click();
       await surface.locator('#wish-text').fill(text);await surface.locator('#submit-wish').click();
-      await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
+      await surface.locator('#wish-feedback.success').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
       await surface.locator('#wish-compose-open').waitFor();
     }
     await radio.locator('#own-wish-more').filter({hasText:'+1'}).waitFor({state:'attached'});
@@ -677,7 +677,7 @@ for (const client of ['k3','stapp']) {
     assert.equal(await radio.locator('#own-wish-title').textContent(),song);
     assert.equal(await radio.locator('#own-wish-position').getAttribute('title'),'Dein Musikwunsch');
     assert.equal(await surface.locator('#wish-positions,#refresh-wish-positions,#wish-positions-pages').count(),0);
-    assert.equal(await surface.locator('#wish-tracking-rank').textContent(),'Platz 1');assert.equal(await surface.locator('#wish-tracking-song').textContent(),song);assert.match(await surface.locator('#wish-tracking-more').textContent(),/2 offene Wünsche/);assert.equal(await surface.locator('#wish-tracking').isVisible(),true);
+    assert.equal(await surface.locator('#wish-tracking,#wish-back-radio').count(),0);assert.equal(await surface.locator('#wish-compose-open').isVisible(),true);
     await radio.waitForTimeout(600);
     const headerHeight=await radio.evaluate(()=>innerHeight);
     await surface.locator('#wish-compose-open').click();
@@ -714,7 +714,7 @@ test('Verlorene Quittung: Timeout und Wiederholung behalten dieselbe submissionI
   await surface.locator('#wish-feedback').filter({hasText:/Bestätigung|Verbindung|erneut/}).waitFor({timeout:20000});
   await surface.locator('#submit-wish:not([disabled])').waitFor();
   await surface.locator('#submit-wish').click();
-  await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
+  await surface.locator('#wish-feedback.success').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
   const submissions = lab.hub.trace.filter(item => item.kind === 'clientEvent' && item.eventType === 'mw:wish.submit');
   assert.equal(submissions.length, 2);
   assert.equal(submissions[0].eventData.submissionId, submissions[1].eventData.submissionId);
@@ -840,7 +840,7 @@ for(const client of ['k3','stapp'])for(const width of [320,390,2290])test('Wunsc
   }
   for(const text of ['Aha - Take On Me',('Interpret und ein vollständiger langer Songtitel. ').repeat(7).slice(0,300)]){
     if(await frame.locator('#wish-compose-open').isVisible())await frame.locator('#wish-compose-open').click();
-    await frame.locator('#wish-text:not([disabled])').fill(text);await frame.locator('#submit-wish').click();await frame.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();await frame.locator('#wish-compose-open').waitFor();await fits();
+    await frame.locator('#wish-text:not([disabled])').fill(text);await frame.locator('#submit-wish').click();await frame.locator('#wish-feedback.success').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();await frame.locator('#wish-compose-open').waitFor();await fits();
     assert.equal(await page.locator('#overlays iframe').getAttribute('src'),source,'Kein Ersetzen oder erneutes Öffnen nach dem Absenden');
   }
   assert.equal(await frame.locator('#wish-positions,#refresh-wish-positions,#wish-positions-pages').count(),0);
@@ -904,7 +904,7 @@ for(const client of ['k3','stapp'])test('Wunschrelay in '+client+' bündelt glei
  await Promise.all(users.map(item=>item.surface.locator('#wish-text').pressSequentially(item.text,{delay:25})));
  // Ohne Wartezeit schließen: der noch gebündelte Rest muss vorher übernommen werden.
  await Promise.all(users.map(async item=>{await item.surface.locator('#close-wishes').click();await item.page.locator('#overlays iframe').waitFor({state:'detached'});await item.radio.locator('#open-wishes:not([disabled])').click();item.surface=await overlayView(item.page,'wishes');assert.equal(await item.surface.locator('#wish-text').inputValue(),item.text);}));
- await Promise.all(users.map(async item=>{await item.surface.locator('#submit-wish:not([disabled])').click();await item.surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();await item.radio.locator('#own-wish-title').filter({hasText:item.text}).waitFor();}));
+ await Promise.all(users.map(async item=>{await item.surface.locator('#submit-wish:not([disabled])').click();await item.surface.locator('#wish-feedback.success').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();await item.radio.locator('#own-wish-title').filter({hasText:item.text}).waitFor();}));
  const sent=records.slice(begin).filter(e=>e.kind==='sessionEvent'),peaks={};
  for(const item of users){const messages=sent.filter(e=>e.nick===item.nick).sort((a,b)=>a.realAt-b.realAt);let start=0,peak=0;for(let end=0;end<messages.length;end++){while(messages[end].realAt-messages[start].realAt>=5000)start++;peak=Math.max(peak,end-start+1);}peaks[item.nick]=peak;assert.ok(peak<=40,JSON.stringify({client,peaks}));const submissions=records.slice(begin).filter(e=>e.kind==='clientEvent'&&e.nick===item.nick&&e.eventType==='mw:wish.submit');assert.equal(submissions.length,1);assert.equal(submissions[0].eventData.text,item.text);const state=records.findLast(e=>e.kind==='sessionEvent'&&e.nick===item.nick&&e.eventType==='mw:state').eventData;assert.equal(state.wishPositions.total,1);assert.equal(state.wishPositions.nextItem.text,item.text);}
  assert.equal(await users[0].radio.evaluate(()=>document.getElementById('radio-audio')===window.__relayAudio&&!__relayAudio.paused),true);
@@ -1099,6 +1099,6 @@ for(const client of ['k3','stapp'])test('Private Vorprüfung und unbekannte Frei
 
 for(const client of ['k3','stapp'])test('Eigene Outbox bleibt bis zentraler Einzelquittung offen und verrät keine fremden Wünsche in '+client,async t=>{
  const lab=await setup(t,{provider:'online'}),guest=await lab.join('Polaroid',client,320);await guest.radio.locator('#open-wishes').click();const surface=await overlayView(guest.page,'wishes');lab.central.accept=false;
- await surface.locator('#wish-text').fill('Für Änne 🎶');await surface.locator('#submit-wish').click();await surface.locator('#wish-feedback').filter({hasText:'übertragen'}).waitFor();assert.equal(await surface.locator('#wish-text').inputValue(),'Für Änne 🎶');assert.equal(await surface.locator('#wish-tracking').isVisible(),false);
- const entry=JSON.parse(JSON.stringify(lab.hub.runtime.persistence.data));assert.match(JSON.stringify(entry),/Für Änne/);lab.central.accept=true;lab.central.held.splice(0).forEach(fn=>fn());lab.hub.runtime.clock.advance(20000);await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();assert.equal(await surface.locator('#wish-text').inputValue(),'');assert.equal(lab.posts.filter(p=>p.wishSubmissions.length).length>=1,true);assert.equal(await surface.locator('#wish-tracking-song').textContent(),'Für Änne 🎶');assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+ await surface.locator('#wish-text').fill('Für Änne 🎶');await surface.locator('#submit-wish').click();await surface.locator('#wish-feedback').filter({hasText:'übertragen'}).waitFor();assert.equal(await surface.locator('#wish-text').inputValue(),'Für Änne 🎶');assert.equal(await surface.locator('#wish-tracking').count(),0);
+ const entry=JSON.parse(JSON.stringify(lab.hub.runtime.persistence.data));assert.match(JSON.stringify(entry),/Für Änne/);lab.central.accept=true;lab.central.held.splice(0).forEach(fn=>fn());lab.hub.runtime.clock.advance(20000);await surface.locator('#wish-feedback.success').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();assert.equal(await surface.locator('#wish-text').inputValue(),'');assert.equal(lab.posts.filter(p=>p.wishSubmissions.length).length>=1,true);assert.equal(await surface.locator('#wish-tracking').count(),0);assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
 });

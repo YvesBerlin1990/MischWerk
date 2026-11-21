@@ -19,7 +19,8 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
     if (key !== feedbackKey && !data.feedbackHidden && !data.pending && !data.error) { composing = false; }
     feedbackKey = key;
     var positions = model.current() && model.current().wishPositions;
-    var show = !positions || !positions.total || composing || !!data.text || data.error || data.pending;
+    var submitted = positions && positions.total || (!data.error && !data.pending && !!data.feedback);
+    var show = !submitted || composing || !!data.text || data.error || data.pending;
     var form = dom.el('wish-form'), button = dom.el('wish-compose-open');
     var restore = !show && form.contains(document.activeElement);
     var reveal = show && document.activeElement === button;
@@ -55,11 +56,11 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
     feedback.className = 'wish-feedback' + (data.error ? ' error' : data.pending ? ' pending' : ' success');
     feedback.setAttribute('role', data.error ? 'alert' : 'status');
     feedback.setAttribute('aria-live', data.error ? 'assertive' : 'polite');
-    feedback.textContent = data.feedback; feedback.hidden = data.feedbackHidden || (!data.error && !data.pending);
-    feedback.setAttribute('data-accepted', String(!data.feedbackHidden && !data.error && !data.pending));
+    feedback.textContent = !data.error && !data.pending && data.feedback ? 'Dein Wunsch ist dabei!' : data.feedback;
+    feedback.hidden = data.feedbackHidden;
     dom.setText('wish-hint', data.hint); dom.el('wish-hint').hidden = !data.hint;
     receiving = false;
-    showComposer(data);signals.emit('wish-presentation');
+    showComposer(data);
     focusInput();
     if (closing && acknowledged >= sequence) { clearTimeout(closeTimer); closing = false; signals.emit('overlay-dismiss'); }
   }
@@ -110,7 +111,6 @@ MischWerkUI.define('wishDrawer', function (dependencies) {
       event.preventDefault(); if (this.reportValidity()) { edit(true); }
     });
     dom.el('close-wishes').addEventListener('click', close);
-    dom.el('wish-back-radio').addEventListener('click', close);
     document.addEventListener('keydown', function (event) {
       if (model.view === 'wishes' && event.key === 'Escape') { event.preventDefault(); close(); }
     });

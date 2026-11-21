@@ -1,8 +1,8 @@
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
  "schema": 1,
- "version": "0.1.450",
- "buildNumber": 450,
+ "version": "0.1.451",
+ "buildNumber": 451,
  "directories": {
   "": [
    "main.js",
@@ -148,8 +148,7 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "feedback.js",
    "relay.js",
    "drawer.js",
-   "window.js",
-   "tracking.js"
+   "window.js"
   ],
   "www/js/team": [
    "markup.js",

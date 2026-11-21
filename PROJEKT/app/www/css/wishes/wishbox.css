@@ -73,28 +73,7 @@ html[data-view=wishes] .wish-drawer #wish-compose-open { width:calc(100% - 40px)
  html[data-view=wishes] .wish-drawer #wish-compose-open { width:calc(100% - 32px); margin-inline:16px; margin-bottom:14px; }
 }
 
-/* Persönliche Wunschverfolgung, mit denselben Statusdaten wie die Radioleiste. */
+/* Kurzer Einstieg ins Wunschformular. */
 .wish-intro{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.5}
 .wish-intro strong{display:block;color:var(--gold);font-size:17px;line-height:1.35;margin-bottom:6px}
 .wish-intro p{margin:0}
-.wish-tracking{padding:18px 20px 16px;border-bottom:1px solid #2b2b2b}
-.wish-live-label{margin:0 0 5px;color:var(--gold);font:700 11px/1.4 Arial,sans-serif;letter-spacing:1.4px;text-transform:uppercase}
-.wish-tracking h3{margin:0 0 14px;color:var(--gold);font-size:23px;line-height:1.25}
-#wish-tracking-song{display:block;font-size:18px;line-height:1.4;font-weight:600;overflow-wrap:anywhere}
-.wish-tracking-meta{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 12px;margin-top:9px;font-size:14px;line-height:1.45}
-#wish-tracking-rank{color:var(--gold);font-size:20px}
-#wish-tracking-stage{color:var(--muted)}
-#wish-tracking-more{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
-.wish-tracking-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0;margin:18px 0 14px;list-style:none;counter-reset:wish-step}
-.wish-tracking-steps li{border-top:2px solid #353535;padding-top:8px;color:var(--muted);font-size:12px;line-height:1.4;overflow-wrap:anywhere;counter-increment:wish-step}
-.wish-tracking-steps li::before{content:counter(wish-step);display:block;margin-bottom:4px;font-weight:700}
-.wish-tracking-steps .is-current{border-color:var(--gold);color:var(--gold);font-weight:600}
-.wish-tracking-steps .is-done{border-color:#8a764c;color:#d8c99f}
-.wish-tracking-location{margin:12px 0 8px;font-size:13px;line-height:1.5;color:var(--text)}
-.wish-tracking-note{margin:0 0 14px;font-size:12px;line-height:1.45;color:var(--muted)}
-#wish-back-radio{width:100%;min-height:44px}
-@media(max-width:420px){.wish-tracking{padding:16px}.wish-tracking h3{font-size:21px}}
-
-.wish-tracking.is-accepted #wish-tracking-title{animation:mw-wish-arrived .28s ease-out both}
-@keyframes mw-wish-arrived{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.wish-tracking.is-accepted #wish-tracking-title{animation:none}}

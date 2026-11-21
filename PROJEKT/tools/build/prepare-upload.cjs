@@ -167,7 +167,7 @@ function build() {
   const retiredRadio = ['server/core/playback-evidence.js','www/js/radio/diagnostics.js',
     'www/js/radio/dancers.js','www/img/knuddel-figur-gelb.png',
     'server/radio/curtain.js','www/js/radio/curtain.js','www/js/radio/curtain-markup.js',
-    'www/css/radio/curtain.css','www/img/curtain-velvet.png','www/audio/werbung.mp3'];
+    'www/css/radio/curtain.css','www/img/curtain-velvet.png','www/audio/werbung.mp3','www/js/wishes/tracking.js'];
   for (const file of [...runtimeFiles.filter(file => !delivery.has(file)), ...retiredSchedule, ...retiredStudio, ...retiredRadio]) {
     const target = path.resolve(upload, file);
     assert.ok(target.startsWith(path.resolve(upload) + path.sep), 'Bündelbestandteil außerhalb des Uploadziels');

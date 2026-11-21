@@ -64,7 +64,7 @@ test('Native Wunschbox überlagert den Channel ohne Leerbereich und erhält Entw
   surface=await open();
   assert.equal(await surface.locator('#wish-text').inputValue(),'Dieser Entwurf bleibt in der Radio-Sitzung');
   await surface.locator('#submit-wish').click();
-  await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
+  await surface.locator('#wish-feedback.success').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
   await radio.locator('#own-wish-rank').filter({hasText:'Platz 1'}).waitFor();
   assert.equal(await surface.locator('#wish-positions').count(),0);
   assert.equal(await surface.locator('#wish-text').inputValue(),'');
@@ -81,6 +81,7 @@ test('Wunsch-Overlay bleibt bei 320 und 2290 Pixeln auf seine Fläche begrenzt u
   for(const width of [320,2290]){
     const {page,radio,open,errors}=await setup(t,{width});
     const surface=await open();
+    if(process.env.MISCHWERK_CAPTURE_OVERLAY){await surface.locator('#wishes-panel').screenshot({path:path.join(root,'docs/pruefung/oberflaeche/wunschbox/wunschbox-flach-'+(width===320?320:560)+'.png')});}
     const native=await page.locator('#overlay-frame').boundingBox();
     assert.ok(native.width<=560&&native.x>=0&&native.x+native.width<=width);
     const radioBox=await page.locator('#radio-frame').boundingBox();
@@ -96,7 +97,7 @@ test('Wunsch-Overlay bleibt bei 320 und 2290 Pixeln auf seine Fläche begrenzt u
     await radio.locator('#own-wish-rank').filter({hasText:'Platz 1'}).waitFor({state:width<1200?'attached':'visible'});
     assert.equal(await radio.locator('#own-wish-position').isVisible(),width>=1200);
   assert.equal(await surface.locator('#wish-positions').count(),0);
-    await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
+    await surface.locator('#wish-feedback.success').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
 
     assert.equal(await surface.locator('#wish-form').isVisible(),false,'Leeres Formular weicht der Aktion für einen weiteren Wunsch');
     assert.equal(await surface.locator('#wish-compose-open').isVisible(),true);
@@ -104,7 +105,7 @@ test('Wunsch-Overlay bleibt bei 320 und 2290 Pixeln auf seine Fläche begrenzt u
     assert.equal(await surface.locator('#wish-compose-open').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight+1),true);
     if(process.env.MISCHWERK_CAPTURE_OVERLAY){
       await surface.waitForTimeout(250);
-      await page.screenshot({path:path.join(root,'docs/pruefung/oberflaeche/wunschbox/wunschbox-'+width+'.png')});
+      await surface.locator('#wishes-panel').screenshot({path:path.join(root,'docs/pruefung/oberflaeche/wunschbox/wunschbox-nach-versand-'+(width===320?320:560)+'.png')});
     }
     await radio.waitForFunction(()=>innerHeight===Math.min(500,Math.max(160,Math.ceil(document.getElementById('radio-panel').getBoundingClientRect().height))+16+(parseFloat(getComputedStyle(document.getElementById('radio-deck')).marginTop)||0)));
     const submittedRadioHeight=(await page.locator('#radio-frame').boundingBox()).height;
@@ -130,7 +131,7 @@ test('Schließen während bestätigtem Versand erhält die späte Quittung und e
   assert.equal(await radio.locator('#wish-text').inputValue(),'a-ha – Take On Me');
   release();await radio.waitForFunction(()=>document.getElementById('wish-text').value==='');
   surface=await open();
-  await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
+  await surface.locator('#wish-compose-open').waitFor();assert.equal(await surface.locator('#wish-feedback').isVisible(),false);
   assert.equal(sent.filter(e=>e.type==='mw:wish.submit').length,1);assert.deepEqual(errors,[]);
 });
 
@@ -166,7 +167,7 @@ test('Linkprüfung und Versandfehler bleiben im ursprünglichen Wunschcontroller
   await surface.locator('#wish-feedback.error').filter({hasText:'erneut senden'}).waitFor();
   assert.equal(await surface.locator('#wish-text').inputValue(),'Unsere Band – Unser Song');
   await surface.locator('#submit-wish').click();
-  await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
+  await surface.locator('#wish-feedback.success').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
   const primary=sent.filter(e=>e.type==='mw:wish.submit');assert.equal(primary.length,2);
   assert.equal(primary[0].data.submissionId,primary[1].data.submissionId);assert.deepEqual(errors,[]);
 });
@@ -202,18 +203,36 @@ test('STAPP-Wunschoberfläche passt vom Öffnen bis zur nächsten Eingabe ihre n
   await surface.waitForFunction(()=>__overlayHostCalls.length>0);
   await surface.waitForFunction(()=>Math.abs(document.getElementById('wishes-panel').getBoundingClientRect().height-innerHeight)<=1);
   const initialHeight=await surface.evaluate(()=>innerHeight);
-  assert.ok(initialHeight<480,'Formular einschließlich Live-Status-Hinweis bleibt kompakt');
+  assert.ok(initialHeight<480,'Formular einschließlich Hinweis bleibt kompakt');
   await surface.locator('#wish-text').fill('Test im STAPP-Overlay');await surface.locator('#submit-wish').click();
-  await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
+  await surface.locator('#wish-feedback.success').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
   await surface.waitForFunction(()=>document.getElementById('wishes-panel').getBoundingClientRect().height<=innerHeight&&document.body.scrollHeight<=document.body.clientHeight+1);
   const calls=await surface.evaluate(()=>__overlayHostCalls);
   assert.ok(calls.length>0);assert.ok(calls.every(c=>c.method==='setSize'&&c.width>0&&c.height>0));
   assert.equal(await surface.locator('#wish-compose-open').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),true);
   const confirmationHeight=await surface.evaluate(()=>innerHeight);
-  assert.equal(await surface.locator('#wish-tracking').isVisible(),true);assert.equal(await surface.locator('#wish-feedback').isVisible(),false,'Kein Platz für eine doppelte Versandbestätigung');await surface.locator('#wish-tracking-title').filter({hasText:'Dein Wunsch im Blick',exact:true}).waitFor();await surface.waitForFunction(()=>Math.abs(document.getElementById('wishes-panel').getBoundingClientRect().height-innerHeight)<=1);assert.equal(await surface.evaluate(()=>innerHeight),confirmationHeight,'Der Quittungsablauf hinterlässt keine zusätzliche Fläche oder Höhensprünge');
+  assert.equal(await surface.locator('#wish-tracking,#wish-back-radio').count(),0);await surface.locator('#wish-feedback').waitFor({state:'hidden'});await surface.waitForFunction(()=>Math.abs(document.getElementById('wishes-panel').getBoundingClientRect().height-innerHeight)<=1);assert.ok(await surface.evaluate(()=>innerHeight)<confirmationHeight,'Nach der kurzen Quittung schrumpft das Fenster auf die weitere Eingabe');
   await surface.locator('#wish-compose-open').click();
   await surface.locator('#wish-text').fill('Langer Interpret und ausführlicher Titel '.repeat(8).slice(0,300));
   await surface.waitForFunction(h=>innerHeight>h&&document.body.scrollHeight<=innerHeight+1,confirmationHeight);
   assert.equal(await surface.locator('#wish-text').evaluate(n=>n.scrollHeight<=n.clientHeight+1),true);
   await radio.waitForFunction(()=>innerHeight===Math.min(500,Math.max(160,Math.ceil(document.getElementById('radio-panel').getBoundingClientRect().height))+16+(parseFloat(getComputedStyle(document.getElementById('radio-deck')).marginTop)||0)));assert.equal((await page.locator('#radio-frame').boundingBox()).height,await radio.locator('#radio-panel').evaluate(n=>Math.min(500,Math.max(160,Math.ceil(n.getBoundingClientRect().height))+16+(parseFloat(getComputedStyle(document.getElementById('radio-deck')).marginTop)||0))));assert.deepEqual(errors,[]);
+});
+
+
+test('Wunschbox zeigt nach Versand und Wiederöffnung nur weitere Eingabe statt doppeltem Live-Status',async t=>{
+  const {page,radio,open,errors}=await setup(t);let surface=await open();
+  await surface.locator('#wish-text').fill('Nena – 99 Luftballons');await surface.locator('#submit-wish').click();
+  await radio.locator('#own-wish-rank').filter({hasText:'Platz 1'}).waitFor();
+  assert.equal(await surface.locator('#wish-tracking,#wish-back-radio').count(),0);
+  await surface.locator('#wish-compose-open').waitFor();
+  await surface.locator('#close-wishes').click();await page.locator('#overlay-frame').waitFor({state:'hidden'});
+  surface=await open();await surface.locator('#wish-compose-open').waitFor();
+  assert.equal(await surface.locator('#wish-feedback').isVisible(),false,'Eine frühere Versandquittung erscheint beim Wiederöffnen nicht erneut');
+  assert.equal(await surface.locator('#wish-form').isVisible(),false);
+  if(process.env.MISCHWERK_CAPTURE_OVERLAY){await surface.waitForFunction(()=>Math.abs(document.getElementById('wishes-panel').getBoundingClientRect().height-innerHeight)<=1);await surface.locator('#wishes-panel').screenshot({path:path.join(root,'docs/pruefung/oberflaeche/wunschbox/wunschbox-weitere-eingabe.png')});}
+  await surface.locator('#wish-compose-open').click();await surface.locator('#wish-text').fill('Mein weiterer Wunsch');
+  await surface.locator('#close-wishes').click();await page.locator('#overlay-frame').waitFor({state:'hidden'});
+  surface=await open();assert.equal(await surface.locator('#wish-text').inputValue(),'Mein weiterer Wunsch');
+  assert.equal(await surface.locator('#wish-tracking,#wish-back-radio').count(),0);assert.deepEqual(errors,[]);
 });
