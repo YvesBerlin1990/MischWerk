@@ -1,8 +1,8 @@
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
  "schema": 1,
- "version": "0.1.451",
- "buildNumber": 451,
+ "version": "0.1.452",
+ "buildNumber": 452,
  "directories": {
   "": [
    "main.js",
@@ -16,6 +16,7 @@ if (typeof MischWerkUpdateProbe === 'function') {
   ],
   "server/core": [
    "runtime.js",
+   "http-budget.js",
    "diagnostics.js",
    "changes.js",
    "relay-results.js",
@@ -232,6 +233,7 @@ if (typeof MischWerkUpdateProbe === 'function') {
 var MischWerkModules = {};
 KnuddelsServer.execute('server/config.js');
 KnuddelsServer.execute('server/core/runtime.js');
+KnuddelsServer.execute('server/core/http-budget.js');
 KnuddelsServer.execute('server/core/diagnostics.js');
 KnuddelsServer.execute('server/core/changes.js');
 KnuddelsServer.execute('server/core/relay-results.js');

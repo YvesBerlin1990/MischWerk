@@ -4,6 +4,7 @@ if (typeof MischWerkUpdateProbe === 'function') {
 var MischWerkModules = {};
 KnuddelsServer.execute('server/config.js');
 KnuddelsServer.execute('server/core/runtime.js');
+KnuddelsServer.execute('server/core/http-budget.js');
 KnuddelsServer.execute('server/core/diagnostics.js');
 KnuddelsServer.execute('server/core/changes.js');
 KnuddelsServer.execute('server/core/relay-results.js');

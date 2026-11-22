@@ -1,6 +1,6 @@
 {
-  "version": "0.1.451",
-  "buildNumber": 451,
+  "version": "0.1.452",
+  "buildNumber": 452,
   "files": [
     {
       "path": "MischWerk/server/android/signing.js",
@@ -24,8 +24,8 @@
     },
     {
       "path": "MischWerk/server/android/connection.js",
-      "bytes": 6319,
-      "sha256": "BF5F02CE25012E46B6A5F419AE002814CF1FE4416163C916701E868064408326"
+      "bytes": 6449,
+      "sha256": "432AD069298DAE5A9F0DDEFF991907415A12EA9831060FE87FD2DA1B1F92701A"
     },
     {
       "path": "MischWerk/server/android/diagnostics.js",
@@ -44,8 +44,8 @@
     },
     {
       "path": "MischWerk/server/android/publisher.js",
-      "bytes": 8080,
-      "sha256": "CB948238F5FC3E922AF5BC1069A42A1BB2386A8884985BC7B7B6A3C5C277132D"
+      "bytes": 8345,
+      "sha256": "BFAF52F45FD4986EAE195EDFEDD4EE1FF85D137968E833C26C18FC33812C137B"
     },
     {
       "path": "MischWerk/server/android/verification.js",

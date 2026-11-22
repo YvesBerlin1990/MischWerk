@@ -37,13 +37,14 @@ MischWerkUI.define('wishes', function (dependencies) {
     showWishFeedback('Dein Wunsch wird gesendet …', false, true);
     refreshControls();
     clearTimeout(wishTimer);
+    // Zehn Sekunden bis zum Abgleich plus HTTP-Frist und Channelantwort zulassen.
     wishTimer = setTimeout(function () {
       if (!wishPending || wishPending.submissionId !== submissionId) { return; }
       wishPending = null;
       refreshControls();
       showWishFeedback('Noch keine Bestätigung. Prüfe die Verbindung und versuche es erneut.', true);
       commands.send('mw:refresh', {}, false);
-    }, 15000);
+    }, 25000);
     try { bridge.sendEvent('mw:wish.submit', { submissionId: submissionId, text: data.text }); }
     catch (error) {
       wishPending = null;

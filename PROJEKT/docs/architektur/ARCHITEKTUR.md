@@ -1,10 +1,10 @@
-# MischWerk – Architektur 0.1.449 · Build 449
+# MischWerk – Architektur 0.1.452 · Build 452
 
 Die Knuddels-App empfängt zentrale Sendungsdaten und nimmt native Musikwünsche entgegen. Firebase führt Sendung, Thema, Wunschbox, Freigaben und Queue. MischWerk Live Studio steuert diese Daten. Native Studioanmeldung, PIN-Controller, Übergabe, vollständige Wunschregie und der zusätzliche Node-Arbeitsbereich sind entfernt.
 
 ## Zusammensetzung und Start
 
-`src/backend/` enthält die gepflegten ES5-Module. `tools/build/backend.cjs` erzeugt 76 Laufzeitmodule unter `app/server/`; `app/main.js` bleibt der kurze Einstieg. `server/app.js` enthält den Dateivertrag und lädt die Module; `core/composition.js` verbindet die Fabriken. Der Dateiprüfzweig initialisiert keine Fachcontroller.
+`src/backend/` enthält die gepflegten ES5-Module. `tools/build/backend.cjs` erzeugt 77 Laufzeitmodule unter `app/server/`; `app/main.js` bleibt der kurze Einstieg. `server/app.js` enthält den Dateivertrag und lädt die Module; `core/composition.js` verbindet die Fabriken. Der Dateiprüfzweig initialisiert keine Fachcontroller.
 
 `ui/content` erzeugt die Radio-Headerbar sowie frische Overlays für Wunschbox, Verwaltung und Sendeplan. `ui/sessions` besitzt Zuordnung und Schließen, `ui/overlays` den Prepare-/Token-/Ready-Weg. Parserladepläne bleiben ansichtsbezogen; entfernte Studio-Dateien werden nicht geladen.
 
@@ -12,6 +12,7 @@ Die Knuddels-App empfängt zentrale Sendungsdaten und nimmt native Musikwünsche
 
 | Modul | Zuständigkeit |
 | --- | --- |
+| `core/http-budget.js` | Gemeinsame rollende HTTP-Reserven für Abgleich und Sendeplan ohne eigenen Timer |
 | `android/connection.js`, `android/signing.js` | Bestehender postURL-Port, Vier-String-Hülle, HMAC und Antwortschutz |
 | `android/native-transport.js` | Innere V2-Anfragen und begrenzte eigene Status-/Löschpakete |
 | `android/broadcast.js` | Flüchtige zentrale Sendung und vollständige Nickliste mit eigenem Ablauf |
@@ -24,7 +25,7 @@ Die Knuddels-App empfängt zentrale Sendungsdaten und nimmt native Musikwünsche
 
 Der einzige native Anschluss bleibt `https://radio-mischwerk.web.app/api/publishKnuddelsState`. Der gemeinsame V2-Vertrag enthält öffentliche Sendungsdaten; Studio-UID, Sitzung und private authorityEpoch verbleiben zentral. Die öffentliche Protokollepoche ist davon unabhängig. Legacyprojektionen können den Import vorbereiten, begründen jedoch keine Live-Sendung.
 
-Lokale Konfiguration wird nicht zentral geschrieben. Neue Wünsche merken Dringlichkeit auch während eines laufenden Posts vor; nach dessen Erfolg verwendet der vorhandene Timer den nächsten freien Versand. Fehlerbackoff und genau ein physischer Aufruf bleiben verbindlich. Die private Quellenvorprüfung liest ausschließlich die schon gespeicherte Kennung und aggregierte Bestandszahlen, ohne Kennungerzeugung oder Export.
+Lokale Konfiguration wird nicht zentral geschrieben. Neue Wünsche merken Dringlichkeit auch während eines laufenden Posts vor; nach dessen Erfolg verwendet der vorhandene Timer den nächsten zulässigen Versand mit mindestens zehn Sekunden Abstand zwischen POST-Starts. Der reguläre Abgleich wartet zehn Sekunden nach dem Callback. Appweite Reserven zählen höchstens 60 POSTs einschließlich privater Prüfaufrufe und 30 Sendeplan-GETs je zehn Minuten. Jeder Platz bleibt bis zehn Minuten nach dem echten Callback belegt; Stop, neue Adapter und Cacheinvalidierung umgehen diese Begrenzung nicht. Erschöpfte Sendeplanreserve meldet den vorhandenen Ladefehler, ohne einen bekannten Bestand zu löschen. Fehlerbackoff und genau ein physischer Aufruf bleiben verbindlich. Die private Quellenvorprüfung liest ausschließlich die schon gespeicherte Kennung und aggregierte Bestandszahlen, ohne Kennungerzeugung oder Export.
 
 ## Wunschbestand und Migration
 

@@ -11,6 +11,6 @@ function setup(options={}){
   wishReceipts:[],ownWishStatuses:[],deletionReceipts:[],broadcastEvents:[],eventCursor:'events-initial',
   nickAccessPage:{snapshotId:'roster-'+h.now(),revision:'a'.repeat(64),snapshotAt:h.now(),validUntil:h.now()+45000,items:[{nick:'DJ-Test'}],nextCursor:null,complete:true},...extra};}
  function finish(post=posts.at(-1),extra={},status=200){post.args.onSuccess(JSON.stringify(response(extra)),{getResponseCode:()=>status,getURLString:()=>post.url});}
- return {h,store,posts,response,finish,secret};
+ return {h,store,posts,response,finish,secret,external};
 }
 module.exports={setup,secret};

@@ -711,7 +711,7 @@ test('Verlorene Quittung: Timeout und Wiederholung behalten dieselbe submissionI
   await radio.locator('#open-wishes').click(); const surface = await view(page, 'Overlay');
   await surface.locator('#wish-text').fill('Testinterpret – Verlorene Quittung');
   await surface.locator('#submit-wish').click();
-  await surface.locator('#wish-feedback').filter({hasText:/Bestätigung|Verbindung|erneut/}).waitFor({timeout:20000});
+  await surface.locator('#wish-feedback').filter({hasText:/Bestätigung|Verbindung|erneut/}).waitFor({timeout:30000});
   await surface.locator('#submit-wish:not([disabled])').waitFor();
   await surface.locator('#submit-wish').click();
   await surface.locator('#wish-feedback.success').filter({hasText:'Dein Wunsch ist dabei!',exact:true}).waitFor();
@@ -1062,12 +1062,15 @@ for(const client of ['k3','stapp'])test('Polaroids Verwaltung trennt Icons, Verb
  await person.page.locator('#width').fill('320');await person.page.locator('#width').dispatchEvent('change');await team.waitForFunction(()=>innerWidth===320);
  assert.equal(await team.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  await team.locator('#team-connection-tab').click();await team.locator('#relay-status').filter({hasText:'Aktiv – Daten'}).waitFor();
- lab.central.failure={status:400,raw:'Geheime Antwort und privater Wunsch'};lab.hub.runtime.clock.advance(5000);
+ lab.central.failure={status:400,raw:'Geheime Antwort und privater Wunsch'};lab.hub.runtime.clock.advance(10000);
  await person.page.waitForTimeout(100);await team.locator('#relay-refresh').click();await team.locator('#relay-failure').filter({hasText:'HTTP 400'}).waitFor();
  assert.doesNotMatch(await team.locator('#team-connection-panel').textContent(),/Geheime Antwort|privater Wunsch/);
  lab.central.failure=null;lab.hub.runtime.clock.advance(20000);await person.page.waitForTimeout(100);await team.locator('#relay-refresh').click();await team.locator('#relay-status').filter({hasText:'Aktiv – Daten'}).waitFor();assert.equal(await team.locator('#relay-failure').textContent(),'');
  await team.locator('.connection-secret summary').filter({hasText:'Schlüssel verwalten'}).click();await team.locator('#relay-sync').fill('s'.repeat(64));await team.locator('#relay-save').click();await team.locator('#relay-status').filter({hasText:'ausgeschaltet'}).waitFor();assert.equal(await team.locator('#relay-sync').inputValue(),'');
- await team.locator('#relay-activate').click();await team.locator('#relay-refresh').click();await team.locator('#relay-status').filter({hasText:'Aktiv – Daten'}).waitFor();
+ await team.locator('#relay-activate').click();
+ await team.locator('#relay-status').filter({hasText:'Übertragung noch nicht bestätigt'}).waitFor();
+ lab.hub.runtime.clock.advance(10000);await person.page.waitForTimeout(100);
+ await team.locator('#relay-refresh').click();await team.locator('#relay-status').filter({hasText:'Aktiv – Daten'}).waitFor();
  const topic=lab.hub.runtime.channelTopic;await person.radio.evaluate(()=>Client.executeSlashCommand('/settopic Unerlaubtes Thema'));await person.page.locator('#chat p').filter({hasText:'Nur Otterchen'}).waitFor();assert.equal(lab.hub.runtime.channelTopic,topic);
  await person.radio.evaluate(()=>Client.executeSlashCommand('/update'));assert.equal(lab.hub.trace.filter(row=>row.kind==='update').length,0);
  assert.equal(await person.radio.evaluate(()=>document.getElementById('radio-audio')===__consoleAudio&&!__consoleAudio.paused),true);
@@ -1090,7 +1093,7 @@ for(const client of ['k3','stapp'])test('Private Vorprüfung und unbekannte Frei
  await person.page.locator('#width').fill('320');await person.page.locator('#width').dispatchEvent('change');await team.waitForFunction(()=>innerWidth===320);
  await team.locator('#migration-source').scrollIntoViewIfNeeded();assert.equal(await team.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  const pictures=path.join(os.tmpdir(),'MischWerk-Pruefbilder','vorpruefung');fs.mkdirSync(pictures,{recursive:true});await person.page.locator('#overlays iframe').screenshot({path:path.join(pictures,'quelle-448-'+client+'-320.png')});
- lab.central.roster=[];lab.hub.runtime.clock.advance(5000);await person.page.waitForTimeout(100);await team.locator('#team-members-tab').click();await team.evaluate(()=>Client.sendEvent('mw:refresh',{}));
+ lab.central.roster=[];lab.hub.runtime.clock.advance(10000);await person.page.waitForTimeout(100);await team.locator('#team-members-tab').click();await team.evaluate(()=>Client.sendEvent('mw:refresh',{}));
  await team.locator('#radio-moderator-count').filter({hasText:'0',exact:true}).waitFor();await team.locator('#radio-moderator-list').filter({hasText:'Keine freigegebenen Nicks.'}).waitFor();
  lab.central.accept=false;lab.hub.runtime.clock.advance(45001);await team.evaluate(()=>Client.sendEvent('mw:refresh',{}));
  await team.locator('#radio-moderator-count').filter({hasText:'?',exact:true}).waitFor();await team.locator('#radio-moderator-list').filter({hasText:'nicht bestätigt'}).waitFor();

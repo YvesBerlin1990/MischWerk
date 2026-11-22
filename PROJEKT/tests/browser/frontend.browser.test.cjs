@@ -963,10 +963,21 @@ test('Alte Songantwort darf eine entfernte Senderkonfiguration nicht überschrei
   assert.equal(await page.locator('#track-title').isVisible(), false);
   assert.equal(await page.locator('#play-button').isDisabled(), true);
 });
+test('Zehn Sekunden Versandwartezeit plus langsame HTTP-Antwort erzeugen keinen vorzeitigen Wunschfehler',async t=>{
+ const {page,errors}=await setup(t,{clock:true,view:'wishes'});
+ await page.locator('#wish-text').fill('Langsame Bestätigung');await page.locator('#submit-wish').click();
+ await page.clock.runFor(19999);
+ assert.equal(await page.locator('#wish-feedback').evaluate(n=>n.classList.contains('error')),false);
+ assert.equal(await page.locator('#submit-wish').isDisabled(),true);
+ await page.evaluate(()=>{const request=__sent.findLast(e=>e.type==='mw:wish.submit');
+  __emit('mw:wish.receipt',{submissionId:request.data.submissionId,accepted:true,message:'Dein Wunsch ist dabei!'});});
+ assert.equal(await page.locator('#wish-feedback').evaluate(n=>n.classList.contains('success')),true);
+ assert.equal(await page.locator('#wish-text').inputValue(),'');assert.deepEqual(errors,[]);
+});
 test('Erneuter identischer Wunsch nach Bestätigungs-Timeout behält seine Übertragungs-ID', async t => {
   const { page } = await setup(t, { clock: true, view:'wishes' });
   await page.locator('#wish-text').fill('Band – Song');
-  await page.locator('#submit-wish').click(); await page.clock.runFor(15010);
+  await page.locator('#submit-wish').click(); await page.clock.runFor(25010);
   await page.locator('#submit-wish').click();
   const requests = await page.evaluate(() => window.__sent.filter(event => event.type === 'mw:wish.submit'));
   assert.equal(requests.length, 2); assert.ok(requests[0].data.submissionId);

@@ -67,7 +67,14 @@ test('Lokaler Vorschau-Server', async t => {
     const data = JSON.parse(html.match(/window\.MischWerkDemoData=(.*?);<\/script>/)[1]);
     const send = async () => (await fetch(base + '/api/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: data.sessionId, type: 'mw:wish.submit', data: { text: 'Band – Song', submissionId: 'preview-roundtrip' } }) })).json();
     const first = await send(); assert.equal(first.findLast(event => event.type === 'mw:wish.receipt').data.submissionId, 'preview-roundtrip');
-    const second = await send(); assert.equal(second.findLast(event => event.type === 'mw:wish.receipt').data.accepted, true);
+    const second = await send(); assert.equal(second.findLast(event => event.type === 'mw:wish.receipt').data.pending, true);
+    const deadline = Date.now() + 15000; let accepted = false;
+    while (!accepted && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const events = await (await fetch(base + '/api/poll?sessionId=' + data.sessionId)).json();
+      accepted = events.some(event => event.type === 'mw:wish.receipt' && event.data.submissionId === 'preview-roundtrip' && event.data.accepted);
+    }
+    assert.equal(accepted, true, 'Die Demo übernimmt die Einzelquittung nach dem zulässigen Abgleich');
     assert.equal(second.find(event => event.type === 'mw:state').data.myRequests.length, 0);
   });
   await t.test('Demo-Popup bleibt an den Nutzer gebunden und lässt die Radioleiste aktiv', async () => {

@@ -20,7 +20,7 @@ test('Normale Event-/Statusmetadaten verändern gebundenen Legacyexport nicht; N
 test('Status allein startet nichts; nur echte Inhabersitzung exportiert, gleicher Chunk bis passende Inhaltsquittung',()=>{
  const f=setup(),h=f.h;seed(h,[{text:'Original'}]);f.finish(undefined,{migrationPreparation:{migrationId:'prepared-import',sourceNamespace:h.runtime.nativeNamespace(),phase:'importing'}});
  assert.equal(h.runtime.migrationView().phase,'idle');const owner=h.user(2,'Otterchen','owner');h.app.chatCommands.mw(owner,'admin');const s=owner.sessions.find(s=>s.activeView==='team');
- h.event(owner,s,'mw:migration.start',{requestId:'start-export',view:'team',viewRevision:1});const sent=f.posts.at(-1),chunk=sent.body.migrationChunk;assert.ok(chunk);assert.equal(h.runtime.migrationFrozen(),true);
+ h.event(owner,s,'mw:migration.start',{requestId:'start-export',view:'team',viewRevision:1});h.advance(10000);const sent=f.posts.at(-1),chunk=sent.body.migrationChunk;assert.ok(chunk);assert.equal(h.runtime.migrationFrozen(),true);
  const page=h.runtime.nativeMigrationPage({migrationId:chunk.migrationId,sourceRevision:chunk.sourceRevision,offset:0,chunkIndex:0});
  f.finish(sent,{migrationReceipt:{migrationId:chunk.migrationId,sourceRevision:chunk.sourceRevision,chunkIndex:0,digest:'0'.repeat(64),accepted:true}});
  assert.equal(h.runtime.migrationView().phase,'exporting');assert.equal(h.runtime.migrationView().chunkIndex,0);
@@ -44,9 +44,9 @@ test('Terminaler Original-Replay exportiert Besitzer und unbekannten Textdigest;
 
 test('Negative Importquittung hält Chunk und Freeze; gültige Sender- und Löschbelege bleiben übernommen',()=>{
  const f=setup(),h=f.h;seed(h,[{text:'Original'}]);f.finish(undefined,{migrationPreparation:{migrationId:'prepared-import',sourceNamespace:h.runtime.nativeNamespace(),phase:'importing'}});
- const owner=h.user(2,'Otterchen','owner');h.app.chatCommands.mw(owner,'admin');const session=owner.sessions.find(s=>s.activeView==='team');h.event(owner,session,'mw:migration.start',{requestId:'start',view:'team',viewRevision:1});const sent=f.posts.at(-1);
+ const owner=h.user(2,'Otterchen','owner');h.app.chatCommands.mw(owner,'admin');const session=owner.sessions.find(s=>s.activeView==='team');h.event(owner,session,'mw:migration.start',{requestId:'start',view:'team',viewRevision:1});h.advance(10000);const sent=f.posts.at(-1);
  f.finish(sent,{migrationReceipt:{accepted:false,error:'request_conflict'}});assert.equal(h.runtime.migrationView().chunkIndex,0);assert.equal(h.runtime.migrationFrozen(),true);assert.match(h.runtime.migrationView().message,/noch nicht bestätigt/);assert.equal(h.runtime.receivedShow().active,true);
- h.advance(5000);assert.deepEqual(f.posts.at(-1).body.migrationChunk,sent.body.migrationChunk);
+ h.advance(10000);assert.deepEqual(f.posts.at(-1).body.migrationChunk,sent.body.migrationChunk);
 });
 
 test('Nutzerlöschung invalidiert auch einen bereits exportierten, noch nicht zentral umgeschalteten Originalstand',()=>{

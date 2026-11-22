@@ -2,6 +2,7 @@
 MischWerkModules.createApp = function (config, androidWire) {
     'use strict';
     var runtime = MischWerkModules.createRuntime(config);
+    MischWerkModules.attachHttpBudget(runtime);
     MischWerkModules.attachDiagnostics(runtime, config);
     MischWerkModules.attachChanges(runtime);
     MischWerkModules.attachRelayResults(runtime);

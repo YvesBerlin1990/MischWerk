@@ -23,10 +23,11 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
             if (busy) { var busyError = new Error('ANDROID_CONNECTION'); busyError.androidBusy = true; throw busyError; }
             if (request.url !== settings.syncUrl ||
                     external.canAccessURL(settings.syncUrl) !== true) { throw new Error('ANDROID_CONNECTION'); }
-            var finished = false, cancelled = false;
+            var finished = false, cancelled = false, finishBudget = null;
             function complete(raw, response, failed) {
                 if (finished) { return; }
                 finished = true; busy = false;
+                finishBudget();
                 if (cancelled) { return; }
                 var result = { status: 0, body: null }, code = null, matches = authProbe ? null : false, parsed = false;
                 var stage = 'http_response';
@@ -58,15 +59,16 @@ MischWerkModules.attachAndroidConnection = function (runtime) {
                 if (authProbe) { result.observation.bodyRead = false; }
                 finish(result);
             }
+            var signed = runtime.createAndroidSignedData(request.body, settings.syncSecret);
+            finishBudget = runtime.beginExternalRequest('sync');
             busy = true;
             try {
-                var signed = runtime.createAndroidSignedData(request.body, settings.syncSecret);
                 external.postURL(settings.syncUrl, {
                     data: signed,
                     onSuccess: function (raw, response) { complete(raw, response, false); },
                     onFailure: function (raw, response) { complete(raw, response, true); }
                 });
-            } catch (error) { if (!finished) { busy = false; finished = true; throw new Error('ANDROID_HTTP_SEND'); } }
+            } catch (error) { if (!finished) { finishBudget(); busy = false; finished = true; throw new Error('ANDROID_HTTP_SEND'); } }
             // Die API belegt keinen Netzwerkabbruch. Bis zum echten Callback bleibt der Port belegt.
             return function () { cancelled = true; };
         } };

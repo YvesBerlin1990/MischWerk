@@ -1,26 +1,26 @@
 {
-  "version": "0.1.451",
-  "buildNumber": 451,
+  "version": "0.1.452",
+  "buildNumber": 452,
   "files": [
     {
       "path": "MischWerk/main.js",
       "bytes": 175,
-      "sha256": "034F81CA4151EBED82ACC3D64167D2869431FEE2F9B7337E3EDB6E9EB9E9D839"
+      "sha256": "66490613C6C00F30BD8EE5E4C04DD52742639940E561BAF83CBC0A23D1611D6A"
     },
     {
       "path": "MischWerk/app.config",
-      "bytes": 558,
-      "sha256": "6DFBFD6DE75FF6BA7B503850E8F30838580848CB84AAC5B7CC10D4BF178B419B"
+      "bytes": 545,
+      "sha256": "3824585F8CECA0C7B7A512E7DF09D9AD482EC5D3F4566271AB4C5B89F3A59832"
     },
     {
       "path": "MischWerk/server/config.js",
-      "bytes": 1307,
-      "sha256": "77B44DDA1F93C073CB663702F200849F7F7806DE1BD7BBE3996087023CA0081D"
+      "bytes": 1282,
+      "sha256": "E794E7FBF55C242EB8099BEE46E5F323145DF5E55291437669E8A34C99E68063"
     },
     {
       "path": "MischWerk/server/core/runtime.js",
-      "bytes": 5151,
-      "sha256": "1E5FF872D6D5A79283BE9E2C044532F0CEB96DF09EAA1B8382516451F3846E63"
+      "bytes": 6968,
+      "sha256": "7B835CAE92BC9B170277857EB6A05AB7469D703FDDCF49D52BE9211CE9FFD356"
     },
     {
       "path": "MischWerk/server/users/identity.js",
@@ -139,8 +139,8 @@
     },
     {
       "path": "MischWerk/server/schedule/public-data.js",
-      "bytes": 7984,
-      "sha256": "48EB7F8D57A7DA0240F684A284D8E84FBD2A021027D7349293A753769692CCB3"
+      "bytes": 8176,
+      "sha256": "5EC4D0272B5DD898B5CFA3BD78BBB27B965206E884BCCA1BAA0D60247D791364"
     },
     {
       "path": "MischWerk/server/schedule/day.js",
@@ -219,13 +219,13 @@
     },
     {
       "path": "MischWerk/server/core/composition.js",
-      "bytes": 4656,
-      "sha256": "B9B78189339EF56EB9E95E92655109CB3C2B377843C6E96D0611380FDB13666D"
+      "bytes": 4704,
+      "sha256": "119EEE0D2598ED93A7055BE54899B67D8F1ED0A067EE630129826896C6F5409D"
     },
     {
       "path": "MischWerk/server/app.js",
       "bytes": 6281,
-      "sha256": "F9338EC61CCAE5DBEB06648FBC105E6522DD1CE47D1BC2794BBEB6CDD6B53A76"
+      "sha256": "4C80C003A107A4EB962CC96CEAD4ED1E6A4DF08DAA6B6C09704C7EF6A1943B7F"
     }
   ]
 }

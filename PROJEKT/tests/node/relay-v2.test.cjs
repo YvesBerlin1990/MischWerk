@@ -2,6 +2,85 @@ const test=require('node:test');const assert=require('node:assert/strict');
 const crypto=require('node:crypto');const {setup}=require('../fixtures/relay-v2.cjs');
 function last(events,type){return events.findLast(row=>row.type===type)?.data;}
 
+test('Wunschspitzen bleiben über zwanzig Minuten unter 60 Abgleichen je rollenden zehn Minuten',()=>{
+ const f=setup(),h=f.h,times=[];let completed=0;
+ for(let step=0;step<1200;step++){
+  while(completed<f.posts.length){times.push(h.now());f.finish(f.posts[completed++]);}
+  for(let burst=0;burst<5;burst++)h.runtime.changed('wishes');
+  h.advance(1000);
+ }
+ assert.ok(times.length>=115,'Reguläre Aktualisierung läuft dauerhaft weiter');
+ for(let i=0;i<times.length;i++){
+  assert.ok(times.filter(at=>at>times[i]-600000&&at<=times[i]).length<=60,'Höchstens 60 tatsächliche Posts im Zeitfenster');
+  if(i)assert.ok(times[i]-times[i-1]>=10000,'Dringlichkeit umgeht den Mindestabstand nicht');
+ }
+});
+
+test('Stop und erneutes Aktivieren geben keinen zusätzlichen HTTP-Aufruf frei',()=>{
+ const f=setup(),h=f.h;f.finish();const settings=h.runtime.readAndroidSettings();
+ for(let i=0;i<8;i++){h.runtime.stopAndroidPublisher();h.runtime.startAndroidPublisher(settings,h.runtime.createAndroidWire(settings));}
+ assert.equal(f.posts.length,1);h.advance(9999);assert.equal(f.posts.length,1);h.advance(1);assert.equal(f.posts.length,2);
+});
+
+test('Firebase und drei Sendeplanwochen bleiben gemeinsam unter 90 Anfragen und Antworten je zehn Minuten',()=>{
+ const f=setup(),h=f.h,requests=[],replies=[];let completed=0;
+ f.external.getURL=(url,args)=>{
+  requests.push(h.now());replies.push(h.now());const week=url.split('week=')[1];
+  args.onSuccess(JSON.stringify({version:1,ok:true,ready:true,week,today:h.runtime.scheduleToday(),revision:0,
+   days:Array.from({length:7},(_,i)=>h.runtime.scheduleDay(week,i)),entries:[]}),{getResponseCode:()=>200,getURLString:()=>url});
+ };
+ for(let step=0;step<1200;step++){
+  while(completed<f.posts.length){requests.push(h.now());replies.push(h.now());f.finish(f.posts[completed++]);}
+  if(step%60===0){const week=h.runtime.scheduleWeek(h.runtime.scheduleToday());
+   for(const days of [-7,0,7])h.runtime.readPublicSchedule(h.runtime.scheduleDay(week,days),'reader',error=>assert.equal(error,null));}
+  for(let burst=0;burst<3;burst++)h.runtime.changed('wishes');
+  assert.equal(h.runtime.receivedShow().active,true,'Sendung bleibt trotz Planabrufen und Wunschspitzen frisch');
+  h.advance(1000);
+ }
+ for(const values of [requests,replies]){
+  values.sort((a,b)=>a-b);let start=0;
+  for(let end=0;end<values.length;end++){while(values[end]-values[start]>=600000)start++;
+   assert.ok(end-start+1<=90,'Getrennte Reserven schützen auch das gemeinsame Knuddels-Limit');}
+ }
+ assert.ok(requests.length>=175,'Beide Quellen bleiben über mehrere Zeitfenster erreichbar');
+ assert.equal(h.logs.filter(row=>row.level==='warn').length,0);
+});
+
+test('Sendeplanfehler und verspätete Callbacks können die HTTP-Reserve nicht überziehen',()=>{
+ const f=setup(),h=f.h,calls=[];h.runtime.stopAndroidPublisher();
+ f.external.getURL=(url,args)=>calls.push({url,args});
+ const week=h.runtime.scheduleWeek(h.runtime.scheduleToday());
+ for(let i=0;i<30;i++){h.runtime.readPublicSchedule(week,'reader',()=>{});h.advance(10000);}
+ assert.equal(calls.length,30);h.advance(600000);
+ h.runtime.readPublicSchedule(week,'reader',error=>assert.ok(error));assert.equal(calls.length,30,'Offene Antworten behalten ihre Reservierung nach Timeout');
+ for(const call of calls)call.args.onFailure();
+ h.advance(599999);h.runtime.readPublicSchedule(week,'reader',error=>assert.ok(error));assert.equal(calls.length,30);
+ h.advance(1);h.runtime.readPublicSchedule(week,'reader',()=>{});assert.equal(calls.length,31,'Zehn Minuten nach der letzten Antwort wieder verfügbar');
+ calls[0].args.onFailure();assert.equal(calls.length,31,'Doppelter Callback erzeugt keinen Auftrag');
+});
+
+test('25 eigene Wünsche werden mit stabilen Kennungen in drei begrenzten Posts bestätigt',()=>{
+ const f=setup(),h=f.h,u=h.user(3,'Hörer'),s=h.open(u);f.finish();
+ for(let i=0;i<25;i++)h.event(u,s,'mw:wish.submit',{submissionId:'batch-'+i,text:'Wunsch '+i});
+ assert.equal(f.posts.length,1);assert.equal(h.runtime.nativeRelayState().entries.filter(row=>row.state==='pending').length,25);
+ const sent=[];
+ for(const size of [10,10,5]){
+  h.advance(10000);const post=f.posts.at(-1);assert.equal(post.body.wishSubmissions.length,size);
+  const rows=post.body.wishSubmissions;const offset=sent.length;sent.push(...rows.map(row=>row.submissionId));
+  f.finish(post,{wishReceipts:rows.map((row,i)=>({submissionId:row.submissionId,accepted:true,state:'queued',position:offset+i+1,error:null}))});
+ }
+ assert.equal(new Set(sent).size,25);assert.equal(h.runtime.nativeRelayState().entries.filter(row=>row.state==='pending').length,0);
+ assert.equal(h.state(u,s).wishPositions.total,25);assert.equal(f.posts.length,4);
+});
+
+test('Rückwärts laufende Uhr und neue Transportinstanz heben die HTTP-Sperre nicht auf',()=>{
+ const f=setup(),h=f.h;f.finish();const original=h.now();h.runtime.now=()=>original-1000;
+ assert.equal(h.runtime.externalRequestDelay('sync'),11000);
+ const settings=h.runtime.readAndroidSettings(),wire=h.runtime.createAndroidWire(settings);
+ assert.throws(()=>wire.sendJson({url:settings.syncUrl,body:{}},()=>{}),error=>error.externalRetryAt===original+10000);
+ assert.equal(f.posts.length,1);
+});
+
 test('Ausbleibender nativer Callback bleibt ein einzelner physischer POST und meldet die anschließende Blockade',()=>{
  const f=setup();for(let step=0;step<18;step++)f.h.advance(10000);
  assert.equal(f.posts.length,1,'Logischer Timeout darf keinen physisch offenen Aufruf freigeben');
@@ -10,21 +89,21 @@ test('Ausbleibender nativer Callback bleibt ein einzelner physischer POST und me
  assert.equal(f.h.runtime.androidLastFailure().stage,'busy','Blockierter Transport ersetzt den alten Timeoutbefund');
 });
 
-test('Zentraler Fünfsekundentakt erkennt einen DJ auch aus unbekanntem, beendetem oder Legacy-Stand',()=>{
+test('Zentraler Zehnsekundentakt erkennt einen DJ auch aus unbekanntem, beendetem oder Legacy-Stand',()=>{
  for(const [authority,broadcastState] of [['studio','unknown'],['studio','ended'],['legacy','unknown']]){
   const f=setup(),h=f.h,u=h.user(3,'Hörer'),session=h.open(u);
   const inactive={...f.response().station,authority,broadcastState,onAir:false,wishboxOpen:false,moderatorNick:null,topic:null,validUntil:0,updatedAt:0};
   for(let count=1;count<=3;count+=1){
    f.finish(undefined,{station:inactive});assert.equal(h.state(u,session).moderator,null);
-   h.advance(4999);assert.equal(f.posts.length,count,'Kein vorzeitiger regulärer Abruf');
-   h.advance(1);assert.equal(f.posts.length,count+1,'Auch ohne bestätigte Sendung nach fünf Sekunden erneut lesen');
+   h.advance(9999);assert.equal(f.posts.length,count,'Kein vorzeitiger regulärer Abruf');
+   h.advance(1);assert.equal(f.posts.length,count+1,'Auch ohne bestätigte Sendung nach zehn Sekunden erneut lesen');
   }
   f.finish();assert.equal(last(session.events,'mw:state').moderator.nick,'DJ-Test','Bestätigter DJ wird direkt übertragen');
-  h.advance(4999);assert.equal(f.posts.length,4);h.advance(1);assert.equal(f.posts.length,5,'Aktive Sendung behält denselben Takt');
+  h.advance(9999);assert.equal(f.posts.length,4);h.advance(1);assert.equal(f.posts.length,5,'Aktive Sendung behält denselben Takt');
  }
 });
 
-test('Fünfsekundentakt erhält Einzelanfrage, Zehnsekundenfrist, Fehlerbackoff und Abschaltung',()=>{
+test('Zehnsekundentakt erhält Einzelanfrage, Zehnsekundenfrist, Fehlerbackoff und Abschaltung',()=>{
  const f=setup(),h=f.h,first=f.posts[0];
  h.advance(5000);assert.equal(f.posts.length,1,'Keine zweite Anfrage während laufendem Aufruf');
  h.advance(5000);assert.equal(h.runtime.androidLastFailure().stage,'timeout');assert.equal(f.posts.length,1);
@@ -66,13 +145,16 @@ test('Lokale Anzeige schreibt keine nativeConfig oder Sendungsvorgabe in den zen
  const request=h.runtime.nativeRelayRequest();assert.equal(request.nativeConfig,undefined);assert.equal(request.station,undefined);assert.equal(request.topic,undefined);assert.doesNotMatch(JSON.stringify(request),/Nur hier|ticker|nativeConfig/);assert.equal(h.runtime.tickerState().text,'Nur hier');
 });
 
-test('Eigene Abgabe während laufendem Poll folgt nach dessen Antwort im einzelnen Timer statt nach Regeltakt',()=>{
- const f=setup(),h=f.h,u=h.user(3,'Hörer'),session=h.open(u);f.finish();h.advance(5000);const poll=f.posts.at(-1),count=f.posts.length;
+test('Eigene Abgabe während laufendem Poll nutzt den nächsten zulässigen Timertermin und bündelt weitere Wünsche',()=>{
+ const f=setup(),h=f.h,u=h.user(3,'Hörer'),session=h.open(u);f.finish();h.advance(10000);const poll=f.posts.at(-1),count=f.posts.length;
  h.event(u,session,'mw:wish.submit',{submissionId:'busy-fast',text:'Schnell und einmal'});assert.equal(f.posts.length,count);
- f.finish(poll);assert.equal(f.posts.length,count,'Kein rekursiver Post aus Callback');h.advance(1);assert.equal(f.posts.length,count+1);
- const sent=f.posts.at(-1);assert.equal(sent.body.wishSubmissions.length,1);assert.equal(sent.body.wishSubmissions[0].text,'Schnell und einmal');
+ f.finish(poll);assert.equal(f.posts.length,count,'Kein rekursiver Post aus Callback');
+ h.advance(9999);assert.equal(f.posts.length,count,'Mindestabstand gilt auch bei Dringlichkeit');
+ h.event(u,session,'mw:wish.submit',{submissionId:'busy-second',text:'Zusammen übertragen'});
+ h.advance(1);assert.equal(f.posts.length,count+1);
+ const sent=f.posts.at(-1);assert.equal(sent.body.wishSubmissions.length,2);assert.equal(sent.body.wishSubmissions[0].text,'Schnell und einmal');
  f.finish(sent,{wishReceipts:[]});h.advance(1);assert.equal(f.posts.length,count+1,'Fehlender Einzelbeleg erzeugt keine Millisekunden-Wiederholungsschleife');
- h.advance(4999);assert.equal(f.posts.length,count+2);assert.equal(f.posts.at(-1).body.wishSubmissions[0].submissionId,sent.body.wishSubmissions[0].submissionId);
+ h.advance(9999);assert.equal(f.posts.length,count+2);assert.equal(f.posts.at(-1).body.wishSubmissions[0].submissionId,sent.body.wishSubmissions[0].submissionId);
 });
 
 test('Ein HTTP-Callbackfehler bleibt eine Warnung mit ursprünglicher privater Fehlerstufe',()=>{
@@ -168,7 +250,7 @@ test('45-Sekunden-Frist wird weder durch Channelrefresh noch HTTP-Fehler verlän
 test('Native Outbox bleibt pending bis Einzelbeleg; gleicher Wunsch nach Verlust/Neustart nur einmal',()=>{
  const f=setup(),h=f.h,u=h.user(3,'Hörer'),s=h.open(u);f.finish();
  let receipt=last(h.event(u,s,'mw:wish.submit',{submissionId:'wish-one',text:'Band – Lied'}),'mw:wish.receipt');assert.equal(receipt.pending,true);assert.equal(receipt.accepted,false);
- const sent=f.posts.at(-1),row=sent.body.wishSubmissions[0];assert.equal(row.displayName,'Hörer');assert.match(row.ownerKey,/^[a-f0-9]{64}$/);
+ h.advance(10000);const sent=f.posts.at(-1),row=sent.body.wishSubmissions[0];assert.equal(row.displayName,'Hörer');assert.match(row.ownerKey,/^[a-f0-9]{64}$/);
  assert.equal(row.ownerKey,crypto.createHmac('sha256',f.secret).update('mw-owner-v2:'+sent.body.transportId+':3').digest('hex'));
  f.finish(sent,{wishReceipts:[{submissionId:row.submissionId,accepted:true,state:'queued',position:12,error:null}]});
  receipt=last(s.events,'mw:wish.receipt');assert.equal(receipt.accepted,true);assert.equal(h.state(u,s).wishPositions.nextPosition,12);
@@ -188,24 +270,24 @@ test('Teamzeichen-Schalter beeinflusst weder bestätigtes DJ-Mikrofon noch Höre
  assert.deepEqual([...dj.nicklistIcons.keys()].map(v=>v.split('/').at(-1)),['moderator.png']);
 });
 test('Explizite Ereignisse erst nach stiller Basis und dauerhaft vor Botversuch markieren; Neustart/Wiederholung still',()=>{
- const f=setup(),h=f.h;f.finish();h.advance(5000);
+ const f=setup(),h=f.h;f.finish();h.advance(10000);
  const event={eventId:'event-a',eventSeq:1,type:'start',createdAt:h.now(),moderatorNick:'DJ-Test',previousModeratorNick:null,topic:''};
  f.finish(undefined,{broadcastEvents:[event],eventCursor:'events-a'});assert.equal(h.bot.messages.length,1);
- h.advance(5000);f.finish(undefined,{broadcastEvents:[event],eventCursor:'events-a'});assert.equal(h.bot.messages.length,1);
+ h.advance(10000);f.finish(undefined,{broadcastEvents:[event],eventCursor:'events-a'});assert.equal(h.bot.messages.length,1);
  const restored=setup({store:h.store});restored.finish(undefined,{broadcastEvents:[event],eventCursor:'events-a'});assert.equal(restored.h.bot.messages.length,0);
 });
 
 test('Begrenzte zentrale Löschung bleibt bei applied:false vorgemerkt und blockiert keinen gültigen Senderempfang',()=>{
- const f=setup(),h=f.h;f.finish();h.runtime.queueNativeOwnerDeletion(3);h.advance(5000);const request=f.posts.at(-1),id=request.body.ownerDeletions[0].requestId;
+ const f=setup(),h=f.h;f.finish();h.runtime.queueNativeOwnerDeletion(3);h.advance(10000);const request=f.posts.at(-1),id=request.body.ownerDeletions[0].requestId;
  f.finish(request,{deletionReceipts:[{requestId:id,applied:false}]});assert.equal(h.runtime.nativeRelayState().deletions[0].applied,false);assert.equal(h.runtime.receivedShow().active,true);
- h.advance(5000);const repeated=f.posts.at(-1);assert.equal(repeated.body.ownerDeletions[0].requestId,id);f.finish(repeated,{deletionReceipts:[{requestId:id,applied:true}]});assert.equal(h.runtime.nativeRelayState().deletions[0].applied,true);
+ h.advance(10000);const repeated=f.posts.at(-1);assert.equal(repeated.body.ownerDeletions[0].requestId,id);f.finish(repeated,{deletionReceipts:[{requestId:id,applied:true}]});assert.equal(h.runtime.nativeRelayState().deletions[0].applied,true);
 });
 
 test('Nicklisten-Seiten werden vollständig zusammengesetzt; eigener Cursorreset verwirft alte Teilseiten',()=>{
  const f=setup(),h=f.h,now=h.now(),page={snapshotId:'large-roster',revision:'a'.repeat(64),snapshotAt:now,validUntil:now+45000,items:[{nick:'Erster'}],nextCursor:'page-two',complete:false};
- f.finish(undefined,{nickAccessPage:page});assert.equal(h.runtime.receivedRoster().length,0);h.advance(5000);
+ f.finish(undefined,{nickAccessPage:page});assert.equal(h.runtime.receivedRoster().length,0);h.advance(10000);
  f.finish(undefined,{nickAccessPage:{...page,items:[{nick:'Zweiter'}],nextCursor:null,complete:true},cursorReset:true});assert.deepEqual(Array.from(h.runtime.receivedRoster()),['Erster','Zweiter'],'Eventcursorreset darf keine Nicklistenteilseite verlieren');
- h.advance(5000);f.finish(undefined,{nickAccessPage:{...page,snapshotId:'next-roster',items:[{nick:'Alter Teil'}],nextCursor:'expired-page'}});h.advance(5000);
+ h.advance(10000);f.finish(undefined,{nickAccessPage:{...page,snapshotId:'next-roster',items:[{nick:'Alter Teil'}],nextCursor:'expired-page'}});h.advance(10000);
  f.finish(undefined,{nickAccessPage:{...page,snapshotId:'fresh-roster',revision:'b'.repeat(64),snapshotAt:h.now(),validUntil:h.now()+45000,items:[{nick:'Aktuell'}],nextCursor:null,complete:true,cursorReset:true}});
  assert.deepEqual(Array.from(h.runtime.receivedRoster()),['Aktuell']);
 });

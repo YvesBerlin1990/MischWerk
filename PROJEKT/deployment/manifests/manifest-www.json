@@ -1,6 +1,6 @@
 {
-  "version": "0.1.451",
-  "buildNumber": 451,
+  "version": "0.1.452",
+  "buildNumber": 452,
   "files": [
     {
       "path": "MischWerk/www/index.html",
@@ -94,8 +94,8 @@
     },
     {
       "path": "MischWerk/www/js/wishes/wishbox.js",
-      "bytes": 7063,
-      "sha256": "E1BA6AA301022F09B09E15C6806262DFF15C5CAB4E6BED1CF2323A2BFAA15698"
+      "bytes": 7146,
+      "sha256": "FBDFB73F46C64F98184CA02D9598B0701B0C2A4A8A8A7C0A9BE63E9126427128"
     },
     {
       "path": "MischWerk/www/js/wishes/relay.js",

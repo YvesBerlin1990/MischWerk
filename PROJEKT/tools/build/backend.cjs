@@ -9,7 +9,7 @@ const root = path.resolve(__dirname, '../..');
 const sourceRoot = path.join(root, 'src', 'backend');
 const appRoot = path.join(root, 'app');
 const modules = [
-  'config.js', 'core/runtime.js', 'core/diagnostics.js', 'core/changes.js', 'core/relay-results.js', 'users/identity.js',
+  'config.js', 'core/runtime.js', 'core/http-budget.js', 'core/diagnostics.js', 'core/changes.js', 'core/relay-results.js', 'users/identity.js',
   'core/validation.js', 'state/persistence.js', 'radio/station.js', 'radio/team.js',
   'core/pin-constants-1.js', 'core/pin-constants-2.js', 'core/pin-bcrypt.js', 'radio/moderation.js', 'radio/announcements.js', 'radio/ticker.js', 'radio/display-settings.js', 'users/greetings.js', 'channel-texts/format.js', 'channel-texts/storage.js', 'channel-texts/smileys.js', 'channel-texts/scheduler.js', 'channel-texts/transport.js',
   'state/initialization.js', 'wishes/export-state.js', 'wishes/control-state.js', 'wishes/storage.js', 'wishes/migration.js', 'wishes/migration-transport.js', 'wishes/queue.js', 'wishes/transport.js',

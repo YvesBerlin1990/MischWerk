@@ -27,8 +27,8 @@ check(nativeCalls[0].body.nativeConfig===undefined,'Keine zentrale Konfiguration
 check(currentRuntime.receivedRosterState().confirmed===false,'Unbekannte Freigaben bleiben unbestätigt');
 finish({station:{contractVersion:2,authority:'studio',protocolEpoch:'rhino-public',revision:0,broadcastState:'unknown',onAir:false,wishboxOpen:false,moderatorNick:null,topic:null,updatedAt:0,validUntil:0}});
 check(currentRuntime.receivedShow().active===false,'Unbekannter Stand aktiviert keinen DJ');
-advance(4999);check(nativeCalls.length===1,'Kein vorzeitiger regulärer Abgleich');
-advance(1);check(nativeCalls.length===2,'Ohne aktive Sendung nach fünf Sekunden erneut abgleichen');
+advance(9999);check(nativeCalls.length===1,'Kein vorzeitiger regulärer Abgleich');
+advance(1);check(nativeCalls.length===2,'Ohne aktive Sendung nach zehn Sekunden erneut abgleichen');
 finish();App.onEventReceived(owner,'mw:refresh',{},os);
 check(currentRuntime.receivedRosterState().confirmed===true,'Vollständig empfangene Freigaben sind bestätigt');
 check(latest(os,'mw:state').user.showModerationButton===false,'Keine Moderationstaste auch für Inhaber');
@@ -45,7 +45,7 @@ store.setObject=originalSet;
 check(latest(ls,'mw:wish.receipt').accepted===false && currentRuntime.nativeRelayState().entries.length===0,'Speicherabbruch bestätigt keine Outbox');
 App.onEventReceived(listener,'mw:wish.submit',{submissionId:'rhino-wish',text:'Lied für Änne 🎶'},ls);
 check(latest(ls,'mw:wish.receipt').pending===true && latest(ls,'mw:wish.receipt').accepted===false,'Outbox ist keine Annahme');
-var sent=nativeCalls[nativeCalls.length-1].body.wishSubmissions[0];check(sent.ownerKey.length===64 && sent.text==='Lied für Änne 🎶','Pseudonymer Besitzer und Unicode vollständig');
+advance(10000);var sent=nativeCalls[nativeCalls.length-1].body.wishSubmissions[0];check(sent.ownerKey.length===64 && sent.text==='Lied für Änne 🎶','Pseudonymer Besitzer und Unicode vollständig');
 finish({wishReceipts:[{submissionId:sent.submissionId,accepted:true,state:'queued',position:17,error:null}]});
 check(latest(ls,'mw:wish.receipt').accepted===true,'Individuelle Commitquittung');App.onEventReceived(listener,'mw:refresh',{},ls);check(latest(ls,'mw:state').wishPositions.nextPosition===17,'Zentraler globaler Platz');
 App.chatCommands.mw(owner,'admin');var ts=owner.sessions.filter(function(session){return session.getAppContent().html.data.view==='team';})[0];
@@ -113,5 +113,20 @@ check(currentRuntime.numericUserId(new java.lang.Integer(3))===3,'Native Zahlenw
 var failedCall=nativeCalls[nativeCalls.length-1];
 failedCall.parameters.onFailure(new java.lang.String('Private Antwort wird nie protokolliert'),{getResponseCode:function(){return new java.lang.Integer(400);},getURLString:function(){return new java.lang.String(failedCall.url);}});
 check(currentRuntime.androidLastFailure().stage==='http_response' && currentRuntime.androidLastFailure().httpStatus===400,'HTTP-Ursprungsstufe bleibt bei Java-Antwortobjekten erhalten');
+var budgetNow=1800000000000,budgetRuntime={now:function(){return budgetNow;}},callbacks=[];
+MischWerkModules.attachHttpBudget(budgetRuntime);
+var completeBudget=budgetRuntime.beginExternalRequest('sync');completeBudget();
+check(budgetRuntime.externalRequestDelay('sync')===10000,'HTTP-Mindestabstand gilt auch nach sofortigem Erfolg');
+for(var budgetIndex=1;budgetIndex<60;budgetIndex+=1){budgetNow+=10000;budgetRuntime.beginExternalRequest('sync')();}
+check(budgetRuntime.externalRequestDelay('sync')===10000,'60 POSTs lassen keine zusätzliche Dringlichkeit zu');
+budgetNow+=10000;check(budgetRuntime.externalRequestDelay('sync')===0,'Rollendes Fenster gibt den ältesten bestätigten Platz frei');
+for(var scheduleIndex=0;scheduleIndex<30;scheduleIndex+=1){callbacks.push(budgetRuntime.beginExternalRequest('schedule'));}
+check(budgetRuntime.externalRequestDelay('schedule')>0,'30 Sendeplanaufrufe halten ihre eigene Reserve');
+budgetNow+=600000;check(budgetRuntime.externalRequestDelay('schedule')>0,'Ausstehende native Antworten bleiben auch nach zehn Minuten reserviert');
+callbacks.forEach(function(callback){callback();});
+budgetNow+=599999;check(budgetRuntime.externalRequestDelay('schedule')===1,'Verspätete Antworten halten ihre Reserve für weitere zehn Minuten');
+budgetNow+=1;check(budgetRuntime.externalRequestDelay('schedule')===0,'Sendeplanreserve läuft nach echtem Callback ab');
+budgetRuntime.beginExternalRequest('sync')();budgetNow-=1000;
+check(budgetRuntime.externalRequestDelay('sync')===11000,'Rückwärts laufende Uhr hebt den Abstand nicht auf');
 load('tests/rhino/android-signing.js');
 print('Rhino-V2 OK: '+assertions+' Prüfungen');

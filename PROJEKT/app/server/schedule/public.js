@@ -52,11 +52,14 @@ MischWerkModules.attachPublicSchedule = function (runtime) {
             });
         }
         job.timer = setTimeout(function () { finish(unavailable()); }, 10000);
+        var finishBudget = null;
         try {
             var access = KnuddelsServer.getExternalServerAccess();
             if (!access.canAccessURL(url)) { throw unavailable(); }
+            finishBudget = runtime.beginExternalRequest('schedule');
             access.getURL(url, {
                 onSuccess:function (raw, response) {
+                    finishBudget();
                     if (pending[week] !== job) { return; }
                     try {
                         if (runtime.now() < job.at || runtime.now() - job.at >= 10000 ||
@@ -64,9 +67,9 @@ MischWerkModules.attachPublicSchedule = function (runtime) {
                         finish(null, runtime.parsePublicSchedule(raw, week));
                     } catch (error) { finish(error.publicMessage ? error : unavailable()); }
                 },
-                onFailure:function () { finish(unavailable()); }
+                onFailure:function () { finishBudget(); finish(unavailable()); }
             });
-        } catch (error) { finish(unavailable()); }
+        } catch (error) { if (finishBudget) { finishBudget(); } finish(unavailable()); }
     };
     runtime.stopPublicSchedule = function () {
         Object.keys(pending).forEach(function (week) { clearTimeout(pending[week].timer); pending[week].waiters = []; });

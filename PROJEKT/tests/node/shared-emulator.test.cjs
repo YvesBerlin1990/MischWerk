@@ -11,10 +11,10 @@ const { launchConfiguration } = require('../../tools/start-emulator.cjs');
 const app = path.resolve(process.env.MISCHWERK_TEST_UPLOAD || path.join(__dirname, '../../app'));
 const url = 'https://radio-mischwerk.web.app/api/publishKnuddelsState';
 const secret = 'synthetic_shared_' + 'x'.repeat(48);
-async function until(predicate) {
+async function until(predicate, timeout = 3000) {
   const start = performance.now();
   while (!predicate()) {
-    assert.ok(performance.now() - start < 3000, 'Lokale Bestätigung fehlt');
+    assert.ok(performance.now() - start < timeout, 'Lokale Bestätigung fehlt');
     await new Promise(resolve => setTimeout(resolve, 5));
   }
 }
@@ -80,15 +80,15 @@ test('Zentraler AppRunner lädt MischWerk und misst zwei signierte Wünsche bei 
   const radio = [...f.runner.sessions.values()].find(session => session._viewModeName === 'Headerbar'); assert.ok(radio);
   const start = performance.now();
   f.runner.handleClientEvent('Polaroid', radio._sessionId, 'mw:wish.submit', { submissionId: 'shared-one', text: 'Lokaler Prüfwunsch eins' });
-  assert.equal(f.posts.length, 2, 'Erste Abgabe wartet nicht auf den Regeltakt');
+  assert.equal(f.posts.length, 1, 'Erste Abgabe wartet auf den zulässigen Mindestabstand');
   f.runner.handleClientEvent('Polaroid', radio._sessionId, 'mw:wish.submit', { submissionId: 'shared-two', text: 'Lokaler Prüfwunsch zwei' });
-  assert.equal(f.posts.length, 2, 'Zweite Abgabe belegt keinen parallelen Port');
-  await until(() => f.events.filter(row => row.type === 'mw:wish.receipt' && row.data.accepted).length === 2);
-  assert.equal(f.posts.length, 3); assert.equal(f.maximumPhysical(), 1);
+  assert.equal(f.posts.length, 1, 'Zweite Abgabe wird im gleichen Auftrag gebündelt');
+  await until(() => f.events.filter(row => row.type === 'mw:wish.receipt' && row.data.accepted).length === 2, 15000);
+  assert.equal(f.posts.length, 2); assert.equal(f.posts[1].body.wishSubmissions.length, 2); assert.equal(f.maximumPhysical(), 1);
   const accepted = f.events.filter(row => row.type === 'mw:wish.receipt' && row.data.accepted);
-  assert.ok(f.posts[1].at - start < 500); assert.ok(f.posts[2].at - start < 1000);
+  assert.ok(f.posts[1].at - f.posts[0].at >= 9990, 'Zehn Sekunden Mindestabstand auch im echten AppRunner'); assert.ok(f.posts[1].at - start < 12000);
   console.log('Lokale Modellmessung mit echtem zentralem AppRunner und 20-ms-Antwortattrappe: ' + JSON.stringify({
-    firstPostMs: +(f.posts[1].at - start).toFixed(2), secondPostMs: +(f.posts[2].at - start).toFixed(2),
+    bundledPostMs: +(f.posts[1].at - start).toFixed(2),
     firstReceiptMs: +(accepted[0].at - start).toFixed(2), secondReceiptMs: +(accepted[1].at - start).toFixed(2), maximumPhysical: f.maximumPhysical()
   }));
   const before = f.posts.length;

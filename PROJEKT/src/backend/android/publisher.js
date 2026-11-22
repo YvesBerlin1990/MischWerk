@@ -30,7 +30,7 @@ MischWerkModules.attachAndroidPublisher = function(runtime) {
     }
 
     function base() {
-        return 5000;
+        return 10000;
     }
 
     function cancel() {
@@ -53,6 +53,8 @@ MischWerkModules.attachAndroidPublisher = function(runtime) {
         if (!running || runtime.shuttingDown || active || processing || clock() < nextPostAt) {
             return;
         }
+        var delay = runtime.externalRequestDelay('sync');
+        if (delay > 0) { nextPostAt = clock() + delay; return; }
         var body;
         try {
             body = runtime.nativeRelayRequest();
@@ -138,6 +140,7 @@ MischWerkModules.attachAndroidPublisher = function(runtime) {
             }
         } catch (error) {
             cancel();
+            if (error.externalRetryAt) { nextPostAt = error.externalRetryAt; return; }
             failed(error.androidBusy ? 'busy' : 'send', null);
             runtime.warn('NATIVE_SEND');
         }
@@ -152,7 +155,7 @@ MischWerkModules.attachAndroidPublisher = function(runtime) {
             return;
         }
         var now = clock(),
-            due = nextPostAt,
+            due = Math.max(nextPostAt, now + runtime.externalRequestDelay('sync')),
             expiry = runtime.relayProjectionDeadline();
         if (active) {
             due = active.at + 10000;
