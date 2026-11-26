@@ -1,6 +1,32 @@
-# MischWerk – Prüfbericht 0.1.457 / Build 457
+# MischWerk – Prüfbericht 0.1.458 / Build 458
 
-## Sendeplan und Wunschbox
+## X-Mas-Appleiste · freigegebene Gestaltung
+
+Stand 26.11.2026. Das freigegebene X-Mas-Raster ist in die echte Radioansicht eingebaut. Der breite Player übernimmt die unabhängige Aufteilung der Vorlage mit mittigem Play, kompakter Themen- und Lautstärkegruppe, eingerahmten Aktionen und freiem Radio-Logo. Lange Themen enden nach zwei Zeilen mit Auslassungspunkten und öffnen sich per Antippen oder Tastatur vollständig. Ein eigener Musikwunsch und der Lauftext bleiben bedienbar. Die gemeinsamen berechneten Werkhallenfarben und Verläufe entsprechen Normal. Die seitlichen Ornamente, Schatten und Rasterbilder passen sich der verfügbaren Höhe an. Mobile Ansichten ordnen die Inhalte neu und reduzieren die Dekoration.
+
+| Breite | Höhe des Referenzrasters | Zahnrad bis Thema | Thema bis Goldlinie | Goldlinie bis Buttons | Buttonhöhe |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1200 px | 214 px | 15,7 px | 18,2 px | 16,8 px | 44 px |
+| 1645 px | 292 px | 21,5 px | 25 px | 23 px | 52 px |
+| 1920 px | 341 px | 25,1 px | 29,2 px | 26,9 px | 60,7 px |
+
+Die Messung umfasst den Lautstärkeregler bei 100 %. Bei reduzierter Desktop-Hosthöhe von 220 px skaliert das Referenzraster zusammen. Die kompakte Anordnung wurde bis zu 176 px mit Lauftext geprüft. Bei 390 und 320 px misst die Leiste mit Lauftext und langen Texten 476 px, mit 24 px Reserve zur Höchstgrenze. Browserprüfungen messen die Innen- und Außenmaße, Scrollfreiheit, Klicktreffer, Fokus und unverdeckte Bedienelemente. K3 und STAPP sind lokal modelliert. Die Scrollfreiheit im installierten Knuddels-Client ist offen.
+
+Im alten Build 457 forderte X-Mas bei 1645 px 286 px Höhe an, obwohl der Host 220 px gewährte. Der Leistenkasten war rund 285 px hoch, die Haloebene vergrößerte den Scrollbereich auf 1652 × 292 px. Nach isoliertem Ausblenden des Halos waren es 1645 × 285 px. Schnee, Kabel oder Lampen beeinflussten das maximale Maß einzeln nicht. Bei 390 px und langen Texten reichte der Scrollbereich bis 837 px. Heute misst die Appleiste die tatsächlich verfügbare Höhe und begrenzt den Lichtauslauf innerhalb seiner eigenen Ebene.
+
+Die Radioansicht verwendet 31 freigegebene transparente PNGs mit zusammen 5.086.142 Byte. Zwölf abgelöste Radio-PNGs wurden aus dem Quellbestand in den Papierkorb verschoben. Vier bereits referenzierte Overlays-PNGs bleiben für Sendeplan und Wunschbox im Paket. Die Deckgrafiken liegen unter `app/www/img/xmas-*.png`. Die Farben, Steuerelemente und Wiedergabesymbole werden im Browser dargestellt. Der Audioweg bleibt erhalten. Zahnrad, Ringe, Tastenfläche, Schmuck und Schneeecken wurden aus den freigegebenen Originalen mit höherer Auflösung neu exportiert. Das Zahnrad hat jetzt 808 × 806 px und wird im größten Raster rund 401 px breit dargestellt.
+
+Rahmen, Schneekanten, dezentes Kabel, Fassungen und Verzierungen verwenden Bildteile. Das Lauflicht blendet Kern und Schein pro Lampe synchron im Uhrzeigersinn über 3,6 Sekunden ein und aus. Die Tiefpunkte glimmen mit 34 Prozent Deckkraft. Die CSS-Animation startet ausschließlich bei bestätigter Wiedergabe und erlischt bei Startversuch, Nachladen, Fehler oder Stopp. Bei reduzierter Bewegung leuchten die Lampen während der Wiedergabe gleichmäßig. Die Bildfolgen dokumentieren sieben feste Zeitpunkte. Im Vergleich zur Fotovorlage sind Play mittig, der Metallhintergrund neutral und die Lichtgruppen bewegen sich. Der Lichtauslauf bleibt innerhalb des verfügbaren Rahmens und fällt an der Fensterkante sanft ab.
+
+- [Vorlage und eingebauter Player bei 1645 px](oberflaeche/radio/xmas-referenz-1645.png)
+- [Normal und X-Mas bei 1645 px im 220-px-Host](oberflaeche/radio/xmas-hintergrundvergleich-1645.png)
+- [1200 px](oberflaeche/radio/xmas-1200-an.png) und [1920 px an](oberflaeche/radio/xmas-an.png) und [aus](oberflaeche/radio/xmas-aus.png)
+- [390 px an](oberflaeche/radio/xmas-mobil-an.png) und [aus](oberflaeche/radio/xmas-mobil.png), [320 px](oberflaeche/radio/xmas-320-an.png) sowie [lange Texte und reduzierte Hosthöhen](oberflaeche/radio/xmas-lange-texte.png)
+- [Lauflicht bei 1645 px](oberflaeche/radio/xmas-lauflicht-1645.png) und [390 px](oberflaeche/radio/xmas-lauflicht-390.png) sowie [Lampenecke vierfach vergrößert](oberflaeche/radio/xmas-lampenvergleich-4x.png)
+
+Die fünf Manifeste stimmen mit 163 Dateien im lokalen Prüfpaket überein. Die 115 ausgelieferten Textdateien bleiben unter 9500 UTF-16-Zeichen. Der freigegebene lokale Release 457 bleibt getrennt vom temporären Prüfpaket. Am Quellstand und am Prüfpaket bestanden jeweils 473 Node-Fälle und je 250 Fälle mit Rhino 1.7.7.2 und 1.9.1. Der vollständige Edge-Quelllauf bestand mit 247 Fällen. Beim vollständigen Paketlauf bestanden 246 Fälle. Ein K3-Sendeplanfall lief ins Zeitlimit und bestand bei der Einzelwiederholung. Die abschließende Edge-Abnahme der hochauflösenden Fassung bestand am gebündelten Paket einschließlich 3840 px mit 500 px Hosthöhe.
+
+## Sendeplan und Wunschbox · Freigabestand Build 457
 
 Stand 26.11.2026. Sendeplan und Wunschbox übernehmen Normal/X-Mas aus dem bereits vorhandenen Serverzustand beim Öffnen und bei bestätigten Änderungen. Ihr gemeinsamer X-Mas-Stil verwendet neutrales schwarzes Metall, einen warmen Goldrahmen sowie Schnee und proportionalen Tannenschmuck im Kopf. Der Sendeplan hebt die aktuelle Sendung goldfarben hervor. Die Wunschbox behält ihre beschrifteten Eingabe- und Versandflächen. Die Dekoration lässt Überschrift und Schließen frei. Normal behält die bisherigen Oberflächen. Die Lichtschaltung der Radioleiste bleibt auf die Wiedergabe in der Radioleiste bezogen.
 
@@ -18,16 +44,9 @@ Stand 26.11.2026. Auf der mobilen X-Mas-Appleiste sind Schleife, Kugel und Tanne
 
 Mit langem Titel, mehrzeiligem Thema, langem eigenem Musikwunsch und Lauftext misst die natürliche Höhe bei 390 px 913 px und bei 320 px 1009 px. K3 und STAPP fordern jeweils höchstens 500 px beim Host an. Die Browserprüfung scrollt Titel, Thema, eigenen Wunsch, Wunschbox- und Lauftexttaste vollständig ins sichtbare Fenster. Play bleibt von 320 bis 3840 px horizontal mittig.
 
-Auf 1200 und 1920 px liegen Zapfen und Beeren frei unter dem Radio-Logo und seitlich der Wunschbox. Eine flachere Tannenkante schließt den oberen rechten Rahmen ab. Das dunkle Kabel folgt allen vier Rundungen und hängt zwischen den Fassungen leicht nach innen. Bei bestätigter Wiedergabe überstrahlt ein flächiger Kern um `#fffbe8` das Glas. Der separate [gelb-orange Lichtauslauf](../../app/www/img/xmas-bulb-lit.png) liegt über Schnee und Zweigen und wärmt den dunklen Hintergrund. Sein Durchmesser beträgt etwa das Vierfache des Glases. Im An-Zustand sind Glasreflexe und Dunkelkontur ausgeblendet. Die äußere Pixelreihe bleibt im An-/Aus-Vergleich bei 1920 und 390 px identisch. Die Edge-Prüfungen messen die warmweiße Fläche und die Farbänderung jenseits des Glases direkt aus den Bildern. Im breiten Raster wachsen Lautsprecher und Symbol, Prozentfeld, Reglergriff und Musiknote mit. `100 %` passt bei 1200 und 1920 px einzeilig.
+Auf 1200 und 1920 px liegen Zapfen und Beeren frei unter dem Radio-Logo und seitlich der Wunschbox. Eine flachere Tannenkante schließt den oberen rechten Rahmen ab. Das dunkle Kabel folgt allen vier Rundungen und hängt zwischen den Fassungen leicht nach innen. Bei bestätigter Wiedergabe überstrahlt ein flächiger Kern um `#fffbe8` das Glas. Der separate gelb-orange Lichtauslauf liegt über Schnee und Zweigen und wärmt den dunklen Hintergrund. Sein Durchmesser beträgt etwa das Vierfache des Glases. Im An-Zustand sind Glasreflexe und Dunkelkontur ausgeblendet. Die äußere Pixelreihe bleibt im An-/Aus-Vergleich bei 1920 und 390 px identisch. Die Edge-Prüfungen messen die warmweiße Fläche und die Farbänderung jenseits des Glases direkt aus den Bildern. Im breiten Raster wachsen Lautsprecher und Symbol, Prozentfeld, Reglergriff und Musiknote mit. `100 %` passt bei 1200 und 1920 px einzeilig.
 
-Prüfbilder aus Edge mit synthetischen Senderdaten.
-
-- [1920 px mit Licht](oberflaeche/radio/xmas-an.png) und [1920 px ohne Licht](oberflaeche/radio/xmas-aus.png).
-- [1200 px mit Licht](oberflaeche/radio/xmas-1200-an.png).
-- [390 px mit Licht und Lauftext](oberflaeche/radio/xmas-mobil-an.png) und [390 px ohne Licht mit Lauftext](oberflaeche/radio/xmas-mobil.png).
-- [320 px mit Licht und Lauftext](oberflaeche/radio/xmas-320-an.png).
-
-Der [vierfache Lampenvergleich](oberflaeche/radio/xmas-lampenvergleich-4x.png) zeigt Vorlage, Aus und An nebeneinander. Der erste Entwurf wirkte wie eine beige Glaskugel. Die helle Fläche und der gelb-orange Schein wurden deshalb getrennt und anhand der Vergrößerung nachgearbeitet. In der Originalgröße unterscheiden sich An und Aus bei 1920 und 390 px sofort. Die Punkte sind runder und der Schein läuft innerhalb der kleineren Außenfläche kürzer aus als in der Vorlage. Der Beanstandung am Lautstärkeregler entspricht die goldene 2-px-Tastaturmarkierung. Der Test reproduziert sie per Tab und nimmt das Aus-Bild nach Entfernen des Fokus auf. Mobil sitzt der kleine Zapfen bei 390 px oben rechts und entfällt bei 320 px zugunsten des freien Platzes. Play sitzt horizontal exakt mittig, etwas weiter rechts als in der Vorlage. Im Betrieb zeigen die Taste Pause und das Feld den tatsächlichen Lautstärkewert in Prozent. Die Darstellung im installierten Knuddels-Client bleibt offen.
+Die damalige Bildabnahme zeigte einen deutlich sichtbaren Unterschied zwischen An und Aus. Die goldene 2-px-Markierung am Lautstärkeregler war der per Tab reproduzierte Tastaturfokus. Die aktuellen Prüfbilder im Abschnitt zu Build 458 dokumentieren jetzt die freigegebene Gestaltung.
 
 Der lokale Paketbau bestand mit 473 Node-Fällen und den Architektur-, API-, Bestands- und Längenprüfungen. Rhino 1.7.7.2 und 1.9.1 bestanden jeweils 250 Prüfungen am Quellstand und jeweils 250 am gebündelten Paket. Der vollständige Edge-Lauf vor der letzten Lichtkorrektur bestand mit 245 Fällen. Mit der endgültigen Lichtebene bestanden je sieben gezielte Edge-Prüfungen zu X-Mas, Lautstärke und Normal-Raster am Quellstand und am gebündelten Paket. Am Paket bestanden alle drei zentralen Emulatortests. Die fünf Manifeste stimmen mit den 142 Dateien im lokalen Upload überein. Die 113 Textdateien erreichen höchstens 9407 UTF-16-Zeichen. Die Weihnachtsstile und das Rahmenmodul werden bei Bedarf als Einzeldateien paketiert, damit alle Textdateien unter der Zeichengrenze bleiben.
 

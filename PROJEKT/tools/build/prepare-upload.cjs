@@ -168,7 +168,10 @@ function build() {
     'www/js/radio/dancers.js','www/img/knuddel-figur-gelb.png',
     'server/radio/curtain.js','www/js/radio/curtain.js','www/js/radio/curtain-markup.js',
     'www/css/radio/curtain.css','www/img/curtain-velvet.png','www/audio/werbung.mp3','www/js/wishes/tracking.js'];
-  for (const file of [...runtimeFiles.filter(file => !delivery.has(file)), ...retiredSchedule, ...retiredStudio, ...retiredRadio]) {
+  const retiredXmas = ['bow','bulb','bulb-lit','corner-pinecone','fir','gear','pinecone',
+    'snow-bottom-left','snow-bottom-right','snow-top-left','snow-top-right','star']
+    .map(name => 'www/img/xmas-' + name + '.png');
+  for (const file of [...runtimeFiles.filter(file => !delivery.has(file)), ...retiredSchedule, ...retiredStudio, ...retiredRadio, ...retiredXmas]) {
     const target = path.resolve(upload, file);
     assert.ok(target.startsWith(path.resolve(upload) + path.sep), 'Bündelbestandteil außerhalb des Uploadziels');
     if (!delivery.has(file) && fs.existsSync(target)) { fs.unlinkSync(target); }

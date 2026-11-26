@@ -3,30 +3,31 @@
   content:""; position:absolute; z-index:-1; pointer-events:none;
   width:var(--vinyl-size); height:var(--vinyl-size);
   left:50%; top:50%; transform:translate(-50%,-50%);
-  background:url(../../img/xmas-gear.png) center / contain no-repeat;
-  filter:brightness(.70);
+  background:url(../../img/xmas-zahnrad.png) center / contain no-repeat;
 }
-.theme-xmas .play-button:enabled {
-  border:2px solid #bf9150; color:#f7c574;
-  background:radial-gradient(ellipse at 36% 8%,#604d38,transparent 60%),linear-gradient(151deg,#33271c,#120e0a 64%);
-  box-shadow:0 0 0 5px #100c09,0 0 0 8px #79512c,0 0 0 10px #23170f,inset 0 2px #d9ae7148,inset 0 -6px 13px #000c;
+.theme-xmas .transport::after {
+  content:""; position:absolute; z-index:-1; pointer-events:none; inset:0;
+  width:116%; height:116%; left:50%; top:50%; transform:translate(-50%,-50%);
+  background:url(../../img/xmas-goldring.png) center / 90% auto no-repeat;
 }
-.theme-xmas .play-button:hover:enabled { border-color:#ffe2a7; }
-.theme-xmas .play-button:active:enabled { background:#25190f; }
-.theme-xmas .playing .play-button:enabled {
-  color:#fff2bc; border-color:#ffe9a9;
-  box-shadow:0 0 0 5px #261508,0 0 0 7px #f49030,0 0 0 9px #ffd886,0 0 0 11px #81461b,
-    0 0 23px 6px #ff941d9c,inset 0 0 10px 1px #f4a14648,inset 0 -7px 15px #000a;
+.theme-xmas .playing .transport::after {
+  background-image:url(../../img/xmas-goldring-an.png); background-size:contain;
+  filter:brightness(1.28) saturate(1.07) drop-shadow(0 0 4px #ffd17bb0);
 }
-.theme-xmas .playing .play-button:enabled::after {
-  inset:-9px; border:1px solid #fff9cb; box-shadow:0 0 9px 2px #ffa343c0;
+.theme-xmas .radio-bar .play-button:is(:enabled,:disabled) {
+  border:0; background:url(../../img/xmas-play-inlay.png) center / contain no-repeat;
+  box-shadow:none;
 }
+.theme-xmas .play-button:enabled { color:#ffda82; }
+.theme-xmas .play-button:hover:enabled { color:#ffe6a6; }
+.theme-xmas .playing .play-button:enabled { color:#fff0b6; }
+.theme-xmas .playing .play-button:enabled::after { display:none; }
 .theme-xmas .playing #play-icon { filter:drop-shadow(0 0 8px #ffa83aa0); }
 .theme-xmas .radio-metadata .track-eyebrow,.theme-xmas .topic-label { color:#ffd17a; }
 .theme-xmas .track-eyebrow { position:relative; }
 .theme-xmas .track-eyebrow::after,.theme-xmas .topic-label::after {
   content:""; display:block; height:1px; width:min(100%,15ch); margin:6px auto 3px;
-  background:linear-gradient(90deg,transparent,#a66b34 50%,transparent);
+  background:url(../../img/xmas-zierlinie.png) center / 100% auto no-repeat;
 }
 .theme-xmas .topic-label::after { height:2px; width:min(100%,20ch); }
 .theme-xmas .track-eyebrow::before {
@@ -36,8 +37,7 @@
 }
 .theme-xmas .playing .track-eyebrow::before { opacity:1; }
 .theme-xmas .playing .track-eyebrow::after,.theme-xmas .playing .topic-label::after {
-  background:linear-gradient(90deg,transparent,#f9b856 35%,#fff0a4 50%,#f9b856 65%,transparent);
-  box-shadow:0 0 8px #ff94295e;
+  filter:brightness(1.65);
 }
 .theme-xmas #track-artist { color:#e9d3b8; }
 .theme-xmas .presenter[data-mode=mix] .on-air-sign { font-style:italic; font-synthesis:style; }
@@ -47,20 +47,25 @@
 }
 .theme-xmas .radio-metadata .volume-control output { color:#ffd17a; border-color:#a9753a; background:#19130d; }
 .theme-xmas .volume-control input::-webkit-slider-thumb {
-  border-color:#a16a36; background:linear-gradient(155deg,#fff0b9,#c28642);
+  border:0; background:url(../../img/xmas-reglergriff.png) center / contain no-repeat;
+  box-shadow:none; filter:contrast(.81) brightness(1.63) saturate(.84);
 }
 .theme-xmas .volume-control input::-moz-range-thumb {
-  border-color:#a16a36; background:linear-gradient(155deg,#fff0b9,#c28642);
+  border:0; background:url(../../img/xmas-reglergriff.png) center / contain no-repeat;
+  box-shadow:none; filter:contrast(.81) brightness(1.63) saturate(.84);
 }
 .theme-xmas .playing .volume-control input::-webkit-slider-thumb {
-  border-color:#fece77; box-shadow:0 0 8px 2px #ffac41aa;
+  filter:contrast(.76) brightness(1.94) saturate(.80) drop-shadow(0 0 3px #ffce55b8);
 }
 .theme-xmas .playing .volume-control input::-moz-range-thumb {
-  border-color:#fece77; box-shadow:0 0 8px 2px #ffac41aa;
+  filter:contrast(.76) brightness(1.94) saturate(.80) drop-shadow(0 0 3px #ffce55b8);
 }
+.theme-xmas .volume-control #mute-button {
+  border:1px solid #ffbd50; background:#18120d; color:#ffc659;
+}
+.theme-xmas .volume-control #mute-button::before { display:none; }
 .theme-xmas .wish-button:enabled {
-  color:#fff0d6; border-color:#c68e4d; background:linear-gradient(#291e15,#100d09 64%);
-  box-shadow:inset 0 1px #ffe1a067,0 4px 9px #0009;
+  color:#fff0d6; border-color:#f6b348; background:#17120deb;
 }
 .theme-xmas .wish-button:hover:enabled { border-color:#ffd17a; background:#33241a; }
 .theme-xmas .wish-button:active:enabled { background:#24170d; }
@@ -73,6 +78,35 @@
 .radio-xmas-icon { display:none; }
 .theme-xmas .public-action-icon svg { display:none; }
 .theme-xmas .public-action-icon .radio-xmas-icon { display:block; }
+
+.xmas-read-trigger,.xmas-reader:not([open]) { display:none; }
+.theme-xmas .xmas-read-trigger:not([hidden]) {
+  display:block; position:absolute; z-index:1; inset:0; width:100%; height:100%;
+  min-height:44px; border:0; border-radius:7px; padding:0; background:transparent;
+}
+.theme-xmas .xmas-read-trigger:hover { background:#ffda8e0c; }
+.theme-xmas .xmas-read-trigger:focus-visible { outline:2px solid #ffd37f; outline-offset:-2px; }
+.theme-xmas.xmas-compact.xmas-short .radio-bar {
+  --play-size:clamp(44px,calc(var(--xmas-room) * .315),55px);
+}
+.theme-xmas .radio-bar .radio-brand .bar-logo { width:calc(var(--xmas-room,180px) * .72); }
+.xmas-reader[open] {
+  position:fixed; inset:0; display:grid; grid-template-rows:auto minmax(0,1fr) 44px;
+  gap:4px; width:min(720px,calc(100% - 12px)); max-width:none; max-height:none;
+  height:min(calc(100% - 12px),calc(var(--xmas-height,100%) - 12px));
+  margin:auto; padding:6px 10px; border:1px solid #bc8952; border-radius:14px;
+  color:#fff0d6; background:var(--bg); overflow:visible; z-index:9;
+}
+.xmas-reader::backdrop { background:#000b; }
+.xmas-reader h2 { margin:0; color:#ffd37f; font:600 17px/1.25 Outfit,system-ui,sans-serif; }
+#xmas-reader-text { margin:0; min-height:0; white-space:pre-wrap; overflow-wrap:anywhere; font-size:14px; line-height:1.42; }
+.xmas-reader-actions { display:flex; align-items:center; justify-content:flex-end; gap:4px; }
+.xmas-reader-actions button {
+  min-width:44px; min-height:44px; padding:0 6px; border:1px solid #8d6438; border-radius:7px;
+  color:inherit; background:#231c14; font-size:13px;
+}
+.xmas-reader-actions button:focus-visible { outline-offset:-3px; }
+#xmas-reader-page { margin-inline:auto; font-size:12px; white-space:nowrap; }
 
 @media (min-width:1200px) {
   .theme-xmas .radio-metadata .volume-control {

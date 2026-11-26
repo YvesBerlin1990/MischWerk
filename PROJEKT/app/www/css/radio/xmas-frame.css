@@ -1,134 +1,174 @@
-/* Winterrahmen und Bildschichten oberhalb bzw. hinter der bedienbaren Radiofläche. */
-html[data-view=radio].theme-xmas { --canvas:#101010; --bg:#101010; }
-html[data-view=radio].theme-xmas body::after { display:none; }
-.radio-xmas-frame { display:none; }
+/* Freigestellte Bildteile, Kabel und synchronisierte Lichtschichten der Weihnachtsleiste. */
+.radio-xmas-frame,.radio-xmas-ornaments { display:none; }
 .theme-xmas .radio-deck {
-  --xmas-inset:16px; --deck-radius:clamp(23px,2.4vw,49px);
+  --xmas-corner:clamp(24px,calc(55 * var(--xmas-unit)),100px);
+  --xmas-snow-corner:max(54px,calc(99 * var(--xmas-unit)));
+  --deck-radius:calc(var(--xmas-corner) * .87);
   --deck-top:0px; --deck-x:0px; --deck-tail:0px; --radio-glow-space:0px;
-  --xmas-snow-depth:32px; --xmas-snow-corner:clamp(80px,7.5vw,150px);
-  --xmas-spark:url(../../img/xmas-star.png);
-  margin-top:0; padding:var(--xmas-inset);
+  --xmas-spark:url(../../img/xmas-funkeln.png);
+  display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr) auto;
+  height:var(--xmas-height,100%); margin-top:0;
+  padding:var(--xmas-pad-y,10px) var(--xmas-pad-x,10px);
 }
-.theme-xmas .radio-bar { --text:#fff0d6; --muted:#e5cdae; --gold:#ffd37f; background:transparent; }
-.theme-xmas .radio-program-face {
-  inset:0; border:0; border-radius:var(--deck-radius);
-  background:linear-gradient(180deg,#0002,transparent 33%,#0005),
-    url(../../img/xmas-surface.png) center / cover no-repeat,var(--bg);
-}
+.theme-xmas .radio-bar { --text:#fff0d6; --muted:#e5cdae; --gold:#ffc659; background:transparent; }
+.theme-xmas .radio-program-face { inset:0; border:0; border-radius:var(--deck-radius); }
 .theme-xmas .playing .radio-program-face { animation:none; box-shadow:none; }
+.theme-xmas .radio-program-face::after { animation:none; }
 .theme-xmas .radio-program-face::before,
 .theme-xmas.radio-has-ticker .radio-deck::before,
 .theme-xmas.radio-has-ticker .radio-deck::after { display:none; }
-.theme-xmas .radio-program-face::after {
-  animation:none; opacity:1; clip-path:none; border-radius:inherit;
-  background:
-    url(../../img/xmas-corner-bow.png) left top / clamp(196px,19vw,396px) auto no-repeat,
-    url(../../img/xmas-corner-fir.png) right top / clamp(174px,16vw,336px) auto no-repeat,
-    url(../../img/xmas-fir.png) right clamp(36px,2.5vw,58px) top / clamp(185px,22vw,433px) auto no-repeat,
-    url(../../img/xmas-corner-pinecone.png) right 4px bottom / clamp(146px,12vw,240px) auto no-repeat;
-}
 .theme-xmas .radio-xmas-frame {
-  --xmas-lamp-gap:105px; --xmas-lamp-size:clamp(20px,1.3vw,26px); --xmas-cable-inset:3px;
-  display:block; position:absolute; inset:var(--xmas-inset);
+  --xmas-lamp-gap:var(--xmas-wide-lamp-gap,96px);
+  --xmas-lamp-size:clamp(8px,calc(12 * var(--xmas-unit)),22px);
+  --xmas-cable-inset:3px;
+  display:block; position:absolute;
+  inset:var(--xmas-pad-y) var(--xmas-pad-x) calc(var(--xmas-pad-y) + var(--xmas-footer)) var(--xmas-pad-x);
   z-index:2; pointer-events:none; border-radius:var(--deck-radius);
 }
-.radio-xmas-frame::before {
-  content:""; position:absolute; inset:0; border:2px solid #976737; border-radius:inherit;
-  box-shadow:0 0 0 1px #4e331d,inset 0 0 0 1px #d4a466,inset 0 0 0 3px #63401d;
+.radio-xmas-metal,.radio-xmas-snow,.radio-xmas-cable,.radio-xmas-sparks {
+  position:absolute; inset:0; border-radius:inherit;
 }
-.playing .radio-xmas-frame::before {
-  border-color:#ffca73;
-  box-shadow:0 0 0 1px #a5571c,0 0 5px 1px #f8a63ad9,0 0 9px 1px #ff993083,
-    inset 0 0 0 1px #ffffc7,inset 0 0 7px 2px #f9a54cad,inset 0 0 25px #f19c4140;
+.radio-xmas-metal {
+  --rail:clamp(4px,calc(7 * var(--xmas-unit)),14px);
+  background:
+    url(../../img/xmas-rahmen-oben-links.png) left top / var(--xmas-corner) auto no-repeat,
+    url(../../img/xmas-rahmen-oben-rechts.png) right top / var(--xmas-corner) auto no-repeat,
+    url(../../img/xmas-rahmen-unten-links.png) left bottom / var(--xmas-corner) auto no-repeat,
+    url(../../img/xmas-rahmen-unten-rechts.png) right bottom / var(--xmas-corner) auto no-repeat;
 }
-.radio-xmas-snow,.radio-xmas-sparks { position:absolute; inset:0; border-radius:inherit; }
+.playing .radio-xmas-metal {
+  filter:brightness(1.16) drop-shadow(0 0 3px #ffbc63a0) drop-shadow(0 0 7px #ff96194d);
+}
+.radio-xmas-metal i,.radio-xmas-cable i { position:absolute; }
+.radio-xmas-metal i:nth-child(-n+2),.radio-xmas-cable i:nth-child(-n+2) {
+  inset-inline:calc(var(--xmas-corner) - 4px);
+}
+.radio-xmas-metal i:nth-child(-n+2) {
+  height:var(--rail);
+  background:url(../../img/xmas-rahmen-waagerecht.png) center / auto 100% repeat-x;
+}
+.radio-xmas-metal i:nth-child(n+3) {
+  inset-block:calc(var(--xmas-corner) - 4px); width:var(--rail);
+  background:url(../../img/xmas-rahmen-senkrecht.png) center / 100% auto repeat-y;
+}
+.radio-xmas-metal i:first-child { top:0; }
+.radio-xmas-metal i:nth-child(2) { bottom:0; }
+.radio-xmas-metal i:nth-child(3) { left:0; }
+.radio-xmas-metal i:nth-child(4) { right:0; }
 .radio-xmas-snow {
   background:
-    url(../../img/xmas-snow-top-left.png) left top / var(--xmas-snow-corner) auto no-repeat,
-    url(../../img/xmas-snow-top-right.png) right top / var(--xmas-snow-corner) auto no-repeat,
-    url(../../img/xmas-snow-bottom-left.png) left bottom / var(--xmas-snow-corner) auto no-repeat,
-    url(../../img/xmas-snow-bottom-right.png) right bottom / var(--xmas-snow-corner) auto no-repeat;
+    url(../../img/xmas-schnee-oben-links.png) left top / var(--xmas-snow-corner) auto no-repeat,
+    url(../../img/xmas-schnee-oben-rechts.png) right top / var(--xmas-snow-corner) auto no-repeat,
+    url(../../img/xmas-schnee-unten-links.png) left bottom / var(--xmas-snow-corner) auto no-repeat,
+    url(../../img/xmas-schnee-unten-rechts.png) right bottom / var(--xmas-snow-corner) auto no-repeat;
 }
 .radio-xmas-snow::before,.radio-xmas-snow::after {
-  content:""; position:absolute; inset-inline:calc(var(--xmas-snow-corner) * .58);
-  height:var(--xmas-snow-depth); background:url(../../img/xmas-snow.png) center / auto 100% repeat-x;
-  mask-image:linear-gradient(90deg,transparent,#000 26px,#000 calc(100% - 26px),transparent);
+  content:""; position:absolute; inset-inline:calc(var(--xmas-corner) + 2px);
+  mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);
 }
-.radio-xmas-snow::before { top:calc(-.52 * var(--xmas-snow-depth)); }
-.radio-xmas-snow::after { bottom:calc(-.20 * var(--xmas-snow-depth)); background-position:32% center; }
+.radio-xmas-snow::before {
+  top:calc(-3 * var(--xmas-unit)); height:calc(11 * var(--xmas-unit));
+  background:url(../../img/xmas-schnee-mitte-oben.png) center / auto 100% repeat-x;
+}
+.radio-xmas-snow::after {
+  bottom:0; height:calc(13 * var(--xmas-unit));
+  background:url(../../img/xmas-schnee-mitte-unten.png) 32% center / auto 100% repeat-x;
+}
+.radio-xmas-cable { opacity:.42; }
+.radio-xmas-cable i:nth-child(-n+2) {
+  height:clamp(1px,calc(2 * var(--xmas-unit)),3px);
+  background:url(../../img/xmas-kabel-fein.png) center / auto 100% repeat-x;
+}
+.radio-xmas-cable i:first-child { top:var(--xmas-cable-inset); }
+.radio-xmas-cable i:nth-child(2) { bottom:var(--xmas-cable-inset); }
+.radio-xmas-cable i:nth-child(n+3) {
+  inset-block:var(--xmas-corner); width:calc(9 * var(--xmas-unit));
+  background:url(../../img/xmas-kabel-senkrecht.png) center / contain no-repeat;
+}
+.radio-xmas-cable i:nth-child(3) { left:1px; }
+.radio-xmas-cable i:nth-child(4) { right:1px; transform:rotate(180deg); }
+.radio-xmas-cable b {
+  position:absolute; width:var(--xmas-corner); height:var(--xmas-corner);
+  background:url(../../img/xmas-kabel-rundung.png) center / contain no-repeat;
+}
+.radio-xmas-cable b:nth-of-type(1) { left:1px; top:1px; transform:rotate(-90deg); }
+.radio-xmas-cable b:nth-of-type(2) { right:1px; top:1px; }
+.radio-xmas-cable b:nth-of-type(3) { left:1px; bottom:1px; transform:rotate(180deg); }
+.radio-xmas-cable b:nth-of-type(4) { right:1px; bottom:1px; transform:rotate(90deg); }
 .radio-xmas-sparks {
   opacity:0;
-  background:var(--xmas-spark) 2.4% 15% / 64px auto no-repeat,
-    var(--xmas-spark) 16% 11% / 38px auto no-repeat,
-    var(--xmas-spark) 88% 7% / 57px auto no-repeat,
-    var(--xmas-spark) 98% 12% / 54px auto no-repeat,
-    var(--xmas-spark) 91% 96% / 60px auto no-repeat,
-    var(--xmas-spark) 3% 95% / 33px auto no-repeat;
+  background:var(--xmas-spark) 2% 7% / calc(41 * var(--xmas-unit)) auto no-repeat,
+    var(--xmas-spark) 77% 4% / calc(38 * var(--xmas-unit)) auto no-repeat,
+    var(--xmas-spark) 98% 12% / calc(37 * var(--xmas-unit)) auto no-repeat,
+    var(--xmas-spark) 84% 96% / calc(40 * var(--xmas-unit)) auto no-repeat;
 }
 .radio-xmas-lamp {
-  width:var(--xmas-lamp-size); height:var(--xmas-lamp-size);
+  width:var(--xmas-lamp-size); height:calc(var(--xmas-lamp-size) * 1.244);
   transform:translate(-50%,-50%) rotate(var(--xmas-angle));
-  background:url(../../img/xmas-bulb.png) center / contain no-repeat;
+  background:url(../../img/xmas-lampe-aus.png) center / contain no-repeat;
+}
+.radio-xmas-lamp::before {
+  content:""; position:absolute; inset:0; z-index:-1;
+  background:url(../../img/xmas-fassung.png) center 94% / 53% auto no-repeat;
 }
 .radio-xmas-lamp,.radio-xmas-halo { position:absolute; left:var(--xmas-x); top:var(--xmas-y); }
-.radio-xmas-cable { position:absolute; inset:0; display:block; width:100%; height:100%; overflow:visible; }
-.radio-xmas-cable path {
-  fill:none; stroke:#5d442d; stroke-width:1.4px; stroke-linecap:round; stroke-linejoin:round;
-  filter:drop-shadow(0 1px 0 #0a0604b8);
-}
 .radio-xmas-halos {
-  position:absolute; inset:calc(-1 * var(--xmas-inset)); opacity:0;
-  mask-image:linear-gradient(to right,transparent 1px,#000 var(--xmas-inset),#000 calc(100% - var(--xmas-inset)),transparent calc(100% - 1px)),
-    linear-gradient(to bottom,transparent 1px,#000 var(--xmas-inset),#000 calc(100% - var(--xmas-inset)),transparent calc(100% - 1px));
+  position:absolute; inset:calc(-1 * var(--xmas-pad-y)) max(calc(-1 * var(--xmas-pad-x)),-40px);
+  opacity:0; overflow:hidden; overflow:clip;
+  --fade-x:min(40px,var(--xmas-pad-x));
+  mask-image:linear-gradient(to right,transparent 1px,#000 var(--fade-x),#000 calc(100% - var(--fade-x)),transparent calc(100% - 1px)),
+    linear-gradient(to bottom,transparent 1px,#000 var(--xmas-pad-y),#000 calc(100% - var(--xmas-pad-y)),transparent calc(100% - 1px));
   mask-composite:intersect;
 }
 .radio-xmas-halo {
-  transform:translate(var(--xmas-inset),var(--xmas-inset)) rotate(var(--xmas-angle));
+  transform:translate(min(40px,var(--xmas-pad-x)),var(--xmas-pad-y)) rotate(var(--xmas-angle));
 }
 .radio-xmas-halo::before {
-  content:""; position:absolute; top:calc(-.20 * var(--xmas-lamp-size));
-  width:calc(2 * var(--xmas-lamp-size)); height:calc(2 * var(--xmas-lamp-size));
+  content:""; position:absolute; top:calc(-.15 * var(--xmas-lamp-size));
+  width:calc(5.2 * var(--xmas-lamp-size)); aspect-ratio:273 / 270;
   transform:translate(-50%,-50%);
-  background:url(../../img/xmas-bulb-lit.png) center / contain no-repeat;
+  background:url(../../img/xmas-schein.png) center / contain no-repeat;
 }
 .radio-xmas-lamp::after {
-  content:""; position:absolute; left:50%; top:30%; width:60%; height:62%; opacity:0;
-  transform:translate(-50%,-50%);
-  background:radial-gradient(circle closest-side,#fffbe8 64%,#fff6d0 78%,#ffdd8f 90%,#ffba4700);
+  content:""; position:absolute; inset:0; opacity:0;
+  background:url(../../img/xmas-lampe-an.png) center / contain no-repeat;
+  filter:brightness(1.32) saturate(.85);
 }
-.playing .radio-xmas-lamp { background-image:none; }
+.playing .radio-xmas-lamp {
+  background-image:none;
+}
 .playing .radio-xmas-lamp::after,.playing .radio-xmas-halos,.playing .radio-xmas-sparks { opacity:1; }
+.playing .radio-xmas-lamp::after,.playing .radio-xmas-halo::before {
+  animation:mw-xmas-chain 3.6s ease-in-out var(--xmas-phase,0s) infinite;
+}
+@keyframes mw-xmas-chain {
+  0%,43%,100% { opacity:.34; }
+  64%,83% { opacity:1; }
+}
 .theme-xmas.radio-has-ticker .radio-ticker {
-  width:100%; margin:0; padding:0 17px 8px; box-shadow:inset 0 1px #423522;
+  width:100%; margin:0; padding:0 12px; box-shadow:inset 0 1px #423522;
+}
+.theme-xmas .radio-xmas-ornaments {
+  display:block; position:absolute; inset:0; border-radius:inherit;
+  background:
+    url(../../img/xmas-schleife.png) 15% top / clamp(52px,9vw,100px) auto no-repeat,
+    url(../../img/xmas-kugel.png) 16% 20% / clamp(26px,4vw,48px) auto no-repeat,
+    url(../../img/xmas-tanne-links.png) left top / clamp(110px,23vw,260px) auto no-repeat,
+    url(../../img/xmas-tanne-rechts.png) right top / clamp(108px,22vw,220px) auto no-repeat;
 }
 @media (max-width:1199px) {
-  .theme-xmas .radio-deck { --xmas-inset:13px; --xmas-snow-depth:25px; }
   .theme-xmas .radio-xmas-frame { --xmas-lamp-gap:84px; }
-  .theme-xmas .radio-program-face::after {
-    background:
-      url(../../img/xmas-bow.png) 1% 0 / 19% auto no-repeat,
-      url(../../img/xmas-fir.png) 99% 0 / 21% auto no-repeat,
-      url(../../img/xmas-pinecone.png) 98% 100% / 11% auto no-repeat;
-  }
 }
 @media (max-width:700px) {
-  .theme-xmas .radio-deck { --xmas-inset:10px; --xmas-snow-depth:19px; --xmas-snow-corner:76px; }
-  .theme-xmas .radio-xmas-frame { --xmas-lamp-gap:74px; --xmas-lamp-size:20px; --xmas-cable-inset:4px; }
-  .theme-xmas .radio-program-face::after {
-    background:
-      url(../../img/xmas-corner-bow.png) left 6px top 5px / clamp(80px,28vw,138px) auto no-repeat,
-      url(../../img/xmas-corner-pinecone.png) right 6px top 43px / var(--xmas-mobile-pinecone,0px) auto no-repeat,
-      url(../../img/xmas-corner-fir.png) right 4px top 7px / clamp(78px,26vw,138px) auto no-repeat;
+  .theme-xmas .radio-xmas-frame { --xmas-lamp-gap:74px; --xmas-cable-inset:4px; }
+  .theme-xmas .radio-xmas-ornaments {
+    background-position:7px 2px,25px 41px,left top,right top;
   }
-  .theme-xmas .playing .radio-xmas-frame::before {
-    box-shadow:0 0 0 1px #a5571c,0 0 4px 1px #f8a63ad9,0 0 5px #ff99306b,
-      inset 0 0 0 1px #ffffc7,inset 0 0 7px 2px #f9a54cad,inset 0 0 25px #f19c4140;
-  }
+  .theme-xmas.xmas-compact .radio-xmas-ornaments { opacity:.30; }
   .theme-xmas .radio-xmas-sparks {
-    background-position:14px 9px,0 0,0 0,calc(100% - 14px) 7px,0 0,0 0;
-    background-size:26px auto,0,0,26px auto,0,0;
+    background-position:14px 9px,0 0,calc(100% - 14px) 7px,0 0;
+    background-size:22px auto,0,22px auto,0;
   }
 }
-@media (min-width:376px) and (max-width:700px) {
-  .theme-xmas .radio-deck { --xmas-mobile-pinecone:clamp(66px,18vw,86px); }
-}
+
+.playing .radio-xmas-halo::before { opacity:1; }

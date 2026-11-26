@@ -3,41 +3,41 @@
   "appId": "knuddelsDEV.30807196.MischWerk",
   "installId": "30807196.MischWerk",
   "channel": "MischWerk",
-  "version": "0.1.457",
-  "buildNumber": 457,
+  "version": "0.1.458",
+  "buildNumber": 458,
   "remotePath": "/ftp/MischWerk",
   "stationConfigured": true,
   "ftpHost": "appupload.knuddels.de",
   "ftpUser": "30807196",
   "delivery": "upload-directory",
   "bundled": true,
-  "localUploadRoot": "C:\\Users\\alexk\\Documents\\Releases\\Knuddels User Apps\\MischWerk",
-  "fileCount": 143,
+  "localUploadRoot": "C:\\Users\\alexk\\AppData\\Local\\Temp\\MischWerk-458-XMas-Pruefpaket-nD5rtw\\MischWerk",
+  "fileCount": 163,
   "fileManifests": [
     {
       "path": "manifest-server.json",
       "fileCount": 45,
       "bytes": 7707,
-      "sha256": "266985A7BD404CCC80B69E60882F8B5C4AD9AF9CB19367871228B241B77AF1CF"
+      "sha256": "2ABFE1378A91C55C822FC4FF82525FA92B508495315F1DF583A9207B63FFD046"
     },
     {
       "path": "manifest-www.json",
-      "fileCount": 45,
-      "bytes": 7723,
-      "sha256": "464ACFE2209D41133AB2F2014DA9FFF6EEC03B7FD95967F1C0308DC85ADE0BB1"
+      "fileCount": 46,
+      "bytes": 7899,
+      "sha256": "7FB6F1D7910DA7E011859702D82B0279CC66780F4178D8D7E053A680BAC3F8BE"
     },
     {
       "path": "manifest-studio.json",
       "fileCount": 19,
       "bytes": 3327,
-      "sha256": "85769D37A7D5A86256C2566AA371215CB6A9E11F587A359C840838B8DEE4AEA7"
+      "sha256": "FBBECB833DC49C05915541BA3E5C0FC9BB84263CF6AA6E6523B01B7B6858EDF8"
     },
     {
       "path": "manifest-media.json",
-      "fileCount": 34,
-      "bytes": 5946,
-      "sha256": "259BDB32CE0D69C792B353F97B46CAF3D513A24EE49257C9828D56FD17F36CCE"
+      "fileCount": 53,
+      "bytes": 9333,
+      "sha256": "963777CCD10F432AB10F0D4FD44F812AB85F8D03F7671B2B55E216CABDF83952"
     }
   ],
-  "localUploadDirectory": "C:\\Users\\alexk\\Documents\\Releases\\Knuddels User Apps\\MischWerk"
+  "localUploadDirectory": "C:\\Users\\alexk\\AppData\\Local\\Temp\\MischWerk-458-XMas-Pruefpaket-nD5rtw\\MischWerk"
 }

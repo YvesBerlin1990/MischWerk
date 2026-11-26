@@ -71,24 +71,56 @@ MischWerkUI.define('viewport', function (dependencies) {
     var volume=metadata.querySelector('.volume-control').getBoundingClientRect();
     // Die Musiküberschrift ist die Bezugslinie. Lange Themen müssen samt Regler passen.
     var musicCenter=music.top+music.height/2,topicCenter=topic.top+topic.height/2;
-    var xmas=root.classList.contains('theme-xmas');
-    var wishBelow=(window.innerWidth<1800||xmas)&&document.body.classList.contains('has-own-wish')&&!dom.el('radio-panel').classList.contains('has-moderation');
+    var wishBelow=window.innerWidth<1800&&document.body.classList.contains('has-own-wish')&&!dom.el('radio-panel').classList.contains('has-moderation');
     var top=wishBelow?topicCenter:Math.max(area.top+8+Math.max(music.height,topic.height)/2,
       Math.min(musicCenter,area.bottom-(volume.bottom-topicCenter)-8));
     var shift=top-musicCenter;
-    if(xmas&&music.height){
-      // Bei langen Titeln bleibt die ganze Musikgruppe innerhalb ihrer natürlichen Fläche.
-      var copy=metadata.querySelector('.track-copy').getBoundingClientRect();
-      shift=Math.max(area.top+4-copy.top,Math.min(shift,area.bottom-4-copy.bottom));
-    }
     root.style.setProperty('--radio-music-shift',shift+'px');
     if(!wishBelow)root.style.setProperty('--radio-context-shift',(top-topicCenter)+'px');
+  }
+  function requestHeight(height) {
+    root.style.setProperty('--radio-height', height + 'px');
+    if (!bridge || height === requestedHeight) { return; }
+    requestedHeight = height;
+    try { bridge.getHostFrame().setSize(0, height); }
+    catch (ignored) { /* Die angezeigte Leiste nutzt die tatsächlich gewährte Höhe. */ }
+  }
+  function fitXmas() {
+    var width = window.innerWidth;
+    var ticker = dom.el('radio-ticker');
+    var footer = ticker && !ticker.hidden ? 44 : 0;
+    // Die freigegebene Fläche misst 1645 × 292. Kleine Hosthöhen dürfen das Raster gemeinsam verkleinern.
+    var wide = width >= 1200;
+    var preferred = Math.min(500, (wide ? Math.ceil(width * 292 / 1645) : width > 700 ? 262 : 432) + footer);
+    var granted = Math.min(preferred, window.innerHeight);
+    var available = Math.max(0, granted - footer);
+    var reference = wide && available >= 198;
+    var unit = reference ? Math.min(width / 1645, available / 292) : width > 700 ? .78 : .59;
+    var inset = reference ? 22 * unit : wide ? 16 : width > 700 ? 13 : 10;
+    var horizontal = reference ? (width - 1645 * unit) / 2 + inset : inset;
+    var room = Math.max(0, available - 2 * inset);
+    var sizes = { height:granted, room:room, unit:unit, 'pad-x':horizontal, 'pad-y':inset,
+      footer:footer, 'wide-lamp-gap':96 * unit };
+    Object.keys(sizes).forEach(function (name) {
+      root.style.setProperty('--xmas-' + name, sizes[name] + 'px');
+    });
+    root.classList.remove('radio-constrained');
+    root.classList.toggle('xmas-reference', reference);
+    root.classList.toggle('xmas-compact', width <= 700 && room < 355);
+    root.classList.toggle('xmas-short', room < (width <= 700 ? 170 : 157));
+    var title = dom.el('track-title');
+    title.classList.toggle('xmas-long-title', title.textContent.length > 28);
+    requestHeight(preferred);
+    if (xmasFrame) { xmasFrame.fit(); }
+    if (workshop) { workshop.fit(); }
   }
   function resize(initial) {
     if ((!root.classList.contains('mw-ready') && initial !== true) || model.view !== 'radio' || (document.readyState === 'loading' && initial !== true) ||
         !Array.from(document.querySelectorAll('link[rel=stylesheet]')).every(function (link) { return !!link.sheet; })) { return; }
     var small = window.innerWidth <= 1350;
     var focused = document.activeElement;
+    if (root.classList.contains('theme-xmas')) { fitXmas(); return; }
+    root.classList.remove('xmas-compact', 'xmas-short', 'xmas-reference');
     var constrained = small && window.innerHeight < 360;
     root.classList.toggle('radio-constrained', constrained);
     if (bridge && !bridge.isK3Client()) { root.classList.remove('radio-constrained'); }
@@ -101,20 +133,12 @@ MischWerkUI.define('viewport', function (dependencies) {
     var deckStyle = getComputedStyle(deck);
     var topSpace = parseFloat(deckStyle.marginTop) || 0;
     var glowSpace = parseFloat(deckStyle.getPropertyValue('--radio-glow-space')) || 0;
-    var xmas = root.classList.contains('theme-xmas');
-    var contentHeight = xmas ? Math.ceil(deck.getBoundingClientRect().height) :
-      topSpace + Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + tickerHeight + glowSpace;
+    var contentHeight = topSpace + Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + tickerHeight + glowSpace;
     var height = Math.min(500, contentHeight);
     if (bridge && !bridge.isK3Client()) { constrained = small && window.innerHeight + 1 < contentHeight; }
-    root.style.setProperty('--radio-height', height + 'px');
-    if (bridge && height !== requestedHeight) {
-      requestedHeight = height;
-      try { bridge.getHostFrame().setSize(0, height); }
-      catch (ignored) { /* Der kompakte Fallback bleibt im tatsächlichen Rahmen erreichbar. */ }
-    }
+    requestHeight(height);
     root.classList.toggle('radio-constrained', constrained);
-    if (xmas && xmasFrame) { xmasFrame.fit(); }
-    if (!xmas && workshop) { workshop.fit(); }
+    if (workshop) { workshop.fit(); }
     if (focused && focused !== document.body && !focused.getClientRects().length) {
       var target = dom.el('open-wishes').disabled ? dom.el('mute-button') : dom.el('open-wishes');
       target.focus({ preventScroll:true });

@@ -2,7 +2,32 @@
 MischWerkUI.define('xmasFrame', function (dependencies) {
   'use strict';
   var frame = dependencies.dom.el('radio-xmas-frame');
-  var measured = '', cable, wire, halos;
+  var measured = '', halos = frame.querySelector('.radio-xmas-halos');
+  var lights = [];
+
+  function fitLights(count) {
+    if (lights.length === count) { return; }
+    lights.forEach(function (light) { light.lamp.remove(); light.halo.remove(); });
+    lights = [];
+    // Ganze Gruppen auf einem geschlossenen Ring halten auch die Naht zwischen Ende und Anfang im Takt.
+    var groups = Math.max(1, Math.round(count / 7));
+    for (var index = 0; index < count; index += 1) {
+      var lamp = document.createElement('span');
+      lamp.className = 'radio-xmas-lamp';
+      lamp.style.setProperty('--xmas-phase', (-3.6 * ((count - index) * groups % count) / count).toFixed(5) + 's');
+      var halo = lamp.cloneNode(false);
+      halo.className = 'radio-xmas-halo';
+      halos.appendChild(halo);
+      frame.appendChild(lamp);
+      lights.push({lamp:lamp, halo:halo});
+    }
+  }
+
+  function placeLight(light, point) {
+    light.style.setProperty('--xmas-x', point[0].toFixed(2) + 'px');
+    light.style.setProperty('--xmas-y', point[1].toFixed(2) + 'px');
+    light.style.setProperty('--xmas-angle', point[2].toFixed(2) + 'deg');
+  }
 
   function fit() {
     var box = frame.getBoundingClientRect();
@@ -50,7 +75,6 @@ MischWerkUI.define('xmasFrame', function (dependencies) {
       var point = segment.point(distance - segment.start);
       return [point[0] + inset, point[1] + inset, point[2]];
     }
-    function coords(x, y) { return x.toFixed(2) + ' ' + y.toFixed(2); }
     var distances = [];
     corners.forEach(function (start, index) {
       var length = (corners[index + 1] || corners[0] + perimeter) - start;
@@ -58,48 +82,12 @@ MischWerkUI.define('xmasFrame', function (dependencies) {
       for (var i = 0; i < count; i += 1) { distances.push(start + length * i / count); }
     });
 
-    if (!cable) {
-      var svg = 'http://www.w3.org/2000/svg';
-      cable = document.createElementNS(svg, 'svg');
-      cable.setAttribute('class', 'radio-xmas-cable');
-      wire = document.createElementNS(svg, 'path');
-      cable.appendChild(wire);
-      frame.appendChild(cable);
-      halos = document.createElement('span');
-      halos.className = 'radio-xmas-halos';
-      frame.appendChild(halos);
-    }
-    cable.setAttribute('viewBox', '0 0 ' + box.width + ' ' + box.height);
-    var lamps = document.createDocumentFragment();
-    var light = document.createDocumentFragment();
-    var first = pointAt(distances[0]);
-    var path = 'M' + coords(first[0], first[1]);
+    fitLights(distances.length);
     distances.forEach(function (distance, index) {
       var point = pointAt(distance);
-      var nextDistance = distances[index + 1] || distances[0] + perimeter;
-      var end = pointAt(nextDistance);
-      var middle = pointAt((distance + nextDistance) / 2);
-      var radians = middle[2] * Math.PI / 180;
-      var sag = Math.min(4, (nextDistance - distance) * .06);
-      // Der Kurvenmittelpunkt folgt dem Rahmenprofil und hängt leicht nach innen durch.
-      var x = 2 * (middle[0] - Math.sin(radians) * sag) - (point[0] + end[0]) / 2;
-      var y = 2 * (middle[1] + Math.cos(radians) * sag) - (point[1] + end[1]) / 2;
-      path += ' Q' + coords(x, y) + ' ' + coords(end[0], end[1]);
-      var lamp = document.createElement('span');
-      lamp.className = 'radio-xmas-lamp';
-      lamp.style.setProperty('--xmas-x', point[0].toFixed(2) + 'px');
-      lamp.style.setProperty('--xmas-y', point[1].toFixed(2) + 'px');
-      lamp.style.setProperty('--xmas-angle', point[2].toFixed(2) + 'deg');
-      var halo = lamp.cloneNode(false);
-      halo.className = 'radio-xmas-halo';
-      light.appendChild(halo);
-      lamps.appendChild(lamp);
+      placeLight(lights[index].lamp, point);
+      placeLight(lights[index].halo, point);
     });
-    wire.setAttribute('d', path + ' Z');
-    halos.textContent = '';
-    halos.appendChild(light);
-    frame.querySelectorAll('.radio-xmas-lamp').forEach(function (lamp) { frame.removeChild(lamp); });
-    frame.appendChild(lamps);
   }
 
   return {fit:fit};
