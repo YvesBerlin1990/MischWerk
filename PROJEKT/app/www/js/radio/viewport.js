@@ -85,56 +85,62 @@ MischWerkUI.define('viewport', function (dependencies) {
     try { bridge.getHostFrame().setSize(0, height); }
     catch (ignored) { /* Die angezeigte Leiste nutzt die tatsächlich gewährte Höhe. */ }
   }
-  function fitXmas() {
+  function fitXmas(preferred) {
     var width = window.innerWidth;
     var ticker = dom.el('radio-ticker');
     var footer = ticker && !ticker.hidden ? 44 : 0;
-    // Die freigegebene Fläche misst 1645 × 292. Kleine Hosthöhen dürfen das Raster gemeinsam verkleinern.
     var wide = width >= 1200;
-    var preferred = Math.min(500, (wide ? Math.ceil(width * 292 / 1645) : width > 700 ? 262 : 432) + footer);
     var granted = Math.min(preferred, window.innerHeight);
     var available = Math.max(0, granted - footer);
     var reference = wide && available >= 198;
     var unit = reference ? Math.min(width / 1645, available / 292) : width > 700 ? .78 : .59;
     var inset = reference ? 22 * unit : wide ? 16 : width > 700 ? 13 : 10;
-    var horizontal = reference ? (width - 1645 * unit) / 2 + inset : inset;
     var room = Math.max(0, available - 2 * inset);
-    var sizes = { height:granted, room:room, unit:unit, 'pad-x':horizontal, 'pad-y':inset,
-      footer:footer, 'wide-lamp-gap':96 * unit };
+    var span = (width - 2 * inset) / 1601;
+    var sizes = { height:granted, room:room, unit:unit, span:span, pad:inset,
+      footer:footer, 'wide-lamp-gap':96 * span };
     Object.keys(sizes).forEach(function (name) {
       root.style.setProperty('--xmas-' + name, sizes[name] + 'px');
     });
     root.classList.remove('radio-constrained');
     root.classList.toggle('xmas-reference', reference);
     root.classList.toggle('xmas-compact', width <= 700 && room < 355);
+    root.classList.toggle('xmas-mobile-grid', width <= 700 && room >= 260 && room < 355 &&
+      !document.body.classList.contains('has-own-wish'));
     root.classList.toggle('xmas-short', room < (width <= 700 ? 170 : 157));
-    var title = dom.el('track-title');
-    title.classList.toggle('xmas-long-title', title.textContent.length > 28);
     requestHeight(preferred);
     if (xmasFrame) { xmasFrame.fit(); }
     if (workshop) { workshop.fit(); }
+  }
+  function measureNormal(xmas) {
+    // Im selben Layoutdurchlauf messen. Die Rahmenebene bleibt für das laufende Licht aktiv.
+    if (xmas) { root.classList.add('xmas-measure'); root.classList.remove('theme-xmas'); }
+    try {
+      fitProportions();
+      var ticker = dom.el('radio-ticker');
+      var tickerHeight = ticker && !ticker.hidden ? Math.ceil(ticker.getBoundingClientRect().height) : 0;
+      var style = getComputedStyle(dom.el('radio-deck'));
+      var top = parseFloat(style.marginTop) || 0;
+      var glow = parseFloat(style.getPropertyValue('--radio-glow-space')) || 0;
+      return top + Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + tickerHeight + glow;
+    } finally {
+      if (xmas) { root.classList.add('theme-xmas'); root.classList.remove('xmas-measure'); }
+    }
   }
   function resize(initial) {
     if ((!root.classList.contains('mw-ready') && initial !== true) || model.view !== 'radio' || (document.readyState === 'loading' && initial !== true) ||
         !Array.from(document.querySelectorAll('link[rel=stylesheet]')).every(function (link) { return !!link.sheet; })) { return; }
     var small = window.innerWidth <= 1350;
     var focused = document.activeElement;
-    if (root.classList.contains('theme-xmas')) { fitXmas(); return; }
-    root.classList.remove('xmas-compact', 'xmas-short', 'xmas-reference');
+    var xmas = root.classList.contains('theme-xmas');
     var constrained = small && window.innerHeight < 360;
     root.classList.toggle('radio-constrained', constrained);
     if (bridge && !bridge.isK3Client()) { root.classList.remove('radio-constrained'); }
-    fitProportions();
-    centerInformation();
-    var ticker = dom.el('radio-ticker');
-    var tickerHeight = ticker && !ticker.hidden ? Math.ceil(ticker.getBoundingClientRect().height) : 0;
-    // Der obere Anschluss nutzt den unteren Appleistenrand; dessen Glowraum liegt unter der Laufzeile.
-    var deck = dom.el('radio-deck');
-    var deckStyle = getComputedStyle(deck);
-    var topSpace = parseFloat(deckStyle.marginTop) || 0;
-    var glowSpace = parseFloat(deckStyle.getPropertyValue('--radio-glow-space')) || 0;
-    var contentHeight = topSpace + Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + tickerHeight + glowSpace;
+    var contentHeight = measureNormal(xmas);
     var height = Math.min(500, contentHeight);
+    if (xmas) { fitXmas(height); return; }
+    root.classList.remove('xmas-compact', 'xmas-mobile-grid', 'xmas-short', 'xmas-reference');
+    centerInformation();
     if (bridge && !bridge.isK3Client()) { constrained = small && window.innerHeight + 1 < contentHeight; }
     requestHeight(height);
     root.classList.toggle('radio-constrained', constrained);

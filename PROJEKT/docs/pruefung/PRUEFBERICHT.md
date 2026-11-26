@@ -1,4 +1,18 @@
-# MischWerk – Prüfbericht 0.1.458 / Build 458
+# MischWerk – Prüfbericht 0.1.459 / Build 459
+
+## X-Mas in der Größe des Normalmodus
+
+Stand 26.11.2026. Im vorherigen Stand koppelte das Referenzraster die Höhe an die Fensterbreite. Bei 1645 px forderte X-Mas 292 px an und setzte den Titel mit 51 px. „MIDDLE OF THE NIGHT“ wurde abgeschnitten. Der Interpret stand rund 6 px vom unteren Rahmen entfernt.
+
+Normal und X-Mas verwenden jetzt dieselbe natürliche Höhenmessung am selben Markup. Bei identischen Inhalten fordert X-Mas im K3- und STAPP-Modell dieselbe Höhe an, auch bei Lauftext, ausgeblendeter Wunschbox und langen Texten. Die regulären Testdaten ergeben bei 1645 und 1920 px je 220 px, bei 1200 px 230 px. Bei 320 und 390 px sind es 316 px ohne und 360 px mit Lauftext. Geringere Hosthöhen begrenzen die tatsächliche Fläche weiterhin. Rahmen und Spalten nutzen die verfügbare Breite. Zugehörige PNGs behalten ihre Proportionen.
+
+„JETZT LÄUFT“, Titel und Interpret messen im breiten Raster wie in Normal 20, 30 und 19 px. Bei 1645 px passt der beanstandete Titel vollständig in eine Zeile. Bei 1200 px bleibt er auf zwei Zeilen vollständig lesbar. Sehr lange Texte sind im Lesedialog zugänglich. Die Lautstärkezeile misst bei 1645 px 192 statt 217 px. Die Anzeige für 100 % ist vollständig lesbar. Das Lautsprechersymbol misst 18 px, das Prozentfeld 24 px in der Höhe. Beide Eingabeziele behalten mindestens 44 px.
+
+Der Regressionsfall reproduzierte die zu große Schrift in Build 458. Neun gezielte Edge-Fälle bestanden am endgültigen Prüfpaket. Sie prüfen unter anderem identische Höhenanfragen, Textsichtbarkeit, kompakte Lautstärkeflächen, Mittelpunkt, stabilen Fokus und weiterlaufende Lampenanimation bei unveränderten Maßen. 473 Node-Fälle und beide Rhino-Engines bestanden. Build 459 liegt im konfigurierten lokalen Releaseordner. Dessen 163 Dateien stimmen mit den fünf Manifesten und Byte für Byte mit dem Edge-Prüfpaket überein. Die getrennte Freigabe `.freigaben/MischWerk.json` trägt Version 0.1.459 und Build 459. Dateiliste, Größen und SHA-256 wurden unabhängig geprüft. Beide Rhino-Engines bestanden am tatsächlichen Release. Die Protokolle `MischWerk-459-Freigabe.log` und `MischWerk-459-Freigabe-Abgleich.log` liegen im System-Tempverzeichnis. Eine native Knuddels-Abnahme steht aus.
+
+[Bildvergleich bei 1645 px mit Normalmodus, Korrektur und vorheriger Fassung](oberflaeche/radio/xmas-normalgroesse.png)
+
+## Build 458
 
 ## X-Mas-Appleiste · freigegebene Gestaltung
 

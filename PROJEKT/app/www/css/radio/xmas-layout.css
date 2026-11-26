@@ -76,7 +76,7 @@
   top:51%; width:90%; height:calc(var(--xmas-room,180px) * .72); object-fit:contain;
 }
 .theme-xmas .radio-brand .bar-logo { left:25%; }
-.theme-xmas .radio-metadata .volume-control { min-height:44px; width:100%; }
+.theme-xmas .radio-metadata .volume-control { min-height:44px; width:100%; max-width:192px; }
 .theme-xmas .radio-metadata .volume-control input { min-width:44px; }
 .theme-xmas .radio-xmas-ornaments {
   z-index:-1; pointer-events:none;

@@ -3,14 +3,13 @@
   --play-size:calc(157 * var(--xmas-unit));
   --vinyl-size:calc(234 * var(--xmas-unit));
   --play-symbol-size:calc(63 * var(--xmas-unit));
-  --xmas-title:calc(51 * var(--xmas-unit));
+  --xmas-title:30px;
   --xmas-topic:calc(20.4 * var(--xmas-unit));
   --xmas-caption:calc(16 * var(--xmas-unit));
-  --xmas-volume-height:max(44px,calc(44 * var(--xmas-unit)));
-  --song-left:calc(343 * var(--xmas-unit));
-  --song-width:calc(246 * var(--xmas-unit));
-  --topic-left:calc(939 * var(--xmas-unit));
-  --topic-width:calc(217 * var(--xmas-unit));
+  --song-left:calc(330 * var(--xmas-span));
+  --song-width:calc(340 * var(--xmas-span));
+  --topic-left:calc(939 * var(--xmas-span));
+  --topic-width:calc(217 * var(--xmas-span));
   padding:0;
 }
 .theme-xmas.xmas-reference .radio-bar .transport {
@@ -27,14 +26,14 @@
   left:var(--topic-left); width:var(--topic-width); top:calc(45 * var(--xmas-unit));
 }
 .theme-xmas.xmas-reference .radio-metadata .track-eyebrow {
-  font-size:calc(24 * var(--xmas-unit)); letter-spacing:.015em;
+  font-size:20px; letter-spacing:1.4px;
 }
 .theme-xmas.xmas-reference .radio-metadata .topic-label {
   font-size:calc(21 * var(--xmas-unit)); letter-spacing:.015em;
 }
-.theme-xmas.xmas-reference #track-title { --xmas-lines:2; margin-top:calc(11 * var(--xmas-unit)); }
-.theme-xmas.xmas-reference #track-artist { font-size:calc(31 * var(--xmas-unit)); font-weight:400; }
-.theme-xmas.xmas-reference .artist-copy { margin-top:calc(9 * var(--xmas-unit)); }
+.theme-xmas.xmas-reference #track-title { --xmas-lines:2; margin-top:5px; font-weight:600; line-height:1.1; }
+.theme-xmas.xmas-reference #track-artist { font-size:19px; line-height:1.3; }
+.theme-xmas.xmas-reference .artist-copy { margin-top:3px; }
 .theme-xmas.xmas-reference .radio-bar #show-topic {
   --xmas-lines:2; font-size:var(--xmas-topic); margin-top:calc(7 * var(--xmas-unit)); line-height:1.13;
 }
@@ -43,19 +42,13 @@
   font-size:calc(18 * var(--xmas-unit)); width:auto; height:auto;
 }
 .theme-xmas.xmas-reference .radio-metadata .volume-control {
-  --xmas-percent:calc(58 * var(--xmas-unit));
-  --xmas-track:calc(9 * var(--xmas-unit));
-  --xmas-thumb:calc(22 * var(--xmas-unit));
-  position:absolute; left:var(--topic-left); width:var(--topic-width); max-width:none;
-  top:calc(165 * var(--xmas-unit)); gap:calc(8 * var(--xmas-unit));
-}
-.theme-xmas.xmas-reference .radio-bar .volume-control input { min-width:44px; }
-.theme-xmas.xmas-reference .radio-metadata .volume-control output {
-  font-size:calc(19 * var(--xmas-unit)); height:calc(34 * var(--xmas-unit)); font-weight:700;
+  position:absolute; left:calc(var(--topic-left) + var(--topic-width) / 2);
+  width:var(--topic-width); top:calc(165 * var(--xmas-unit));
+  transform:translateX(-50%); gap:3px;
 }
 .theme-xmas.xmas-reference .radio-bar .radio-actions-panel {
-  position:absolute; grid-area:auto; left:calc(1218 * var(--xmas-unit)); top:calc(60 * var(--xmas-unit));
-  width:calc(163 * var(--xmas-unit)); padding:0; margin:0;
+  position:absolute; grid-area:auto; left:calc(1218 * var(--xmas-span)); top:calc(60 * var(--xmas-unit));
+  width:clamp(118px,calc(163 * var(--xmas-unit)),163px); padding:0; margin:0;
 }
 .theme-xmas.xmas-reference .radio-bar .bar-actions { gap:calc(15 * var(--xmas-unit)); }
 .theme-xmas.xmas-reference .radio-bar .wish-button {
@@ -71,24 +64,24 @@
   background:url(../../img/xmas-zierlinie.png) center / contain no-repeat;
   filter:sepia(.38) saturate(1.55) brightness(1.78);
 }
-.theme-xmas.xmas-reference .radio-actions-panel::before { left:calc(-30 * var(--xmas-unit)); }
-.theme-xmas.xmas-reference .radio-actions-panel::after { left:calc(173 * var(--xmas-unit)); }
+.theme-xmas.xmas-reference .radio-actions-panel::before { left:calc(-30 * var(--xmas-span)); }
+.theme-xmas.xmas-reference .radio-actions-panel::after { left:calc(100% + 10 * var(--xmas-span)); }
 .theme-xmas.xmas-reference .radio-bar .radio-brand,.theme-xmas.xmas-reference .radio-bar .radio-listener-brand {
   position:absolute; grid-area:auto;
 }
 .theme-xmas.xmas-reference .radio-bar .radio-brand {
-  left:calc(36 * var(--xmas-unit)); top:calc(37 * var(--xmas-unit));
+  left:calc(36 * var(--xmas-span)); top:calc(37 * var(--xmas-unit));
   width:calc(191 * var(--xmas-unit)); height:calc(177 * var(--xmas-unit));
 }
 .theme-xmas.xmas-reference .radio-bar .radio-listener-brand {
-  left:calc(1395 * var(--xmas-unit)); top:calc(27 * var(--xmas-unit));
+  left:calc(1482 * var(--xmas-span) - 87 * var(--xmas-unit)); top:calc(27 * var(--xmas-unit));
   width:calc(174 * var(--xmas-unit)); height:calc(174 * var(--xmas-unit));
 }
 .theme-xmas.xmas-reference .radio-bar .bar-logo,.theme-xmas.xmas-reference .radio-bar .radio-listener-logo {
   left:50%; top:50%; width:100%; height:100%; max-width:none;
 }
 .theme-xmas.xmas-reference .radio-brand::after {
-  inset:auto; left:calc(262 * var(--xmas-unit)); top:calc(83 * var(--xmas-unit));
+  inset:auto; left:calc(262 * var(--xmas-span)); top:calc(83 * var(--xmas-unit));
   width:calc(231 * var(--xmas-unit)); height:calc(17 * var(--xmas-unit));
   clip-path:none; transform:translate(-50%,-50%) rotate(-58deg);
   background:url(../../img/xmas-zierlinie.png) center / contain no-repeat;
@@ -96,13 +89,13 @@
 .theme-xmas.xmas-reference .radio-xmas-ornaments {
   inset-block-start:calc(-17 * var(--xmas-unit));
   background:
-    url(../../img/xmas-schleife.png) calc(169 * var(--xmas-unit)) calc(2 * var(--xmas-unit)) / calc(131 * var(--xmas-unit)) auto no-repeat,
-    url(../../img/xmas-kugel.png) calc(209 * var(--xmas-unit)) calc(77 * var(--xmas-unit)) / calc(70 * var(--xmas-unit)) auto no-repeat,
+    url(../../img/xmas-schleife.png) min(calc(169 * var(--xmas-span)),calc(169 * var(--xmas-unit) + 34px)) calc(2 * var(--xmas-unit)) / calc(131 * var(--xmas-unit)) auto no-repeat,
+    url(../../img/xmas-kugel.png) min(calc(209 * var(--xmas-span)),calc(209 * var(--xmas-unit) + 34px)) calc(77 * var(--xmas-unit)) / calc(70 * var(--xmas-unit)) auto no-repeat,
     url(../../img/xmas-tanne-links.png) calc(4 * var(--xmas-unit)) calc(15 * var(--xmas-unit)) / min(520px,calc(326 * var(--xmas-unit))) auto no-repeat,
-    url(../../img/xmas-zapfen-garnitur.png) calc(1179 * var(--xmas-unit)) calc(220 * var(--xmas-unit)) / calc(306 * var(--xmas-unit)) auto no-repeat;
+    url(../../img/xmas-zapfen-garnitur.png) calc(1179 * var(--xmas-span)) calc(220 * var(--xmas-unit)) / calc(306 * var(--xmas-unit)) auto no-repeat;
 }
 .theme-xmas.xmas-reference .radio-xmas-ornaments::after {
-  content:""; position:absolute; top:calc(2 * var(--xmas-unit)); left:calc(1282 * var(--xmas-unit));
+  content:""; position:absolute; top:calc(2 * var(--xmas-unit)); right:calc(3 * var(--xmas-unit));
   width:calc(316 * var(--xmas-unit)); aspect-ratio:850 / 424;
   background:url(../../img/xmas-tanne-rechts.png) center / contain no-repeat;
   mask-image:linear-gradient(to bottom,#000 22%,transparent 33%),linear-gradient(to right,transparent 86%,#000 94%);
@@ -112,10 +105,6 @@
   margin:0;
 }
 .theme-xmas.xmas-reference .has-own-wish .radio-metadata .now-playing { top:calc(23 * var(--xmas-unit)); }
-.theme-xmas.xmas-reference .has-own-wish #track-title,
-.theme-xmas.xmas-reference #track-title.xmas-long-title {
-  font-size:calc(28 * var(--xmas-unit)); line-height:1.07; --xmas-lines:3;
-}
-.theme-xmas.xmas-reference .has-own-wish #track-title { --xmas-lines:2; }
-.theme-xmas.xmas-reference .has-own-wish #track-artist { font-size:calc(20 * var(--xmas-unit)); }
+.theme-xmas.xmas-reference .has-own-wish #track-title { font-size:min(30px,calc(28 * var(--xmas-unit))); }
+.theme-xmas.xmas-reference .has-own-wish #track-artist { font-size:min(19px,calc(20 * var(--xmas-unit))); }
 .theme-xmas.xmas-reference .xmas-read-trigger:hover { background:transparent; }

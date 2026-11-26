@@ -8,21 +8,21 @@
   --xmas-spark:url(../../img/xmas-funkeln.png);
   display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr) auto;
   height:var(--xmas-height,100%); margin-top:0;
-  padding:var(--xmas-pad-y,10px) var(--xmas-pad-x,10px);
+  padding:var(--xmas-pad,10px) var(--xmas-pad,10px);
 }
 .theme-xmas .radio-bar { --text:#fff0d6; --muted:#e5cdae; --gold:#ffc659; background:transparent; }
 .theme-xmas .radio-program-face { inset:0; border:0; border-radius:var(--deck-radius); }
 .theme-xmas .playing .radio-program-face { animation:none; box-shadow:none; }
-.theme-xmas .radio-program-face::after { animation:none; }
 .theme-xmas .radio-program-face::before,
+.theme-xmas .radio-program-face::after,
 .theme-xmas.radio-has-ticker .radio-deck::before,
 .theme-xmas.radio-has-ticker .radio-deck::after { display:none; }
-.theme-xmas .radio-xmas-frame {
+:is(.theme-xmas,.xmas-measure) .radio-xmas-frame {
   --xmas-lamp-gap:var(--xmas-wide-lamp-gap,96px);
   --xmas-lamp-size:clamp(8px,calc(12 * var(--xmas-unit)),22px);
   --xmas-cable-inset:3px;
   display:block; position:absolute;
-  inset:var(--xmas-pad-y) var(--xmas-pad-x) calc(var(--xmas-pad-y) + var(--xmas-footer)) var(--xmas-pad-x);
+  inset:var(--xmas-pad) var(--xmas-pad) calc(var(--xmas-pad) + var(--xmas-footer)) var(--xmas-pad);
   z-index:2; pointer-events:none; border-radius:var(--deck-radius);
 }
 .radio-xmas-metal,.radio-xmas-snow,.radio-xmas-cable,.radio-xmas-sparks {
@@ -113,15 +113,15 @@
 }
 .radio-xmas-lamp,.radio-xmas-halo { position:absolute; left:var(--xmas-x); top:var(--xmas-y); }
 .radio-xmas-halos {
-  position:absolute; inset:calc(-1 * var(--xmas-pad-y)) max(calc(-1 * var(--xmas-pad-x)),-40px);
+  position:absolute; inset:calc(-1 * var(--xmas-pad)) max(calc(-1 * var(--xmas-pad)),-40px);
   opacity:0; overflow:hidden; overflow:clip;
-  --fade-x:min(40px,var(--xmas-pad-x));
+  --fade-x:min(40px,var(--xmas-pad));
   mask-image:linear-gradient(to right,transparent 1px,#000 var(--fade-x),#000 calc(100% - var(--fade-x)),transparent calc(100% - 1px)),
-    linear-gradient(to bottom,transparent 1px,#000 var(--xmas-pad-y),#000 calc(100% - var(--xmas-pad-y)),transparent calc(100% - 1px));
+    linear-gradient(to bottom,transparent 1px,#000 var(--xmas-pad),#000 calc(100% - var(--xmas-pad)),transparent calc(100% - 1px));
   mask-composite:intersect;
 }
 .radio-xmas-halo {
-  transform:translate(min(40px,var(--xmas-pad-x)),var(--xmas-pad-y)) rotate(var(--xmas-angle));
+  transform:translate(min(40px,var(--xmas-pad)),var(--xmas-pad)) rotate(var(--xmas-angle));
 }
 .radio-xmas-halo::before {
   content:""; position:absolute; top:calc(-.15 * var(--xmas-lamp-size));
@@ -157,10 +157,10 @@
     url(../../img/xmas-tanne-rechts.png) right top / clamp(108px,22vw,220px) auto no-repeat;
 }
 @media (max-width:1199px) {
-  .theme-xmas .radio-xmas-frame { --xmas-lamp-gap:84px; }
+  :is(.theme-xmas,.xmas-measure) .radio-xmas-frame { --xmas-lamp-gap:84px; }
 }
 @media (max-width:700px) {
-  .theme-xmas .radio-xmas-frame { --xmas-lamp-gap:74px; --xmas-cable-inset:4px; }
+  :is(.theme-xmas,.xmas-measure) .radio-xmas-frame { --xmas-lamp-gap:74px; --xmas-cable-inset:4px; }
   .theme-xmas .radio-xmas-ornaments {
     background-position:7px 2px,25px 41px,left top,right top;
   }

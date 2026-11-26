@@ -20,7 +20,7 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
   const play = page.locator('#play-button');
   const audio = page.locator('#radio-audio');
   const emitMedia = name => audio.evaluate((node,name) => node.dispatchEvent(new Event(name)),name);
-  const pictures = path.join(os.tmpdir(),'MischWerk-Pruefbilder','radio','458');
+  const pictures = path.join(os.tmpdir(),'MischWerk-Pruefbilder','radio',String(require('../../package.json').buildNumber));
   if (k3) fs.mkdirSync(pictures,{recursive:true});
   await page.getByText('Jump',{exact:true}).waitFor();
   await page.evaluate(() => document.fonts.ready);
@@ -119,10 +119,17 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
     if(k3&&width===1645) await page.screenshot({path:path.join(pictures,'normal-1645.png')});
     for (const withWish of [true,false]) {
       const suffix = width+'-'+(withWish?'mit-wunschbox':'ohne-wunschbox');
+      await snapshot('normal',withWish,width<1200);
+      const normalRequest = (await dimensions()).requested;
       await snapshot('xmas',withWish,width<1200);
       assert.deepEqual(await colors(),normal);
       const geometry=await dimensions();
       checkGeometry(geometry);
+      assert.equal(geometry.requested,normalRequest,'Normal und X-Mas fordern dieselbe Hosthöhe an');
+      if(width<=700) {
+        const volume=await page.locator('.volume-control').boundingBox();
+        assert.ok(Math.abs(volume.x+volume.width/2-width/2)<1,'Die kompakte Lautstärkezeile sitzt mittig');
+      }
       const cable = page.locator('.radio-xmas-cable i').first();
       assert.match(await cable.evaluate(node=>getComputedStyle(node).backgroundImage),/xmas-kabel-fein\.png/);
       await checkClosed();
@@ -207,8 +214,11 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
   for(const [width,height,ticker] of [[1645,292,false],[390,500,true],[320,500,true],[390,220,true],[320,220,true],
     [320,176,false],[1645,176,true],[1200,176,true]]) {
     await resize(width,height);
+    await snapshot('normal',true,ticker,true);
+    const normalRequest = (await dimensions()).requested;
     await snapshot('xmas',true,ticker,true);
     const geometry=await dimensions();checkGeometry(geometry);
+    assert.equal(geometry.requested,normalRequest,'Auch lange Texte verwenden die Hosthöhe des Normalmodus');
     t.diagnostic('Lange Texte '+width+' × '+height+' px: '+JSON.stringify(geometry));
     if(k3 && (width<=390 || height===292)){
       await page.screenshot({path:path.join(pictures,'xmas-lang-'+width+'-'+height+'.png')});
@@ -253,6 +263,71 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
   assert.ok((await motion()).every(row=>row.name==='none'&&row.haloName==='none'&&row.core===1&&row.halo===1));
   await play.click();
   await checkClosed();
+  assert.deepEqual(errors,[]);
+});
+
+test('X-Mas hält Titel, Überschrift und Regler in den Größen des Normalmodus lesbar', async t => {
+  const song = {title:'MIDDLE OF THE NIGHT',artist:'Elley Duhé'};
+  const {page,state,errors} = await setup(t, {station:true,k3:true,role:'listener',theme:'normal',
+    parserIncludes:true,song,autoDj:true,viewport:{width:1645,height:292}});
+  await page.getByText(song.title,{exact:true}).waitFor();
+  await page.evaluate(() => document.fonts.ready);
+  const proof = path.join(os.tmpdir(),'MischWerk-Pruefbilder','radio','schrift-und-regler');
+  fs.mkdirSync(proof,{recursive:true});
+  let revision=0;
+  async function select(theme) {
+    await page.evaluate(({state,theme,revision})=>__emit('mw:state',{...state,theme,revision}),{state,theme,revision:++revision});
+    await studioSettle(page);
+    await page.locator('#volume').fill('100');
+    await page.locator('#volume').blur();
+    return page.evaluate(()=>{
+      const get=selector=>document.querySelector(selector);
+      const rect=selector=>get(selector).getBoundingClientRect();
+      const style=selector=>getComputedStyle(get(selector));
+      const title=get('#track-title'), transducer=style('#mute-button');
+      const volume=rect('.volume-control'), percent=rect('#volume-value');
+      const label=rect('.track-eyebrow'), face=rect('.radio-program-face'), artist=rect('#track-artist');
+      const range=document.createRange();
+      range.selectNodeContents(title);
+      const titleBox=title.getBoundingClientRect();
+      const textRects=[...range.getClientRects()];
+      const titleFits=textRects.length>0 && textRects.every(text=>text.left>=titleBox.left-1 &&
+        text.right<=titleBox.right+1&&text.top>=titleBox.top-3&&text.bottom<=titleBox.bottom+3);
+      return {requested:__sizes.at(-1)?.[1],deckWidth:rect('#radio-deck').width,artWidth:face.width,
+        title:parseFloat(style('#track-title').fontSize),label:parseFloat(style('.track-eyebrow').fontSize),
+        artist:parseFloat(style('#track-artist').fontSize),labelFits:label.top>=face.top&&label.bottom<=rect('#track-title').top,
+        titleFits:titleFits&&artist.top>=titleBox.bottom-.5,
+        artistClearance:face.bottom-artist.bottom,volume:volume.width,readout:percent.height,
+        percentFits:get('#volume-value').scrollWidth<=get('#volume-value').clientWidth&&percent.right<=volume.right+.5,
+        mute:[rect('#mute-button').width,rect('#mute-button').height],icon:rect('#mute-button svg').width,
+        muteBorder:parseFloat(transducer.borderTopWidth),range:[rect('#volume').width,rect('#volume').height]};
+    });
+  }
+  for(const [width,height] of [[1645,292],[1200,214],[1920,341],[3840,500]]) {
+    await resizeViewport(page,{width,height});
+    const normal=await select('normal');
+    if(width===1645) await page.screenshot({path:path.join(proof,'normal.png'),
+      clip:{x:0,y:0,width,height:normal.requested}});
+    const xmas=await select('xmas');
+    if(width===1645) await page.screenshot({path:path.join(proof,'xmas.png'),
+      clip:{x:0,y:0,width,height:xmas.requested}});
+    const measured=JSON.stringify({width,normal,xmas});
+    assert.equal(xmas.requested,normal.requested,measured);
+    assert.ok(xmas.artWidth>=normal.artWidth-1,measured);
+    assert.equal(xmas.title,normal.title,measured);
+    assert.equal(xmas.artist,normal.artist,measured);
+    assert.ok(xmas.label<=normal.label&&xmas.label>=20&&xmas.labelFits&&xmas.titleFits&&xmas.artistClearance>=18,measured);
+    assert.ok(xmas.volume<=192&&xmas.readout===normal.readout&&xmas.icon===normal.icon&&xmas.muteBorder===0&&xmas.percentFits,measured);
+    assert.ok([...xmas.mute,...xmas.range].every(size=>size>=44),measured);
+    if(width===1645) {
+      const trigger=page.locator('[data-read=music]');
+      await trigger.focus();
+      await page.evaluate(()=>dispatchEvent(new Event('resize')));
+      await studioSettle(page);
+      assert.equal(await trigger.evaluate(node=>node===document.activeElement),true);
+    }
+    t.diagnostic(measured);
+  }
   assert.deepEqual(errors,[]);
 });
 
