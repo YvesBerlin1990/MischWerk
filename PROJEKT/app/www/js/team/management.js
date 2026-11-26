@@ -8,7 +8,15 @@ MischWerkUI.define('team', function (dependencies) {
     dom.el('ticker-speed').value=String(value.speed);tickerRevision=value.revision;tickerDirty=false;
   }
   function render() {
-    var state=model.current(); if(!state){return;} saved=state;
+    var state=model.current(); if(!state){return;}
+    if(displayDirty&&saved&&saved.displaySettings&&state.displaySettings&&
+      displayRevision===saved.displaySettings.revision&&state.displaySettings.revision===displayRevision+1&&
+      state.displaySettings.teamSignsEnabled===saved.displaySettings.teamSignsEnabled&&
+      state.displaySettings.microphoneEnabled===saved.displaySettings.microphoneEnabled&&
+      state.displaySettings.headphonesEnabled===saved.displaySettings.headphonesEnabled&&
+      state.displaySettings.announcementsEnabled===saved.displaySettings.announcementsEnabled){displayRevision=state.displaySettings.revision;}
+    saved=state;
+    if(state.displaySettings && !commands.pending('mw:display.theme')){dom.el('display-theme').value=state.displaySettings.theme||'normal';}
     if(!tickerDirty){fillTicker(state.ticker);}
     if(!displayDirty&&state.displaySettings){
       dom.el('team-signs-enabled').checked=state.displaySettings.teamSignsEnabled;
@@ -30,6 +38,7 @@ MischWerkUI.define('team', function (dependencies) {
   function availability() {
     var state=model.current(),blocked=!state||!state.user.canAdminister||!model.connected()||commands.pending();
     if(state){renderRoster(state);}
+    dom.el('display-theme').disabled=blocked||!state.displaySettings;
     ['display-form','ticker-form'].forEach(function(id){dom.el(id).querySelectorAll('input,textarea,select,button').forEach(function(field){field.disabled=blocked;});});
     var migration=state&&state.migration;
     dom.el('migration-start').disabled=blocked||!migration||!migration.prepared||['exported','invalidated','exporting'].includes(migration.phase);
@@ -41,6 +50,11 @@ MischWerkUI.define('team', function (dependencies) {
     dom.el('next-radio-moderator-page').disabled=blocked||!state||!model.rosterFresh()||state.radioModeratorPage>=state.radioModeratorPages-1;
   }
   function start() {
+    dom.el('display-theme').addEventListener('change',function(){
+      var current=model.current();
+      if(!current||!current.displaySettings){return;}
+      commands.send('mw:display.theme',{theme:this.value,expectedRevision:current.displaySettings.revision},true);
+    });
     signals.on('migration-preflight',function(value){
       var known=value&&value.ready===true,namespace=known&&typeof value.sourceNamespace==='string'?value.sourceNamespace:null;
       dom.el('migration-source').value=known?(namespace||'Quellenkennung noch nicht vorhanden'):'Vorprüfung nicht bestätigt';
@@ -69,6 +83,7 @@ MischWerkUI.define('team', function (dependencies) {
     signals.on('command-result',function(result){
       if(result.action==='mw:setTicker'){if(result.ok){tickerDirty=false;}dom.setText('ticker-feedback',result.message);}
       if(result.action==='mw:display.save'){if(result.ok){displayDirty=false;}dom.setText('display-feedback',result.message);}
+      if(result.action==='mw:display.theme'){dom.setText('theme-feedback',result.message);if(!result.ok&&saved){dom.el('display-theme').value=saved.displaySettings.theme||'normal';}}
     });
     signals.on('ticker-error',function(message){dom.setText('ticker-feedback',message);});
     signals.on('overlay-capture',function(state){state.nativeSettings={tickerDirty:tickerDirty,tickerRevision:tickerRevision,

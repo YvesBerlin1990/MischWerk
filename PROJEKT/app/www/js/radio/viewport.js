@@ -70,11 +70,18 @@ MischWerkUI.define('viewport', function (dependencies) {
     var volume=metadata.querySelector('.volume-control').getBoundingClientRect();
     // Die Musiküberschrift ist die Bezugslinie. Lange Themen müssen samt Regler passen.
     var musicCenter=music.top+music.height/2,topicCenter=topic.top+topic.height/2;
-    if(window.innerWidth<1800&&document.body.classList.contains('has-own-wish')&&!dom.el('radio-panel').classList.contains('has-moderation')){root.style.setProperty('--radio-music-shift',(topicCenter-musicCenter)+'px');return;}
-    var top=Math.max(area.top+8+Math.max(music.height,topic.height)/2,
+    var xmas=root.classList.contains('theme-xmas');
+    var wishBelow=(window.innerWidth<1800||xmas)&&document.body.classList.contains('has-own-wish')&&!dom.el('radio-panel').classList.contains('has-moderation');
+    var top=wishBelow?topicCenter:Math.max(area.top+8+Math.max(music.height,topic.height)/2,
       Math.min(musicCenter,area.bottom-(volume.bottom-topicCenter)-8));
-    root.style.setProperty('--radio-music-shift',(top-musicCenter)+'px');
-    root.style.setProperty('--radio-context-shift',(top-topicCenter)+'px');
+    var shift=top-musicCenter;
+    if(xmas&&music.height){
+      // Bei langen Titeln bleibt die ganze Musikgruppe innerhalb ihrer natürlichen Fläche.
+      var copy=metadata.querySelector('.track-copy').getBoundingClientRect();
+      shift=Math.max(area.top+4-copy.top,Math.min(shift,area.bottom-4-copy.bottom));
+    }
+    root.style.setProperty('--radio-music-shift',shift+'px');
+    if(!wishBelow)root.style.setProperty('--radio-context-shift',(top-topicCenter)+'px');
   }
   function resize(initial) {
     if ((!root.classList.contains('mw-ready') && initial !== true) || model.view !== 'radio' || (document.readyState === 'loading' && initial !== true) ||
@@ -86,12 +93,13 @@ MischWerkUI.define('viewport', function (dependencies) {
     if (bridge && !bridge.isK3Client()) { root.classList.remove('radio-constrained'); }
     fitProportions();
     centerInformation();
-    // 16 px Hintergrund für den Glow, unabhängig vom Wiedergabestatus.
     var ticker = dom.el('radio-ticker');
     var tickerHeight = ticker && !ticker.hidden ? Math.ceil(ticker.getBoundingClientRect().height) : 0;
     // Der obere Anschluss nutzt den unteren Appleistenrand; dessen Glowraum liegt unter der Laufzeile.
-    var topSpace = parseFloat(getComputedStyle(dom.el('radio-deck')).marginTop) || 0;
-    var contentHeight = topSpace + Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + tickerHeight + 16;
+    var deckStyle = getComputedStyle(dom.el('radio-deck'));
+    var topSpace = parseFloat(deckStyle.marginTop) || 0;
+    var glowSpace = parseFloat(deckStyle.getPropertyValue('--radio-glow-space')) || 0;
+    var contentHeight = topSpace + Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + tickerHeight + glowSpace;
     var height = Math.min(500, contentHeight);
     if (bridge && !bridge.isK3Client()) { constrained = small && window.innerHeight + 1 < contentHeight; }
     root.style.setProperty('--radio-height', height + 'px');
@@ -101,7 +109,7 @@ MischWerkUI.define('viewport', function (dependencies) {
       catch (ignored) { /* Der kompakte Fallback bleibt im tatsächlichen Rahmen erreichbar. */ }
     }
     root.classList.toggle('radio-constrained', constrained);
-    if (workshop) { workshop.fit(); }
+    if (workshop && !root.classList.contains('theme-xmas')) { workshop.fit(); }
     if (focused && focused !== document.body && !focused.getClientRects().length) {
       var target = dom.el('open-wishes').disabled ? dom.el('mute-button') : dom.el('open-wishes');
       target.focus({ preventScroll:true });

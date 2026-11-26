@@ -1,8 +1,8 @@
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
  "schema": 1,
- "version": "0.1.452",
- "buildNumber": 452,
+ "version": "0.1.454",
+ "buildNumber": 454,
  "directories": {
   "": [
    "main.js",
@@ -182,7 +182,8 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "workshop.css",
    "metadata-layout.css",
    "radio-responsive.css",
-   "center-layout.css"
+   "center-layout.css",
+   "xmas.css"
   ],
   "www/css/shared": [
    "foundation.css",
@@ -203,7 +204,12 @@ if (typeof MischWerkUpdateProbe === 'function') {
   ],
   "www/img": [
    "mischwerk-logo.png",
-   "mischwerk-radio.png"
+   "mischwerk-radio.png",
+   "xmas-bow.png",
+   "xmas-fir.png",
+   "xmas-pinecone.png",
+   "xmas-snow.png",
+   "xmas-gear.png"
   ],
   "www/img/nicklist": [
    "team.png",

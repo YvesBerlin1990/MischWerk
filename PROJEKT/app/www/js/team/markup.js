@@ -9,6 +9,12 @@ MischWerkUI.define('teamMarkup', function (dependencies) {
     <button id="team-connection-tab" type="button" role="tab" aria-selected="false" aria-controls="team-connection-panel" tabindex="-1">Verbindung</button>
   </div>
   <div id="team-members" role="tabpanel" aria-labelledby="team-members-tab">
+    <section class="native-settings" aria-labelledby="theme-heading">
+      <h2 id="theme-heading">Gestaltung</h2>
+      <label for="display-theme">Design</label>
+      <select id="display-theme"><option value="normal">Normal</option><option value="xmas">X-Mas</option></select>
+      <p id="theme-feedback" class="form-hint" role="status"></p>
+    </section>
     <form id="display-form" class="native-settings">
       <h2>Anzeige im Channel</h2>
       <label class="channel-texts-toggle"><input id="team-signs-enabled" type="checkbox">Teamzeichen anzeigen</label>

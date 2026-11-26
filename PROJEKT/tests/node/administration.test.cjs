@@ -53,6 +53,30 @@ test('/mw admin öffnet die Verwaltung für Otterchen und erhält die bestehende
   assert.equal(radio.removed, false); assert.equal(owner.sessions.length, 2); assert.equal(h.bot.messages.length, 0);
 });
 
+test('Die Designauswahl wird im Channel verteilt und gemeinsam mit den Anzeigeoptionen erhalten', () => {
+  const h = createHarness(), owner = h.user(1, 'Otterchen', 'owner'), listener = h.user(2, 'Hörer');
+  const ownerRadio = h.open(owner), listenerRadio = h.open(listener);
+  h.app.chatCommands.mw(owner, 'admin');
+  const team = overlay(owner);
+  const request = {view:'team', viewRevision:team.viewRevision, expectedRevision:0, theme:'xmas'};
+  h.event(owner, ownerRadio, 'mw:display.theme', {...request, requestId:'falsche-sitzung'});
+  assert.equal(h.state(listener, listenerRadio).theme, 'normal');
+
+  const result = h.event(owner, team, 'mw:display.theme', {...request, requestId:'xmas'});
+  assert.equal(result.find(row => row.type === 'mw:result').data.ok, true);
+  assert.equal(listenerRadio.events.findLast(row => row.type === 'mw:state').data.theme, 'xmas');
+  const restarted = createHarness(h.store), returning = restarted.user(2, 'Hörer');
+  assert.equal(restarted.state(returning, restarted.open(returning)).theme, 'xmas');
+  h.event(owner, team, 'mw:display.save', {...request, theme:undefined, requestId:'zeichen', expectedRevision:1,
+    teamSignsEnabled:false, announcementsEnabled:true});
+  assert.equal(h.state(owner, team).displaySettings.teamSignsEnabled, false);
+  assert.equal(h.state(listener, listenerRadio).theme, 'xmas');
+
+  h.event(owner, team, 'mw:display.theme', {...request, theme:'normal', requestId:'normal', expectedRevision:2});
+  assert.equal(h.state(owner, team).displaySettings.teamSignsEnabled, false);
+  assert.equal(h.state(listener, listenerRadio).theme, 'normal');
+});
+
 test('Polaroid erhält die gesamte Konsole mit Verbindung, aber kein Inhaber-, Themen- oder Wartungsrecht',()=>{
  const posts=[],h=createHarness(undefined,{serverMethods:{getExternalServerAccess:()=>({canAccessURL:()=>true,postURL:(url,data)=>posts.push({url,data})})}}),person=h.user(813,'Polaroid'),radio=h.open(person);h.app.chatCommands.mw(person,'admin');const session=overlay(person);
  assert.ok(session);assert.equal(h.runtime.canAdminister(person),false);assert.equal(h.runtime.canUseAdministration(person),true);

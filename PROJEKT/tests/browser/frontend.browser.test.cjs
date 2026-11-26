@@ -13,6 +13,150 @@ const root = path.resolve(__dirname, '../..');
 const browserSource=process.env.MISCHWERK_TEST_UPLOAD?path.resolve(process.env.MISCHWERK_TEST_UPLOAD,'www'):path.join(root,'app/www');
 let browser;
 
+for (const k3 of [true, false]) test('X-Mas ohne Außenrand und mit Lichtern nur bei Wiedergabe in ' + (k3 ? 'K3' : 'STAPP'), async t => {
+  const {page, state, errors} = await setup(t, {station:true, k3, role:'listener', theme:'xmas', parserIncludes:true,
+    song:{title:'Jump', artist:'Van Halen'}, autoDj:true, viewport:{width:1920, height:430}});
+  const deck = page.locator('#radio-deck');
+  const surface = () => deck.locator('.radio-panel-face').evaluate(node => {
+    const {backgroundColor, backgroundImage} = getComputedStyle(node);
+    return {backgroundColor, backgroundImage};
+  });
+  const black = 'rgb(16, 16, 16)';
+  const ground = await surface();
+  assert.equal(ground.backgroundColor, black, 'Die X-Mas-Leiste hat einen neutral schwarzen Grund');
+  for (const [, red, green, blue] of ground.backgroundImage.matchAll(/rgba?\((\d+), (\d+), (\d+)/g)) {
+    assert.ok(red === green && green === blue, 'Auch die Grundtextur bleibt farbneutral');
+  }
+  const lamps = () => deck.evaluate(node => getComputedStyle(node, '::after').backgroundImage);
+  const dark = await lamps();
+  assert.match(dark, /172, 140, 101/);
+  await page.waitForFunction(() => document.getElementById('track-title').textContent === 'Jump');
+  await page.waitForFunction(() => document.getElementById('on-air-sign').textContent === 'MischWerk am Pult');
+  await page.evaluate(() => document.fonts.ready);
+  await page.locator('.bar-logo,.radio-listener-logo').evaluateAll(images => Promise.all(images.map(image => image.decode())));
+  const pictures = path.join(os.tmpdir(), 'MischWerk-Pruefbilder', 'radio');
+  if (k3) {
+    fs.mkdirSync(pictures, {recursive:true});
+    await deck.screenshot({path:path.join(pictures, 'xmas-aus.png'), omitBackground:true});
+  }
+  const play = page.locator('#play-button');
+  const audio = page.locator('#radio-audio');
+  await audio.evaluate(node => { window.__xmasAudio = node; });
+  const emitMedia = name => audio.evaluate((node, name) => node.dispatchEvent(new Event(name)), name);
+  await play.click();
+  assert.equal(await lamps(), dark, 'Ein noch nicht bestätigter Start lässt die Lichter aus');
+  await emitMedia('playing');
+  assert.match(await lamps(), /255, 250, 240/);
+  assert.deepEqual(await surface(), ground, 'Die Wiedergabe verändert das Rahmenlicht, die Grundfläche bleibt schwarz');
+  if (k3) await deck.screenshot({path:path.join(pictures, 'xmas-an.png'), omitBackground:true});
+  await emitMedia('waiting');
+  assert.equal(await lamps(), dark);
+  await emitMedia('playing');
+  assert.match(await lamps(), /255, 250, 240/);
+  await audio.evaluate(node => {
+    Object.defineProperty(node, 'error', {value:{code:2}, configurable:true});
+    node.dispatchEvent(new Event('error'));
+    delete node.error;
+  });
+  assert.equal(await lamps(), dark);
+  await play.click();
+  assert.equal(await lamps(), dark);
+
+  let revision = state.revision;
+  async function snapshot(theme, text = '', withWish = false) {
+    await page.evaluate(({state, theme, text, revision, withWish}) => {
+      const wish = {id:1, text:'Ein eigener Musikwunsch', position:1, stage:'queued'};
+      __emit('mw:state', {...state, theme, revision, topic:'MischWerk Radio Show',
+        ticker:{text, enabled:!!text, speed:48, direction:'left', revision},
+        wishPositions:{generation:'xmas', revision, available:true, total:withWish?1:0, page:0, pages:1, nextPosition:withWish?1:null,
+          items:withWish?[wish]:[], nextItem:withWish?wish:null}});
+    }, {state, theme, text, revision:++revision, withWish});
+    await studioSettle(page);
+  }
+  for (const width of [320, 390, 700, 701, 960, 1199, 1200, 1500, 1920, 3840]) {
+    await resizeViewport(page, {width, height:550});
+    await snapshot('xmas', 'Frohe Weihnachten bei Radio MischWerk', true);
+    const geometry = await page.evaluate(() => {
+      const box = selector => document.querySelector(selector).getBoundingClientRect();
+      const bar = box('#radio-panel'), face = box('.radio-panel-face'), ticker = box('#radio-ticker'), deck = box('#radio-deck');
+      const lights = getComputedStyle(document.getElementById('radio-deck'), '::after');
+      const controls = ['#play-button','#open-schedule','#open-wishes','#mute-button','#volume','#radio-ticker-pause'];
+      const fittings = controls.map(selector => {
+        const node = document.querySelector(selector), rect = node.getBoundingClientRect();
+        return [selector, rect.height >= 44 && rect.left >= 0 && rect.right <= innerWidth &&
+          node.contains(document.elementFromPoint(rect.left + rect.width/2, rect.top + rect.height/2))];
+      });
+      const metadata = document.getElementById('radio-metadata');
+      return {edge:face.left===0 && face.right===innerWidth && face.top===0 && face.bottom===bar.bottom,
+        ticker:ticker.left===0 && ticker.right===innerWidth && ticker.top===bar.bottom && deck.bottom===ticker.bottom,
+        lightsHeight:parseFloat(lights.height),
+        width:document.documentElement.scrollWidth, fits:metadata.scrollWidth<=metadata.clientWidth+1, fittings,
+        height:Math.ceil(deck.height), requested:__sizes.at(-1)?.[1],
+        wish:!!document.getElementById('own-wish-position').getClientRects().length};
+    });
+    assert.ok(geometry.edge && geometry.ticker && geometry.fits && geometry.width === width, JSON.stringify({width,...geometry}));
+    assert.ok(Math.abs(geometry.lightsHeight - geometry.height) < 1, 'Schnee und Lichterkette umfassen auch den Lauftext');
+    assert.equal(geometry.requested, Math.min(500,geometry.height), 'Der Host erhält die Höhe ohne zusätzlichen Außenstreifen');
+    assert.equal(geometry.wish, width >= 1200);
+    assert.ok(geometry.fittings.every(([, fits]) => fits), JSON.stringify({width, fittings:geometry.fittings}));
+    assert.equal(await deck.locator('#radio-ticker').evaluate(node => getComputedStyle(node).backgroundColor), black);
+    if (k3 && width === 390) {
+      await deck.screenshot({path:path.join(pictures, 'xmas-mobil.png'), omitBackground:true});
+      await play.click();
+      await emitMedia('playing');
+      await deck.screenshot({path:path.join(pictures, 'xmas-mobil-an.png'), omitBackground:true});
+      await play.click();
+    }
+  }
+  await resizeViewport(page, {width:1200, height:182});
+  await page.evaluate(() => {
+    document.getElementById('track-title').textContent = 'Sehr langer Titel mit weiteren Informationen '.repeat(6);
+    document.getElementById('show-topic').textContent = 'Eine ausführliche Radiosendung mit besonderen Musikwünschen und vielen Gästen';
+    dispatchEvent(new Event('resize'));
+  });
+  await studioSettle(page);
+  await page.locator('#volume').scrollIntoViewIfNeeded();
+  await page.locator('#volume').focus();
+  await page.keyboard.press('End');
+  assert.equal(await page.locator('#volume-value').textContent(), '100 %');
+  assert.equal(await page.locator('#volume').evaluate(node => {
+    const rect = node.getBoundingClientRect();
+    return node.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
+  }), true);
+  const longText = await page.locator('#radio-metadata').evaluate(node => ({
+    height:node.clientHeight, scrollHeight:node.scrollHeight, width:node.clientWidth, scrollWidth:node.scrollWidth,
+    boxes:['.track-copy','.radio-context','.volume-control','.own-wish-position'].map(selector => {
+      const bounds = node.querySelector(selector).getBoundingClientRect(), top = node.getBoundingClientRect().top;
+      return [selector, bounds.top - top, bounds.bottom - top];
+    })
+  }));
+  assert.ok(longText.scrollHeight <= longText.height + 1 && longText.scrollWidth <= longText.width + 1, JSON.stringify(longText));
+  await resizeViewport(page, {width:1920, height:430});
+  await snapshot('xmas');
+  await play.click();
+  await emitMedia('playing');
+  assert.match(await lamps(), /255, 250, 240/);
+  await snapshot('normal');
+  assert.equal(await audio.evaluate(node => node===window.__xmasAudio && !node.paused), true);
+  assert.equal(await deck.evaluate(n => getComputedStyle(n).marginTop), '12px');
+  assert.equal(await deck.evaluate(n => getComputedStyle(n, '::after').backgroundImage), 'none');
+  await snapshot('xmas');
+  assert.match(await lamps(), /255, 250, 240/);
+  await play.click();
+  assert.equal(await lamps(), dark);
+  assert.deepEqual(errors, []);
+});
+
+test('X-Mas bleibt bei fehlender Weihnachtsgrafik bedienbar', async t => {
+  const {page, errors} = await setup(t, {station:true, theme:'xmas', missingDecoration:true, parserIncludes:true});
+  assert.match(await page.locator('html').getAttribute('class'), /theme-xmas/);
+  assert.equal(await page.locator('#play-button').isEnabled(), true);
+  assert.equal(await page.locator('#open-schedule').isEnabled(), true);
+  assert.equal(await page.locator('#volume').isEnabled(), true);
+  assert.equal(await page.evaluate(() => __sent.filter(event => event.type === 'mw:ready').length), 1);
+  assert.deepEqual(errors, []);
+});
+
 
 
 for(const k3 of [true,false])test('Waagerechte Lautstärke steht unter Thema und Moderation und bleibt mit Maus und Tastatur bedienbar in '+(k3?'K3':'STAPP'),async t=>{
@@ -323,7 +467,7 @@ for(const k3 of [true,false]) {
     await page.locator('#radio-audio').evaluate(a=>a.pause());await waitRadioPlaying(page);assert.equal(await page.locator('#radio-audio').getAttribute('src'),source);assert.equal(await page.locator('#play-button').getAttribute('aria-pressed'),'true');assert.deepEqual(errors,[]);
   });
 }
-async function setup(t, { moderation = true, nativeSizing = false, hostSteps = false, screenHeight, role = 'owner', registeredOwner = true, nick, parserIncludes = false, deviceScaleFactor = 1, station = false, delayedSong = false, delayedStatus = false, providerStatus = 'started', throwingPlay = false, clock = false, k3 = true, realAudio = false, activityAudio = false, cors = true, savedVolume, fontMode, wishSurface = false, loadingDelay, loadingPause = 0, initialRequest = false, view = 'radio', overlayState, viewport = { width: 960, height: 760 } } = {}) {
+async function setup(t, { moderation = true, nativeSizing = false, hostSteps = false, screenHeight, role = 'owner', registeredOwner = true, nick, parserIncludes = false, deviceScaleFactor = 1, station = false, delayedSong = false, delayedStatus = false, providerStatus = 'started', throwingPlay = false, clock = false, k3 = true, realAudio = false, activityAudio = false, cors = true, savedVolume, fontMode, wishSurface = false, loadingDelay, loadingPause = 0, initialRequest = false, view = 'radio', overlayState, theme, missingDecoration = false, autoDj = false, song = {title:'Testtitel', artist:'Testinterpret'}, viewport = { width: 960, height: 760 } } = {}) {
   const h = createHarness(); configureStream(h.config, station ? 'test-radio' : '');
   const owner=h.user(1,'Otterchen','owner'),ownerSession=h.open(owner);
   const user=role==='owner'?owner:h.user(2,role==='radioModerator'?'RadioMod':'Musikfreund',role==='channelModerator'?'moderator':role==='manager'?'manager':'listener');
@@ -334,6 +478,8 @@ async function setup(t, { moderation = true, nativeSizing = false, hostSteps = f
   if(nick){user.nick=nick;}
   if(moderation&&view==='studio')h.event(user,session,'mw:onAir',{});
   const state = h.state(user, session); state.revision=0; state.requestsEnabled=true; state.broadcastRemainingMs=45000; state.view = view;if(wishSurface)state.wishSurface=true;
+  if(theme)state.theme=theme;
+  if(autoDj)state.station.modeUrl='https://stats.example.com/radio-mode';
   if(overlayState){state.overlay=true;state.overlayState=overlayState;}
   if (initialRequest) { state.queue = [{id:201,nick:'Hörer',text:'a-ha – Take On Me',createdAt:Date.now()}]; state.queueTotal=1; state.pages=1; }
   const context = await browser.newContext({ viewport, deviceScaleFactor });
@@ -442,8 +588,9 @@ async function setup(t, { moderation = true, nativeSizing = false, hostSteps = f
   }
   await page.route('https://stats.example.com/widget/radio/test-radio/track/current', async route => {
     if (delayedSong) { await songGate; }
-    await route.fulfill({ json: radioSong({title:'Testtitel',artist:'Testinterpret'}) });
+    await route.fulfill({ json: radioSong(song) });
   });
+  if(autoDj)await page.route(state.station.modeUrl, route => route.fulfill({contentType:'text/plain',body:'autodj'}));
   await page.route(/^https:\/\/stats\.example\.com\/widget\/radio\/[a-z0-9-]+\/listener$/, route =>
     route.fulfill({ json: { listener_count: 12 } }));
   await page.route(/^https:\/\/stats\.example\.com\/widget\/radio\/[a-z0-9-]+$/,async route=>{
@@ -453,6 +600,7 @@ async function setup(t, { moderation = true, nativeSizing = false, hostSteps = f
   await page.route('http://mischwerk.test/**', async route => {
     const url = new URL(route.request().url());
     const file = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
+    if(missingDecoration && /^img\/xmas-/.test(file)){await route.fulfill({status:404});return;}
     if(fontMode==='unavailable'&&file.endsWith('.woff2')){await route.fulfill({status:404});return;}
     const absolute = path.resolve(browserSource, file);
     if (!absolute.startsWith(browserSource + path.sep) || !fs.existsSync(absolute)) { await route.fulfill({ status: 404 }); return; }

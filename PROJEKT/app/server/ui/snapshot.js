@@ -14,6 +14,7 @@ MischWerkModules.attachSnapshot = function(runtime, config) {
             topic: show.active ? show.topic : '',
             broadcastRemainingMs: show.remainingMs || 0,
             displaySettings: runtime.canUseAdministration(user) ? runtime.displaySettings() : null,
+            theme: runtime.displaySettings().theme,
             migration: runtime.canUseAdministration(user) ? runtime.migrationView() : null,
             ticker: runtime.tickerState(),
             scheduleSyncPending: false,

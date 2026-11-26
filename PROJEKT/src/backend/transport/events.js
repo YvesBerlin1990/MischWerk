@@ -62,7 +62,7 @@ MischWerkModules.attachEvents = function(runtime) {
                 runtime.openOverlay(user, session, type, requestId);
                 return;
             }
-            if (['mw:setTicker', 'mw:display.save', 'mw:migration.start', 'mw:migration.abort'].indexOf(type) <
+            if (['mw:setTicker', 'mw:display.save', 'mw:display.theme', 'mw:migration.start', 'mw:migration.abort'].indexOf(type) <
                 0) {
                 throw runtime.failure(
                     'Diese Aktion ist in Knuddels nicht mehr verfügbar. Die Sendung wird im MischWerk Live Studio gesteuert.'
@@ -75,8 +75,9 @@ MischWerkModules.attachEvents = function(runtime) {
                 .viewRevision !== view.viewRevision) {
                 throw runtime.failure('Bitte die aktuelle Verwaltung über /mw admin öffnen.');
             }
-            var message = type === 'mw:setTicker' ? runtime.changeTicker(user, data) : type ===
-                'mw:display.save' ?
+            data.themeOnly = type === 'mw:display.theme';
+            var message = type === 'mw:setTicker' ? runtime.changeTicker(user, data) : (type ===
+                'mw:display.save' || type === 'mw:display.theme') ?
                 runtime.changeDisplaySettings(user, data) : runtime.changeMigration(user, type, data);
             runtime.result(session, true, message, type, requestId);
             runtime.broadcast();
