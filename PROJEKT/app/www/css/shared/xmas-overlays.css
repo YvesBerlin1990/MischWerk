@@ -1,0 +1,86 @@
+/* Weihnachtsmaterial für die beiden öffentlichen Overlays. */
+html.theme-xmas:is([data-view=schedule],[data-view=wishes]) {
+  --canvas:#101010;
+  --surface:#141414;
+  --input:#101010;
+  --line:#4e3b27;
+  --text:#fff0d6;
+  --muted:#d8c8b4;
+  --gold:#ffd37f;
+  --gold-ink:#ffd37f;
+}
+html.theme-xmas :is(.dialog-shell,.wish-drawer) {
+  border-color:#9e7140;
+  border-radius:16px;
+  background:linear-gradient(#121212b5,#111111eb),url(../../img/xmas-surface.png) center / cover;
+  box-shadow:inset 0 0 0 1px #251e16;
+}
+html.theme-xmas :is(.dialog-shell,.wish-drawer) > header.dialog-header {
+  border-radius:15px 15px 0 0;
+  border-bottom-color:#9e7140;
+  background:linear-gradient(#0f0f0f42,#121212e0),url(../../img/xmas-surface.png) center / cover;
+}
+html.theme-xmas :is(.dialog-shell,.wish-drawer) > header.dialog-header::before {
+  content:"";
+  display:block;
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  background:
+    url(../../img/xmas-corner-bow.png) left top / clamp(86px,27vw,134px) auto no-repeat,
+    url(../../img/xmas-corner-fir.png) right 40px top / clamp(76px,24vw,152px) auto no-repeat,
+    url(../../img/xmas-snow.png) center top / auto 8px repeat-x;
+  pointer-events:none;
+}
+html.theme-xmas .dialog-heading :is(h1,h2) {
+  color:var(--text);
+  text-shadow:0 1px 4px #000;
+}
+html.theme-xmas .dialog-header > .icon-button {
+  border-color:#99734b;
+  background:#191512;
+  color:var(--gold);
+}
+html.theme-xmas .dialog-header > .icon-button:hover:enabled,
+html.theme-xmas .schedule-day-nav button:hover:enabled {
+  border-color:var(--gold);
+  background:#302317;
+  color:var(--text);
+}
+html.theme-xmas .schedule-day-nav {
+  border-color:var(--line);
+  background:#17130e80;
+}
+html.theme-xmas .schedule-day-nav button { color:var(--gold); }
+html.theme-xmas :is(#schedule-date-label,.schedule-topic,.wish-label-row label) { color:var(--text); }
+html.theme-xmas :is(.schedule-position,.schedule-hours,.schedule-presenter,#schedule-message:not(.error)) { color:var(--muted); }
+html.theme-xmas :is(#schedule-date-hint,.schedule-current .schedule-position,.schedule-current .schedule-hours) { color:var(--gold); }
+html.theme-xmas .schedule-current { background:#a267261c; }
+html.theme-xmas .schedule-current::before { background:var(--gold); }
+html.theme-xmas .wish-editor {
+  border-color:#81613d;
+  border-radius:8px;
+  background:var(--input);
+}
+html.theme-xmas .wish-editor:focus-within { border-color:var(--gold); }
+html.theme-xmas .primary-button {
+  border-color:#ffcf77;
+  border-radius:9px;
+  background:linear-gradient(#ffe0a0,#e9ac52);
+  color:#1c1309;
+}
+html.theme-xmas .primary-button:hover:enabled {
+  border-color:#ffe3aa;
+  background:#ffe3aa;
+}
+html.theme-xmas .primary-button:active:enabled { background:#daa14e; }
+html.theme-xmas .secondary-button {
+  border-color:#987241;
+  border-radius:9px;
+  background:#1d1710;
+  color:var(--text);
+}
+html.theme-xmas .secondary-button:hover:enabled {
+  border-color:var(--gold);
+  background:#302317;
+}

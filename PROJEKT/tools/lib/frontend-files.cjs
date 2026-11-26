@@ -8,7 +8,7 @@ const read = file => fs.readFileSync(path.join(root, 'app/www', file), 'utf8');
 const scripts = [...read('js/start.js').matchAll(/^\s+\['\w+', '([^']+\.js)'(?:, '[^']+')?\]/gm)].map(match => 'js/' + match[1]);
 const styles = [...read('index.html').match(/var styles = \[([\s\S]*?)\];/)[1].matchAll(/^\s+'(css\/[^']+\.css)'/gm)].map(match => match[1]);
 assert.equal(scripts.length, 41, 'Frontend-Ladeplan unvollständig');
-assert.equal(styles.length, 21, 'CSS-Ladeplan unvollständig');
+assert.equal(styles.length, 22, 'CSS-Ladeplan unvollständig');
 const vinylFonts = ['fonts/outfit-latin.woff2','fonts/fraunces-latin.woff2','fonts/outfit-OFL.txt','fonts/fraunces-OFL.txt'];
 const tickerFonts = ['fonts/rajdhani-medium-latin.woff2','fonts/rajdhani-OFL.txt'];
 const nicklistIcons = ['team','listener','moderator'].map(kind => 'img/nicklist/' + kind + '.png');
@@ -16,6 +16,7 @@ const welcomeImages = ['banner','lieblingschannel','mitmachen','channelinfo'].ma
 const xmasImages = ['bow','fir','pinecone','gear','surface','snow','snow-top-left','snow-top-right',
   'snow-bottom-left','snow-bottom-right','corner-bow','corner-fir','corner-pinecone','bulb','bulb-lit','star']
   .map(name => 'img/xmas-' + name + '.png');
+const xmasOverlayImages = ['surface','snow','corner-bow','corner-fir'].map(name => 'img/xmas-' + name + '.png');
 const frontendFiles = ['index.html', 'js/start.js', 'js/ui/composition.js', ...scripts, ...styles, 'img/mischwerk-logo.png', 'img/mischwerk-radio.png', ...xmasImages, ...nicklistIcons, ...welcomeImages, 'fonts/inter-latin.woff2', 'fonts/OFL.txt', 'fonts/bcrypt-LICENSE.txt', ...vinylFonts, ...tickerFonts];
 assert.equal(frontendFiles.length, new Set(frontendFiles).size, 'Doppelte Frontend-Datei');
 function frontendFilesForView(view) {
@@ -25,7 +26,9 @@ function frontendFilesForView(view) {
   const Client = { pageData: { view }, includeJS: file => { if(file !== 'js/start.js'){selectedScripts.push(file);} }, includeCSS: file => selectedStyles.push(file) };
   vm.runInNewContext(read('index.html').match(/<script>([\s\S]*?)<\/script>/)[1], { Client, document, setTimeout() {} });
   vm.runInNewContext(read('js/start.js'), { Client, document, window: {} });
-  return ['index.html', 'js/start.js', ...selectedScripts, ...selectedStyles, ...vinylFonts, 'img/mischwerk-logo.png', ...(view === 'radio' ? ['img/mischwerk-radio.png', ...xmasImages, 'fonts/inter-latin.woff2', 'fonts/OFL.txt', ...tickerFonts] : [])];
+  const media = view === 'radio' ? ['img/mischwerk-radio.png', ...xmasImages, 'fonts/inter-latin.woff2', 'fonts/OFL.txt', ...tickerFonts] :
+    ['wishes','schedule'].includes(view) ? xmasOverlayImages : [];
+  return ['index.html', 'js/start.js', ...selectedScripts, ...selectedStyles, ...vinylFonts, 'img/mischwerk-logo.png', ...media];
 }
 const operatorFiles = ['relay-settings.html'];
 module.exports = { frontendFiles, frontendFilesForView, operatorFiles };

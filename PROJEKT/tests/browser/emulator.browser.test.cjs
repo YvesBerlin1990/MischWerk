@@ -607,6 +607,54 @@ async function view(page, mode) {
 }
 async function send(page, value) { await page.evaluate(value => window.EmulatorLab.send(value), value); }
 
+test('X-Mas in der Wunschbox folgt der Anzeigeeinstellung und erhält Eingabe und Fokus',async t=>{
+ const lab=await setup(t,{provider:'online'});
+ const owner=await lab.join(),listener=await lab.join('Testhoerer','stapp',480);
+ await owner.radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));
+ const admin=await overlayView(owner.page,'team');
+ const theme=admin.locator('#display-theme');
+ const open=async()=>{
+  await listener.radio.locator('#open-wishes:not([disabled])').click();
+  return await overlayView(listener.page,'wishes');
+ };
+ let frame=await open();
+ const header=()=>frame.locator('#wish-drawer-heading').evaluate(node=>getComputedStyle(node,'::before').backgroundImage);
+ const original=await header();
+ assert.doesNotMatch(original,/xmas/);
+ const draft='a-ha – Take On Me';
+ const input=frame.locator('#wish-text');
+ await input.fill(draft);
+ await input.evaluate(node=>node.setSelectionRange(0,4));
+ await theme.selectOption('xmas');
+ await frame.locator('html.theme-xmas').waitFor({state:'attached'});
+ assert.match(await header(),/xmas-corner-bow\.png/);
+ assert.deepEqual(await input.evaluate(node=>[node.value,node.selectionStart,node.selectionEnd,node===document.activeElement]),
+  [draft,0,4,true]);
+ await frame.locator('#close-wishes').click();
+ await listener.page.locator('#overlays iframe').waitFor({state:'detached'});
+ frame=await open();
+ assert.equal(await frame.evaluate(()=>Client.pageData.theme),'xmas');
+ assert.equal(await frame.locator('#wish-text').inputValue(),draft);
+ const pictures=path.join(os.tmpdir(),'MischWerk-Pruefbilder','wunschbox');
+ fs.mkdirSync(pictures,{recursive:true});
+ for(const width of [480,320]){
+  const viewport=listener.page.locator('#width');
+  await viewport.fill(String(width));await viewport.dispatchEvent('change');
+  await frame.waitForFunction(width=>innerWidth===width,width);
+  await listener.page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
+  assert.equal(await frame.evaluate(()=>document.documentElement.scrollWidth),width);
+  const submit=frame.locator('#submit-wish');
+  await submit.scrollIntoViewIfNeeded();
+  assert.ok((await submit.boundingBox()).height>=44);
+  await listener.page.locator('#overlays iframe').screenshot({path:path.join(pictures,'wunschbox-xmas-'+width+'.png'),scale:'css'});
+ }
+ await theme.selectOption('normal');
+ await frame.locator('html:not(.theme-xmas)').waitFor({state:'attached'});
+ assert.equal(await header(),original);
+ assert.equal(await frame.locator('#wish-text').inputValue(),draft);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
 for(const client of ['k3','stapp','android'])test('Native Wiedergabe erholt sich nach einem Fehlversuch ohne Nutzer-Fehlerlog in '+client,async t=>{
  const lab=await setup(t,{provider:'online'},false,client==='android'?{userAgent:'Mozilla/5.0 (Linux; Android 14; SM-A546B) AppleWebKit/537.36 Chrome/157.0.8103.38 Mobile Safari/537.36'}:{});let failed=true;
  await lab.context.route('**/fixture/audio.wav**',route=>failed?route.abort('failed'):route.continue());

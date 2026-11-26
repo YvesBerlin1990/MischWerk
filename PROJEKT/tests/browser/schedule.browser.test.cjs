@@ -57,6 +57,53 @@ async function setup(t,client='k3',options={}){
 async function overlay(page,kind='schedule'){const selector='#overlays iframe[title$=" · '+kind+'"]';await page.frameLocator(selector).locator('html.mw-ready').waitFor();return await(await page.locator(selector).elementHandle()).contentFrame();}
 async function openSchedule(person){await person.radio.locator('#open-schedule:not([disabled])').click();const frame=await overlay(person.page);await frame.waitForFunction(()=>document.querySelector('.schedule-topic')||document.getElementById('schedule-message').textContent==='Für diesen Tag sind keine Sendungen eingetragen.');return frame;}
 
+test('X-Mas im Sendeplan übernimmt das Channel-Design und erhält den gewählten Tag',async t=>{
+ const lab=await setup(t);
+ lab.publish([
+  lab.command('xmas-before','16:00','18:00','Feierabend-Mix','Polaroid'),
+  lab.command('xmas-current','18:00','20:00','MischWerk Radio Show','Otterchen'),
+  lab.command('xmas-after','20:00','22:00','Rock am Abend','Polaroid')
+ ]);
+ const owner=await lab.join(),listener=await lab.join('Testhoerer');
+ await owner.radio.evaluate(()=>Client.executeSlashCommand('/mw admin'));
+ const admin=await overlay(owner.page,'team');
+ let frame=await openSchedule(listener);
+ const theme=admin.locator('#display-theme');
+ const header=()=>frame.locator('.dialog-shell > .dialog-header').evaluate(node=>getComputedStyle(node,'::before').backgroundImage);
+ const original=await header();
+ assert.doesNotMatch(original,/xmas/);
+ await frame.locator('#schedule-next').click();
+ await frame.locator('#schedule-message').filter({hasText:'keine Sendungen'}).waitFor();
+ const date=await frame.locator('#schedule-date-label').textContent();
+ await theme.selectOption('xmas');
+ await frame.locator('html.theme-xmas').waitFor({state:'attached'});
+ assert.equal(await frame.locator('#schedule-date-label').textContent(),date);
+ assert.match(await header(),/xmas-corner-bow\.png/);
+ assert.equal(await admin.locator('html.theme-xmas').count(),0);
+ await frame.locator('#close-overlay').click();
+ await listener.page.locator('#overlays iframe').waitFor({state:'detached'});
+ frame=await openSchedule(listener);
+ assert.equal(await frame.evaluate(()=>Client.pageData.theme),'xmas');
+ assert.equal(await frame.locator('#schedule-date-label').textContent(),date);
+ await frame.locator('#schedule-today').click();
+ await frame.locator('.schedule-current .schedule-topic').filter({hasText:'MischWerk Radio Show'}).waitFor();
+ const pictures=path.join(os.tmpdir(),'MischWerk-Pruefbilder','sendeplan');
+ fs.mkdirSync(pictures,{recursive:true});
+ for(const width of [640,320]){
+  const viewport=listener.page.locator('#width');
+  await viewport.fill(String(width));await viewport.dispatchEvent('change');
+  await frame.waitForFunction(width=>innerWidth===width,width);
+  await listener.page.waitForFunction(()=>EmulatorLab.frames.pendingSizes.size===0);
+  assert.equal(await frame.evaluate(()=>document.documentElement.scrollWidth),width);
+  assert.ok((await frame.locator('#schedule-next').boundingBox()).height>=44);
+  await listener.page.locator('#overlays iframe').screenshot({path:path.join(pictures,'sendeplan-xmas-'+width+'.png'),scale:'css'});
+ }
+ await theme.selectOption('normal');
+ await frame.locator('html:not(.theme-xmas)').waitFor({state:'attached'});
+ assert.equal(await header(),original);
+ assert.deepEqual(lab.errors,[]);assert.deepEqual(lab.external,[]);
+});
+
 for(const client of ['k3','stapp'])test('Tagesplan in '+client+' wächst mit dem Inhalt und wird beim leeren Tag wieder kompakt',async t=>{
  const lab=await setup(t,client),owner=await lab.join(),frame=await openSchedule(owner);
  await frame.evaluate(()=>document.fonts.ready);

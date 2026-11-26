@@ -14,8 +14,9 @@ const browserSource=process.env.MISCHWERK_TEST_UPLOAD?path.resolve(process.env.M
 let browser;
 
 for (const k3 of [true, false]) test('X-Mas mit Leuchtraum, mittigem Player und Lichtern nur bei Wiedergabe in ' + (k3 ? 'K3' : 'STAPP'), async t => {
+  const song = {title:'Jump', artist:'Van Halen'};
   const {page, state, errors} = await setup(t, {station:true, k3, role:'listener', theme:'xmas', parserIncludes:true,
-    song:{title:'Jump', artist:'Van Halen'}, autoDj:true, viewport:{width:1920, height:430}});
+    song, autoDj:true, viewport:{width:1920, height:430}});
   const deck = page.locator('#radio-deck');
   const surface = () => deck.locator('.radio-panel-face').evaluate(node => {
     const {backgroundColor, backgroundImage} = getComputedStyle(node);
@@ -234,20 +235,20 @@ for (const k3 of [true, false]) test('X-Mas mit Leuchtraum, mittigem Player und 
     }
   }
   await resizeViewport(page, {width:1200, height:182});
-  await page.evaluate(() => {
-    document.getElementById('track-title').textContent = 'Sehr langer Titel mit weiteren Informationen '.repeat(6);
-    document.getElementById('show-topic').textContent = 'Eine ausführliche Radiosendung mit besonderen Musikwünschen und vielen Gästen';
-    dispatchEvent(new Event('resize'));
-  });
+  song.title = 'Sehr langer Titel mit weiteren Informationen '.repeat(6).trim();
+  await snapshot('xmas', '', true, true, true);
+  await page.waitForFunction(title => document.getElementById('track-title').textContent === title, song.title);
   await studioSettle(page);
   await page.locator('#volume').scrollIntoViewIfNeeded();
   await page.locator('#volume').focus();
   await page.keyboard.press('End');
   assert.equal(await page.locator('#volume-value').textContent(), '100 %');
-  assert.equal(await page.locator('#volume').evaluate(node => {
+  await page.locator('#volume').scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => {
+    const node = document.getElementById('volume');
     const rect = node.getBoundingClientRect();
     return node.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
-  }), true);
+  });
   const longText = await page.locator('#radio-metadata').evaluate(node => ({
     height:node.clientHeight, scrollHeight:node.scrollHeight, width:node.clientWidth, scrollWidth:node.scrollWidth,
     boxes:['.track-copy','.radio-context','.volume-control','.own-wish-position'].map(selector => {
@@ -259,11 +260,7 @@ for (const k3 of [true, false]) test('X-Mas mit Leuchtraum, mittigem Player und 
   for (const width of [390, 320]) {
     await resizeViewport(page, {width, height:500});
     await snapshot('xmas', 'Frohe Weihnachten bei Radio MischWerk', true, true, true);
-    await page.evaluate(() => {
-      document.getElementById('track-title').textContent = 'Sehr langer Titel mit weiteren Informationen '.repeat(6).trim();
-      dispatchEvent(new Event('resize'));
-    });
-    await studioSettle(page);
+    assert.equal(await page.locator('#track-title').textContent(), song.title);
     const height = await deck.evaluate(node => Math.ceil(node.getBoundingClientRect().height));
     assert.ok(height > 500, 'Lange Texte und eigener Wunsch prüfen den Scrollweg');
     assert.equal(await page.evaluate(() => __sizes.at(-1)[1]), 500);

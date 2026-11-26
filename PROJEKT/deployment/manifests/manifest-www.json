@@ -1,11 +1,11 @@
 {
-  "version": "0.1.456",
-  "buildNumber": 456,
+  "version": "0.1.457",
+  "buildNumber": 457,
   "files": [
     {
       "path": "MischWerk/www/index.html",
-      "bytes": 8836,
-      "sha256": "A8E92BA087495E21472BF6CA2A67DE4654B066BAE20CFB1512180E495257ABE6"
+      "bytes": 9033,
+      "sha256": "297E175AD9E0AEABABB48BF523DA63854E875938F4C038D29877347020FC7E80"
     },
     {
       "path": "MischWerk/www/js/start.js",
@@ -129,8 +129,8 @@
     },
     {
       "path": "MischWerk/www/js/ui/overlays.js",
-      "bytes": 9053,
-      "sha256": "19CDAD6AEB58DC7C71D4209556AF41EC6D4304A0BD2A52CDE90E5DF04334FFD4"
+      "bytes": 9117,
+      "sha256": "F3CF034F096A229D673E5B23A7CC9159EF693818B6C3A3FBCF608A99B3A8DB20"
     },
     {
       "path": "MischWerk/www/js/transport/lifecycle.js",
@@ -221,6 +221,11 @@
       "path": "MischWerk/www/css/shared/workshop-menus.css",
       "bytes": 5602,
       "sha256": "ADB02E9DE2BF9692E3BEFF61ABFA29B0F864E78D0ABA4C5C82F20E1B33781742"
+    },
+    {
+      "path": "MischWerk/www/css/shared/xmas-overlays.css",
+      "bytes": 2974,
+      "sha256": "31AF7781EA5225C13F35388AE6D34E972A2ED33AE131FE03C73C206A111D9E52"
     }
   ]
 }

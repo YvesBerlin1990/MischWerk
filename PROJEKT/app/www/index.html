@@ -75,18 +75,24 @@ var styles = [
   'css/radio/xmas.css',
   'css/radio/xmas-layout.css',
   'css/schedule/day.css',
-  'css/shared/workshop-menus.css'
+  'css/shared/workshop-menus.css',
+  'css/shared/xmas-overlays.css'
 ];
-var initialView = typeof Client !== 'undefined' && Client.pageData && Client.pageData.view;
+var initialData = typeof Client !== 'undefined' && Client.pageData;
+var initialView = initialData && initialData.view;
 var view = ['wishes', 'team', 'schedule'].indexOf(initialView) !== -1 ? initialView : 'radio';
 document.documentElement.setAttribute('data-view', view);
-if (view === 'wishes' && typeof Client !== 'undefined' && Client.pageData && Client.pageData.wishSurface) { document.documentElement.setAttribute('data-wish-surface', 'true'); }
+if (view === 'wishes' && initialData.wishSurface) { document.documentElement.setAttribute('data-wish-surface', 'true'); }
+if ((view === 'wishes' || view === 'schedule') && initialData.theme === 'xmas') {
+  document.documentElement.classList.add('theme-xmas');
+}
 // Fachordner bestimmen die Ansichten; gemeinsame Dialoge besitzen eigene Zuordnungen.
 var styleViews = { radio:'radio', team:'team', wishes:'radio wishes', schedule:'schedule' };
 var sharedStyleViews = {
   'css/shared/dialogs.css':'radio wishes team schedule',
   'css/shared/dialogs-responsive.css':'wishes team schedule',
-  'css/shared/workshop-menus.css':'wishes team schedule'
+  'css/shared/workshop-menus.css':'wishes team schedule',
+  'css/shared/xmas-overlays.css':'wishes schedule'
 };
 function styleApplies(file) {
   var assignedViews = sharedStyleViews[file] || styleViews[file.split('/')[1]];

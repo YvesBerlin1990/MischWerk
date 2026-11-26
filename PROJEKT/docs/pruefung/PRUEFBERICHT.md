@@ -1,4 +1,18 @@
-# MischWerk – Prüfbericht 0.1.456 / Build 456
+# MischWerk – Prüfbericht 0.1.457 / Build 457
+
+## Sendeplan und Wunschbox
+
+Stand 26.11.2026. Sendeplan und Wunschbox übernehmen Normal/X-Mas aus dem bereits vorhandenen Serverzustand beim Öffnen und bei bestätigten Änderungen. Ihr gemeinsamer X-Mas-Stil verwendet neutrales schwarzes Metall, einen warmen Goldrahmen sowie Schnee und proportionalen Tannenschmuck im Kopf. Der Sendeplan hebt die aktuelle Sendung goldfarben hervor. Die Wunschbox behält ihre beschrifteten Eingabe- und Versandflächen. Die Dekoration lässt Überschrift und Schließen frei. Normal behält die bisherigen Oberflächen. Die Lichtschaltung der Radioleiste bleibt auf die Wiedergabe in der Radioleiste bezogen.
+
+Edge-Screenshots aus dem lokalen nativen Browsermodell mit Beispieldaten. [Sendeplan 640 px](oberflaeche/sendeplan/sendeplan-xmas-640.png) und [Sendeplan 320 px](oberflaeche/sendeplan/sendeplan-xmas-320.png). [Wunschbox 480 px](oberflaeche/wunschbox/wunschbox-xmas-480.png) und [Wunschbox 320 px](oberflaeche/wunschbox/wunschbox-xmas-320.png).
+
+Die gezielten Browserprüfungen schalten die Gestaltung über /mw admin bei bereits geöffneten Fenstern um und prüfen auch die Rückkehr zu Normal. Sendeplan-Tag, Wunscheingabe, Auswahl und Fokus bleiben erhalten. Die Wiederöffnung erhält die aktuelle Gestaltung. Beide Ansichten bleiben bei 320 px ohne horizontalen Überlauf bedienbar. Je elf gezielte Edge-Fälle zu X-Mas, Sendeplan und Wunschbox bestanden am Quellstand und am Paket. Der Radio-Langtexttest bezieht seinen Titel aus der Anbieterattrappe, damit der reguläre Abruf den Prüftext nicht mehr überschreibt. Der lokale Paketbau bestand mit 473 Node-Tests, der Architektur- und Integritätsprüfung sowie jeweils 250 Fällen mit Rhino 1.7.7.2 und 1.9.1 am Quellstand und am Paket. Am Paket bestanden alle drei zentralen Emulatortests. Die fünf Manifeste stimmen mit 143 Dateien im lokalen Upload überein. Die 114 Textdateien erreichen höchstens 9407 UTF-16-Zeichen.
+
+In `app.config` wurde für `appleDeveloperId` der erste `DEVELOPMENT_TEAM`-Eintrag der übergebenen Datei „Apple Dev ID.json“ mit der Endung `RJLG` eingetragen und mit dem lokalen Paket abgeglichen. Gültigkeit der Mitgliedschaft und Öffnen in der iOS-App wurden nicht nativ geprüft.
+
+Der freigegebene lokale Releasebau mit `--approve` ist bestanden. Die Freigabedatei `.freigaben/MischWerk.json` neben dem Appordner trägt Appversion 0.1.457 und Build 457. Die 143 relativen Pfade, Dateigrößen und SHA-256-Prüfsummen wurden am Releaseordner unabhängig mit der Freigabedatei abgeglichen. Lokale Nachweise stehen in `MischWerk-457-Freigabe.log` und `MischWerk-457-Freigabe-Abgleich.log` im System-Tempverzeichnis.
+
+## Radio-Appleiste · Bildabnahme aus Build 456
 
 Stand 26.11.2026. Auf der mobilen X-Mas-Appleiste sind Schleife, Kugel und Tanne vollständig erkennbar. Die bedienbaren Flächen sind mindestens 44 px hoch. Der bisherige 390-px-Screenshot misst 499 px. Mit „Jump“, „Van Halen“, „MischWerk Radio Show“, „MischWerk am Pult“ und aktivem Weihnachtslauftext misst die Überarbeitung bei 390 und 320 px jeweils 470 px. Damit bleiben 30 px bis zur 500-px-Grenze.
 

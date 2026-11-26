@@ -45,7 +45,8 @@ MischWerkUI.define('updates', function (dependencies) {
   }
   function receive(change) {
     var state = model.current();
-    document.documentElement.classList.toggle('theme-xmas', model.view === 'radio' && state.theme === 'xmas');
+    document.documentElement.classList.toggle('theme-xmas',
+      state.theme === 'xmas' && (model.view === 'radio' || model.view === 'wishes' || model.view === 'schedule'));
     layout.renderView();
     if (provider) { provider.selectStation(change.previousStation); }
     if (presentation) { presentation.renderTopic(); }

@@ -1,8 +1,8 @@
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
  "schema": 1,
- "version": "0.1.456",
- "buildNumber": 456,
+ "version": "0.1.457",
+ "buildNumber": 457,
  "directories": {
   "": [
    "main.js",
@@ -193,7 +193,8 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "dialogs.css",
    "feedback.css",
    "dialogs-responsive.css",
-   "workshop-menus.css"
+   "workshop-menus.css",
+   "xmas-overlays.css"
   ],
   "www/css/team": [
    "team.css",
