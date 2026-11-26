@@ -11,7 +11,7 @@
   "ftpUser": "30807196",
   "delivery": "upload-directory",
   "bundled": true,
-  "localUploadRoot": "C:\\Users\\alexk\\AppData\\Local\\Temp\\MischWerk-458-XMas-Pruefpaket-nD5rtw\\MischWerk",
+  "localUploadRoot": "C:\\Users\\alexk\\Documents\\Releases\\Knuddels User Apps\\MischWerk",
   "fileCount": 163,
   "fileManifests": [
     {
@@ -39,5 +39,5 @@
       "sha256": "963777CCD10F432AB10F0D4FD44F812AB85F8D03F7671B2B55E216CABDF83952"
     }
   ],
-  "localUploadDirectory": "C:\\Users\\alexk\\AppData\\Local\\Temp\\MischWerk-458-XMas-Pruefpaket-nD5rtw\\MischWerk"
+  "localUploadDirectory": "C:\\Users\\alexk\\Documents\\Releases\\Knuddels User Apps\\MischWerk"
 }
