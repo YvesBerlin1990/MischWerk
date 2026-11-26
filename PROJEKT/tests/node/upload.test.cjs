@@ -11,7 +11,7 @@ const { modules } = require('../../tools/build/backend.cjs');
 const { frontendFilesForView } = require('../../tools/lib/frontend-files.cjs');
 const { runtimeFiles, isBinary } = require('../../tools/checks/lengths.cjs');
 const { checkUpload } = require('../../tools/checks/upload.cjs');
-const { manifestGroups } = require('../../tools/lib/upload-manifests.cjs');
+const { manifestGroups, serializeManifest } = require('../../tools/lib/upload-manifests.cjs');
 const { desktopUploadRoot, resolveUploadRoot, resolveUploadLocation } = require('../../tools/lib/upload-path.cjs');
 test('Verbindlicher Uploadpfad verwendet jeden Nutzerdesktop einschließlich umgeleitetem Desktop ohne Rückfrage', () => {
   const live = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../deployment/live.json'), 'utf8'));
@@ -279,7 +279,7 @@ test('Uploadprüfung validiert Bündel gegen die Quellmodule und weist nachgehas
     for (const part of manifest.fileManifests) {
       const file = path.join(folder,part.path), data = JSON.parse(fs.readFileSync(file,'utf8'));
       for (const entry of data.files) { const bytes = fs.readFileSync(path.join(f.upload,entry.path));entry.bytes=bytes.length;entry.sha256=digest(bytes); }
-      fs.writeFileSync(file,JSON.stringify(data,null,2)+'\n');
+      fs.writeFileSync(file,serializeManifest(part.path,data));
       const bytes=fs.readFileSync(file);part.bytes=bytes.length;part.sha256=digest(bytes);
     }
     fs.writeFileSync(manifestFile,JSON.stringify(manifest));

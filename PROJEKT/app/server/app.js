@@ -1,8 +1,8 @@
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
  "schema": 1,
- "version": "0.1.459",
- "buildNumber": 459,
+ "version": "0.1.460",
+ "buildNumber": 460,
  "directories": {
   "": [
    "main.js",
@@ -239,6 +239,7 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "xmas-schnee-unten-rechts.png",
    "xmas-tanne-links.png",
    "xmas-tanne-rechts.png",
+   "xmas-unterer-tannenschmuck.png",
    "xmas-zahnrad.png",
    "xmas-zapfen-garnitur.png",
    "xmas-zierlinie.png",

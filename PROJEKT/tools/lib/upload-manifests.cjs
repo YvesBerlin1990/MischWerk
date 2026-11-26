@@ -9,4 +9,10 @@ function manifestGroups(files, isBinary) {
     'manifest-media.json': files.filter(media)
   };
 }
-module.exports = { manifestGroups };
+
+function serializeManifest(name, content) {
+  const indent = name === 'manifest-media.json' ? 1 : 2;
+  return JSON.stringify(content, null, indent) + '\n';
+}
+
+module.exports = { manifestGroups, serializeManifest };

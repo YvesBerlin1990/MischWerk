@@ -1,271 +1,276 @@
 {
-  "version": "0.1.459",
-  "buildNumber": 459,
-  "files": [
-    {
-      "path": "MischWerk/www/img/mischwerk-logo.png",
-      "bytes": 1343064,
-      "sha256": "52460B961DBD63A6DAC985CC3D031019C2425878C6AC7962E19B6086BC050D0A"
-    },
-    {
-      "path": "MischWerk/www/img/mischwerk-radio.png",
-      "bytes": 846251,
-      "sha256": "989C3BF349FD6DDD433519DA960978D9758FC1FC5E4EA631B46AE662E416542B"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-fassung.png",
-      "bytes": 51307,
-      "sha256": "9122A469F4D4E789AEB52430B91C7BB6C0A85CD6021B487AF1001620895565B0"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-funkeln.png",
-      "bytes": 35583,
-      "sha256": "65E7D32559138D94949746ADC2B87951AE1EBDEDE38393B608416CB827DCB9E1"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-goldring.png",
-      "bytes": 336423,
-      "sha256": "2D8D8D5911678392D17F4CF1A7DBB01C7C82B8945136B626B9BABBD215685299"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-goldring-an.png",
-      "bytes": 274080,
-      "sha256": "3898B09684DE9918118FB8E2F99CCCCDAA98126DAE0008E2706922F286E92633"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-kabel-fein.png",
-      "bytes": 9342,
-      "sha256": "98C5924A7510128D7E2606D5B69E3084BF931EAF027E2DDAD5477C686F734B43"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-kabel-rundung.png",
-      "bytes": 28660,
-      "sha256": "B66C0F1B1EA337AE506F32714D8D0635C13D01A8FE12C4F3301D56234EFAC381"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-kabel-senkrecht.png",
-      "bytes": 27340,
-      "sha256": "35F01D7932B90274998FEA0263E2571E5194D9676755B815C0179CBBA1EE8DA2"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-kugel.png",
-      "bytes": 101028,
-      "sha256": "1EBEBAB419AB45529B1A8B3BB7BCD8190CE05EE43D95F5102AADAEB405198401"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-lampe-an.png",
-      "bytes": 36497,
-      "sha256": "EC80C5964539022CEEAE4E68BABAA6F45ACDA9C897DEE25DA026ACD769A3E0AD"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-lampe-aus.png",
-      "bytes": 47817,
-      "sha256": "66601E74F4618A57E2109A6AF44E09426C67603CD8FAAF1EC2A64A298EA880E4"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-play-inlay.png",
-      "bytes": 330885,
-      "sha256": "C68587AA5352B744CB0FC20CD8216BC51A5095A02DB2BF199F03FCBE26930805"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-rahmen-oben-links.png",
-      "bytes": 30790,
-      "sha256": "29DC7BD4A0ED0A3C8AD76B3F5AEA5C557F666A07CABD513171678D314049388E"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-rahmen-oben-rechts.png",
-      "bytes": 31782,
-      "sha256": "B0AC536E23AB077BD4122D27A0296A0339DDDA6DF2E760F91B8CF47EB6E929B8"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-rahmen-senkrecht.png",
-      "bytes": 48247,
-      "sha256": "3E7CF6C1C4104EE0E2F820FCAE86DF7668C1EBC07CE51FC1AD827C101B307546"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-rahmen-unten-links.png",
-      "bytes": 32454,
-      "sha256": "BE4F8AFFD481C5508D3042FC18F2FE1C7CD960C00C4D0ECD679EE32F53D48976"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-rahmen-unten-rechts.png",
-      "bytes": 32172,
-      "sha256": "B522E3922D205CDD34A631F989DCFAB5E01A26B1E3DFA09BD0D718923FB4BE28"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-rahmen-waagerecht.png",
-      "bytes": 47101,
-      "sha256": "F438FF7881B64DEAA5726A98CCAEA174455CD10168AB2C14D85A15C380E21E56"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-reglergriff.png",
-      "bytes": 18524,
-      "sha256": "95D4E4C0ADFC8C93BFD41F6EB80C7D45D3C9DB3084431F5C62F5D9BC5AB76AE7"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-schein.png",
-      "bytes": 92285,
-      "sha256": "CDD0D69244BBCE6D6AED30286FC0DD07C0C5CF022943A10D10086C1C9F1E7D46"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-schleife.png",
-      "bytes": 268136,
-      "sha256": "0B0F5D5A6C01E85F0898E2812FE1347B8A5BE310FB5872AFD47F7FA5AB9E5A23"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-schnee-mitte-oben.png",
-      "bytes": 100128,
-      "sha256": "7584A340C21BC34B9FB2041B4CAE41461824567365A905C880717BCFFCE29577"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-schnee-mitte-unten.png",
-      "bytes": 97286,
-      "sha256": "915DEBC66EE6A497720E2427C54D967D90E91D41892DD66F5673521300E851E7"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-schnee-oben-links.png",
-      "bytes": 53222,
-      "sha256": "0571C0B07A9C1AA334FFABE4295C86692D88A8FF470365DB120D3212AF1647E4"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-schnee-oben-rechts.png",
-      "bytes": 52673,
-      "sha256": "3CDADB777223D0556FC83DEA4C4CA4F816E014976D9C86212C3A356A01E9CB82"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-schnee-unten-links.png",
-      "bytes": 47836,
-      "sha256": "4DB337CB1FA51C5103F7925AF5320BFC5ED5EA9D4A91A57018FB1F01FDF043D0"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-schnee-unten-rechts.png",
-      "bytes": 47950,
-      "sha256": "BDF8EF248BD27D1991F79EBB24A45D7323BD9386D58E2DC760FE5060CB1A17F3"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-tanne-links.png",
-      "bytes": 996542,
-      "sha256": "C04F263064E95225F899D18A4CB33843C21D420DD50229C6F1E3E3129569E673"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-tanne-rechts.png",
-      "bytes": 768111,
-      "sha256": "676598CC73B0A385E4100E487898B9E6DFA460F02D06CB97AC608C8780C10C04"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-zahnrad.png",
-      "bytes": 713388,
-      "sha256": "76F62D8CBD705DE5CE1C3796A11B377DEE90F630898B66F14231ECF7D7ED809B"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-zapfen-garnitur.png",
-      "bytes": 301666,
-      "sha256": "5A535DCB31BFD87DBC884C53FF1F7D3DEDD0483D150E9E7FB4F71832CC38799C"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-zierlinie.png",
-      "bytes": 26887,
-      "sha256": "F91B51C463DFFD4C67D5E878572FEF88EF775E89717A94F777E05215899F77E3"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-surface.png",
-      "bytes": 446266,
-      "sha256": "6280168DB845AE2A372351777194D6946150CFAE2E7111D821CF7DFE2BFBE403"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-snow.png",
-      "bytes": 247169,
-      "sha256": "2F551ED5BE8563DBB0DCB38853DF7D3D5BD2E9426AD67837C875A996770BC5DB"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-corner-bow.png",
-      "bytes": 340103,
-      "sha256": "8A9E43001758165BDD91527CAC8FE17508BB150AB5B828EB1CAF35E0BD2562E6"
-    },
-    {
-      "path": "MischWerk/www/img/xmas-corner-fir.png",
-      "bytes": 247780,
-      "sha256": "8AD81BCA09C79CCC50EF96BFD7A02AABC50501AC312CF0C1A19197D901943616"
-    },
-    {
-      "path": "MischWerk/www/img/nicklist/team.png",
-      "bytes": 2853,
-      "sha256": "704C413878D750DE5CC5E650B98A17664A2C981EF8BAF38326998AA4B5175927"
-    },
-    {
-      "path": "MischWerk/www/img/nicklist/listener.png",
-      "bytes": 1524,
-      "sha256": "116B5E6BCC0AA246F8D630499C4FC46E6E2FE0971CD663D392BF59F30CDE1709"
-    },
-    {
-      "path": "MischWerk/www/img/nicklist/moderator.png",
-      "bytes": 1390,
-      "sha256": "E3226D285D66BFA6CFD2C674EB48DC8A9E08F34D39EEC231CE2299191EBB7FA2"
-    },
-    {
-      "path": "MischWerk/www/img/welcome/banner.png",
-      "bytes": 1691177,
-      "sha256": "AA5725EE61B0CD0A5844EE00A9BB6C327B9009A2D5687B84AF4B6E91936355EE"
-    },
-    {
-      "path": "MischWerk/www/img/welcome/lieblingschannel.png",
-      "bytes": 2844,
-      "sha256": "6D6585793560024CF0BB8134AB50256AFFBA49732F657DFB79365A18210DEDA5"
-    },
-    {
-      "path": "MischWerk/www/img/welcome/mitmachen.png",
-      "bytes": 1711,
-      "sha256": "2EC412AF7CAFC21252F4BCA1CA2C36D6B1D15F6804098AD46BD61ED08086B025"
-    },
-    {
-      "path": "MischWerk/www/img/welcome/channelinfo.png",
-      "bytes": 1975,
-      "sha256": "05A479F744C01C720905ED8AB43E79CC4ABF683032213827E06ACD4434B800C2"
-    },
-    {
-      "path": "MischWerk/www/fonts/inter-latin.woff2",
-      "bytes": 48256,
-      "sha256": "3100E775E8616CD2611BEECFA23A4263D7037586789B43F035236A2E6FBD4C62"
-    },
-    {
-      "path": "MischWerk/www/fonts/OFL.txt",
-      "bytes": 4377,
-      "sha256": "5B9321A4298CFEB6B34354164A1C3AFC3DB114569984C502B9B35D988FD58C57"
-    },
-    {
-      "path": "MischWerk/www/fonts/bcrypt-LICENSE.txt",
-      "bytes": 2615,
-      "sha256": "31ED2612A6418F57C473FA5350001069297DA1208E124ED8CDC05E795DE8B1DB"
-    },
-    {
-      "path": "MischWerk/www/fonts/outfit-latin.woff2",
-      "bytes": 32292,
-      "sha256": "6C18D579FD87C3776BE068B762CBC83FDE3ACB543D49EABD3ADE842EB987E887"
-    },
-    {
-      "path": "MischWerk/www/fonts/fraunces-latin.woff2",
-      "bytes": 67304,
-      "sha256": "7234ED860A9CC83045413C4FAEE63C960A8F2D1917ADCF728119307D56E0D783"
-    },
-    {
-      "path": "MischWerk/www/fonts/outfit-OFL.txt",
-      "bytes": 4389,
-      "sha256": "C676351BF8576B9ABA743CD5EAA8C0E7EE0D51F805D720447B4DF4DDB6A2E416"
-    },
-    {
-      "path": "MischWerk/www/fonts/fraunces-OFL.txt",
-      "bytes": 4391,
-      "sha256": "BDF4C22802EAF804F998195871C6B8938AAC2AC14B2D78A8BD66A6F1ECED833B"
-    },
-    {
-      "path": "MischWerk/www/fonts/rajdhani-medium-latin.woff2",
-      "bytes": 15084,
-      "sha256": "23AFDB9B5B89B878FAB04D80CC30BF41BB4F3F7E8BE88E5F16A7CC7671CDB2DC"
-    },
-    {
-      "path": "MischWerk/www/fonts/rajdhani-OFL.txt",
-      "bytes": 4373,
-      "sha256": "F62EF357D3A1C3D27EDD35A6E1BA350E8A8D13499797964EEADEFBF0B3B15D1F"
-    }
-  ]
+ "version": "0.1.460",
+ "buildNumber": 460,
+ "files": [
+  {
+   "path": "MischWerk/www/img/mischwerk-logo.png",
+   "bytes": 1343064,
+   "sha256": "52460B961DBD63A6DAC985CC3D031019C2425878C6AC7962E19B6086BC050D0A"
+  },
+  {
+   "path": "MischWerk/www/img/mischwerk-radio.png",
+   "bytes": 846251,
+   "sha256": "989C3BF349FD6DDD433519DA960978D9758FC1FC5E4EA631B46AE662E416542B"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-fassung.png",
+   "bytes": 51307,
+   "sha256": "9122A469F4D4E789AEB52430B91C7BB6C0A85CD6021B487AF1001620895565B0"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-funkeln.png",
+   "bytes": 35583,
+   "sha256": "65E7D32559138D94949746ADC2B87951AE1EBDEDE38393B608416CB827DCB9E1"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-goldring.png",
+   "bytes": 336423,
+   "sha256": "2D8D8D5911678392D17F4CF1A7DBB01C7C82B8945136B626B9BABBD215685299"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-goldring-an.png",
+   "bytes": 274080,
+   "sha256": "3898B09684DE9918118FB8E2F99CCCCDAA98126DAE0008E2706922F286E92633"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-kabel-fein.png",
+   "bytes": 9342,
+   "sha256": "98C5924A7510128D7E2606D5B69E3084BF931EAF027E2DDAD5477C686F734B43"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-kabel-rundung.png",
+   "bytes": 28660,
+   "sha256": "B66C0F1B1EA337AE506F32714D8D0635C13D01A8FE12C4F3301D56234EFAC381"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-kabel-senkrecht.png",
+   "bytes": 27340,
+   "sha256": "35F01D7932B90274998FEA0263E2571E5194D9676755B815C0179CBBA1EE8DA2"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-kugel.png",
+   "bytes": 101028,
+   "sha256": "1EBEBAB419AB45529B1A8B3BB7BCD8190CE05EE43D95F5102AADAEB405198401"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-lampe-an.png",
+   "bytes": 36497,
+   "sha256": "EC80C5964539022CEEAE4E68BABAA6F45ACDA9C897DEE25DA026ACD769A3E0AD"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-lampe-aus.png",
+   "bytes": 47817,
+   "sha256": "66601E74F4618A57E2109A6AF44E09426C67603CD8FAAF1EC2A64A298EA880E4"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-play-inlay.png",
+   "bytes": 330885,
+   "sha256": "C68587AA5352B744CB0FC20CD8216BC51A5095A02DB2BF199F03FCBE26930805"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-rahmen-oben-links.png",
+   "bytes": 30790,
+   "sha256": "29DC7BD4A0ED0A3C8AD76B3F5AEA5C557F666A07CABD513171678D314049388E"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-rahmen-oben-rechts.png",
+   "bytes": 31782,
+   "sha256": "B0AC536E23AB077BD4122D27A0296A0339DDDA6DF2E760F91B8CF47EB6E929B8"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-rahmen-senkrecht.png",
+   "bytes": 48247,
+   "sha256": "3E7CF6C1C4104EE0E2F820FCAE86DF7668C1EBC07CE51FC1AD827C101B307546"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-rahmen-unten-links.png",
+   "bytes": 32454,
+   "sha256": "BE4F8AFFD481C5508D3042FC18F2FE1C7CD960C00C4D0ECD679EE32F53D48976"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-rahmen-unten-rechts.png",
+   "bytes": 32172,
+   "sha256": "B522E3922D205CDD34A631F989DCFAB5E01A26B1E3DFA09BD0D718923FB4BE28"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-rahmen-waagerecht.png",
+   "bytes": 47101,
+   "sha256": "F438FF7881B64DEAA5726A98CCAEA174455CD10168AB2C14D85A15C380E21E56"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-reglergriff.png",
+   "bytes": 18524,
+   "sha256": "95D4E4C0ADFC8C93BFD41F6EB80C7D45D3C9DB3084431F5C62F5D9BC5AB76AE7"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-schein.png",
+   "bytes": 92285,
+   "sha256": "CDD0D69244BBCE6D6AED30286FC0DD07C0C5CF022943A10D10086C1C9F1E7D46"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-schleife.png",
+   "bytes": 268136,
+   "sha256": "0B0F5D5A6C01E85F0898E2812FE1347B8A5BE310FB5872AFD47F7FA5AB9E5A23"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-schnee-mitte-oben.png",
+   "bytes": 100128,
+   "sha256": "7584A340C21BC34B9FB2041B4CAE41461824567365A905C880717BCFFCE29577"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-schnee-mitte-unten.png",
+   "bytes": 97286,
+   "sha256": "915DEBC66EE6A497720E2427C54D967D90E91D41892DD66F5673521300E851E7"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-schnee-oben-links.png",
+   "bytes": 53222,
+   "sha256": "0571C0B07A9C1AA334FFABE4295C86692D88A8FF470365DB120D3212AF1647E4"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-schnee-oben-rechts.png",
+   "bytes": 52673,
+   "sha256": "3CDADB777223D0556FC83DEA4C4CA4F816E014976D9C86212C3A356A01E9CB82"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-schnee-unten-links.png",
+   "bytes": 47836,
+   "sha256": "4DB337CB1FA51C5103F7925AF5320BFC5ED5EA9D4A91A57018FB1F01FDF043D0"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-schnee-unten-rechts.png",
+   "bytes": 47950,
+   "sha256": "BDF8EF248BD27D1991F79EBB24A45D7323BD9386D58E2DC760FE5060CB1A17F3"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-tanne-links.png",
+   "bytes": 996542,
+   "sha256": "C04F263064E95225F899D18A4CB33843C21D420DD50229C6F1E3E3129569E673"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-tanne-rechts.png",
+   "bytes": 646057,
+   "sha256": "5F145D8C4D58D0893A7C7AF0AD3D27F19DE0705C0E5EEB0CC7E1CDC14419717E"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-unterer-tannenschmuck.png",
+   "bytes": 440071,
+   "sha256": "0DAB5FCDE4BB45F1D720B668F80F60FED83731BA9A304675F361941B0B417CF7"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-zahnrad.png",
+   "bytes": 713388,
+   "sha256": "76F62D8CBD705DE5CE1C3796A11B377DEE90F630898B66F14231ECF7D7ED809B"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-zapfen-garnitur.png",
+   "bytes": 301666,
+   "sha256": "5A535DCB31BFD87DBC884C53FF1F7D3DEDD0483D150E9E7FB4F71832CC38799C"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-zierlinie.png",
+   "bytes": 26887,
+   "sha256": "F91B51C463DFFD4C67D5E878572FEF88EF775E89717A94F777E05215899F77E3"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-surface.png",
+   "bytes": 446266,
+   "sha256": "6280168DB845AE2A372351777194D6946150CFAE2E7111D821CF7DFE2BFBE403"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-snow.png",
+   "bytes": 247169,
+   "sha256": "2F551ED5BE8563DBB0DCB38853DF7D3D5BD2E9426AD67837C875A996770BC5DB"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-corner-bow.png",
+   "bytes": 340103,
+   "sha256": "8A9E43001758165BDD91527CAC8FE17508BB150AB5B828EB1CAF35E0BD2562E6"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-corner-fir.png",
+   "bytes": 247780,
+   "sha256": "8AD81BCA09C79CCC50EF96BFD7A02AABC50501AC312CF0C1A19197D901943616"
+  },
+  {
+   "path": "MischWerk/www/img/nicklist/team.png",
+   "bytes": 2853,
+   "sha256": "704C413878D750DE5CC5E650B98A17664A2C981EF8BAF38326998AA4B5175927"
+  },
+  {
+   "path": "MischWerk/www/img/nicklist/listener.png",
+   "bytes": 1524,
+   "sha256": "116B5E6BCC0AA246F8D630499C4FC46E6E2FE0971CD663D392BF59F30CDE1709"
+  },
+  {
+   "path": "MischWerk/www/img/nicklist/moderator.png",
+   "bytes": 1390,
+   "sha256": "E3226D285D66BFA6CFD2C674EB48DC8A9E08F34D39EEC231CE2299191EBB7FA2"
+  },
+  {
+   "path": "MischWerk/www/img/welcome/banner.png",
+   "bytes": 1691177,
+   "sha256": "AA5725EE61B0CD0A5844EE00A9BB6C327B9009A2D5687B84AF4B6E91936355EE"
+  },
+  {
+   "path": "MischWerk/www/img/welcome/lieblingschannel.png",
+   "bytes": 2844,
+   "sha256": "6D6585793560024CF0BB8134AB50256AFFBA49732F657DFB79365A18210DEDA5"
+  },
+  {
+   "path": "MischWerk/www/img/welcome/mitmachen.png",
+   "bytes": 1711,
+   "sha256": "2EC412AF7CAFC21252F4BCA1CA2C36D6B1D15F6804098AD46BD61ED08086B025"
+  },
+  {
+   "path": "MischWerk/www/img/welcome/channelinfo.png",
+   "bytes": 1975,
+   "sha256": "05A479F744C01C720905ED8AB43E79CC4ABF683032213827E06ACD4434B800C2"
+  },
+  {
+   "path": "MischWerk/www/fonts/inter-latin.woff2",
+   "bytes": 48256,
+   "sha256": "3100E775E8616CD2611BEECFA23A4263D7037586789B43F035236A2E6FBD4C62"
+  },
+  {
+   "path": "MischWerk/www/fonts/OFL.txt",
+   "bytes": 4377,
+   "sha256": "5B9321A4298CFEB6B34354164A1C3AFC3DB114569984C502B9B35D988FD58C57"
+  },
+  {
+   "path": "MischWerk/www/fonts/bcrypt-LICENSE.txt",
+   "bytes": 2615,
+   "sha256": "31ED2612A6418F57C473FA5350001069297DA1208E124ED8CDC05E795DE8B1DB"
+  },
+  {
+   "path": "MischWerk/www/fonts/outfit-latin.woff2",
+   "bytes": 32292,
+   "sha256": "6C18D579FD87C3776BE068B762CBC83FDE3ACB543D49EABD3ADE842EB987E887"
+  },
+  {
+   "path": "MischWerk/www/fonts/fraunces-latin.woff2",
+   "bytes": 67304,
+   "sha256": "7234ED860A9CC83045413C4FAEE63C960A8F2D1917ADCF728119307D56E0D783"
+  },
+  {
+   "path": "MischWerk/www/fonts/outfit-OFL.txt",
+   "bytes": 4389,
+   "sha256": "C676351BF8576B9ABA743CD5EAA8C0E7EE0D51F805D720447B4DF4DDB6A2E416"
+  },
+  {
+   "path": "MischWerk/www/fonts/fraunces-OFL.txt",
+   "bytes": 4391,
+   "sha256": "BDF4C22802EAF804F998195871C6B8938AAC2AC14B2D78A8BD66A6F1ECED833B"
+  },
+  {
+   "path": "MischWerk/www/fonts/rajdhani-medium-latin.woff2",
+   "bytes": 15084,
+   "sha256": "23AFDB9B5B89B878FAB04D80CC30BF41BB4F3F7E8BE88E5F16A7CC7671CDB2DC"
+  },
+  {
+   "path": "MischWerk/www/fonts/rajdhani-OFL.txt",
+   "bytes": 4373,
+   "sha256": "F62EF357D3A1C3D27EDD35A6E1BA350E8A8D13499797964EEADEFBF0B3B15D1F"
+  }
+ ]
 }

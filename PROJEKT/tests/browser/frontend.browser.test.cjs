@@ -126,6 +126,13 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
       const geometry=await dimensions();
       checkGeometry(geometry);
       assert.equal(geometry.requested,normalRequest,'Normal und X-Mas fordern dieselbe Hosthöhe an');
+      const ornaments=await page.locator('.radio-xmas-ornaments').evaluate(node=>{
+        const top=getComputedStyle(node,'::after'), bottom=getComputedStyle(node,'::before');
+        return {top:top.backgroundImage,bottom:bottom.backgroundImage,bottomDisplay:bottom.display};
+      });
+      assert.match(ornaments.top,/xmas-tanne-rechts\.png/);
+      assert.match(ornaments.bottom,/xmas-unterer-tannenschmuck\.png/);
+      assert.equal(ornaments.bottomDisplay,'block');
       if(width<=700) {
         const volume=await page.locator('.volume-control').boundingBox();
         assert.ok(Math.abs(volume.x+volume.width/2-width/2)<1,'Die kompakte Lautstärkezeile sitzt mittig');
@@ -219,6 +226,10 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
     await snapshot('xmas',true,ticker,true);
     const geometry=await dimensions();checkGeometry(geometry);
     assert.equal(geometry.requested,normalRequest,'Auch lange Texte verwenden die Hosthöhe des Normalmodus');
+    if(width<=390 && height<=220){
+      const shortOrnament=await page.locator('.radio-xmas-ornaments').evaluate(node=>getComputedStyle(node,'::before').display);
+      assert.equal(shortOrnament,'none');
+    }
     t.diagnostic('Lange Texte '+width+' × '+height+' px: '+JSON.stringify(geometry));
     if(k3 && (width<=390 || height===292)){
       await page.screenshot({path:path.join(pictures,'xmas-lang-'+width+'-'+height+'.png')});

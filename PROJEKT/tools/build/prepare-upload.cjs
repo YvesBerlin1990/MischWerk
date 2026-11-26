@@ -7,7 +7,7 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const { buildBackend, modules } = require('./backend.cjs');
 const { runtimeFiles, isBinary, checkText, checkRuntime } = require('../checks/lengths.cjs');
-const { manifestGroups } = require('../lib/upload-manifests.cjs');
+const { manifestGroups, serializeManifest } = require('../lib/upload-manifests.cjs');
 const { resolveUploadLocation } = require('../lib/upload-path.cjs');
 const { readRelease, checkAppConfig } = require('../lib/release-identity.cjs');
 const { renderUpdatePlan } = require('../lib/update-plan.cjs');
@@ -197,7 +197,7 @@ function build() {
     const file = path.join(installation, name);
     const content = { version, buildNumber, files: files.map(relative => ({ path: live.appKey + '/' + relative,
       bytes: fs.statSync(path.join(upload, relative)).size, sha256: digest(path.join(upload, relative)) })) };
-    fs.writeFileSync(file, JSON.stringify(content, null, 2) + '\n', 'utf8');
+    fs.writeFileSync(file, serializeManifest(name, content), 'utf8');
     checkText(file);
     manifest.fileManifests.push({ path: name, fileCount: files.length, bytes: fs.statSync(file).size, sha256: digest(file) });
   }

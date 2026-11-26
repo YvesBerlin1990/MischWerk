@@ -153,8 +153,19 @@
   background:
     url(../../img/xmas-schleife.png) 15% top / clamp(52px,9vw,100px) auto no-repeat,
     url(../../img/xmas-kugel.png) 16% 20% / clamp(26px,4vw,48px) auto no-repeat,
-    url(../../img/xmas-tanne-links.png) left top / clamp(110px,23vw,260px) auto no-repeat,
-    url(../../img/xmas-tanne-rechts.png) right top / clamp(108px,22vw,220px) auto no-repeat;
+    url(../../img/xmas-tanne-links.png) left top / clamp(110px,23vw,260px) auto no-repeat;
+}
+.theme-xmas .radio-xmas-ornaments::before,.theme-xmas .radio-xmas-ornaments::after {
+  content:""; position:absolute; pointer-events:none;
+  background-position:center; background-size:contain; background-repeat:no-repeat;
+}
+.theme-xmas .radio-xmas-ornaments::before {
+  display:none; aspect-ratio:1250 / 174;
+  background-image:url(../../img/xmas-unterer-tannenschmuck.png);
+}
+.theme-xmas .radio-xmas-ornaments::after {
+  top:-2px; right:calc(2 * var(--xmas-unit)); width:clamp(108px,22vw,220px);
+  aspect-ratio:1240 / 437; background-image:url(../../img/xmas-tanne-rechts.png);
 }
 @media (max-width:1199px) {
   :is(.theme-xmas,.xmas-measure) .radio-xmas-frame { --xmas-lamp-gap:84px; }
@@ -162,7 +173,13 @@
 @media (max-width:700px) {
   :is(.theme-xmas,.xmas-measure) .radio-xmas-frame { --xmas-lamp-gap:74px; --xmas-cable-inset:4px; }
   .theme-xmas .radio-xmas-ornaments {
-    background-position:7px 2px,25px 41px,left top,right top;
+    background-position:7px 2px,25px 41px,left top;
+  }
+  .theme-xmas .radio-xmas-ornaments::after {
+    right:4px; top:2px; width:clamp(80px,27vw,142px);
+  }
+  .theme-xmas:not(.xmas-short) .radio-xmas-ornaments::before {
+    display:block; left:-33px; top:65px; width:82px; transform:rotate(-90deg);
   }
   .theme-xmas.xmas-compact .radio-xmas-ornaments { opacity:.30; }
   .theme-xmas .radio-xmas-sparks {

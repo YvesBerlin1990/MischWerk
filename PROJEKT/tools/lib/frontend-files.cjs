@@ -17,7 +17,7 @@ const xmasImages = ['fassung','funkeln','goldring','goldring-an','kabel-fein','k
   'kugel','lampe-an','lampe-aus','play-inlay','rahmen-oben-links','rahmen-oben-rechts','rahmen-senkrecht',
   'rahmen-unten-links','rahmen-unten-rechts','rahmen-waagerecht','reglergriff','schein','schleife',
   'schnee-mitte-oben','schnee-mitte-unten','schnee-oben-links','schnee-oben-rechts','schnee-unten-links',
-  'schnee-unten-rechts','tanne-links','tanne-rechts','zahnrad','zapfen-garnitur','zierlinie']
+  'schnee-unten-rechts','tanne-links','tanne-rechts','unterer-tannenschmuck','zahnrad','zapfen-garnitur','zierlinie']
   .map(name => 'img/xmas-' + name + '.png');
 const xmasOverlayImages = ['surface','snow','corner-bow','corner-fir'].map(name => 'img/xmas-' + name + '.png');
 const frontendFiles = ['index.html', 'js/start.js', 'js/ui/composition.js', ...scripts, ...styles, 'img/mischwerk-logo.png', 'img/mischwerk-radio.png', ...xmasImages, ...xmasOverlayImages, ...nicklistIcons, ...welcomeImages, 'fonts/inter-latin.woff2', 'fonts/OFL.txt', 'fonts/bcrypt-LICENSE.txt', ...vinylFonts, ...tickerFonts];

@@ -94,11 +94,11 @@
     url(../../img/xmas-tanne-links.png) calc(4 * var(--xmas-unit)) calc(15 * var(--xmas-unit)) / min(520px,calc(326 * var(--xmas-unit))) auto no-repeat,
     url(../../img/xmas-zapfen-garnitur.png) calc(1179 * var(--xmas-span)) calc(220 * var(--xmas-unit)) / calc(306 * var(--xmas-unit)) auto no-repeat;
 }
+.theme-xmas.xmas-reference .radio-xmas-ornaments::before {
+  display:block; left:calc(7 * var(--xmas-unit)); bottom:1px; width:calc(362 * var(--xmas-unit));
+}
 .theme-xmas.xmas-reference .radio-xmas-ornaments::after {
-  content:""; position:absolute; top:calc(2 * var(--xmas-unit)); right:calc(3 * var(--xmas-unit));
-  width:calc(316 * var(--xmas-unit)); aspect-ratio:850 / 424;
-  background:url(../../img/xmas-tanne-rechts.png) center / contain no-repeat;
-  mask-image:linear-gradient(to bottom,#000 22%,transparent 33%),linear-gradient(to right,transparent 86%,#000 94%);
+  width:calc(343 * var(--xmas-unit));
 }
 .theme-xmas.xmas-reference .radio-metadata .own-wish-position:not([hidden]) {
   position:absolute; left:var(--song-left); width:var(--song-width); bottom:calc(18 * var(--xmas-unit));

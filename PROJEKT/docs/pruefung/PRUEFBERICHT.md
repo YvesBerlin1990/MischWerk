@@ -1,4 +1,16 @@
-# MischWerk – Prüfbericht 0.1.459 / Build 459
+# MischWerk – Prüfbericht 0.1.460 / Build 460
+
+## Tannenschmuck mit bordeauxrotem Lametta
+
+Stand 26.11.2026. Der freigegebene Entwurf ergänzt die X-Mas-Appleiste oben rechts und unten links mit Tannenzweigen, Schnee und bordeauxrotem Lametta in vergleichbarer Dichte. Die neue rechte Ecke (1240 × 437 px) ersetzt das bisherige Motiv. Der untere Tannenschmuck (1250 × 174 px) sitzt am Rahmen und folgt mobil dem linken Rand. Bei knappem Platz auf kleinen Hosts entfällt der untere Schmuck. Die PNGs wurden auf dunklem und hellem Grund kontrolliert.
+
+Die am Paket geprüften Standardmaße bleiben bei 1645 × 220 px, 1200 × 230 px und mobil mit Lauftext bei 390 × 360 px und 320 × 360 px. In den Prüfbildern bleiben Logos, Texte und Bedienelemente frei. Die bestehenden Play-, Lauflicht- und Größenregeln gelten weiter.
+
+Je fünf gezielte Edge-Fälle bestanden am Quellstand und am gebündelten Paket. 473 Node-Fälle und die Rhino-Engines 1.7.7.2 und 1.9.1 bestanden. Die fünf Manifeste stimmen mit allen 164 Dateien des lokalen Prüfpakets überein. Das Medienmanifest umfasst mit schmalerer Einrückung 8812 Zeichen. Die Freigabedatei im Releaseordner gehört zu Build 459.
+
+[Bildvergleich mit bisheriger und neuer Leiste bei 1645 px](oberflaeche/radio/xmas-lametta-1645.png)
+
+## Build 459
 
 ## X-Mas in der Größe des Normalmodus
 
