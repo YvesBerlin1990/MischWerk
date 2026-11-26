@@ -1,6 +1,6 @@
 {
-  "version": "0.1.455",
-  "buildNumber": 455,
+  "version": "0.1.456",
+  "buildNumber": 456,
   "files": [
     {
       "path": "MischWerk/www/img/mischwerk-logo.png",
@@ -84,8 +84,8 @@
     },
     {
       "path": "MischWerk/www/img/xmas-bulb-lit.png",
-      "bytes": 22968,
-      "sha256": "ABBD95B78D4FD021B815C512E1B439B0D0245C0D8CC18C845E26B00F8A61466D"
+      "bytes": 27418,
+      "sha256": "1E6D5E2CD42D0C749817A0055006BE647CF0576F4BA5ABAE352AD3A399F9D5B5"
     },
     {
       "path": "MischWerk/www/img/xmas-star.png",

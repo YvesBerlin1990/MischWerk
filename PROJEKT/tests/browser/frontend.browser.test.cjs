@@ -30,24 +30,107 @@ for (const k3 of [true, false]) test('X-Mas mit Leuchtraum, mittigem Player und 
   const frame = deck.locator('.radio-xmas-frame');
   const lamp = frame.locator('.radio-xmas-lamp').first();
   await lamp.waitFor({state:'attached'});
+  const cable = frame.locator('.radio-xmas-cable path');
+  const wire = await cable.getAttribute('d');
+  assert.match(wire, /^M.+Q.+ Z$/);
+  assert.equal((wire.match(/Q/g) || []).length, await frame.locator('.radio-xmas-lamp').count());
+  assert.equal(await cable.evaluate(node => getComputedStyle(node).stroke), 'rgb(93, 68, 45)');
   assert.match(await lamp.evaluate(node => getComputedStyle(node).backgroundImage), /xmas-bulb\.png/);
-  assert.match(await lamp.evaluate(node => getComputedStyle(node, '::after').backgroundImage), /xmas-bulb-lit\.png/);
+  const halos = frame.locator('.radio-xmas-halos');
+  assert.equal(await halos.locator('.radio-xmas-halo').count(), await frame.locator('.radio-xmas-lamp').count());
+  assert.match(await halos.locator('.radio-xmas-halo').first().evaluate(node =>
+    getComputedStyle(node, '::before').backgroundImage), /xmas-bulb-lit\.png/);
   const lamps = () => frame.evaluate(node => [
     getComputedStyle(node.querySelector('.radio-xmas-lamp'), '::after').opacity,
+    getComputedStyle(node.querySelector('.radio-xmas-halos')).opacity,
     getComputedStyle(node.querySelector('.radio-xmas-sparks')).opacity,
     getComputedStyle(document.querySelector('.track-eyebrow'), '::before').opacity,
     getComputedStyle(node, '::before').boxShadow
   ]);
   const dark = await lamps();
-  assert.deepEqual(dark.slice(0, 3), ['0','0','0']);
+  assert.deepEqual(dark.slice(0, 4), ['0','0','0','0']);
   await page.waitForFunction(() => document.getElementById('track-title').textContent === 'Jump');
   await page.waitForFunction(() => document.getElementById('on-air-sign').textContent === 'MischWerk am Pult');
   await page.evaluate(() => document.fonts.ready);
   await page.locator('.bar-logo,.radio-listener-logo').evaluateAll(images => Promise.all(images.map(image => image.decode())));
+  async function wideVolume() {
+    await page.locator('#volume').fill('100');
+    const metrics = await page.evaluate(() => {
+      const selector = value => document.querySelector(value);
+      const percent = selector('#volume-value');
+      const text = document.createRange();
+      text.selectNodeContents(percent);
+      const textBox = text.getBoundingClientRect(), fieldBox = percent.getBoundingClientRect();
+      const note = getComputedStyle(selector('.presenter .on-air-sign'), '::before');
+      return {
+        speaker:selector('#mute-button').getBoundingClientRect().width,
+        symbol:selector('#mute-button svg').getBoundingClientRect().width,
+        percent:fieldBox.width,
+        note:parseFloat(note.fontSize),
+        fits:percent.textContent === '100 %' && text.getClientRects().length === 1 &&
+          textBox.left >= fieldBox.left && textBox.right <= fieldBox.right
+      };
+    });
+    await page.locator('#volume').fill('30');
+    await page.locator('#volume').blur();
+    assert.ok(metrics.fits, '100 % passt einzeilig in das Prozentfeld');
+    return metrics;
+  }
+  const volume1920 = await wideVolume();
   const pictures = path.join(os.tmpdir(), 'MischWerk-Pruefbilder', 'radio');
+  async function checkLampPixels(on, off) {
+    const {core, unlit, halo, boundary} = await deck.evaluate(async (node, pictures) => {
+      async function pixels(base64) {
+        const image = new Image();
+        image.src = 'data:image/png;base64,' + base64;
+        await image.decode();
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const context = canvas.getContext('2d');
+        context.drawImage(image, 0, 0);
+        return context.getImageData(0, 0, image.width, image.height);
+      }
+      const [lit, dark] = await Promise.all(pictures.map(pixels));
+      const lamp = Array.from(node.querySelectorAll('.radio-xmas-lamp')).find(light =>
+        light.style.getPropertyValue('--xmas-angle') === '0.00deg');
+      const bounds = lamp.getBoundingClientRect(), deck = node.getBoundingClientRect();
+      const x = Math.floor(bounds.left - deck.left + bounds.width / 2);
+      const y = Math.floor(bounds.top - deck.top + bounds.height * .30);
+      const rgb = (image, x, y) => {
+        const at = (y * image.width + x) * 4;
+        return Array.from(image.data.subarray(at, at + 3));
+      };
+      const core = [[0,0],[-3,0],[3,0],[0,-3],[0,3]].map(([dx,dy]) => rgb(lit,x+dx,y+dy));
+      const halo = [[-.68,.16],[.68,.16],[.45,-.22],[-.45,-.22]].map(([dx,dy]) => {
+        const px = x + Math.round(dx * bounds.width), py = y + Math.round(dy * bounds.height);
+        const [red, , blue] = rgb(lit,px,py), [offRed, , offBlue] = rgb(dark,px,py);
+        return (red - blue) - (offRed - offBlue);
+      });
+      const w = lit.width, h = lit.height;
+      const same = (x, y) => rgb(lit,x,y).every((value,index) => value === rgb(dark,x,y)[index]);
+      const boundary = Array.from({length:w}, (_,x) => same(x,0) && same(x,h-1)).every(Boolean) &&
+        Array.from({length:h}, (_,y) => same(0,y) && same(w-1,y)).every(Boolean);
+      return {core, unlit:rgb(dark,x,y), halo, boundary};
+    }, [on.toString('base64'), off.toString('base64')]);
+    assert.ok(core.every(([red, green, blue]) => red >= 253 && green >= 247 && blue >= 218),
+      'Der warmweiße Kern überstrahlt das Glas flächig: ' + JSON.stringify(core));
+    assert.ok(unlit.every(value => value < 160), 'Dunkles Glas ohne Leuchtkern: ' + unlit);
+    assert.ok(halo.every(value => value >= 35), 'Der Schein wärmt die Umgebung jenseits des Glases: ' + halo);
+    assert.ok(boundary, 'Die äußere Pixelreihe bleibt frei vom Auslauf');
+  }
+  let desktopOff;
   if (k3) {
+    await page.locator('#mute-button').focus();
+    await page.keyboard.press('Tab');
+    const range = page.locator('#volume');
+    assert.ok(await range.evaluate(node => node.matches(':focus-visible') &&
+      getComputedStyle(node).outlineStyle === 'solid' && getComputedStyle(node).outlineWidth === '2px'),
+      'Die goldene Fokusmarkierung erscheint bei Tastaturbedienung');
+    await range.blur();
+    assert.ok(await range.evaluate(node => !node.matches(':focus') && getComputedStyle(node).outlineStyle === 'none'));
     fs.mkdirSync(pictures, {recursive:true});
-    await deck.screenshot({path:path.join(pictures, 'xmas-aus.png'), omitBackground:true});
+    desktopOff = await deck.screenshot({path:path.join(pictures, 'xmas-aus.png'), omitBackground:true});
   }
   const play = page.locator('#play-button');
   const audio = page.locator('#radio-audio');
@@ -57,10 +140,13 @@ for (const k3 of [true, false]) test('X-Mas mit Leuchtraum, mittigem Player und 
   assert.deepEqual(await lamps(), dark, 'Ein noch nicht bestätigter Start lässt die Lichter aus');
   await emitMedia('playing');
   const lit = await lamps();
-  assert.deepEqual(lit.slice(0, 3), ['1','1','1']);
-  assert.notEqual(lit[3], dark[3]);
+  assert.deepEqual(lit.slice(0, 4), ['1','1','1','1']);
+  assert.notEqual(lit[4], dark[4]);
   assert.deepEqual(await surface(), ground, 'Die Wiedergabe verändert das Rahmenlicht, die Grundfläche bleibt schwarz');
-  if (k3) await deck.screenshot({path:path.join(pictures, 'xmas-an.png'), omitBackground:true});
+  if (k3) {
+    const desktopOn = await deck.screenshot({path:path.join(pictures, 'xmas-an.png'), omitBackground:true});
+    await checkLampPixels(desktopOn, desktopOff);
+  }
   await emitMedia('waiting');
   assert.deepEqual(await lamps(), dark);
   await emitMedia('playing');
@@ -76,6 +162,10 @@ for (const k3 of [true, false]) test('X-Mas mit Leuchtraum, mittigem Player und 
 
   if (k3) {
     await resizeViewport(page, {width:1200, height:440});
+    const volume1200 = await wideVolume();
+    for (const part of ['speaker','symbol','percent','note']) {
+      assert.ok(volume1920[part] > volume1200[part], 'Lautstärkedetail wächst mit der Breite: ' + part);
+    }
     await play.click();
     await emitMedia('playing');
     await deck.screenshot({path:path.join(pictures, 'xmas-1200-an.png')});
@@ -83,19 +173,22 @@ for (const k3 of [true, false]) test('X-Mas mit Leuchtraum, mittigem Player und 
   }
 
   let revision = state.revision;
-  async function snapshot(theme, text = '', withWish = false, requestsEnabled = true) {
-    await page.evaluate(({state, theme, text, revision, withWish, requestsEnabled}) => {
-      const wish = {id:1, text:'Ein eigener Musikwunsch', position:1, stage:'queued'};
-      __emit('mw:state', {...state, theme, revision, requestsEnabled, topic:'MischWerk Radio Show',
+  async function snapshot(theme, text = '', withWish = false, requestsEnabled = true, long = false) {
+    await page.evaluate(({state, theme, text, revision, withWish, requestsEnabled, long}) => {
+      const wishText = long ? 'Ein eigener Musikwunsch mit Platz, Bearbeitungsstatus und zusätzlichen Angaben. '.repeat(3).trim() :
+        'Ein eigener Musikwunsch';
+      const wish = {id:1, text:wishText, position:1, stage:'queued'};
+      const topic = long ? 'Eine ausführliche Radiosendung mit besonderen Musikwünschen und vielen Gästen' : 'MischWerk Radio Show';
+      __emit('mw:state', {...state, theme, revision, requestsEnabled, topic,
         ticker:{text, enabled:!!text, speed:48, direction:'left', revision},
         wishPositions:{generation:'xmas', revision, available:true, total:withWish?1:0, page:0, pages:1, nextPosition:withWish?1:null,
           items:withWish?[wish]:[], nextItem:withWish?wish:null}});
-    }, {state, theme, text, revision:++revision, withWish, requestsEnabled});
+    }, {state, theme, text, revision:++revision, withWish, requestsEnabled, long});
     await studioSettle(page);
   }
   for (const width of [320, 390, 700, 701, 960, 1199, 1200, 1500, 1920, 3840]) {
     await resizeViewport(page, {width, height:550});
-    await snapshot('xmas', 'Frohe Weihnachten bei Radio MischWerk', true);
+    await snapshot('xmas', 'Frohe Weihnachten bei Radio MischWerk', width >= 1200);
     const geometry = await page.evaluate(() => {
       const box = selector => document.querySelector(selector).getBoundingClientRect();
       const bar = box('#radio-panel'), face = box('.radio-panel-face'), ticker = box('#radio-ticker'), deck = box('#radio-deck');
@@ -126,11 +219,17 @@ for (const k3 of [true, false]) test('X-Mas mit Leuchtraum, mittigem Player und 
     assert.equal(geometry.wish, width >= 1200);
     assert.ok(geometry.fittings.every(([, fits]) => fits), JSON.stringify({width, fittings:geometry.fittings}));
     assert.equal(await deck.locator('#radio-ticker').evaluate(node => getComputedStyle(node).backgroundColor), black);
-    if (k3 && width === 390) {
-      await deck.screenshot({path:path.join(pictures, 'xmas-mobil.png'), omitBackground:true});
+    if (width === 320 || width === 390) {
+      assert.ok(geometry.height <= 480, 'Mindestens 20 px Höhenreserve mit Lauftext: '+JSON.stringify({width,height:geometry.height}));
+      t.diagnostic('X-Mas bei '+width+' px, kurze Texte mit Lauftext: '+geometry.height+' px');
+    }
+    if (k3 && (width === 320 || width === 390)) {
+      const mobileOff = width === 390 ?
+        await deck.screenshot({path:path.join(pictures, 'xmas-mobil.png'), omitBackground:true}) : null;
       await play.click();
       await emitMedia('playing');
-      await deck.screenshot({path:path.join(pictures, 'xmas-mobil-an.png'), omitBackground:true});
+      const mobileOn = await deck.screenshot({path:path.join(pictures, width === 390 ? 'xmas-mobil-an.png' : 'xmas-320-an.png'), omitBackground:true});
+      if (mobileOff) await checkLampPixels(mobileOn, mobileOff);
       await play.click();
     }
   }
@@ -157,6 +256,31 @@ for (const k3 of [true, false]) test('X-Mas mit Leuchtraum, mittigem Player und 
     })
   }));
   assert.ok(longText.scrollHeight <= longText.height + 1 && longText.scrollWidth <= longText.width + 1, JSON.stringify(longText));
+  for (const width of [390, 320]) {
+    await resizeViewport(page, {width, height:500});
+    await snapshot('xmas', 'Frohe Weihnachten bei Radio MischWerk', true, true, true);
+    await page.evaluate(() => {
+      document.getElementById('track-title').textContent = 'Sehr langer Titel mit weiteren Informationen '.repeat(6).trim();
+      dispatchEvent(new Event('resize'));
+    });
+    await studioSettle(page);
+    const height = await deck.evaluate(node => Math.ceil(node.getBoundingClientRect().height));
+    assert.ok(height > 500, 'Lange Texte und eigener Wunsch prüfen den Scrollweg');
+    assert.equal(await page.evaluate(() => __sizes.at(-1)[1]), 500);
+    assert.ok((await page.locator('#own-wish-title').textContent()).length > 150);
+    for (const selector of ['#track-title','#show-topic','#own-wish-title','#open-wishes','#radio-ticker-pause']) {
+      const element = page.locator(selector);
+      assert.ok(await element.isVisible(), selector);
+      await element.scrollIntoViewIfNeeded();
+      assert.ok(await element.evaluate(node => {
+        const bounds = node.getBoundingClientRect();
+        return bounds.top >= -1 && bounds.bottom <= innerHeight + 1 &&
+          node.scrollHeight <= node.clientHeight + 1 &&
+          node.contains(document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2));
+      }), selector + ' bleibt bei begrenztem Host vollständig erreichbar');
+    }
+    t.diagnostic('X-Mas bei '+width+' px mit langem Titel, Thema, Wunsch und Lauftext: '+height+' px');
+  }
   await resizeViewport(page, {width:1920, height:430});
   await snapshot('xmas', '', false, false);
   assert.equal(await page.locator('#open-wishes').isVisible(), false);

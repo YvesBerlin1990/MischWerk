@@ -1,7 +1,7 @@
 /* MischWerk Backend-Konfiguration. Keine Zugangsdaten oder Clientwerte. */
 var MischWerkConfig = {
-    version: '0.1.455',
-    buildNumber: 455,
+    version: '0.1.456',
+    buildNumber: 456,
     stationName: 'MischWerk',
     ownerNick: 'Otterchen',
     administrationNick: 'Polaroid',

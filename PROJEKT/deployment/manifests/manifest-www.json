@@ -1,16 +1,16 @@
 {
-  "version": "0.1.455",
-  "buildNumber": 455,
+  "version": "0.1.456",
+  "buildNumber": 456,
   "files": [
     {
       "path": "MischWerk/www/index.html",
-      "bytes": 8857,
-      "sha256": "184660EA5B19AAE0E32304F08D7651601FFA5C7E8C4CF9A1E3E3339C6F37A362"
+      "bytes": 8836,
+      "sha256": "A8E92BA087495E21472BF6CA2A67DE4654B066BAE20CFB1512180E495257ABE6"
     },
     {
       "path": "MischWerk/www/js/start.js",
-      "bytes": 4783,
-      "sha256": "BEFCAB31D8687A6844582C0C2DC1A52CFA7624595EC1F3C2FE258B4F38C20FE8"
+      "bytes": 4758,
+      "sha256": "B41801E15F807217E24FC01DCEA2564CA1DC14BEB687533BB3F1C610C7C34DA2"
     },
     {
       "path": "MischWerk/www/js/ui/composition.js",
@@ -29,8 +29,13 @@
     },
     {
       "path": "MischWerk/www/js/radio/workshop.js",
-      "bytes": 7804,
-      "sha256": "D72B929948B3DF6F36BC6B25D38598550F285B1336AA94719D8BED67420E418B"
+      "bytes": 4934,
+      "sha256": "A8D610D3A5848C9C0FF235194B1DE27DE7DAA0AB3B909418C719B4DDD85829F8"
+    },
+    {
+      "path": "MischWerk/www/js/radio/xmas-frame.js",
+      "bytes": 4774,
+      "sha256": "4267095090CFA653247A4E22D411204C19987552B6B6D9CC337545A744CB4F45"
     },
     {
       "path": "MischWerk/www/js/radio/viewport.js",
@@ -194,13 +199,18 @@
     },
     {
       "path": "MischWerk/www/css/radio/xmas-frame.css",
-      "bytes": 9187,
-      "sha256": "B5161BCD4217CA0358542567A6AC6EB9A07A99F7162B061CB3AFAF04F9C0C058"
+      "bytes": 7135,
+      "sha256": "A0AA8E1677D26116EF8810011D2BB87996C79CAE391115858467DC320E207D34"
+    },
+    {
+      "path": "MischWerk/www/css/radio/xmas.css",
+      "bytes": 5986,
+      "sha256": "33D871132D2D4E7C07E6B3FDBD9A518BD6E7D2D2563A6B1B606020947CA1CB6D"
     },
     {
       "path": "MischWerk/www/css/radio/xmas-layout.css",
-      "bytes": 6025,
-      "sha256": "023A977379657EBFBB8B8742DC6C98D3C5095012F2AD95CEE44A5F3EE469DF64"
+      "bytes": 6309,
+      "sha256": "27F5E8DF42D51CC2578AEAC8B10474E6BE0F981D933D5594A23CC4091A978508"
     },
     {
       "path": "MischWerk/www/css/schedule/day.css",
