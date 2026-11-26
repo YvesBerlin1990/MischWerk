@@ -1,0 +1,99 @@
+/* Raster der Weihnachtsleiste mit horizontal mittigem Player. */
+@media (min-width:1200px) {
+  .theme-xmas .radio-bar {
+    --xmas-content:clamp(22px,2vw,38px); --xmas-slash:clamp(48px,5.1vw,132px);
+    --radio-player-column:clamp(173px,14.6vw,325px);
+    --xmas-wing:calc((100% - var(--radio-player-column)) * .5);
+    --play-size:calc(var(--radio-player-column) * .58); --play-symbol-size:calc(var(--play-size) * .45);
+    --vinyl-size:calc(var(--radio-player-column) * .98);
+    --center-gap:0px;
+    grid-template-columns:calc(var(--xmas-wing) * .46) minmax(0,1fr) var(--radio-player-column) calc(var(--xmas-wing) * .51) calc(var(--xmas-wing) * .29) calc(var(--xmas-wing) * .20);
+    grid-template-rows:auto; min-height:clamp(190px,15.4vw,344px); padding:var(--xmas-content) 18px;
+  }
+  .theme-xmas .radio-brand,.theme-xmas .radio-bar .radio-listener-brand {
+    width:100%; grid-row:1; align-self:stretch;
+  }
+  .theme-xmas .radio-brand .bar-logo { left:38%; width:min(76%,clamp(126px,12vw,235px)); height:auto; }
+  .theme-xmas .radio-listener-brand .radio-listener-logo {
+    top:46%; width:min(121%,clamp(107px,11.4vw,221px)); height:auto;
+  }
+  .theme-xmas .radio-brand::after {
+    content:""; position:absolute; pointer-events:none;
+    inset:calc(15px - var(--xmas-content)) -34px calc(15px - var(--xmas-content)) auto;
+    width:var(--xmas-slash);
+    clip-path:polygon(calc(100% - 2px) 0,100% 0,2px 100%,0 100%);
+    background:linear-gradient(0deg,#82512a25,#c3894a 43%,#a77748 55%,#82512a25);
+  }
+  .theme-xmas .playing .radio-brand::after { background:linear-gradient(0deg,#8f572720,#ffe3a2 44%,#f6b159 54%,#8f572720); }
+  .theme-xmas .radio-brand::before {
+    content:""; position:absolute; z-index:1; pointer-events:none;
+    right:calc(-34px + var(--xmas-slash) * .5); top:50%;
+    width:44px; height:28px; transform:translate(50%,-50%) rotate(-62deg);
+    background:var(--xmas-spark) center / contain no-repeat; opacity:0;
+  }
+  .theme-xmas .playing .radio-brand::before { opacity:1; }
+  .theme-xmas .radio-bar .radio-listener-brand { grid-column:6; }
+  .theme-xmas .transport { grid-row:1; }
+  .theme-xmas .radio-bar .radio-actions-panel {
+    grid-row:1; justify-self:stretch; align-self:center; width:auto; padding:0 10px; margin:0;
+    --xmas-divider:#93663e;
+    background:linear-gradient(transparent,var(--xmas-divider) 48%,var(--xmas-divider) 52%,transparent) left/1px 100% no-repeat,
+      linear-gradient(transparent,var(--xmas-divider) 48%,var(--xmas-divider) 52%,transparent) right/1px 100% no-repeat;
+  }
+  .theme-xmas .playing .radio-actions-panel { --xmas-divider:#ffc470; }
+  .theme-xmas .radio-bar .wish-button {
+    --action-font:clamp(13px,1.16vw,24px); --action-icon:clamp(18px,1.55vw,32px);
+    min-height:clamp(47px,3.25vw,72px);
+  }
+  .theme-xmas .radio-metadata,.theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .radio-metadata {
+    grid-row:1; grid-template-columns:minmax(0,54fr) var(--radio-player-column) minmax(0,51fr);
+  }
+  .theme-xmas #track-title { font-size:clamp(27px,2.8vw,58px); font-weight:700; }
+  .theme-xmas #track-artist { font-size:clamp(17px,1.65vw,34px); font-weight:400; }
+  .theme-xmas .radio-bar #show-topic { font-size:clamp(20px,1.52vw,32px); font-weight:650; line-height:1.18; }
+  .theme-xmas .radio-bar .radio-context .presenter { font-size:clamp(14px,1.04vw,21px); line-height:1.25; }
+  .theme-xmas .radio-metadata .volume-control { max-width:295px; }
+  .theme-xmas .radio-metadata .volume-control input { max-width:194px; }
+  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .radio-metadata { grid-template-rows:auto 44px auto; }
+  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .now-playing { grid-row:1/4; margin-bottom:-16px; }
+  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .own-wish-position {
+    grid-column:3; grid-row:3; min-height:0; margin:7px 0 0; border:0; border-top:1px solid #5f4326;
+  }
+  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .own-wish-title { -webkit-line-clamp:2; }
+  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .radio-context,
+  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .volume-control { transform:none; }
+}
+@media (min-width:701px) and (max-width:1199px) {
+  .theme-xmas .radio-bar {
+    --radio-player-column:clamp(140px,18vw,192px);
+    --play-size:calc(var(--radio-player-column) * .61);
+    --play-symbol-size:calc(var(--play-size) * .44);
+    --vinyl-size:calc(var(--radio-player-column) * .95);
+    grid-template-columns:minmax(0,1fr) var(--radio-player-column) minmax(0,1fr);
+    column-gap:0; padding:23px 20px 18px;
+  }
+  .theme-xmas .radio-bar::after { display:none; }
+  .theme-xmas .radio-brand { width:min(37%,114px); align-self:stretch; }
+  .theme-xmas .radio-brand .bar-logo { width:100%; height:auto; }
+  .theme-xmas .radio-metadata {
+    grid-column:1/-1; grid-template-columns:minmax(0,1fr) var(--radio-player-column) minmax(0,1fr);
+    min-height:var(--vinyl-size);
+  }
+  .theme-xmas .radio-metadata .now-playing { padding-inline:37% 10px; border:0; text-align:center; }
+  .theme-xmas .radio-context,.theme-xmas .radio-metadata .volume-control { grid-column:3; }
+  .theme-xmas .radio-context { align-self:end; padding-bottom:6px; }
+}
+@media (max-width:700px) {
+  .theme-xmas .radio-bar:not(.has-moderation),.theme-xmas .radio-bar {
+    --play-size:80px; --play-symbol-size:34px; --vinyl-size:116px;
+    grid-template-columns:minmax(0,1fr); grid-template-rows:var(--vinyl-size) auto auto;
+    gap:2px 0; padding:18px 14px 14px;
+  }
+  .theme-xmas .transport { grid-column:1; grid-row:1; align-self:center; margin:0; }
+  .theme-xmas .radio-metadata {
+    grid-column:1; grid-row:2; grid-template-columns:1fr; grid-template-rows:auto auto 44px; min-height:0;
+  }
+  .theme-xmas .radio-metadata .now-playing { grid-column:1; min-height:0; padding:2px 0 5px; }
+  .theme-xmas .radio-actions-panel { grid-row:3; }
+  .theme-xmas .radio-bar:not(.has-moderation) .wish-button { --action-font:clamp(12px,4vw,15px); gap:5px; }
+}

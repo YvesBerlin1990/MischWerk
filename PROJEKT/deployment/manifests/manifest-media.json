@@ -1,6 +1,6 @@
 {
-  "version": "0.1.454",
-  "buildNumber": 454,
+  "version": "0.1.455",
+  "buildNumber": 455,
   "files": [
     {
       "path": "MischWerk/www/img/mischwerk-logo.png",
@@ -28,14 +28,69 @@
       "sha256": "4F10A45EB2BC26A7DF4A8924B390CDD3485CCC0A0E6728B1E61A481A3AB3787E"
     },
     {
-      "path": "MischWerk/www/img/xmas-snow.png",
-      "bytes": 29442,
-      "sha256": "1575087528206F23513299B4D45ADF0EEC7877483C5FA134224FB0E7167EAA08"
-    },
-    {
       "path": "MischWerk/www/img/xmas-gear.png",
       "bytes": 183377,
       "sha256": "7C23AC9619CD9F7B151E06FBD556254CF57D29B0181A0ED8268E16C4C60A42E0"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-surface.png",
+      "bytes": 446266,
+      "sha256": "6280168DB845AE2A372351777194D6946150CFAE2E7111D821CF7DFE2BFBE403"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-snow.png",
+      "bytes": 247169,
+      "sha256": "2F551ED5BE8563DBB0DCB38853DF7D3D5BD2E9426AD67837C875A996770BC5DB"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-snow-top-left.png",
+      "bytes": 30554,
+      "sha256": "F788FE479132ED584C2B65D2D28DF7900591E3FF8D4045982A4A6B209F54866A"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-snow-top-right.png",
+      "bytes": 33166,
+      "sha256": "D7E4FE1F0E1FB9121F00286538CEA1180DF4B5616758C02DADBD37C21CD887BB"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-snow-bottom-left.png",
+      "bytes": 28569,
+      "sha256": "EAE63148150DFA02DF2FDCB5160F033607DB66705BB611B43EB8DB12FB3814C4"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-snow-bottom-right.png",
+      "bytes": 28473,
+      "sha256": "A7389595998D2E3AE17477F072EA1E92D9D9CB7A2987531DB84E88A729C05971"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-corner-bow.png",
+      "bytes": 340103,
+      "sha256": "8A9E43001758165BDD91527CAC8FE17508BB150AB5B828EB1CAF35E0BD2562E6"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-corner-fir.png",
+      "bytes": 247780,
+      "sha256": "8AD81BCA09C79CCC50EF96BFD7A02AABC50501AC312CF0C1A19197D901943616"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-corner-pinecone.png",
+      "bytes": 155063,
+      "sha256": "8643B358ECB8AA81D0056DF225CD40477E13A499C11620A27F796184E200305A"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-bulb.png",
+      "bytes": 12533,
+      "sha256": "6A1E8633EAAE40AEB9833770D3E69BEBB46A3F47606C291F951E247DFF9122E8"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-bulb-lit.png",
+      "bytes": 22968,
+      "sha256": "ABBD95B78D4FD021B815C512E1B439B0D0245C0D8CC18C845E26B00F8A61466D"
+    },
+    {
+      "path": "MischWerk/www/img/xmas-star.png",
+      "bytes": 32066,
+      "sha256": "71320C954BCB7D96CF6EC080DBE4DCDADBA1FD2563EA900EB1282D1EE9E8074A"
     },
     {
       "path": "MischWerk/www/img/nicklist/team.png",

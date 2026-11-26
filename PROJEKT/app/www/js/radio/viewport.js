@@ -6,6 +6,7 @@ MischWerkUI.define('viewport', function (dependencies) {
   var dom = dependencies.dom;
   var signals = dependencies.signals;
   var workshop = dependencies.workshop;
+  var xmasFrame = dependencies.xmasFrame;
   var root = document.documentElement;
   var requestedHeight = 0, scheduled = false;
   if (bridge && bridge.isK3Client()) {
@@ -96,10 +97,13 @@ MischWerkUI.define('viewport', function (dependencies) {
     var ticker = dom.el('radio-ticker');
     var tickerHeight = ticker && !ticker.hidden ? Math.ceil(ticker.getBoundingClientRect().height) : 0;
     // Der obere Anschluss nutzt den unteren Appleistenrand; dessen Glowraum liegt unter der Laufzeile.
-    var deckStyle = getComputedStyle(dom.el('radio-deck'));
+    var deck = dom.el('radio-deck');
+    var deckStyle = getComputedStyle(deck);
     var topSpace = parseFloat(deckStyle.marginTop) || 0;
     var glowSpace = parseFloat(deckStyle.getPropertyValue('--radio-glow-space')) || 0;
-    var contentHeight = topSpace + Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + tickerHeight + glowSpace;
+    var xmas = root.classList.contains('theme-xmas');
+    var contentHeight = xmas ? Math.ceil(deck.getBoundingClientRect().height) :
+      topSpace + Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + tickerHeight + glowSpace;
     var height = Math.min(500, contentHeight);
     if (bridge && !bridge.isK3Client()) { constrained = small && window.innerHeight + 1 < contentHeight; }
     root.style.setProperty('--radio-height', height + 'px');
@@ -109,7 +113,8 @@ MischWerkUI.define('viewport', function (dependencies) {
       catch (ignored) { /* Der kompakte Fallback bleibt im tatsächlichen Rahmen erreichbar. */ }
     }
     root.classList.toggle('radio-constrained', constrained);
-    if (workshop && !root.classList.contains('theme-xmas')) { workshop.fit(); }
+    if (xmas && xmasFrame) { xmasFrame.fit(); }
+    if (!xmas && workshop) { workshop.fit(); }
     if (focused && focused !== document.body && !focused.getClientRects().length) {
       var target = dom.el('open-wishes').disabled ? dom.el('mute-button') : dom.el('open-wishes');
       target.focus({ preventScroll:true });

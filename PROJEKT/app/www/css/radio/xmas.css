@@ -1,165 +1,75 @@
-/* Weihnachtsleiste bis an die Fensterkante. Die Lichter nutzen den Playerzustand. */
-html[data-view=radio].theme-xmas { --canvas:transparent; --bg:#101010; }
-html[data-view=radio].theme-xmas body::after { display:none; }
-.theme-xmas .radio-deck {
-  --deck-top:0px; --deck-x:0px; --deck-tail:0px; --radio-glow-space:0px;
-  --deck-radius:clamp(15px,2.65vw,48px);
-  --frame-gold:#765735;
-  --bulb: #ac8c65 0 5%, #766047 8%, #403124 12%, transparent 15%;
-  --snow-span:clamp(390px,43vw,830px);
-  margin-top:0;
-}
-.theme-xmas .playing .radio-deck {
-  --frame-gold:#e6b264;
-  --bulb:#fffaf0 0 8%, #fff0c5 13%, #ffcc77 17%, #df863480 27%, #c66b2429 48%, transparent 88%;
-}
-.theme-xmas .radio-bar { --text:#fff0d6; --muted:#d7c3a8; --gold:#ffd382; background:transparent; }
-.theme-xmas .radio-program-face {
-  inset:0; border-radius:var(--deck-radius); border-color:var(--frame-gold);
-  background:
-    radial-gradient(ellipse at 50% 40%,#191919 0%,transparent 70%),
-    repeating-linear-gradient(118deg,#ffffff05 0 .4px,transparent .6px 4px),
-    var(--bg);
-}
-.theme-xmas .playing .radio-program-face,
-.theme-xmas.radio-has-ticker .playing .radio-deck::before {
-  animation:none; border-color:var(--frame-gold); box-shadow:inset 0 0 11px #ffae3d66;
-}
-.theme-xmas .radio-program-face::before { display:none; }
-.theme-xmas .radio-program-face::after {
-  animation:none; opacity:1; clip-path:none;
-  background:
-    url(../../img/xmas-snow.png) center top / var(--snow-span) 9px repeat-x,
-    url(../../img/xmas-bow.png) left 3px top 3px / min(21%,470px) auto no-repeat,
-    url(../../img/xmas-fir.png) right 5px top 4px / min(25%,530px) auto no-repeat,
-    url(../../img/xmas-pinecone.png) right 6vw bottom / min(16%,360px) auto no-repeat;
-  border-radius:inherit;
-}
-.theme-xmas .radio-deck::after {
-  content:""; position:absolute; inset:0; height:auto; z-index:2; pointer-events:none;
-  border-radius:var(--deck-radius);
-  background:
-    radial-gradient(circle 18px at 50% 6px,var(--bulb)) center top / 98px 25px repeat-x,
-    radial-gradient(circle 18px at 50% calc(100% - 6px),var(--bulb)) center bottom / 109px 25px repeat-x,
-    radial-gradient(circle 18px at 5px 50%,var(--bulb)) left center / 24px 78px repeat-y,
-    radial-gradient(circle 18px at calc(100% - 5px) 50%,var(--bulb)) right center / 24px 86px repeat-y,
-    url(../../img/xmas-snow.png) center bottom / var(--snow-span) 10px repeat-x;
-}
-.theme-xmas.radio-has-ticker .radio-deck::before {
-  border-color:var(--frame-gold); background:var(--bg);
-}
-.theme-xmas.radio-has-ticker .radio-program-face { border-bottom-width:0; }
-.theme-xmas.radio-has-ticker .radio-ticker {
-  width:100%; margin:0; padding:0 16px 7px; box-shadow:inset 0 1px #594127;
-}
+/* Bedienelemente und Raster der Weihnachtsleiste. */
 .theme-xmas .transport::before {
   content:""; position:absolute; z-index:-1; pointer-events:none;
   width:var(--vinyl-size); height:var(--vinyl-size);
   left:50%; top:50%; transform:translate(-50%,-50%);
-  background:url(../../img/xmas-gear.png) center / contain no-repeat,
-    radial-gradient(circle,#211a13 0 63%,transparent 64%);
+  background:url(../../img/xmas-gear.png) center / contain no-repeat;
+  filter:brightness(.70);
 }
 .theme-xmas .play-button:enabled {
-  border:2px solid #b48949; color:#ffdd98;
-  background:radial-gradient(ellipse at 38% 12%,#5c4833,transparent 57%),linear-gradient(155deg,#2b2117,#120d09 68%);
-  box-shadow:0 0 0 3px #25170d,0 0 0 5px #98612b,inset 0 0 10px #000;
+  border:2px solid #bf9150; color:#f7c574;
+  background:radial-gradient(ellipse at 36% 8%,#604d38,transparent 60%),linear-gradient(151deg,#33271c,#120e0a 64%);
+  box-shadow:0 0 0 5px #100c09,0 0 0 8px #79512c,0 0 0 10px #23170f,inset 0 2px #d9ae7148,inset 0 -6px 13px #000c;
 }
-.theme-xmas .play-button:hover:enabled { border-color:#ffe3a2; }
-.theme-xmas .play-button:active:enabled { background:#23160c; }
+.theme-xmas .play-button:hover:enabled { border-color:#ffe2a7; }
+.theme-xmas .play-button:active:enabled { background:#25190f; }
 .theme-xmas .playing .play-button:enabled {
-  color:#fff0c5; border-color:#ffe4a1;
-  box-shadow:0 0 0 3px #4c2510,0 0 0 5px #f6a348,0 0 15px #f79038b0,inset 0 0 10px #000;
+  color:#fff2bc; border-color:#ffe9a9;
+  box-shadow:0 0 0 5px #261508,0 0 0 7px #f49030,0 0 0 9px #ffd886,0 0 0 11px #81461b,
+    0 0 23px 6px #ff941d9c,inset 0 0 10px 1px #f4a14648,inset 0 -7px 15px #000a;
 }
-.theme-xmas .radio-metadata .track-eyebrow,.theme-xmas .topic-label {
-  color:#ffd17a;
+.theme-xmas .playing .play-button:enabled::after {
+  inset:-9px; border:1px solid #fff9cb; box-shadow:0 0 9px 2px #ffa343c0;
 }
+.theme-xmas .playing #play-icon { filter:drop-shadow(0 0 8px #ffa83aa0); }
+.theme-xmas .radio-metadata .track-eyebrow,.theme-xmas .topic-label { color:#ffd17a; }
+.theme-xmas .track-eyebrow { position:relative; }
 .theme-xmas .track-eyebrow::after,.theme-xmas .topic-label::after {
-  content:""; display:block; height:1px; width:min(100%,15ch); margin:4px auto 2px;
-  background:linear-gradient(90deg,transparent,#be803b 50%,transparent);
+  content:""; display:block; height:1px; width:min(100%,15ch); margin:6px auto 3px;
+  background:linear-gradient(90deg,transparent,#a66b34 50%,transparent);
 }
-.theme-xmas #track-artist { color:#ddc5aa; }
-.theme-xmas .presenter[data-mode=mix] .on-air-sign { font-style:italic; }
+.theme-xmas .topic-label::after { height:2px; width:min(100%,20ch); }
+.theme-xmas .track-eyebrow::before {
+  content:""; position:absolute; z-index:1; pointer-events:none; left:50%; bottom:3px;
+  width:64px; height:36px; transform:translate(-50%,50%);
+  background:var(--xmas-spark) center / contain no-repeat; opacity:0;
+}
+.theme-xmas .playing .track-eyebrow::before { opacity:1; }
+.theme-xmas .playing .track-eyebrow::after,.theme-xmas .playing .topic-label::after {
+  background:linear-gradient(90deg,transparent,#f9b856 35%,#fff0a4 50%,#f9b856 65%,transparent);
+  box-shadow:0 0 8px #ff94295e;
+}
+.theme-xmas #track-artist { color:#e9d3b8; }
+.theme-xmas .presenter[data-mode=mix] .on-air-sign { font-style:italic; font-synthesis:style; }
 .theme-xmas .presenter[data-mode=mix] .on-air-sign::before { color:#ffc66b; font-style:normal; }
 .theme-xmas .radio-metadata .volume-control input {
-  background-image:linear-gradient(to right,#ffca68 0 var(--volume),#58432e var(--volume) 100%);
+  background-image:linear-gradient(to right,#fbd088 0 var(--volume),#584530 var(--volume) 100%);
 }
-.theme-xmas .radio-metadata .volume-control output {
-  color:#ffd17a; border-color:#a36c31; background:linear-gradient(#2d2014,#18100b);
+.theme-xmas .radio-metadata .volume-control output { color:#ffd17a; border-color:#a9753a; background:#19130d; }
+.theme-xmas .volume-control input::-webkit-slider-thumb {
+  border-color:#a16a36; background:linear-gradient(155deg,#fff0b9,#c28642);
+}
+.theme-xmas .volume-control input::-moz-range-thumb {
+  border-color:#a16a36; background:linear-gradient(155deg,#fff0b9,#c28642);
+}
+.theme-xmas .playing .volume-control input::-webkit-slider-thumb {
+  border-color:#fece77; box-shadow:0 0 8px 2px #ffac41aa;
+}
+.theme-xmas .playing .volume-control input::-moz-range-thumb {
+  border-color:#fece77; box-shadow:0 0 8px 2px #ffac41aa;
 }
 .theme-xmas .wish-button:enabled {
-  color:#fff0d6; border-color:#bd8848;
-  background:linear-gradient(#342517,#16100b 62%);
-  box-shadow:inset 0 1px #ffe1a04d,0 3px 8px #0007;
+  color:#fff0d6; border-color:#c68e4d; background:linear-gradient(#291e15,#100d09 64%);
+  box-shadow:inset 0 1px #ffe1a067,0 4px 9px #0009;
 }
-.theme-xmas .wish-button:hover:enabled { border-color:#ffd17a; background:#3b2718; }
-.theme-xmas .wish-button:active:enabled { background:#25160d; }
+.theme-xmas .wish-button:hover:enabled { border-color:#ffd17a; background:#33241a; }
+.theme-xmas .wish-button:active:enabled { background:#24170d; }
+.theme-xmas .playing .wish-button:enabled {
+  border-color:#ffc165; box-shadow:inset 0 1px 4px #ffba55a8,0 0 9px #f797283c,0 4px 10px #0009;
+}
+.theme-xmas .wish-button:enabled .public-action-icon { color:#ffcb75; }
+.theme-xmas .playing .wish-button:enabled .public-action-icon { filter:drop-shadow(0 0 4px #ee992d9c); }
 .theme-xmas .wish-button-copy strong { font-weight:600; }
 .radio-xmas-icon { display:none; }
 .theme-xmas .public-action-icon svg { display:none; }
 .theme-xmas .public-action-icon .radio-xmas-icon { display:block; }
-
-@media (min-width:1200px) {
-  .theme-xmas .radio-bar {
-    --xmas-inset:clamp(19px,2vw,38px);
-    --radio-player-column:clamp(151px,16vw,320px);
-    --play-size:clamp(96px,8.3vw,174px);
-    --play-symbol-size:calc(var(--play-size) * .44);
-    --vinyl-size:calc(var(--play-size) * 1.48);
-    --center-gap:0px;
-    grid-template-columns:minmax(0,20fr) minmax(0,16fr) var(--radio-player-column) minmax(0,20fr) minmax(130px,15fr) minmax(0,12fr);
-    grid-template-rows:auto; min-height:clamp(192px,14.8vw,330px);
-    padding:var(--xmas-inset) 14px;
-  }
-  .theme-xmas .radio-brand,.theme-xmas .radio-bar .radio-listener-brand {
-    width:100%; grid-row:1; align-self:stretch; min-width:0;
-  }
-  .theme-xmas .radio-brand .bar-logo,.theme-xmas .radio-listener-brand .radio-listener-logo {
-    width:min(96%,clamp(142px,13vw,270px)); height:auto;
-  }
-  .theme-xmas .radio-brand .bar-logo { left:42%; }
-  .theme-xmas .radio-brand::after {
-    content:""; position:absolute; pointer-events:none;
-    inset:calc(8px - var(--xmas-inset)) -12px calc(9px - var(--xmas-inset)) auto;
-    width:clamp(64px,7vw,158px);
-    clip-path:polygon(calc(100% - 1px) 0,100% 0,2px 100%,0 100%);
-    background:linear-gradient(0deg,#82512a22,#f9c66e 43%,#b78449 52%,#82512a22);
-  }
-  .theme-xmas .radio-bar .radio-listener-brand { grid-column:6; }
-  .theme-xmas .transport { grid-row:1; }
-  .theme-xmas .radio-bar .radio-actions-panel {
-    grid-row:1; justify-self:stretch; align-self:center; width:auto; padding:0 10px; margin:0;
-    background:linear-gradient(transparent,#a37440 42%,#a37440 58%,transparent) left / 1px 100% no-repeat,
-      linear-gradient(transparent,#a37440 42%,#a37440 58%,transparent) right / 1px 100% no-repeat;
-  }
-  .theme-xmas .radio-bar .wish-button {
-    --action-font:clamp(14px,1.25vw,24px); --action-icon:clamp(20px,1.55vw,32px);
-    min-height:clamp(47px,3.2vw,72px);
-  }
-  .theme-xmas .radio-metadata,
-  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .radio-metadata {
-    grid-row:1; grid-template-columns:minmax(0,16fr) var(--radio-player-column) minmax(0,20fr);
-  }
-  .theme-xmas .radio-metadata { padding-bottom:16px; }
-  .theme-xmas #track-title { font-size:clamp(27px,2.8vw,57px); font-weight:700; }
-  .theme-xmas #track-artist { font-size:clamp(17px,1.7vw,34px); font-weight:400; }
-  .theme-xmas .radio-bar #show-topic { font-size:clamp(20px,1.52vw,32px); font-weight:650; line-height:1.18; }
-  .theme-xmas .radio-bar .radio-context .presenter { font-size:clamp(14px,1.05vw,21px); line-height:1.25; }
-  .theme-xmas .radio-metadata .volume-control { max-width:290px; }
-  .theme-xmas .radio-metadata .volume-control input { max-width:194px; }
-  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .radio-metadata { grid-template-rows:auto 44px auto; }
-  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .now-playing { grid-row:1/4; margin-bottom:-16px; }
-  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .own-wish-position {
-    grid-column:3; grid-row:3; min-height:0; margin:7px 0 0; border:0; border-top:1px solid #5f4326;
-  }
-  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .own-wish-title { -webkit-line-clamp:2; }
-  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .radio-context,
-  .theme-xmas .has-own-wish .radio-bar:not(.has-moderation) .volume-control { transform:none; }
-}
-@media (max-width:1199px) {
-  .theme-xmas .radio-bar { padding:20px 18px 18px; }
-  .theme-xmas .radio-program-face::after { background-size:var(--snow-span) 8px,16% auto,18% auto,11% auto; }
-}
-@media (max-width:700px) {
-  .theme-xmas .radio-program-face::after { background-size:var(--snow-span) 7px,21% auto,24% auto,0; }
-  .theme-xmas .radio-deck::after { background-size:65px 25px,73px 25px,24px 78px,24px 86px,var(--snow-span) 8px; }
-}

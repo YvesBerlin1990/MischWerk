@@ -1,0 +1,99 @@
+/* Winterrahmen und Bildschichten oberhalb bzw. hinter der bedienbaren Radiofläche. */
+html[data-view=radio].theme-xmas { --canvas:#101010; --bg:#101010; }
+html[data-view=radio].theme-xmas body::after { display:none; }
+.radio-xmas-frame { display:none; }
+.theme-xmas .radio-deck {
+  --xmas-inset:16px; --deck-radius:clamp(23px,2.4vw,49px);
+  --deck-top:0px; --deck-x:0px; --deck-tail:0px; --radio-glow-space:0px;
+  --xmas-snow-depth:32px; --xmas-snow-corner:clamp(80px,7.5vw,150px);
+  --xmas-spark:url(../../img/xmas-star.png);
+  margin-top:0; padding:var(--xmas-inset);
+}
+.theme-xmas .radio-bar { --text:#fff0d6; --muted:#e5cdae; --gold:#ffd37f; background:transparent; }
+.theme-xmas .radio-program-face {
+  inset:0; border:0; border-radius:var(--deck-radius);
+  background:linear-gradient(180deg,#0002,transparent 33%,#0005),
+    url(../../img/xmas-surface.png) center / cover no-repeat,var(--bg);
+}
+.theme-xmas .playing .radio-program-face { animation:none; box-shadow:none; }
+.theme-xmas .radio-program-face::before,
+.theme-xmas.radio-has-ticker .radio-deck::before,
+.theme-xmas.radio-has-ticker .radio-deck::after { display:none; }
+.theme-xmas .radio-program-face::after {
+  animation:none; opacity:1; clip-path:none; border-radius:inherit;
+  background:
+    url(../../img/xmas-corner-bow.png) left top / clamp(196px,19vw,396px) auto no-repeat,
+    url(../../img/xmas-corner-fir.png) right top / clamp(224px,23vw,480px) auto no-repeat,
+    url(../../img/xmas-corner-pinecone.png) right bottom / clamp(178px,18.6vw,372px) auto no-repeat;
+}
+.theme-xmas .radio-xmas-frame {
+  --xmas-lamp-gap:105px; --xmas-lamp-size:clamp(22px,1.5vw,29px);
+  display:block; position:absolute; inset:var(--xmas-inset);
+  z-index:2; pointer-events:none; border-radius:var(--deck-radius);
+}
+.radio-xmas-frame::before {
+  content:""; position:absolute; inset:0; border:2px solid #976737; border-radius:inherit;
+  box-shadow:0 0 0 1px #4e331d,inset 0 0 0 1px #d4a466,inset 0 0 0 3px #63401d;
+}
+.playing .radio-xmas-frame::before {
+  border-color:#ffca73;
+  box-shadow:0 0 0 1px #a5571c,0 0 5px 1px #f8a63ad9,0 0 13px 2px #ff993083,
+    inset 0 0 0 1px #ffffc7,inset 0 0 7px 2px #f9a54cad,inset 0 0 25px #f19c4140;
+}
+.radio-xmas-snow,.radio-xmas-sparks { position:absolute; inset:0; border-radius:inherit; }
+.radio-xmas-snow {
+  background:
+    url(../../img/xmas-snow-top-left.png) left top / var(--xmas-snow-corner) auto no-repeat,
+    url(../../img/xmas-snow-top-right.png) right top / var(--xmas-snow-corner) auto no-repeat,
+    url(../../img/xmas-snow-bottom-left.png) left bottom / var(--xmas-snow-corner) auto no-repeat,
+    url(../../img/xmas-snow-bottom-right.png) right bottom / var(--xmas-snow-corner) auto no-repeat;
+}
+.radio-xmas-snow::before,.radio-xmas-snow::after {
+  content:""; position:absolute; inset-inline:calc(var(--xmas-snow-corner) * .58);
+  height:var(--xmas-snow-depth); background:url(../../img/xmas-snow.png) center / auto 100% repeat-x;
+  mask-image:linear-gradient(90deg,transparent,#000 26px,#000 calc(100% - 26px),transparent);
+}
+.radio-xmas-snow::before { top:calc(-.52 * var(--xmas-snow-depth)); }
+.radio-xmas-snow::after { bottom:calc(-.20 * var(--xmas-snow-depth)); background-position:32% center; }
+.radio-xmas-sparks {
+  opacity:0;
+  background:var(--xmas-spark) 2.4% 15% / 64px auto no-repeat,
+    var(--xmas-spark) 16% 11% / 38px auto no-repeat,
+    var(--xmas-spark) 85% 8% / 57px auto no-repeat,
+    var(--xmas-spark) 97% 14% / 54px auto no-repeat,
+    var(--xmas-spark) 86% 96% / 66px auto no-repeat,
+    var(--xmas-spark) 3% 95% / 33px auto no-repeat;
+}
+.radio-xmas-lamp {
+  position:absolute; width:var(--xmas-lamp-size); height:var(--xmas-lamp-size);
+  transform:translate(-50%,-50%) rotate(var(--xmas-angle));
+  background:url(../../img/xmas-bulb.png) center / contain no-repeat;
+}
+.radio-xmas-lamp::after {
+  content:""; position:absolute; inset:0; opacity:0;
+  background:url(../../img/xmas-bulb-lit.png) center / contain no-repeat;
+  filter:brightness(1.52) drop-shadow(0 0 3px #ff9b39c0);
+}
+.playing .radio-xmas-lamp::after,.playing .radio-xmas-sparks { opacity:1; }
+.theme-xmas.radio-has-ticker .radio-ticker {
+  width:100%; margin:0; padding:0 17px 8px; box-shadow:inset 0 1px #423522;
+}
+@media (max-width:1199px) {
+  .theme-xmas .radio-deck { --xmas-inset:13px; --xmas-snow-depth:25px; }
+  .theme-xmas .radio-xmas-frame { --xmas-lamp-gap:84px; }
+  .theme-xmas .radio-program-face::after {
+    background:
+      url(../../img/xmas-bow.png) 1% 0 / 19% auto no-repeat,
+      url(../../img/xmas-fir.png) 99% 0 / 21% auto no-repeat,
+      url(../../img/xmas-pinecone.png) 98% 100% / 11% auto no-repeat;
+  }
+}
+@media (max-width:700px) {
+  .theme-xmas .radio-deck { --xmas-inset:10px; --xmas-snow-depth:19px; --xmas-snow-corner:76px; }
+  .theme-xmas .radio-xmas-frame { --xmas-lamp-gap:74px; --xmas-lamp-size:21px; }
+  .theme-xmas .radio-program-face::after { background-size:23% auto,25% auto,0; }
+  .theme-xmas .radio-xmas-sparks {
+    background-position:14px 9px,0 0,0 0,calc(100% - 14px) 7px,0 0,0 0;
+    background-size:26px auto,0,0,26px auto,0,0;
+  }
+}

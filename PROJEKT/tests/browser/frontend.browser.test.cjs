@@ -13,7 +13,7 @@ const root = path.resolve(__dirname, '../..');
 const browserSource=process.env.MISCHWERK_TEST_UPLOAD?path.resolve(process.env.MISCHWERK_TEST_UPLOAD,'www'):path.join(root,'app/www');
 let browser;
 
-for (const k3 of [true, false]) test('X-Mas ohne Außenrand und mit Lichtern nur bei Wiedergabe in ' + (k3 ? 'K3' : 'STAPP'), async t => {
+for (const k3 of [true, false]) test('X-Mas mit Leuchtraum, mittigem Player und Lichtern nur bei Wiedergabe in ' + (k3 ? 'K3' : 'STAPP'), async t => {
   const {page, state, errors} = await setup(t, {station:true, k3, role:'listener', theme:'xmas', parserIncludes:true,
     song:{title:'Jump', artist:'Van Halen'}, autoDj:true, viewport:{width:1920, height:430}});
   const deck = page.locator('#radio-deck');
@@ -27,9 +27,19 @@ for (const k3 of [true, false]) test('X-Mas ohne Außenrand und mit Lichtern nur
   for (const [, red, green, blue] of ground.backgroundImage.matchAll(/rgba?\((\d+), (\d+), (\d+)/g)) {
     assert.ok(red === green && green === blue, 'Auch die Grundtextur bleibt farbneutral');
   }
-  const lamps = () => deck.evaluate(node => getComputedStyle(node, '::after').backgroundImage);
+  const frame = deck.locator('.radio-xmas-frame');
+  const lamp = frame.locator('.radio-xmas-lamp').first();
+  await lamp.waitFor({state:'attached'});
+  assert.match(await lamp.evaluate(node => getComputedStyle(node).backgroundImage), /xmas-bulb\.png/);
+  assert.match(await lamp.evaluate(node => getComputedStyle(node, '::after').backgroundImage), /xmas-bulb-lit\.png/);
+  const lamps = () => frame.evaluate(node => [
+    getComputedStyle(node.querySelector('.radio-xmas-lamp'), '::after').opacity,
+    getComputedStyle(node.querySelector('.radio-xmas-sparks')).opacity,
+    getComputedStyle(document.querySelector('.track-eyebrow'), '::before').opacity,
+    getComputedStyle(node, '::before').boxShadow
+  ]);
   const dark = await lamps();
-  assert.match(dark, /172, 140, 101/);
+  assert.deepEqual(dark.slice(0, 3), ['0','0','0']);
   await page.waitForFunction(() => document.getElementById('track-title').textContent === 'Jump');
   await page.waitForFunction(() => document.getElementById('on-air-sign').textContent === 'MischWerk am Pult');
   await page.evaluate(() => document.fonts.ready);
@@ -44,33 +54,43 @@ for (const k3 of [true, false]) test('X-Mas ohne Außenrand und mit Lichtern nur
   await audio.evaluate(node => { window.__xmasAudio = node; });
   const emitMedia = name => audio.evaluate((node, name) => node.dispatchEvent(new Event(name)), name);
   await play.click();
-  assert.equal(await lamps(), dark, 'Ein noch nicht bestätigter Start lässt die Lichter aus');
+  assert.deepEqual(await lamps(), dark, 'Ein noch nicht bestätigter Start lässt die Lichter aus');
   await emitMedia('playing');
-  assert.match(await lamps(), /255, 250, 240/);
+  const lit = await lamps();
+  assert.deepEqual(lit.slice(0, 3), ['1','1','1']);
+  assert.notEqual(lit[3], dark[3]);
   assert.deepEqual(await surface(), ground, 'Die Wiedergabe verändert das Rahmenlicht, die Grundfläche bleibt schwarz');
   if (k3) await deck.screenshot({path:path.join(pictures, 'xmas-an.png'), omitBackground:true});
   await emitMedia('waiting');
-  assert.equal(await lamps(), dark);
+  assert.deepEqual(await lamps(), dark);
   await emitMedia('playing');
-  assert.match(await lamps(), /255, 250, 240/);
+  assert.deepEqual(await lamps(), lit);
   await audio.evaluate(node => {
     Object.defineProperty(node, 'error', {value:{code:2}, configurable:true});
     node.dispatchEvent(new Event('error'));
     delete node.error;
   });
-  assert.equal(await lamps(), dark);
+  assert.deepEqual(await lamps(), dark);
   await play.click();
-  assert.equal(await lamps(), dark);
+  assert.deepEqual(await lamps(), dark);
+
+  if (k3) {
+    await resizeViewport(page, {width:1200, height:440});
+    await play.click();
+    await emitMedia('playing');
+    await deck.screenshot({path:path.join(pictures, 'xmas-1200-an.png')});
+    await play.click();
+  }
 
   let revision = state.revision;
-  async function snapshot(theme, text = '', withWish = false) {
-    await page.evaluate(({state, theme, text, revision, withWish}) => {
+  async function snapshot(theme, text = '', withWish = false, requestsEnabled = true) {
+    await page.evaluate(({state, theme, text, revision, withWish, requestsEnabled}) => {
       const wish = {id:1, text:'Ein eigener Musikwunsch', position:1, stage:'queued'};
-      __emit('mw:state', {...state, theme, revision, topic:'MischWerk Radio Show',
+      __emit('mw:state', {...state, theme, revision, requestsEnabled, topic:'MischWerk Radio Show',
         ticker:{text, enabled:!!text, speed:48, direction:'left', revision},
         wishPositions:{generation:'xmas', revision, available:true, total:withWish?1:0, page:0, pages:1, nextPosition:withWish?1:null,
           items:withWish?[wish]:[], nextItem:withWish?wish:null}});
-    }, {state, theme, text, revision:++revision, withWish});
+    }, {state, theme, text, revision:++revision, withWish, requestsEnabled});
     await studioSettle(page);
   }
   for (const width of [320, 390, 700, 701, 960, 1199, 1200, 1500, 1920, 3840]) {
@@ -79,7 +99,9 @@ for (const k3 of [true, false]) test('X-Mas ohne Außenrand und mit Lichtern nur
     const geometry = await page.evaluate(() => {
       const box = selector => document.querySelector(selector).getBoundingClientRect();
       const bar = box('#radio-panel'), face = box('.radio-panel-face'), ticker = box('#radio-ticker'), deck = box('#radio-deck');
-      const lights = getComputedStyle(document.getElementById('radio-deck'), '::after');
+      const frame = box('.radio-xmas-frame'), play = box('#play-button');
+      const corners = [...document.querySelectorAll('.radio-xmas-lamp')].map(n => n.style.getPropertyValue('--xmas-angle'));
+      const snow = getComputedStyle(document.querySelector('.radio-xmas-snow'), '::before');
       const controls = ['#play-button','#open-schedule','#open-wishes','#mute-button','#volume','#radio-ticker-pause'];
       const fittings = controls.map(selector => {
         const node = document.querySelector(selector), rect = node.getBoundingClientRect();
@@ -87,16 +109,20 @@ for (const k3 of [true, false]) test('X-Mas ohne Außenrand und mit Lichtern nur
           node.contains(document.elementFromPoint(rect.left + rect.width/2, rect.top + rect.height/2))];
       });
       const metadata = document.getElementById('radio-metadata');
-      return {edge:face.left===0 && face.right===innerWidth && face.top===0 && face.bottom===bar.bottom,
-        ticker:ticker.left===0 && ticker.right===innerWidth && ticker.top===bar.bottom && deck.bottom===ticker.bottom,
-        lightsHeight:parseFloat(lights.height),
+      return {edge:face.left===frame.left && face.right===frame.right && face.top===frame.top && face.bottom===bar.bottom,
+        outer:[frame.left-deck.left, frame.top-deck.top, deck.right-frame.right, deck.bottom-frame.bottom],
+        ticker:ticker.left===frame.left && ticker.right===frame.right && ticker.top===bar.bottom && frame.bottom===ticker.bottom,
+        centered:Math.abs((play.left+play.right-frame.left-frame.right)/2)<.5,
+        corners:['45.00deg','135.00deg','225.00deg','315.00deg'].every(angle => corners.includes(angle)),
+        proportionalSnow:snow.backgroundSize.startsWith('auto '),
         width:document.documentElement.scrollWidth, fits:metadata.scrollWidth<=metadata.clientWidth+1, fittings,
         height:Math.ceil(deck.height), requested:__sizes.at(-1)?.[1],
         wish:!!document.getElementById('own-wish-position').getClientRects().length};
     });
     assert.ok(geometry.edge && geometry.ticker && geometry.fits && geometry.width === width, JSON.stringify({width,...geometry}));
-    assert.ok(Math.abs(geometry.lightsHeight - geometry.height) < 1, 'Schnee und Lichterkette umfassen auch den Lauftext');
-    assert.equal(geometry.requested, Math.min(500,geometry.height), 'Der Host erhält die Höhe ohne zusätzlichen Außenstreifen');
+    assert.ok(geometry.outer.every(space => space>=10 && space<=16), 'Leuchtraum um alle vier Kanten');
+    assert.ok(geometry.centered && geometry.corners && geometry.proportionalSnow, JSON.stringify({width,...geometry}));
+    assert.equal(geometry.requested, Math.min(500,geometry.height), 'Der Host erhält die Höhe einschließlich Leuchtraum');
     assert.equal(geometry.wish, width >= 1200);
     assert.ok(geometry.fittings.every(([, fits]) => fits), JSON.stringify({width, fittings:geometry.fittings}));
     assert.equal(await deck.locator('#radio-ticker').evaluate(node => getComputedStyle(node).backgroundColor), black);
@@ -132,18 +158,21 @@ for (const k3 of [true, false]) test('X-Mas ohne Außenrand und mit Lichtern nur
   }));
   assert.ok(longText.scrollHeight <= longText.height + 1 && longText.scrollWidth <= longText.width + 1, JSON.stringify(longText));
   await resizeViewport(page, {width:1920, height:430});
-  await snapshot('xmas');
+  await snapshot('xmas', '', false, false);
+  assert.equal(await page.locator('#open-wishes').isVisible(), false);
+  assert.equal(await page.locator('#open-schedule').isEnabled(), true);
   await play.click();
   await emitMedia('playing');
-  assert.match(await lamps(), /255, 250, 240/);
+  assert.deepEqual(await lamps(), lit);
   await snapshot('normal');
   assert.equal(await audio.evaluate(node => node===window.__xmasAudio && !node.paused), true);
   assert.equal(await deck.evaluate(n => getComputedStyle(n).marginTop), '12px');
   assert.equal(await deck.evaluate(n => getComputedStyle(n, '::after').backgroundImage), 'none');
+  assert.equal(await frame.isVisible(), false);
   await snapshot('xmas');
-  assert.match(await lamps(), /255, 250, 240/);
+  assert.deepEqual(await lamps(), lit);
   await play.click();
-  assert.equal(await lamps(), dark);
+  assert.deepEqual(await lamps(), dark);
   assert.deepEqual(errors, []);
 });
 

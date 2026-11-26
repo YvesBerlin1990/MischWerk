@@ -8,6 +8,7 @@
     ['model', 'core/model.js'],
     ['radioMarkup', 'radio/markup.js', 'radio'],
     ['workshop', 'radio/workshop.js', 'radio'],
+    ['xmasFrame', 'radio/xmas-frame.js', 'radio'],
     ['viewport', 'radio/viewport.js', 'radio'],
     ['wishesMarkup', 'wishes/markup.js', 'wishes radio'],
     ['teamMarkup', 'team/markup.js', 'team'],

@@ -1,8 +1,8 @@
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
  "schema": 1,
- "version": "0.1.454",
- "buildNumber": 454,
+ "version": "0.1.455",
+ "buildNumber": 455,
  "directories": {
   "": [
    "main.js",
@@ -130,6 +130,7 @@ if (typeof MischWerkUpdateProbe === 'function') {
   "www/js/radio": [
    "markup.js",
    "workshop.js",
+   "xmas-frame.js",
    "viewport.js",
    "metadata.js",
    "requests.js",
@@ -183,7 +184,9 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "metadata-layout.css",
    "radio-responsive.css",
    "center-layout.css",
-   "xmas.css"
+   "xmas-frame.css",
+   "xmas.css",
+   "xmas-layout.css"
   ],
   "www/css/shared": [
    "foundation.css",
@@ -208,8 +211,19 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "xmas-bow.png",
    "xmas-fir.png",
    "xmas-pinecone.png",
+   "xmas-gear.png",
+   "xmas-surface.png",
    "xmas-snow.png",
-   "xmas-gear.png"
+   "xmas-snow-top-left.png",
+   "xmas-snow-top-right.png",
+   "xmas-snow-bottom-left.png",
+   "xmas-snow-bottom-right.png",
+   "xmas-corner-bow.png",
+   "xmas-corner-fir.png",
+   "xmas-corner-pinecone.png",
+   "xmas-bulb.png",
+   "xmas-bulb-lit.png",
+   "xmas-star.png"
   ],
   "www/img/nicklist": [
    "team.png",

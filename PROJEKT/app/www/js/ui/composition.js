@@ -15,7 +15,9 @@ MischWerkUI.setComposer(function (factories) {
     var viewport = null;
     var workshop = null;
     if (factories.workshop) { workshop = factories.workshop({}); }
-    if (factories.viewport) { viewport = factories.viewport({ bridge: bridge, model: model, dom: dom, signals: signals, workshop:workshop }); }
+    var xmasFrame = null;
+    if (factories.xmasFrame) { xmasFrame = factories.xmasFrame({ dom:dom }); }
+    if (factories.viewport) { viewport = factories.viewport({ bridge: bridge, model: model, dom: dom, signals: signals, workshop:workshop, xmasFrame:xmasFrame }); }
     var layout = factories.layout({ model: model, dom: dom, signals: signals, viewport: viewport });
     var commands = factories.commands({ bridge: bridge, model: model, layout: layout, signals: signals });
     var metadata = null;

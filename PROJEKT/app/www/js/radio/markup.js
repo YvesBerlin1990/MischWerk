@@ -3,6 +3,10 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
   'use strict';
   dependencies.dom.mount('radio-placeholder', `
     <div id="radio-deck" class="radio-deck">
+    <div id="radio-xmas-frame" class="radio-xmas-frame" aria-hidden="true">
+      <span class="radio-xmas-snow"></span>
+      <span class="radio-xmas-sparks"></span>
+    </div>
     <main id="radio-panel" class="radio-bar" aria-label="MischWerk Radio">
       <div class="radio-brand"><img class="bar-logo" src="img/mischwerk-logo.png" width="140" height="140" loading="lazy" decoding="async" alt="MischWerk"><span>MischWerk</span></div>
       <section class="radio-program" aria-label="Radioplayer und Informationen">
