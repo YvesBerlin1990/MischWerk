@@ -1,6 +1,19 @@
 # MischWerk – Prüfbericht 0.1.463 / Build 463
 
-## Kugeln und Eckgruppen · lokale Vorschau auf Basis Build 463
+## Aufrechte Eckgruppen · Korrektur zu 2750699
+
+Alle vier Eckgruppen bestehen je Rahmenprofil aus denselben zwei Glaskugeln, Tannenzapfen und Ilex in gleicher Motivgröße. Alle Kappen und Ösen stehen oben. Beim Anordnen wurden die Positionen gespiegelt. Die Montage verwendete die orientierten Einzelmotive ohne Spiegelung. Im flachen Knuddels-Host 1645 × 176 px misst das Ilexmotiv je Ecke rund 27 CSS-Pixel.
+
+Die beiden Kompakt-PNGs stammen aus der führenden Web-/Android-Quelle und liegen in Knuddels bytegleich vor. Alpha, Pixel in den registrierten Lampenflächen, An-/Aus-Lichtsignal und beide Lampenkarten blieben unverändert.
+
+```text
+58b9e8e7a307f0f815f38032d085a18d838fdb946412446ff18ded8575646459  xmas-player-kompakt-aus.png
+a2ce4ea7ad93a6edaef15729b588500332647fd0be6cd7f2e3f400efac493b2c  xmas-player-kompakt-an.png
+```
+
+Fünf Chrome-Fälle bestanden, einschließlich der bestehenden K3- und STAPP-Fälle. An 13 gemessenen Hosts blieben Rahmenmaße und Lampenzahlen identisch. Alle vier Ecken wurden bei 1645 × 176 und 1645 × 220 px jeweils An und Aus aufgenommen. Web wurde bei 390 und 1440 px in beiden Lichtzuständen ebenso fotografiert. Die insgesamt 32 Eckdetails liegen im temporären Prüfverzeichnis. Die optische Abnahme der neuen Rahmen steht aus.
+
+## Kugeln und Eckgruppen · vorheriger Prüfkandidat 2750699
 
 Die gemeinsame Kugelvorlage liegt im Web-/Android-Repository unter `project/android-radio/project/docs/screenshots/xmas-kugeln-a-b-c.png` (Git-Stand `174cb58`). Die [Freisteller-Vorlage](https://github.com/PolaroidK/Windows-Web-App-MischWerk/blob/e4a66ab5cc8b6d187699ee36fbb2710494632017/project/android-radio/project/assets/backgrounds/xmas-kugeln-freisteller.png) ist als gemeinsame Arbeitsquelle abgelegt. Für den Knuddels-Prüfkandidaten sind glänzende, satinierte und gerippte Kugeln sowie die vier Eckgruppen in den vorhandenen breiten und kompakten An-/Aus-PNGs montiert. Die unteren Eckgruppen folgen der gespiegelten Platzierung. Ihre Kugeln sind wegen der vorhandenen Lampenflächen kleiner, und das Ilexmotiv gibt die Mindestgröße vor. Im Host 1645 × 176 misst die Girlande 1605 × 149,59 CSS-Pixel. Die große Kugel oben misst je 24,8 CSS-Pixel in der Breite, unten misst das Ilexmotiv je 26,8 CSS-Pixel.
 
