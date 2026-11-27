@@ -61,7 +61,10 @@ MischWerkUI.define('xmasFrame', function (dependencies) {
     }
     if (!built) { build(); }
     var panel = dom.el('radio-panel'), frame = panel.getBoundingClientRect();
-    var width = panel.clientWidth, height = panel.clientHeight, compact = window.innerWidth < WIDE_AT;
+    var width = panel.clientWidth, panelHeight = panel.clientHeight, compact = window.innerWidth < WIDE_AT;
+    var ticker = dom.el('radio-ticker');
+    var tickerHeight = ticker && !ticker.hidden ? ticker.getBoundingClientRect().height : 0;
+    var height = panelHeight + tickerHeight;
     fitTitles(!compact);
     if (snow) { snow.attach(flakes, width > 0); }
     if (width < 40 || height < 40) { return; }
@@ -71,6 +74,10 @@ MischWerkUI.define('xmasFrame', function (dependencies) {
       var box = node.getBoundingClientRect();
       covered = covered.concat(lights.garlandCover([box.left - frame.left, box.top - frame.top, box.width, box.height], index === 1));
     });
+    // Seitlich am Lauftext keine Birnen auf Text oder Pausentaste setzen.
+    if (tickerHeight) {
+      covered.push([0, panelHeight, width, height - 6]);
+    }
     var density = Math.min(window.devicePixelRatio || 1, 3);
     var key = [width, height, compact, density, cable.complete && cable.naturalWidth].concat(covered.map(function (c) {
       return c.map(Math.round).join(',');

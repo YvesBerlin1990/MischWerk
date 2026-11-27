@@ -1,7 +1,8 @@
 /* X-Mas breites Profil ab 1220 px: fünf Webspalten plus die gewohnte 128-px-Aktionsgruppe rechts
    und eine gleich breite Leerspalte links, damit der Kranz exakt mittig bleibt. */
 @media (min-width:1220px) {
-  .theme-xmas .radio-deck { --xmas-hang:24px; }
+  .theme-xmas .radio-deck { --xmas-hang:56px; }
+  .theme-xmas.radio-has-ticker .radio-ticker { width:100%; }
   .theme-xmas .radio-deck .radio-bar {
     --xmas-g:clamp(150px,13vw,280px); --xmas-rim:clamp(18px,1.9vw,30px); --xmas-floor-inset:calc(var(--xmas-rim) * .2);
     --xmas-wreath:clamp(118px,11.4vw,178px); max-width:none; min-height:clamp(176px,14vw,260px);

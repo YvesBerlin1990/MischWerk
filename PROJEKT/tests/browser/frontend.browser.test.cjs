@@ -73,7 +73,7 @@ for (const k3 of [true, false]) test('X-Mas übernimmt Tafel, Lichterkette, Girl
       const hits=box=>blockers.filter(item=>item.boxes.some(b=>box.left<b.right-.5&&box.right>b.left+.5&&box.top<b.bottom-.5&&box.bottom>b.top+.5)).map(item=>item.id);
       const bulbs=Array.from(document.querySelectorAll('.radio-xmas-bulb')).map(bulb=>{
         const box=bulb.getBoundingClientRect(),glow=bulb.querySelector('.radio-xmas-glow'),style=getComputedStyle(glow),color=bulb.dataset.color;
-        return {index:Number(bulb.dataset.index),color,hits:hits(box),aspect:box.height/box.width,
+        return {index:Number(bulb.dataset.index),color,y:box.top,bottom:box.bottom,haloBottom:box.top+box.height*.67+box.width*2.1,hits:hits(box),aspect:box.height/box.width,
           visible:box.left>=plate.left-.5&&box.right<=plate.right+.5&&box.top>=-.5&&box.bottom<=host+.5,
           photo:new RegExp('xmas-birne-'+color+'-aus\\.png').test(getComputedStyle(bulb).backgroundImage)&&new RegExp('xmas-birne-'+color+'-an\\.png').test(style.backgroundImage),
           name:style.animationName,duration:parseFloat(style.animationDuration),delay:parseFloat(style.animationDelay),opacity:Number(style.opacity)};
@@ -88,7 +88,9 @@ for (const k3 of [true, false]) test('X-Mas übernimmt Tafel, Lichterkette, Girl
       });
       const gifts=Array.from(document.querySelectorAll('.radio-xmas-gift')).filter(node=>node.getClientRects().length).length;
       const play=getComputedStyle(document.getElementById('play-button'),'::after').backgroundImage;
-      return {bulbs,drawn,corners,gifts,play,face:getComputedStyle(document.querySelector('.radio-program-face')),
+      const ticker=document.getElementById('radio-ticker'), tickerBox=ticker&&!ticker.hidden?ticker.getBoundingClientRect():null;
+      const bottomBulbs=bulbs.filter(row=>row.y>=plate.bottom-4);
+      return {bulbs,bottomBulbs,tickerBottom:tickerBox&&tickerBox.bottom,drawn,corners,gifts,play,face:getComputedStyle(document.querySelector('.radio-program-face')),
         floor:getComputedStyle(document.querySelector('.radio-xmas-floor')).backgroundImage,
         snow:document.querySelector('.radio-xmas-snow').width>0,
         actions:['open-schedule','open-wishes'].map(id=>{const node=document.getElementById(id);return node.hidden?null:node.getBoundingClientRect().toJSON();}),
@@ -107,7 +109,7 @@ for (const k3 of [true, false]) test('X-Mas übernimmt Tafel, Lichterkette, Girl
     const {bulbs}=await scene();
     assert.ok(bulbs.length&&bulbs.every(row=>row.name==='none'&&row.opacity===0),'Ohne bestätigte Wiedergabe bleiben alle Birnen aus');
   }
-  for (const [width,height,ticker] of [[2560,540,false],[1920,540,false],[1645,540,false],[1440,540,true],[1300,540,false],[1220,540,false],[1180,540,true],[900,540,false],[600,540,false],[390,540,true],[320,540,false]]) {
+  for (const [width,height,ticker] of [[3840,540,true],[2560,540,false],[1920,540,true],[1920,540,false],[1645,540,false],[1440,540,true],[1300,540,false],[1220,540,false],[1180,540,true],[900,540,false],[600,540,false],[390,540,true],[320,540,false]]) {
     await page.setViewportSize({width,height});
     for (const withWish of [true,false]) {
       await snapshot('normal',withWish,ticker);
@@ -117,6 +119,8 @@ for (const k3 of [true, false]) test('X-Mas übernimmt Tafel, Lichterkette, Girl
       await noScroll(width,height,host,width+' px'+(ticker?' mit Lauftext':''));
       const view=await scene();
       assert.equal(view.scroll,0,'Keine waagerechte Scrollbarkeit');
+      if (ticker) { assert.ok(view.bottomBulbs.some(row=>row.y>=view.tickerBottom-4),'Untere Birnen hängen unter dem Lauftext bei '+width+' px'); }
+      assert.ok(view.bottomBulbs.every(row=>row.haloBottom<=host+.5),'Der untere Lichthof bleibt vollständig innerhalb der Hosthöhe');
       assert.ok(view.drawn>200,'Das Fotokabel ist gezeichnet');
       assert.match(view.play,/xmas-kranz-schmal\.png/);
       assert.match(view.floor,/xmas-snow\.png/);

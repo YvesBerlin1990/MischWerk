@@ -1,9 +1,8 @@
 /* X-Mas-Raster wie im Web: kompakt (< 1220 px) eine mittige Spalte bis 470 px, breit fünf Spalten
    Logo | Jetzt läuft | Kranz | Thema + Lautstärke | Radio-Logo. Sendeplan und Wunschbox stehen wie im Normalbetrieb. */
-.theme-xmas .radio-deck { --xmas-hang:19px; --radio-glow-space:var(--xmas-hang); margin:4px 0 0; overflow:hidden; }
-/* Das Deck enthält den Hängeraum der unteren Birnen und schneidet Lichthöfe und Kabelrand ab,
-   damit nichts unter die angeforderte Hosthöhe ragt und keine Scrollfläche entsteht. */
-.theme-xmas:not(.radio-has-ticker) .radio-deck { padding-bottom:var(--xmas-hang); }
+.theme-xmas .radio-deck { --xmas-hang:44px; --radio-glow-space:var(--xmas-hang); margin:4px 0 0; overflow:hidden; }
+/* Der untere Abstand enthält Birnen und ihren vollständigen Lichthof. */
+.theme-xmas .radio-deck { padding-bottom:var(--xmas-hang); }
 .theme-xmas .radio-deck .radio-bar {
   --xmas-g:clamp(110px,34vw,150px); --xmas-wreath:84px; --play-size:var(--xmas-wreath); --play-symbol-size:calc(var(--xmas-wreath) * .4);
   --text:#fff0d6; --muted:#d8c8b4; --gold:#ffd37f;
@@ -91,7 +90,7 @@
 .radio-xmas-icon { display:none; }
 .theme-xmas .public-action-icon svg { display:none; }
 .theme-xmas .public-action-icon .radio-xmas-icon { display:block; }
-/* Der Lauftext folgt unterhalb der hängenden Birnen als eigene abgerundete Leiste. */
+/* Der Lauftext schließt an die Tafel an; die untere Kette hängt darunter. */
 .theme-xmas.radio-has-ticker .radio-deck::before,.theme-xmas.radio-has-ticker .radio-deck::after { display:none; }
-.theme-xmas.radio-has-ticker .radio-ticker { --bg:#131313; width:auto; margin:var(--xmas-hang) 0 0; border-radius:12px; background:#131313; }
+.theme-xmas.radio-has-ticker .radio-ticker { --bg:#131313; width:min(100%,470px); margin:0 auto; border-radius:12px; background:#131313; }
 html[data-view=radio].theme-xmas body::after { visibility:hidden; }

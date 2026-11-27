@@ -1,4 +1,12 @@
-# MischWerk – Prüfbericht 0.1.467 / Build 467
+# MischWerk – Prüfbericht 0.1.468 / Build 468
+
+## Lichterkette unter dem Lauftext · Build 468
+
+Stand 27.11.2026. Bei eingeschaltetem Lauftext liegt die untere Lichterkette unter der Lauftextleiste; ohne Lauftext bleibt sie unter der Tafel. Seitliche Birnen am Lauftext sind ausgespart. Der untere Raum enthält den vollständigen Lichthof und geht in die angeforderte natürliche Hosthöhe ein. Ein Host, der weniger Höhe gewährt, kann weiterhin den vorhandenen Seitenscroll benötigen.
+
+Gegenprobe: Der neue Browserfall scheiterte am vorherigen Stand, weil der untere Lichthof über die Hosthöhe hinausragte. Die gezielten K3- und STAPP-Fälle prüfen die Birnenlage, den vollständigen unteren Lichthof, Berührungsfreiheit und die angeforderte Höhe bei ausgewählten Breiten von 320 bis 3840 px, mit und ohne Lauftext sowie mit langen Texten, jeweils an Quelle und Paket. 476 Node-Fälle und die Projektprüfung bestanden. Die Edge-Gesamtrunde bestand 245 von 247 Fällen; ein Sendeplan-Timeout und ein Wunschboxfall scheiterten dort, bestanden jedoch bei isolierter Wiederholung. Ihre Ursache ist nicht nachgewiesen. Der lokale Paketbau und beide Rhino-Versionen bestanden an Quelle und Paket jeweils 250 Fälle; `check:upload` bestätigt 158 Dateien und höchstens 9407 UTF-16-Zeichen. Native Knuddels-Darstellung und tatsächlich gewährte Hosthöhe bleiben offen. Keine FTP-Übertragung oder Veröffentlichung.
+
+[1440 px mit Lauftext](oberflaeche/radio/xmas-1440-an.png) · [390 px mit Lauftext](oberflaeche/radio/xmas-390-an.png)
 
 ## X-Mas ohne Scrollfläche, Sendeplan-Markierung · Build 467
 
