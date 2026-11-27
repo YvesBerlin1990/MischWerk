@@ -36,6 +36,16 @@ for (const k3 of [true, false]) test('X-Mas übernimmt Tafel, Lichterkette, Girl
     await studioSettle(page);
   }
   const requested = () => page.evaluate(()=>__sizes.at(-1)?.[1]);
+  // Auf genau der angeforderten Hosthöhe darf nichts senkrecht scrollen, auch keine unsichtbaren Lichthöfe.
+  async function noScroll(width,height,host,label) {
+    await page.setViewportSize({width,height:host});
+    await studioSettle(page);
+    const overflow=await page.evaluate(()=>Math.max(document.documentElement.scrollHeight,document.body.scrollHeight)-innerHeight);
+    assert.equal(overflow,0,'Keine senkrechte Scrollfläche bei '+label);
+    assert.equal(await page.evaluate(()=>__sizes.at(-1)?.[1]),host,'Volle Höhe bleibt angefordert bei '+label);
+    await page.setViewportSize({width,height});
+    await studioSettle(page);
+  }
   // Dieselbe Zufallsfolge wie Web und Android (Seed 1225 + Index × 7919, 6,2–11,4 Sekunden).
   function timing(index) {
     let state = (1225 + index * 7919) >>> 0;
@@ -104,7 +114,7 @@ for (const k3 of [true, false]) test('X-Mas übernimmt Tafel, Lichterkette, Girl
       assert.equal(await page.locator('.radio-xmas-bulb:visible,.radio-xmas-corner:visible').count(),0,'Normalbetrieb zeigt keinen X-Mas-Schmuck');
       await snapshot('xmas',withWish,ticker);
       const host=await requested();
-      assert.ok(host<=500,'Hosthöhe bleibt begrenzt bei '+width+' px: '+host);
+      await noScroll(width,height,host,width+' px'+(ticker?' mit Lauftext':''));
       const view=await scene();
       assert.equal(view.scroll,0,'Keine waagerechte Scrollbarkeit');
       assert.ok(view.drawn>200,'Das Fotokabel ist gezeichnet');
@@ -164,7 +174,7 @@ for (const k3 of [true, false]) test('X-Mas übernimmt Tafel, Lichterkette, Girl
   for(const [width,height,ticker] of [[1645,500,true],[390,500,true],[320,220,true],[1220,176,false]]) {
     await page.setViewportSize({width,height});
     await snapshot('xmas',true,ticker,true);
-    assert.ok(await requested()<=500);
+    await noScroll(width,height,await requested(),'langen Texten bei '+width+' px');
     assert.equal(await page.locator('#track-title').textContent(),song.title);
     assert.equal(await page.locator('#show-topic').textContent(),topic);
     assert.equal(await page.locator('#radio-metadata').getAttribute('tabindex'),'0');

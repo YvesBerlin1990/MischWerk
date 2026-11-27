@@ -103,7 +103,8 @@ MischWerkUI.define('viewport', function (dependencies) {
     root.classList.toggle('radio-constrained', constrained);
     if (bridge && !bridge.isK3Client()) { root.classList.remove('radio-constrained'); }
     var normal = measureNormal();
-    var height = Math.min(500, normal.height);
+    // X-Mas übernimmt auf Nutzerauftrag die volle Höhe, damit Tafel, Birnen und Lauftext nie scrollen.
+    var height = root.classList.contains('theme-xmas') ? normal.height : Math.min(500, normal.height);
     centerInformation();
     if (bridge && !bridge.isK3Client()) { constrained = small && window.innerHeight + 1 < normal.height; }
     requestHeight(height);

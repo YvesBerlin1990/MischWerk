@@ -1,4 +1,12 @@
-# MischWerk – Prüfbericht 0.1.466 / Build 466
+# MischWerk – Prüfbericht 0.1.467 / Build 467
+
+## X-Mas ohne Scrollfläche, Sendeplan-Markierung · Build 467
+
+Stand 27.11.2026. Nutzerbefund: Die X-Mas-Radioleiste scrollte senkrecht, auch breit. Ursache: Die Lichthöfe der unteren Birnen (Durchmesser 4,2 × Birnenbreite) ragten auch bei Deckkraft 0 rund 20–27 px unter die angeforderte Hosthöhe; kompakt mit Lauftext kappte zusätzlich die 500-px-Grenze. Jetzt enthält das Deck den Hängeraum der Birnen und schneidet Lichthöfe und Kabelrand ab; X-Mas fordert auf Nutzerauftrag die volle natürliche Höhe ohne 500-px-Grenze an (gemessen breit 310–365 px, kompakt 446–533 px). Im X-Mas-Sendeplan markiert die aktuelle Sendung nur noch der goldene Strich, ohne Flächenfärbung.
+
+Der X-Mas-Browserfall setzt das Fenster in allen Breiten auf genau die angeforderte Höhe und verlangt null senkrechten Überlauf; am Stand von Build 466 schlug er bei 2560 px fehl. Prüfungen am 27.11.2026: 476 Node-Fälle, Projekt-, Architektur- und Längenprüfung sowie die Edge-Gesamtrunde mit 247 von 247 Fällen bestanden. Offen bleibt nativ, ob Knuddels Leistenhöhen über 500 px tatsächlich gewährt; sonst greift der normale Seitenscroll.
+
+[1440 px mit Lauftext](oberflaeche/radio/xmas-1440-an.png) · [X-Mas-Sendeplan](oberflaeche/sendeplan/sendeplan-xmas-640.png)
 
 ## X-Mas-Weihnachtsplayer wie im Web · Build 466
 

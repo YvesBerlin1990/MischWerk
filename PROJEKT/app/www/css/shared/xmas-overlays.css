@@ -55,7 +55,6 @@ html.theme-xmas .schedule-day-nav button { color:var(--gold); }
 html.theme-xmas :is(#schedule-date-label,.schedule-topic,.wish-label-row label) { color:var(--text); }
 html.theme-xmas :is(.schedule-position,.schedule-hours,.schedule-presenter,#schedule-message:not(.error)) { color:var(--muted); }
 html.theme-xmas :is(#schedule-date-hint,.schedule-current .schedule-position,.schedule-current .schedule-hours) { color:var(--gold); }
-html.theme-xmas .schedule-current { background:#a267261c; }
 html.theme-xmas .schedule-current::before { background:var(--gold); }
 html.theme-xmas .wish-editor {
   border-color:#81613d;
