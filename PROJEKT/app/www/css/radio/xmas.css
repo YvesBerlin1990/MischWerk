@@ -1,107 +1,94 @@
-/* Bedienelemente und Raster der Weihnachtsleiste. */
-.theme-xmas .radio-bar .play-button:is(:enabled,:disabled) {
-  border:0; background:url(../../img/xmas-player-kranz.png) center / contain no-repeat,
-    url(../../img/xmas-play-inlay.png) center / 74% no-repeat;
-  box-shadow:none;
+/* X-Mas-Raster wie im Web: kompakt (< 1220 px) eine mittige Spalte bis 470 px, breit fünf Spalten
+   Logo | Jetzt läuft | Kranz | Thema + Lautstärke | Radio-Logo. Sendeplan und Wunschbox stehen wie im Normalbetrieb. */
+.theme-xmas .radio-deck { --xmas-hang:19px; --radio-glow-space:var(--xmas-hang); margin:4px 0 0; }
+.theme-xmas .radio-deck .radio-bar {
+  --xmas-g:clamp(110px,34vw,150px); --xmas-wreath:84px; --play-size:var(--xmas-wreath); --play-symbol-size:calc(var(--xmas-wreath) * .4);
+  --text:#fff0d6; --muted:#d8c8b4; --gold:#ffd37f;
+  display:grid; width:100%; max-width:470px; height:auto; min-height:0; margin:0 auto;
+  grid-template-columns:minmax(0,1fr); grid-template-rows:none; grid-auto-rows:auto; gap:9px 0;
+  align-content:center; align-items:center; padding:calc(var(--xmas-g) * .3) calc(var(--xmas-g) * .24);
+  /* Die Aktionszeile reicht über die volle Breite; unten genug Platz, damit die Zweige keine Taste berühren. */
+  padding-bottom:calc(var(--xmas-g) * .42);
+  background:transparent;
 }
-.theme-xmas .play-button:enabled { color:#ffda82; }
-.theme-xmas .play-button:hover:enabled { color:#ffe6a6; }
-.theme-xmas .playing .play-button:enabled { color:#fff0b6; }
-.theme-xmas .playing .play-button:enabled::after { display:none; }
-.theme-xmas .playing #play-icon { filter:drop-shadow(0 0 8px #ffa83aa0); }
-.theme-xmas .radio-metadata .track-eyebrow,.theme-xmas .topic-label { color:#ffd17a; }
-.theme-xmas .track-eyebrow { position:relative; }
-.theme-xmas .track-eyebrow::after,.theme-xmas .topic-label::after {
-  content:""; display:block; height:1px; width:min(100%,15ch); margin:6px auto 3px;
-  background:url(../../img/xmas-zierlinie.png) center / 100% auto no-repeat;
+.theme-xmas .radio-deck .radio-bar::after,.theme-xmas .radio-deck .radio-bar .radio-brand,
+.theme-xmas .radio-deck .radio-bar .radio-listener-brand,.theme-xmas .radio-deck .radio-bar .own-wish-position { display:none; }
+.theme-xmas .radio-deck .radio-bar .radio-brand,.theme-xmas .radio-deck .radio-bar .transport,
+.theme-xmas .radio-deck .radio-bar .radio-metadata,.theme-xmas .radio-deck .radio-bar .radio-actions-panel,
+.theme-xmas .radio-deck .radio-bar .radio-listener-brand { position:relative; z-index:1; }
+/* Logos mischen sich wie im Normalbetrieb (lighten) mit der Tafel; ihre Spalte isoliert daher nicht. */
+.theme-xmas .radio-deck .radio-bar .radio-brand,.theme-xmas .radio-deck .radio-bar .radio-listener-brand { z-index:auto; }
+.theme-xmas .radio-deck .radio-bar .transport { grid-column:1; grid-row:1; justify-self:center; align-self:center; width:var(--xmas-wreath); margin:0; }
+/* Die Textfläche überspannt die Kranzspalte; nur ihre Inhalte nehmen Zeiger an. */
+.theme-xmas .radio-deck .radio-bar .radio-metadata {
+  grid-column:1; grid-row:2; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:none; gap:9px 0;
+  min-height:0; max-height:none; margin:0; padding:0; text-align:center; pointer-events:none;
 }
-.theme-xmas .topic-label::after { height:2px; width:min(100%,20ch); }
-.theme-xmas .playing .track-eyebrow::after,.theme-xmas .playing .topic-label::after {
-  filter:brightness(1.65);
+.theme-xmas .radio-deck .radio-metadata > *,.theme-xmas .radio-deck .radio-information > * { pointer-events:auto; }
+.theme-xmas .radio-deck .radio-bar .radio-metadata .now-playing { grid-column:1; grid-row:1; min-height:0; margin:0; padding:0; border:0; }
+.theme-xmas .radio-deck .radio-bar .radio-metadata .radio-context { grid-column:1; grid-row:2; min-height:0; padding:0; border:0; align-self:center; }
+.theme-xmas .radio-deck .radio-bar .radio-metadata .volume-control { grid-column:1; grid-row:3; justify-self:center; width:min(100%,18rem); max-width:none; height:auto; gap:5px; }
+.theme-xmas .radio-deck .radio-metadata .track-copy,.theme-xmas .radio-deck .radio-metadata .radio-context,
+.theme-xmas .radio-deck .radio-metadata .volume-control { transform:none; }
+.theme-xmas .radio-deck .radio-bar .radio-actions-panel { grid-column:1; grid-row:3; align-self:center; justify-self:stretch; width:auto; min-height:0; margin:0; padding:0; }
+/* Wie im Normalbetrieb: unter 1200 px eine Zeile gleich breiter Tasten unter den Informationen. */
+.theme-xmas .radio-deck .radio-bar .bar-actions { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); flex-direction:row; width:100%; gap:6px; }
+.theme-xmas .radio-deck .radio-bar .wish-button {
+  --action-font:15px; --action-icon:22px; min-height:52px; padding:6px; gap:8px; border-radius:12px; flex-direction:row;
 }
-.theme-xmas #track-artist { color:#e9d3b8; }
-.theme-xmas .presenter[data-mode=mix] .on-air-sign { font-style:italic; font-synthesis:style; }
-.theme-xmas .presenter[data-mode=mix] .on-air-sign::before { color:#ffc66b; font-style:normal; }
-.theme-xmas .radio-metadata .volume-control input {
-  background-image:linear-gradient(to right,#fbd088 0 var(--volume),#584530 var(--volume) 100%);
+.theme-xmas .radio-deck .radio-bar #wish-button-caption,.theme-xmas .radio-deck .radio-bar #schedule-button-caption { display:none; }
+/* Schmaler Tannenkranz direkt auf der Tafel, ohne dunkle Innenscheibe. */
+.theme-xmas .radio-deck .radio-bar .play-button {
+  width:var(--play-size); height:var(--play-size); border:0; background:none; box-shadow:none; color:#ffe8b1;
 }
-.theme-xmas .radio-metadata .volume-control output { color:#ffd17a; border-color:#a9753a; background:#19130d; }
-.theme-xmas .volume-control input::-webkit-slider-thumb {
-  border:0; background:url(../../img/xmas-reglergriff.png) center / contain no-repeat;
-  box-shadow:none; filter:contrast(.81) brightness(1.63) saturate(.84);
+.theme-xmas .radio-deck .radio-bar .play-button::after {
+  content:""; display:block; position:absolute; inset:0; width:100%; height:100%; border-radius:0; box-shadow:none;
+  pointer-events:none; background:url(../../img/xmas-kranz-schmal.png) center / contain no-repeat;
 }
-.theme-xmas .volume-control input::-moz-range-thumb {
-  border:0; background:url(../../img/xmas-reglergriff.png) center / contain no-repeat;
-  box-shadow:none; filter:contrast(.81) brightness(1.63) saturate(.84);
+.theme-xmas .radio-deck .radio-bar .play-button::before { display:none; }
+.theme-xmas .radio-deck .radio-bar .play-button:hover:enabled { color:#fff4d5; filter:brightness(1.12); }
+.theme-xmas .radio-deck .radio-bar .play-button:active:enabled { filter:brightness(.89); }
+.theme-xmas .radio-deck .radio-bar .play-button:disabled { color:#a88d64; }
+.theme-xmas .radio-deck .radio-bar #play-icon { filter:drop-shadow(0 2px 4px #000c); }
+.theme-xmas .radio-deck .playing .play-button #play-icon { filter:drop-shadow(0 0 3px #ffcb72); }
+/* Texte in warmem Creme, goldene Überschriften. */
+.theme-xmas .radio-deck .radio-bar .radio-metadata .track-eyebrow,.theme-xmas .radio-deck .radio-bar .radio-metadata .topic-label {
+  margin:0 0 4px; color:var(--gold); font:700 clamp(.78rem,1.14vw,1rem)/1.2 Outfit,sans-serif; letter-spacing:.025em; text-shadow:none;
 }
-.theme-xmas .playing .volume-control input::-webkit-slider-thumb {
-  filter:contrast(.76) brightness(1.94) saturate(.80) drop-shadow(0 0 3px #ffce55b8);
+.theme-xmas .radio-deck .radio-bar #track-title,.theme-xmas .radio-deck .radio-bar #track-artist,
+.theme-xmas .radio-deck .radio-bar #show-topic,.theme-xmas .radio-deck .radio-bar .presenter { margin:0; color:var(--text); overflow-wrap:anywhere; }
+.theme-xmas .radio-deck .radio-bar #track-title { font-size:clamp(1.16rem,2.23vw,2.1rem); font-weight:700; line-height:1.2; letter-spacing:0; }
+.theme-xmas .radio-deck .radio-bar #track-artist { font-size:clamp(.95rem,1.22vw,1.25rem); font-weight:400; line-height:1.25; color:var(--muted); }
+.theme-xmas .radio-deck .radio-bar .artist-copy { margin-top:2px; }
+.theme-xmas .radio-deck .radio-bar .track-copy { gap:0; }
+.theme-xmas .radio-deck .radio-bar #show-topic { font-size:clamp(1rem,1.51vw,1.4rem); font-weight:650; line-height:1.2; }
+.theme-xmas .radio-deck .radio-bar .radio-status-row { padding-top:3px; }
+.theme-xmas .radio-deck .radio-bar .presenter { justify-content:center; font-size:clamp(.875rem,1.24vw,1.35rem); font-style:italic; line-height:1.25; }
+.theme-xmas .radio-deck .radio-bar .presenter[data-mode=mix] .on-air-sign::before { color:var(--gold); }
+.theme-xmas .radio-deck .radio-bar #host-name { color:#ff9a8f; }
+/* Lautstärke: 48-px-Trefferflächen, Reglergriff aus dem Web. */
+.theme-xmas .radio-deck .volume-control #mute-button { width:48px; height:48px; min-width:48px; color:var(--gold); }
+.theme-xmas .radio-deck .volume-control #mute-button::before { inset:5px; border-color:#81613d; background:#101010; }
+.theme-xmas .radio-deck .volume-control #mute-button[aria-pressed=true] { color:#ff9a8f; }
+.theme-xmas .radio-deck .radio-metadata .volume-control output {
+  width:auto; min-width:3em; height:auto; padding:3px 6px; border:1px solid #bd8039; border-radius:7px;
+  background:#1b130c; color:var(--gold); font-size:.875rem;
 }
-.theme-xmas .playing .volume-control input::-moz-range-thumb {
-  filter:contrast(.76) brightness(1.94) saturate(.80) drop-shadow(0 0 3px #ffce55b8);
+.theme-xmas .radio-deck .radio-metadata .volume-control input {
+  height:48px; min-width:48px; max-width:none; padding:21px 0;
+  background-image:linear-gradient(to right,#ffd779 0,#ffd779 var(--volume),#57422b var(--volume),#57422b 100%);
 }
-.theme-xmas .volume-control #mute-button:not([aria-pressed=true]) { color:#ffc659; }
-.theme-xmas .volume-control #mute-button:not([aria-pressed=true])::before { border-color:#ffbd50; background:#18120d; }
-.theme-xmas .wish-button:enabled {
-  color:#fff0d6; border-color:#f6b348; background:#17120deb;
-}
-.theme-xmas .wish-button:hover:enabled { border-color:#ffd17a; background:#33241a; }
+.theme-xmas .volume-control input::-webkit-slider-thumb { border:0; box-shadow:none; background:url(../../img/xmas-reglergriff.png) center / contain no-repeat; }
+.theme-xmas .volume-control input::-moz-range-thumb { border:0; box-shadow:none; background:url(../../img/xmas-reglergriff.png) center / contain no-repeat; }
+/* Warme Aktionstasten mit Weihnachtssymbolen; Funktionen und Rechte unverändert. */
+.theme-xmas .wish-button:enabled { color:#fff0d6; border-color:#9e7140; background:#1d1710; }
+.theme-xmas .wish-button:hover:enabled { border-color:#ffd17a; background:#302317; }
 .theme-xmas .wish-button:active:enabled { background:#24170d; }
-.theme-xmas .playing .wish-button:enabled {
-  border-color:#ffc165; box-shadow:inset 0 1px 4px #ffba55a8,0 0 9px #f797283c,0 4px 10px #0009;
-}
 .theme-xmas .wish-button:enabled .public-action-icon { color:#ffcb75; }
-.theme-xmas .playing .wish-button:enabled .public-action-icon { filter:drop-shadow(0 0 4px #ee992d9c); }
-.theme-xmas .wish-button-copy strong { font-weight:600; }
 .radio-xmas-icon { display:none; }
 .theme-xmas .public-action-icon svg { display:none; }
 .theme-xmas .public-action-icon .radio-xmas-icon { display:block; }
-
-#xmas-wish-read,.xmas-reader:not([open]) { display:none; }
-.theme-xmas #xmas-wish-read:not([hidden]) {
-  display:block; position:absolute; z-index:1; inset:0; width:100%; height:100%;
-  min-height:44px; border:0; border-radius:7px; padding:0; background:transparent;
-}
-.theme-xmas #xmas-wish-read:hover { background:#ffda8e0c; }
-.theme-xmas #xmas-wish-read:focus-visible { outline:2px solid #ffd37f; outline-offset:-2px; }
-.theme-xmas.xmas-compact.xmas-short .radio-bar {
-  --play-size:clamp(44px,calc(var(--xmas-room) * .315),55px);
-}
-.theme-xmas .radio-bar .radio-brand .bar-logo { width:calc(var(--xmas-room,180px) * .72); }
-.xmas-reader[open] {
-  position:fixed; inset:0; display:grid; grid-template-rows:auto minmax(0,1fr) 44px;
-  gap:4px; width:min(720px,calc(100% - 12px)); max-width:none; max-height:none;
-  height:min(calc(100% - 12px),calc(var(--xmas-height,100%) - 12px));
-  margin:auto; padding:6px 10px; border:1px solid #bc8952; border-radius:14px;
-  color:#fff0d6; background:var(--bg); overflow:visible; z-index:9;
-}
-.xmas-reader::backdrop { background:#000b; }
-.xmas-reader h2 { margin:0; color:#ffd37f; font:600 17px/1.25 Outfit,system-ui,sans-serif; }
-#xmas-reader-text { margin:0; min-height:0; white-space:pre-wrap; overflow-wrap:anywhere; font-size:14px; line-height:1.42; }
-.xmas-reader-actions { display:flex; align-items:center; justify-content:flex-end; gap:4px; }
-.xmas-reader-actions button {
-  min-width:44px; min-height:44px; padding:0 6px; border:1px solid #8d6438; border-radius:7px;
-  color:inherit; background:#231c14; font-size:13px;
-}
-.xmas-reader-actions button:focus-visible { outline-offset:-3px; }
-#xmas-reader-page { margin-inline:auto; font-size:12px; white-space:nowrap; }
-
-@media (max-width:700px) {
-  .theme-xmas.xmas-compact.xmas-mobile-grid .radio-bar {
-    --play-size:64px; --vinyl-size:86px; --xmas-title:22px; --xmas-label:14px; --xmas-lines:2;
-    grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:86px minmax(0,1fr) 44px;
-  }
-  .theme-xmas.xmas-mobile-grid .radio-bar .transport { grid-area:1/1/2/3; margin:0; }
-  .theme-xmas.xmas-compact.xmas-mobile-grid .radio-bar .radio-metadata {
-    grid-area:2/1/3/3; grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-  .theme-xmas.xmas-mobile-grid .radio-metadata .radio-context { grid-area:1/2; }
-  .theme-xmas.xmas-compact.xmas-mobile-grid body:not(.has-own-wish) .radio-metadata .volume-control { grid-area:2/1/3/3; }
-  .theme-xmas.xmas-mobile-grid .radio-bar .radio-actions-panel { grid-area:3/1/4/3; }
-}
-@media (min-width:1200px) {
-  .theme-xmas .radio-context .presenter[data-mode=mix] .on-air-sign::before {
-    width:clamp(19px,1.35vw,30px); height:clamp(23px,1.55vw,34px);
-    font-size:clamp(22px,1.65vw,36px); line-height:1;
-  }
-}
+/* Der Lauftext folgt unterhalb der hängenden Birnen als eigene abgerundete Leiste. */
+.theme-xmas.radio-has-ticker .radio-deck::before,.theme-xmas.radio-has-ticker .radio-deck::after { display:none; }
+.theme-xmas.radio-has-ticker .radio-ticker { --bg:#131313; width:auto; margin:var(--xmas-hang) 0 0; border-radius:12px; background:#131313; }
+html[data-view=radio].theme-xmas body::after { visibility:hidden; }

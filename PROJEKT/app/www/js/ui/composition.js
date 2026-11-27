@@ -15,9 +15,12 @@ MischWerkUI.setComposer(function (factories) {
     var viewport = null;
     var workshop = null;
     if (factories.workshop) { workshop = factories.workshop({}); }
+    var xmasLights = null;
+    if (factories.xmasLights) { xmasLights = factories.xmasLights({}); }
     var xmasFrame = null;
-    if (factories.xmasFrame) { xmasFrame = factories.xmasFrame({ dom:dom }); }
-    var xmasReader = factories.xmasReader && factories.xmasReader({ dom:dom, signals:signals });
+    var xmasSnow = null;
+    if (factories.xmasSnow) { xmasSnow = factories.xmasSnow({}); }
+    if (factories.xmasFrame) { xmasFrame = factories.xmasFrame({ dom:dom, xmasLights:xmasLights, xmasSnow:xmasSnow }); }
     if (factories.viewport) { viewport = factories.viewport({ bridge: bridge, model: model, dom: dom, signals: signals, workshop:workshop, xmasFrame:xmasFrame }); }
     var layout = factories.layout({ model: model, dom: dom, signals: signals, viewport: viewport });
     var commands = factories.commands({ bridge: bridge, model: model, layout: layout, signals: signals });
@@ -78,5 +81,5 @@ MischWerkUI.setComposer(function (factories) {
     var lifecycle = factories.lifecycle({ bridge: bridge, model: model, dom: dom, layout: layout,
       commands: commands, wishes: wishes, provider: provider, player: player, signals: signals, listenerPresence:listenerPresence });
     lifecycle.start([viewport, layout, commands, volume, player, listenerPresence, radioTicker, wishes, wishFeedback, wishRelay, wishDrawer, wishWindow,
-      team, channelTextsLayout, channelTexts, teamConnection, teamNavigation, scheduleView, schedule, updates, xmasReader, overlays]);
+      team, channelTextsLayout, channelTexts, teamConnection, teamNavigation, scheduleView, schedule, updates, overlays]);
 });

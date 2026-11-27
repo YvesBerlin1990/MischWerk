@@ -7,17 +7,18 @@ const root = path.resolve(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(root, 'app/www', file), 'utf8');
 const scripts = [...read('js/start.js').matchAll(/^\s+\['\w+', '([^']+\.js)'(?:, '[^']+')?\]/gm)].map(match => 'js/' + match[1]);
 const styles = [...read('index.html').match(/var styles = \[([\s\S]*?)\];/)[1].matchAll(/^\s+'(css\/[^']+\.css)'/gm)].map(match => match[1]);
-assert.equal(scripts.length, 42, 'Frontend-Ladeplan unvollständig');
-assert.equal(styles.length, 23, 'CSS-Ladeplan unvollständig');
+assert.equal(scripts.length, 43, 'Frontend-Ladeplan unvollständig');
+assert.equal(styles.length, 22, 'CSS-Ladeplan unvollständig');
 const vinylFonts = ['fonts/outfit-latin.woff2','fonts/fraunces-latin.woff2','fonts/outfit-OFL.txt','fonts/fraunces-OFL.txt'];
 const tickerFonts = ['fonts/rajdhani-medium-latin.woff2','fonts/rajdhani-OFL.txt'];
 const nicklistIcons = ['team','listener','moderator'].map(kind => 'img/nicklist/' + kind + '.png');
 const welcomeImages = ['banner','lieblingschannel','mitmachen','channelinfo'].map(name => 'img/welcome/' + name + '.png');
-const xmasImages = ['xmas-play-inlay.png','xmas-reglergriff.png','xmas-zierlinie.png','xmas-player-knuddels-aus.png',
-  'xmas-player-knuddels-an.png','xmas-player-knuddels-lichter.json','xmas-player-kompakt-aus.png',
-  'xmas-player-kompakt-an.png','xmas-player-kranz.png','xmas-player.json'].map(name => 'img/' + name);
+const xmasBulbs = ['warmweiss','rot','gruen','bernstein','eisblau'].flatMap(color => ['aus','an'].map(state => 'birne-' + color + '-' + state));
+const xmasImages = ['tafel','tafel-kompakt','eckgirlande','schleife','zweig-unten-links','zweig-unten-rechts','kabel',...xmasBulbs,'kranz-schmal','snow',
+  'geschenk-schneeflocken','geschenk-sterne','geschenk-tannen','geschenk-goldstreifen','geschenk-creme','reglergriff'].map(name => 'img/xmas-' + name + '.png').concat('img/mischwerk-logo-freigestellt.png');
 const xmasOverlayImages = ['surface','snow','corner-bow','corner-fir'].map(name => 'img/xmas-' + name + '.png');
-const frontendFiles = ['index.html', 'js/start.js', 'js/ui/composition.js', ...scripts, ...styles, 'img/mischwerk-logo.png', 'img/mischwerk-radio.png', ...xmasImages, ...xmasOverlayImages, ...nicklistIcons, ...welcomeImages, 'fonts/inter-latin.woff2', 'fonts/OFL.txt', 'fonts/bcrypt-LICENSE.txt', ...vinylFonts, ...tickerFonts];
+const xmasFiles = [...new Set([...xmasImages, ...xmasOverlayImages])];
+const frontendFiles = ['index.html', 'js/start.js', 'js/ui/composition.js', ...scripts, ...styles, 'img/mischwerk-logo.png', 'img/mischwerk-radio.png', ...xmasFiles, ...nicklistIcons, ...welcomeImages, 'fonts/inter-latin.woff2', 'fonts/OFL.txt', 'fonts/bcrypt-LICENSE.txt', ...vinylFonts, ...tickerFonts];
 assert.equal(frontendFiles.length, new Set(frontendFiles).size, 'Doppelte Frontend-Datei');
 function frontendFilesForView(view) {
   assert.ok(['radio','wishes','team','schedule'].includes(view), 'Ansicht ist nicht verfügbar: ' + view);

@@ -1,99 +1,114 @@
-/* Gemeinsame Fotoschichten liegen hinter Inhalt und Fokusflächen. */
-.radio-xmas-shared-frame { display:none; }
-.theme-xmas .radio-deck {
-  --deck-radius:clamp(21px,calc(48 * var(--xmas-unit)),36px);
-  --deck-top:0px; --deck-x:0px; --deck-tail:0px; --radio-glow-space:0px;
-  display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr) auto;
-  height:var(--xmas-height,100%); margin-top:0; padding:var(--xmas-pad,10px);
+/* X-Mas-Tafel wie im Web: Ebenen von unten nach oben Fläche mit Schneeschicht, Schneefall, Kabel,
+   Birnen, Inhalt (1), Girlanden/Zweige/Geschenke (2) und Samtschleifen (3). */
+.radio-xmas-lights,.radio-xmas-floor { display:none; }
+.theme-xmas .radio-xmas-lights { display:contents; }
+/* Genietete Metalltafel; kompakt als nietenfreier Ausschnitt mit Goldkante. */
+.theme-xmas .radio-bar .radio-program-face,
+.theme-xmas .playing .radio-program-face {
+  inset:0; overflow:hidden; animation:none; border:1px solid #81613d; border-radius:24px;
+  background:#141210 url(../../img/xmas-tafel-kompakt.png) center / cover no-repeat;
+  box-shadow:0 10px 28px #0007;
 }
-.theme-xmas .radio-bar { --text:#fff0d6; --muted:#e5cdae; --gold:#ffd37f; background:transparent; }
-.theme-xmas .radio-program-face { inset:0; border:0; border-radius:var(--deck-radius); }
-.theme-xmas .playing .radio-program-face { animation:none; box-shadow:none; }
-.theme-xmas .radio-program-face::before,
-.theme-xmas .radio-program-face::after,
-.theme-xmas.radio-has-ticker .radio-deck::before,
-.theme-xmas.radio-has-ticker .radio-deck::after { display:none; }
-
-:is(.theme-xmas,.xmas-measure):is(.xmas-shared-wide,.xmas-shared-compact) .radio-xmas-shared-frame {
-  display:block; position:absolute; inset:0; z-index:-1; pointer-events:none;
+.theme-xmas .radio-program-face::before,.theme-xmas .radio-program-face::after { display:none; }
+/* Die Schneeschicht liegt in der Fläche; die untersten 24 % des Bildes sind Schattenauslauf. */
+.theme-xmas .radio-xmas-floor {
+  --floor:clamp(14px,1.6vw,24px); display:block; position:absolute;
+  left:var(--xmas-floor-inset,0px); right:var(--xmas-floor-inset,0px);
+  bottom:calc(var(--xmas-floor-inset,0px) - var(--floor) * .24); height:var(--floor);
+  border-radius:0 0 23px 23px; background:url(../../img/xmas-snow.png) left bottom / auto 100% repeat-x;
+  filter:drop-shadow(0 -1px 2px #0006); pointer-events:none;
 }
-.radio-xmas-shared-art,.radio-xmas-shared-light { position:absolute; background-repeat:no-repeat; }
-.radio-xmas-shared-light { z-index:1; opacity:0; clip-path:ellipse(50% 50%); }
-.playing .radio-xmas-shared-light { animation:mw-xmas-fir 3.8s linear var(--xmas-phase) infinite; }
-@keyframes mw-xmas-fir {
-  0%,81%,100% { opacity:.13; }
-  12% { opacity:.24; }
-  23% { opacity:.66; }
-  33% { opacity:1; }
-  43% { opacity:.88; }
-  56% { opacity:.54; }
-  69% { opacity:.21; }
+.theme-xmas .radio-xmas-snow,.theme-xmas .radio-xmas-wire,.theme-xmas .radio-xmas-bulbs { position:absolute; z-index:0; pointer-events:none; }
+.theme-xmas .radio-xmas-snow { inset:0; width:100%; height:100%; border-radius:24px; }
+.theme-xmas .radio-xmas-wire { filter:drop-shadow(0 1px 1px #000b); }
+/* Die Birnen hängen über die Kanten hinaus; der Container schneidet daher nicht. */
+.theme-xmas .radio-xmas-bulbs { inset:0; overflow:visible; }
+.radio-xmas-bulb { position:absolute; background:center / 100% 100% no-repeat; filter:drop-shadow(0 1px 1px #000c); }
+.radio-xmas-glow { position:absolute; inset:0; opacity:0; background:center / 100% 100% no-repeat; }
+/* Fünf Glasfarben im Wechsel; der Lichthof nimmt die Farbe der Birne an. */
+.radio-xmas-bulb[data-color=warmweiss] { background-image:url(../../img/xmas-birne-warmweiss-aus.png); }
+.radio-xmas-bulb[data-color=warmweiss] .radio-xmas-glow { --halo-core:rgba(255,207,138,.42); --halo-soft:rgba(255,207,138,.17); background-image:url(../../img/xmas-birne-warmweiss-an.png); }
+.radio-xmas-bulb[data-color=rot] { background-image:url(../../img/xmas-birne-rot-aus.png); }
+.radio-xmas-bulb[data-color=rot] .radio-xmas-glow { --halo-core:rgba(255,74,61,.42); --halo-soft:rgba(255,74,61,.17); background-image:url(../../img/xmas-birne-rot-an.png); }
+.radio-xmas-bulb[data-color=gruen] { background-image:url(../../img/xmas-birne-gruen-aus.png); }
+.radio-xmas-bulb[data-color=gruen] .radio-xmas-glow { --halo-core:rgba(77,255,110,.42); --halo-soft:rgba(77,255,110,.17); background-image:url(../../img/xmas-birne-gruen-an.png); }
+.radio-xmas-bulb[data-color=bernstein] { background-image:url(../../img/xmas-birne-bernstein-aus.png); }
+.radio-xmas-bulb[data-color=bernstein] .radio-xmas-glow { --halo-core:rgba(255,171,61,.42); --halo-soft:rgba(255,171,61,.17); background-image:url(../../img/xmas-birne-bernstein-an.png); }
+.radio-xmas-bulb[data-color=eisblau] { background-image:url(../../img/xmas-birne-eisblau-aus.png); }
+.radio-xmas-bulb[data-color=eisblau] .radio-xmas-glow { --halo-core:rgba(143,220,255,.42); --halo-soft:rgba(143,220,255,.17); background-image:url(../../img/xmas-birne-eisblau-an.png); }
+/* Lichthof: Mitte bei 67 % der Birnenhöhe, Durchmesser 4,2 × Birnenbreite. */
+.radio-xmas-glow::before {
+  content:""; position:absolute; left:50%; top:67%; width:420%; height:0; padding-bottom:420%;
+  transform:translate(-50%,-50%); border-radius:50%; mix-blend-mode:screen; pointer-events:none;
+  background:radial-gradient(circle,var(--halo-core) 0,var(--halo-soft) 34%,transparent 68%);
 }
-@media (prefers-reduced-motion:reduce) {
-  .playing .radio-xmas-shared-light { animation:none; opacity:.95; }
+/* Nur bestätigte Wiedergabe lässt die Birnen leuchten; Puffern, Fehler und Stopp bleiben dunkel. */
+.theme-xmas .playing .radio-xmas-glow { opacity:.82; }
+@media (prefers-reduced-motion:no-preference) {
+  .theme-xmas .playing .radio-xmas-glow {
+    animation:mw-xmas-twinkle var(--twinkle-period,8000ms) cubic-bezier(.42,0,.58,1) infinite;
+    animation-delay:var(--twinkle-delay,0ms);
+  }
 }
-.theme-xmas.radio-has-ticker .radio-ticker {
-  width:100%; margin:0; padding:0 12px; box-shadow:inset 0 1px #423522;
+@keyframes mw-xmas-twinkle {
+  0%,40%,100% { opacity:0; }
+  13% { opacity:.9; }
+  20% { opacity:1; }
+  29% { opacity:.7; }
 }
-
-.theme-xmas.xmas-shared-wide .radio-ticker { width:var(--xmas-shared-width); margin-inline:auto; }
-.theme-xmas.xmas-shared-compact .radio-ticker { width:var(--xmas-compact-width); margin-inline:auto; }
-
-/* Die kompakte Fotogirlande behält ihre Dicke, wenn der Host mehr Höhe gewährt. */
-.theme-xmas.xmas-shared-compact #radio-panel {
-  --shared-edge:calc(121px * var(--xmas-compact-scale));
-  --shared-top:calc(125px * var(--xmas-compact-scale));
-  --shared-bottom:calc(139px * var(--xmas-compact-scale));
-  --shared-primary-bottom:calc(var(--shared-bottom) + 138px);
-  --shared-field-width:calc((100% - 2 * var(--shared-edge) - var(--play-size)) / 2);
-  --play-size:48px; --play-symbol-size:17px; --xmas-label:10px; --xmas-title:14px;
-  --xmas-topic:14px; --xmas-caption:12px; --xmas-lines:2;
-  width:var(--xmas-compact-width); height:var(--xmas-compact-height);
-  align-self:center; justify-self:center; padding:0;
+/* Eckmotive liegen bündig und vollständig auf der Tafel. */
+.theme-xmas .radio-xmas-corner {
+  display:block; position:absolute; z-index:2; pointer-events:none;
+  background:left top / contain no-repeat; filter:drop-shadow(0 2px 2px #0009);
 }
-.theme-xmas.xmas-shared-compact .radio-panel-face {
-  inset:calc(58px * var(--xmas-compact-scale)); border-radius:calc(60px * var(--xmas-compact-scale)); z-index:-2;
+.theme-xmas .radio-xmas-garland {
+  top:0; width:var(--xmas-g); height:calc(var(--xmas-g) * 887 / 1381);
+  background-image:url(../../img/xmas-eckgirlande.png);
 }
-.theme-xmas.xmas-shared-compact #radio-panel .radio-metadata {
-  position:absolute; inset:0; display:block; pointer-events:none;
+.theme-xmas .radio-xmas-garland.radio-xmas-left,.theme-xmas .radio-xmas-sprig.radio-xmas-left { left:0; }
+.theme-xmas .radio-xmas-garland.radio-xmas-right,.theme-xmas .radio-xmas-sprig.radio-xmas-right { right:0; }
+.theme-xmas .radio-xmas-garland.radio-xmas-right { transform:scaleX(-1); }
+/* Gleiche Nadellänge wie die Girlanden: 64 % ihrer Breite, je Seite ein eigenes Motiv. */
+.theme-xmas .radio-xmas-sprig { bottom:0; width:calc(var(--xmas-g) * .64); height:calc(var(--xmas-g) * .64 * 472 / 817); }
+.theme-xmas .radio-xmas-sprig.radio-xmas-left { background-image:url(../../img/xmas-zweig-unten-links.png); }
+.theme-xmas .radio-xmas-sprig.radio-xmas-right { background-image:url(../../img/xmas-zweig-unten-rechts.png); }
+.theme-xmas .radio-xmas-bow {
+  top:0; z-index:3; width:calc(var(--xmas-g) * .3); height:calc(var(--xmas-g) * .3);
+  background-image:url(../../img/xmas-schleife.png);
 }
-.theme-xmas.xmas-shared-compact .radio-metadata :is(.now-playing,.radio-context,.volume-control,.own-wish-position) {
-  position:absolute; inset:auto; transform:none; margin:0; padding:0; pointer-events:auto;
+.theme-xmas .radio-xmas-bow.radio-xmas-left { left:calc(var(--xmas-g) * .24); }
+.theme-xmas .radio-xmas-bow.radio-xmas-right { right:calc(var(--xmas-g) * .24); }
+/* Zwei kleine Szenen aus Geschenken im Schnee, nur im breiten Profil. */
+.radio-xmas-vignette { display:none; }
+@media (min-width:1220px) {
+  .theme-xmas .radio-xmas-vignette {
+    --u:clamp(44px,4vw,70px); display:block; position:absolute; z-index:2;
+    bottom:var(--xmas-floor-inset,0px); height:calc(var(--u) * 1.2); pointer-events:none;
+  }
+  .theme-xmas .radio-xmas-vignette.radio-xmas-left { left:16.5%; width:calc(var(--u) * 1.55); }
+  .theme-xmas .radio-xmas-vignette.radio-xmas-right { --u:calc(clamp(44px,4vw,70px) * .8); right:15.5%; width:calc(var(--u) * 2.3); }
+  .theme-xmas .radio-xmas-vignette::before {
+    content:""; position:absolute; left:4%; right:4%; bottom:calc(var(--u) * .04); height:calc(var(--u) * .26);
+    border-radius:50%; background:radial-gradient(closest-side,#000a,#0000);
+  }
+  /* Schneekante vor den Füßen: die Geschenke stehen im Schnee, nicht darauf. */
+  .theme-xmas .radio-xmas-vignette::after {
+    content:""; position:absolute; z-index:4; left:-6%; right:-6%; bottom:calc(var(--u) * -.05); height:calc(var(--u) * .3);
+    background:url(../../img/xmas-snow.png) center bottom / auto 100% repeat-x;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent);
+    mask-image:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent);
+  }
+  .theme-xmas .radio-xmas-gift { bottom:0; filter:drop-shadow(0 2px 3px #0009); }
+  .theme-xmas .radio-xmas-gift-schneeflocken { left:0; z-index:2; height:calc(var(--u) * 1.02); width:calc(var(--u) * 1.02 * 407 / 472); background-image:url(../../img/xmas-geschenk-schneeflocken.png); }
+  .theme-xmas .radio-xmas-gift-sterne { left:50%; z-index:3; height:calc(var(--u) * .7); width:calc(var(--u) * .7 * 228 / 292); background-image:url(../../img/xmas-geschenk-sterne.png); }
+  .theme-xmas .radio-xmas-gift-tannen { left:26%; z-index:1; height:calc(var(--u) * 1.12); width:calc(var(--u) * 1.12 * 388 / 422); background-image:url(../../img/xmas-geschenk-tannen.png); }
+  .theme-xmas .radio-xmas-gift-goldstreifen { left:0; z-index:2; height:calc(var(--u) * .82); width:calc(var(--u) * .82 * 312 / 379); background-image:url(../../img/xmas-geschenk-goldstreifen.png); }
+  .theme-xmas .radio-xmas-gift-creme { left:62%; z-index:3; height:calc(var(--u) * .66); width:calc(var(--u) * .66 * 286 / 327); background-image:url(../../img/xmas-geschenk-creme.png); }
+  /* Breit: 9-Slice der genieteten Tafel, Nieten in den Ecken bleiben unverzerrt. */
+  .theme-xmas .radio-bar .radio-program-face,
+  .theme-xmas .playing .radio-program-face {
+    border:0; border-radius:0; background:none; box-shadow:none;
+    border-image:url(../../img/xmas-tafel.png) 44 fill / var(--xmas-rim) stretch;
+    filter:drop-shadow(0 10px 18px #0008);
+  }
 }
-.theme-xmas.xmas-shared-compact #radio-panel .transport {
-  position:absolute; left:50%; top:calc((100% + var(--shared-top) - var(--shared-primary-bottom)) / 2);
-  inset-inline-end:auto; bottom:auto; margin:0; transform:translate(-50%,-50%);
-}
-.theme-xmas.xmas-shared-compact .radio-metadata .now-playing {
-  left:var(--shared-edge); width:var(--shared-field-width);
-  top:var(--shared-top); bottom:var(--shared-primary-bottom);
-  overflow:hidden; text-align:center;
-}
-.theme-xmas.xmas-shared-compact .radio-metadata .track-eyebrow { letter-spacing:.015em; margin:0; }
-.theme-xmas.xmas-shared-compact .radio-metadata .radio-context {
-  left:var(--shared-edge); right:var(--shared-edge); bottom:calc(var(--shared-bottom) + 91px);
-  height:44px; justify-content:center; overflow:hidden; text-align:center; gap:0;
-}
-.theme-xmas.xmas-shared-compact .radio-context .topic-label { margin:0; line-height:1; }
-.theme-xmas.xmas-shared-compact .radio-context #show-topic { --xmas-lines:1; font-size:14px; }
-.theme-xmas.xmas-shared-compact .radio-context .presenter { font-size:11px; line-height:1; }
-.theme-xmas.xmas-shared-compact .radio-metadata .volume-control {
-  left:50%; bottom:calc(var(--shared-bottom) + 47px); width:146px; max-width:none;
-  transform:translateX(-50%); gap:2px;
-}
-.theme-xmas.xmas-shared-compact .radio-metadata .volume-control output { min-width:42px; width:42px; }
-.theme-xmas.xmas-shared-compact #radio-panel .radio-actions-panel {
-  position:absolute; left:var(--shared-edge); right:var(--shared-edge);
-  bottom:var(--shared-bottom); height:44px; width:auto; padding:0;
-}
-.theme-xmas.xmas-shared-compact #radio-panel .bar-actions { display:flex; flex-direction:row; gap:4px; }
-.theme-xmas.xmas-shared-compact #radio-panel .wish-button { --action-font:12px; --action-icon:15px; flex:1; height:44px; }
-.theme-xmas.xmas-shared-compact .track-eyebrow::after,.theme-xmas.xmas-shared-compact .topic-label::after { display:none; }
-.theme-xmas.xmas-shared-compact #radio-panel .radio-metadata .own-wish-position:not([hidden]) {
-  position:absolute; left:auto; right:var(--shared-edge); width:var(--shared-field-width); padding:0;
-  top:var(--shared-top); bottom:var(--shared-primary-bottom);
-  grid-template-columns:minmax(0,1fr); min-height:44px; border:0; text-align:center;
-}
-.theme-xmas.xmas-shared-compact .own-wish-position :is(.own-wish-heading,.own-wish-stage) { grid-column:auto; }
-.theme-xmas.xmas-shared-compact .own-wish-position :is(.own-wish-rank,.own-wish-more) { display:none; }
-.theme-xmas.xmas-shared-compact #radio-panel :is(.transport,.radio-metadata,.radio-actions-panel,.radio-brand,.radio-listener-brand) { grid-area:auto; }

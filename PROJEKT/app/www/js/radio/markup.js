@@ -6,7 +6,7 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
     <main id="radio-panel" class="radio-bar" aria-label="MischWerk Radio">
       <div class="radio-brand"><img class="bar-logo" src="img/mischwerk-logo.png" width="140" height="140" loading="lazy" decoding="async" alt="MischWerk"><span>MischWerk</span></div>
       <section class="radio-program" aria-label="Radioplayer und Informationen">
-      <div class="radio-panel-face radio-program-face" aria-hidden="true"></div><div id="radio-xmas-shared-frame" class="radio-xmas-shared-frame" aria-hidden="true"></div>
+      <div class="radio-panel-face radio-program-face" aria-hidden="true"></div><div id="radio-xmas-lights" class="radio-xmas-lights" aria-hidden="true"></div>
       <div class="transport">
         <button id="play-button" class="play-button" type="button" aria-label="Radio abspielen" aria-pressed="false" disabled><span id="play-icon" aria-hidden="true"><svg class="play-symbol" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path></svg><svg class="pause-symbol" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg></span></button>
       </div>
@@ -25,7 +25,7 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
         </div>
         <div class="volume-control"><label for="volume">Lautstärke</label><button id="mute-button" class="icon-button" type="button" aria-label="Ton ausschalten" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"></path><path class="sound-waves" d="M16 9a5 5 0 0 1 0 6"></path><path class="sound-waves" d="M19.364 18.364a9 9 0 0 0 0-12.728"></path><path class="mute-cross" d="m17 9 5 6m0-6-5 6"/></svg></button><input id="volume" type="range" min="0" max="100" value="30" aria-label="Lautstärke in Prozent" aria-describedby="volume-help"><output for="volume" id="volume-value">30 %</output><span id="volume-help" class="sr-only">Lautstärke von 0 bis 100 Prozent. Mit den Pfeiltasten einstellen; mit der Lautsprechertaste stummschalten oder den vorherigen Wert wiederherstellen.</span></div>
       </div>
-          <section id="own-wish-position" title="Dein Musikwunsch" class="own-wish-position" role="status" aria-label="Dein Musikwunsch" hidden><div class="own-wish-heading"><span id="own-wish-label" class="own-wish-label"></span><span id="own-wish-more" class="own-wish-more" hidden></span></div><strong id="own-wish-rank" class="own-wish-rank" hidden></strong><strong id="own-wish-title" title="Dein Musikwunsch" class="own-wish-title" hidden></strong><span id="own-wish-stage" class="own-wish-stage" hidden></span><button id="xmas-wish-read" type="button" aria-label="Eigenen Musikwunsch vollständig lesen" aria-haspopup="dialog" hidden></button></section>
+          <section id="own-wish-position" title="Dein Musikwunsch" class="own-wish-position" role="status" aria-label="Dein Musikwunsch" hidden><div class="own-wish-heading"><span id="own-wish-label" class="own-wish-label"></span><span id="own-wish-more" class="own-wish-more" hidden></span></div><strong id="own-wish-rank" class="own-wish-rank" hidden></strong><strong id="own-wish-title" title="Dein Musikwunsch" class="own-wish-title" hidden></strong><span id="own-wish-stage" class="own-wish-stage" hidden></span></section>
       </section>
       <nav id="radio-actions" class="radio-actions-panel public-only" aria-label="Radio bedienen">
         <div class="bar-actions" aria-label="Sendeplan und Musikwünsche">
@@ -39,15 +39,5 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
     </main>
     <div id="radio-ticker-placeholder"></div>
     </div>
-    <dialog id="xmas-reader" class="xmas-reader" aria-labelledby="xmas-reader-title">
-      <h2 id="xmas-reader-title">Dein Musikwunsch</h2>
-      <p id="xmas-reader-text" aria-live="polite"></p>
-      <div class="xmas-reader-actions">
-        <button id="xmas-reader-prev" type="button" aria-label="Vorherige Textseite">Zurück</button>
-        <span id="xmas-reader-page" aria-live="polite"></span>
-        <button id="xmas-reader-next" type="button" aria-label="Nächste Textseite">Weiter</button>
-        <button id="xmas-reader-close" type="button" autofocus>Schließen</button>
-      </div>
-    </dialog>
   `);
 });

@@ -172,9 +172,12 @@ function build() {
     'snow-bottom-left','snow-bottom-right','snow-top-left','snow-top-right','star',
     'fassung','funkeln','goldring-an','goldring','kabel-fein','kabel-rundung','kabel-senkrecht','kugel','lampe-an','lampe-aus',
     'rahmen-oben-links','rahmen-oben-rechts','rahmen-senkrecht','rahmen-unten-links','rahmen-unten-rechts','rahmen-waagerecht',
-    'schein','schleife','schnee-mitte-oben','schnee-mitte-unten','schnee-oben-links','schnee-oben-rechts',
-    'schnee-unten-links','schnee-unten-rechts','tanne-links','tanne-rechts','unterer-tannenschmuck','zahnrad','zapfen-garnitur']
-    .map(name => 'www/img/xmas-' + name + '.png');
+    'schein','schnee-mitte-oben','schnee-mitte-unten','schnee-oben-links','schnee-oben-rechts',
+    'schnee-unten-links','schnee-unten-rechts','tanne-links','tanne-rechts','unterer-tannenschmuck','zahnrad','zapfen-garnitur',
+    'player-knuddels-an','player-knuddels-aus','player-kompakt-an','player-kompakt-aus','player-kranz','zierlinie','birne-aus','birne-an','bulb-aus','bulb-an','player-kranz-kugeln','play-inlay']
+    .map(name => 'www/img/xmas-' + name + '.png')
+    .concat(['www/img/xmas-player-knuddels-lichter.json','www/img/xmas-player.json','www/js/radio/xmas-reader.js',
+      'www/css/radio/xmas-desktop.css']);
   for (const file of [...runtimeFiles.filter(file => !delivery.has(file)), ...retiredSchedule, ...retiredStudio, ...retiredRadio, ...retiredXmas]) {
     const target = path.resolve(upload, file);
     assert.ok(target.startsWith(path.resolve(upload) + path.sep), 'Bündelbestandteil außerhalb des Uploadziels');

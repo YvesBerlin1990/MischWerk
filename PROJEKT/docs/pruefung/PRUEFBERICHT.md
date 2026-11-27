@@ -1,131 +1,20 @@
-# MischWerk – Prüfbericht 0.1.464 / Build 464
+# MischWerk – Prüfbericht 0.1.466 / Build 466
 
-## Paketprüfung und FTP-Bereitstellung · 27.11.2026
+## X-Mas-Weihnachtsplayer wie im Web · Build 466
+
+Stand 27.11.2026. Auf Nutzerauftrag setzt X-Mas die Web-Übergabe „Weihnachtsplayer MischWerk“ vollständig um: genietete Metalltafel (breit als 9-Slice, kompakt nietenfrei), Eckgirlanden mit Samtschleifen, eigene Zweige unten, breit zwei Geschenk-Szenen, Schneeschicht und leiser Schneefall, schmaler Tannenkranz um Play und eine Lichterkette mit Birnen in fünf Farben. Links steht das allgemein freigestellte MischWerk-Logo. Sendeplan und Wunschbox bleiben an ihrer Stelle aus dem Normalbetrieb: ab 1200 px senkrecht zwischen Informationsseite und Radio-Grafik, darunter als Zeile unter den Informationen. Der Lauftext folgt unterhalb der hängenden Birnen als eigene Leiste.
+
+Alle 25 Übergabebilder, die Szenendatei (unter `medien/xmas/`) und das freigestellte Logo sind bytegleich übernommen; `tests/node/xmas.test.cjs` prüft die SHA-256-Werte, die Übereinstimmung der Werte in `radio/xmas-lights` und `radio/xmas-snow` mit der Szenendatei sowie alle Referenzwerte der Übergabe (Mulberry32, Takte, 43 bzw. 29 Birnen mit den genannten Positionen). Ersetzt sind die klaren Einzelbirnen, Kugelkranz und Play-Inlay; die Paketierung entfernt deren Altkopien aus dem UPLOAD. Neu: `radio/xmas-snow.js` (eine rAF-Schleife, nur bei aktivem X-Mas und sichtbarer Seite) und `css/radio/xmas-layout.css` (breites Profil). Abweichend von der Webvorlage gelten `vw` statt `cqw` und die Knuddels-Aktionsspalte samt symmetrischer Leerspalte.
+
+Prüfungen am 27.11.2026: Alle 476 Node-Fälle sowie Projekt-, Architektur- und Längenprüfung bestanden; Edge-Gesamtrunde 247 von 247. Die X-Mas-Fälle in K3 und STAPP decken 2560, 1920, 1645, 1440, 1300, 1220, 1180, 900, 600, 390 und 320 px jeweils mit und ohne Wunschbox, Lauftext, lange Texte, Wiedergabe, Nachladen, Fehler, Stop und reduzierte Bewegung ab. Sie messen Bildquellen und Farbfolge, dass Eckmotive vollständig auf der Tafel liegen, keine Birne Texte oder Tasten verdeckt, alle Bedienflächen getroffen werden, kein waagerechter Überlauf entsteht, inaktive Birnen ganz dunkel sind und weniger als 40 % gleichzeitig hell leuchten. Lokaler Paketbau mit je 250 Fällen für Rhino 1.7.7.2 und 1.9.1 an Quelle und Paket (Java 21 aus Android Studio über `MISCHWERK_JAVA`); X-Mas-Browserfälle zusätzlich am gebündelten Paket. Der konfigurierte lokale UPLOAD enthält 158 Dateien in Übereinstimmung mit den fünf Manifesten; 116 Textdateien höchstens 9407 UTF-16-Zeichen. Offen: native Knuddels-Abnahme, insbesondere Darstellung, Hosthöhe kompakt mit Lauftext (über 500 px nur per nativem Seitenscroll) und CPU-Last des Schneefalls. Kein FTP, keine Veröffentlichung.
+
+[1645 px an](oberflaeche/radio/xmas-1645-an.png) und [aus](oberflaeche/radio/xmas-1645-aus.png) · [1440 px mit Lauftext](oberflaeche/radio/xmas-1440-an.png) · [900 px](oberflaeche/radio/xmas-900-an.png) · [390 px mit Lauftext](oberflaeche/radio/xmas-390-an.png)
+
+## Paketprüfung und FTP-Bereitstellung · Build 464
 
 Für Build 464 bestanden 473 Node-Prüfungen sowie jeweils 250 Prüfungen mit Rhino 1.7.7.2 und Rhino 1.9.1 am Quellstand und am tatsächlichen Auslieferungspaket. Alle 143 Dateien einschließlich der vier korrigierten Rahmenbilder stimmen nach Pfad, Größe und SHA-256 mit dem separat geprüften Referenzpaket überein. Die fünf Manifeste wurden gegen die Freigabe abgeglichen.
 
 MyChannel Deploy übernahm die Freigabe `491a403b-8992-460b-b622-ed80b478eaeb` aus dem überwachten Releaseordner. Am 27.11.2026 um 13:16 Uhr bestätigte das Werkzeug die erfolgreiche FTP-Bereitstellung mit acht übertragenen Dateien. Die native Knuddels-Abnahme bleibt offen.
-
-
-## Aufrechte Eckgruppen · Korrektur zu 2750699
-
-Alle vier Eckgruppen bestehen je Rahmenprofil aus denselben zwei Glaskugeln, Tannenzapfen und Ilex in gleicher Motivgröße. Alle Kappen und Ösen stehen oben. Beim Anordnen wurden die Positionen gespiegelt. Die Montage verwendete die orientierten Einzelmotive ohne Spiegelung. Im flachen Knuddels-Host 1645 × 176 px misst das Ilexmotiv je Ecke rund 27 CSS-Pixel.
-
-Die beiden Kompakt-PNGs stammen aus der führenden Web-/Android-Quelle und liegen in Knuddels bytegleich vor. Alpha, Pixel in den registrierten Lampenflächen, An-/Aus-Lichtsignal und beide Lampenkarten blieben unverändert.
-
-```text
-58b9e8e7a307f0f815f38032d085a18d838fdb946412446ff18ded8575646459  xmas-player-kompakt-aus.png
-a2ce4ea7ad93a6edaef15729b588500332647fd0be6cd7f2e3f400efac493b2c  xmas-player-kompakt-an.png
-```
-
-Fünf Chrome-Fälle bestanden, einschließlich der bestehenden K3- und STAPP-Fälle. An 13 gemessenen Hosts blieben Rahmenmaße und Lampenzahlen identisch. Alle vier Ecken wurden bei 1645 × 176 und 1645 × 220 px jeweils An und Aus aufgenommen. Web wurde bei 390 und 1440 px in beiden Lichtzuständen ebenso fotografiert. Die insgesamt 32 Eckdetails liegen im temporären Prüfverzeichnis. Die optische Abnahme der neuen Rahmen steht aus.
-
-## Kugeln und Eckgruppen · vorheriger Prüfkandidat 2750699
-
-Die gemeinsame Kugelvorlage liegt im Web-/Android-Repository unter `project/android-radio/project/docs/screenshots/xmas-kugeln-a-b-c.png` (Git-Stand `174cb58`). Die [Freisteller-Vorlage](https://github.com/PolaroidK/Windows-Web-App-MischWerk/blob/e4a66ab5cc8b6d187699ee36fbb2710494632017/project/android-radio/project/assets/backgrounds/xmas-kugeln-freisteller.png) ist als gemeinsame Arbeitsquelle abgelegt. Für den Knuddels-Prüfkandidaten sind glänzende, satinierte und gerippte Kugeln sowie die vier Eckgruppen in den vorhandenen breiten und kompakten An-/Aus-PNGs montiert. Die unteren Eckgruppen folgen der gespiegelten Platzierung. Ihre Kugeln sind wegen der vorhandenen Lampenflächen kleiner, und das Ilexmotiv gibt die Mindestgröße vor. Im Host 1645 × 176 misst die Girlande 1605 × 149,59 CSS-Pixel. Die große Kugel oben misst je 24,8 CSS-Pixel in der Breite, unten misst das Ilexmotiv je 26,8 CSS-Pixel.
-
-Die Bildpaare behalten 2654 × 374 und 700 × 1017 Pixel sowie ihren Alphakanal. Ein Rohpixelvergleich bestätigte identische Daten an allen registrierten Lampenflächen und identische An-/Aus-Pixelbeziehungen. Die Lampenkarten, der Spielkranz, CSS und JavaScript sind bytegleich. 13 Chrome-Hostmessungen im Knuddels-Modell ergaben vor und nach dem Austausch dieselben Maße und Lampenzahlen. Fünf gezielte Browserfälle bestanden, darunter K3 und STAPP. Die 16 Detailaufnahmen decken alle vier Ecken bei 1645 × 176 und 1645 × 220 in beiden Lichtzuständen ab. Die Aufnahmen liegen im temporären Prüfverzeichnis.
-
-Die optische Freigabe für die neuen Grafiken steht aus. Das konfigurierte Build-463-Paket mit seinen 143 Dateien, fünf Manifesten und der separaten Freigabedatei blieb bytegleich.
-
-## Textanzeigen und Aktionsspalte in X-Mas
-
-Stand 27.11.2026. Die unsichtbaren Schaltflächen über Musik und Thema sind entfernt. Titel, Interpret, Thema und Moderation bleiben statische Textanzeigen mit vollständigen dynamischen Inhalten im DOM. Klicks öffnen keinen Dialog. Der Normalmodus behält seinen Tastaturzugang zum Informationsbereich. Den eigenen Musikwunsch kann man weiterhin über seinen Lesedialog vollständig lesen.
-
-Sendeplan und Wunschbox stehen bei regulärer Desktop-Höhe wie im Normalmodus rechts neben dem Thema. Der einzelne Sendeplan sitzt vertikal mittig. Bei sichtbarer Wunschbox stehen 44 px hohe Tasten mit 8 px Abstand übereinander. Die Lautstärke steht mittig unter Thema und Moderation. Im flachen Desktop- und Tabletprofil stehen beide Aktionen platzsparend nebeneinander rechts vom Thema. Mobil bleibt die eigene Aktionszeile. Die Höhenanfrage, die Girlandenbreite und mittiges Play bleiben erhalten.
-
-[Normal und X-Mas bei 1645 × 220 px mit und ohne Wunschbox](oberflaeche/radio/xmas-gemeinsam-breit.png) · [390 × 360 px mit Lauftext](oberflaeche/radio/xmas-gemeinsam-mobil.png)
-
-Die vier gezielten Edge-Fälle am Quellstand und sechs am gebündelten Prüfpaket bestanden, einschließlich der Sendeplan- und Wunschboxfenster. Der konfigurierte lokale Releaseordner enthält Appversion 0.1.463 und Build 463. Der Freigabebau bestätigte 473 Node-Prüfungen und beide Rhino-Versionen am Quellstand und am Release. Die separate Freigabe `.freigaben/MischWerk.json`, die fünf Manifeste und das browsergeprüfte Paket stimmen für alle 143 Dateien in Pfad, Größe und SHA-256 überein.
-
-## Hostbreite der Weihnachtsgirlande · Build 462
-
-Stand 27.11.2026. Build 461 begrenzte den Rahmen durch die maximale Skalierung der 1327 px breiten Referenz. Im Normalmodus auf `main` reicht die sichtbare Fläche auf dem Desktop bis auf 20 px an beide Hostränder. Build 462 misst diese Normalfläche und übernimmt ihre Breite für die breite Girlande und den Lauftext. Ein 1645 × 220 px großer Host zeigt damit 1605 × 187 px Rahmen statt 1327 × 187 px. Bei 1200, 1360, 1920 und 3840 px Hostbreite sind es 1160, 1320, 1880 und 3800 px Rahmenbreite.
-
-Die zusätzliche Breite entsteht durch proportionale, an der Schnittkante gespiegelte Ausschnitte desselben Fotos. Die Ecken und registrierten Lichtflächen bleiben proportional und die gemeinsamen Quelldateien sind bytegleich. Die Edge-Prüfung vergleicht Randposition, Rahmen- und Lauftextbreite mit Normal. Sie prüft auch die Stoßstellen, die Höhe, das mittige Play, die 44-px-Bedienflächen und scrollfreie Hosts.
-
-Je vier gezielte Edge-Fälle bestanden am Quellstand und am gebündelten Prüfpaket. Der lokale Paketbau bestätigte 473 Node-Fälle, beide Rhino-Versionen und 143 Dateien anhand der fünf Manifeste. Der gepushte Stand `3e0c104` wurde als Appversion 0.1.462 und Build 462 lokal freigegeben. Beide Rhino-Versionen und die vier gezielten Edge-Fälle bestanden erneut am damaligen Release. Die getrennte Freigabe `.freigaben/MischWerk.json` und die fünf Manifeste wurden unabhängig anhand von Pfaden, Größen und SHA-256 aller 143 Dateien abgeglichen.
-
-Die helleren gemeinsamen An-Grafiken aus dem Web-/Android-Stand `c06c7db` sind bytegleich übernommen. Die SHA-256-Nachweise stehen im Medienmanifest. Beide An-Grafiken stimmen in Abmessungen und Alphakanal mit ihren Aus-Grafiken überein. In Chrome zeigt der zentrale Emulator bei 1360 × 220 und 390 × 316 px die kräftigeren warmweißen Kerne ab bestätigter Wiedergabe. Bei Stopp ist die Lichtanimation aus. Die festen Aufnahmen bei 1200 ms zeigen 138 breite beziehungsweise 32 kompakte Lichtpositionen. Beide Hosts waren scrollfrei und Play blieb mittig. Die Fotos liegen unter `MischWerk-Licht-462` im System-Tempverzeichnis und wurden an den Web-/Android-Chat übergeben.
-
-## Gemeinsame Weihnachtsgirlande für Knuddels · Build 461
-
-Stand 27.11.2026. Die Radioleiste verwendet die freigegebenen gemeinsamen PNGs und Positionsdaten für den breiten Knuddels-Rahmen, den Kompaktatlas und den Spielkranz. Sieben Dateien mit insgesamt 4.920.340 Byte stimmen per SHA-256 mit dem gemeinsamen Quellpaket überein. Der Satz liegt über dem Richtwert von rund 3 MB. Die 29 abgelösten Radio-PNGs wurden in den Papierkorb verschoben. Die Grafiken für Sendeplan und Wunschbox bleiben referenziert.
-
-| Host in CSS-px | Sichtbares Motiv in CSS-px | Befund |
-| --- | --- | --- |
-| 1360 × 220 | 1327 × 187 | Freigegebene breite Anordnung, Play 68 × 68 und mittig. Thema, Sendung, Moderation und Bedienung stehen in vier Zeilen. |
-| 1360 × 264 mit Lauftext | 1327 × 187 | Lauftext separat 44 px mit derselben Breite wie das Motiv. |
-| 1645 × 220 und 1920 × 220 | 1327 × 187 | Proportionales Motiv mittig innerhalb der gewährten Breite. |
-| 1200 × 230 | 1170,88 × 165 | Proportional, beide Aktionstasten und Regler mindestens 44 px. |
-| 840 × 208 | 819,61 × 115,50 | Dasselbe breite Motiv. Lautstärke links, Thema und Aktionen rechts vom mittigen Play. |
-| 390 × 316 sowie 390 und 320 × 360 mit Lauftext | 290,59 × 296 | Kompaktatlas, 48-px-Play und 44-px-Bedienziele. |
-| 1645 × 176 ohne Lauftext | 1061,59 × 149,59 | Proportionale breite Grafik bei kurzer, kombinierter Inhaltszeile. |
-| 390 oder 320 × 220 mit Lauftext | Spielkranz in der Kompaktleiste | Die verfügbare Rahmenhöhe von 156 px reicht für die gelieferten Proportionen und alle Bedienziele nicht aus. |
-
-Der 3,8-Sekunden-Zyklus zeigt 138 registrierte Lichtflächen im breiten und 32 im regulären kompakten Rahmen. Die CSS-Kurve verwendet drei versetzte Gruppen, 13 Prozent minimale Deckkraft und 95 Prozent bei reduzierter Bewegung. Stopp, Startversuch, Nachladen und Fehler lassen die Aus-Ebene sichtbar. Eine erneute Vermessung ohne Maßänderung erhält die Animation. In den Langtextfällen bleiben die vollständigen Angaben über die vorhandenen Lesedialoge erreichbar. Die App fordert weiterhin die Höhe des Normalmodus an, höchstens 500 px.
-
-Der zentrale Emulator lief in Chrome bei 1360 × 220 und 390 × 316 mit lokal abgefangener Test-WAV. Play blieb exakt mittig und die Leiste scrollfrei. Die Wunschbox-Geometrie wurde zusätzlich im Browsermodell mit freigegebenem Wunschzustand geprüft. Eine native Channel-Abnahme steht noch aus. Lokale Nachweise und Protokolle liegen im System-Tempverzeichnis im Ordner MischWerk-Gemeinsamer-XMas-Rahmen.
-
-Der damalige Bildvergleich zeigte Knuddels, Web und Android jeweils gestoppt und bei Wiedergabe. Die separat bezeichneten Vergleichsdateien sind in diesem Repository nicht abgelegt. Girlande, Lametta, Spielkranz und warme Lichtfarbe stimmen visuell überein. Der breite Knuddels-Rahmen misst 1327 × 187 CSS-Pixel und ist flacher als der Web-Rahmen mit 1361 × 260 CSS-Pixeln. Knuddels führt Lautstärke und Aktionen nebeneinander, Android zeigt den Sleeptimer. Mobil sitzt Play in Knuddels mittig, in Web und Android links neben dem Titel.
-
-Der isolierte Paketbau umfasste 473 bestandene Node-Fälle, die Architektur- und Integritätsprüfung sowie je 250 Fälle mit Rhino 1.7.7.2 und 1.9.1 am Quellstand und am Paket. Der vollständige Edge-Lauf am Quellstand bestand mit 248 Fällen. Die vier gezielten X-Mas-Fälle bestanden am abschließenden Quellstand und Prüfpaket. In Chrome blieb bei 1360 × 220 auch ein 2-px-Prüfabstand der Klickflächen zur blickdichten Girlande frei. Die SHA-256-Prüfung bestätigte alle 143 lokalen Paketdateien und die fünf Manifeste.
-
-Der konfigurierte lokale Releaseordner enthält Build 461. Beide Rhino-Engines bestanden dort erneut. Die getrennte Freigabe `.freigaben/MischWerk.json` enthält Appversion 0.1.461 und Build 461. Dateiliste, Größen und SHA-256 aller 143 Release-Dateien wurden unabhängig mit der Freigabe und den fünf Manifesten abgeglichen. Das Protokoll `MischWerk-461-Freigabe.log` liegt im temporären Prüfverzeichnis.
-
-Bei der anschließenden Repositorypflege wurden 18 unreferenzierte Prüfbilder, eine veraltete Lautstärke-Dokumentation und ein stillgelegtes Kaltstartskript in den Papierkorb verschoben. Die aktuellen X-Mas-Prüfbilder und die weiterhin verlinkten Nachweise bleiben verfügbar.
-
-## Tannenschmuck mit bordeauxrotem Lametta
-
-Stand 26.11.2026. Der freigegebene Entwurf ergänzt die X-Mas-Appleiste oben rechts und unten links mit Tannenzweigen, Schnee und bordeauxrotem Lametta in vergleichbarer Dichte. Die neue rechte Ecke (1240 × 437 px) ersetzt das bisherige Motiv. Der untere Tannenschmuck (1250 × 174 px) sitzt am Rahmen und folgt mobil dem linken Rand. Bei knappem Platz auf kleinen Hosts entfällt der untere Schmuck. Die PNGs wurden auf dunklem und hellem Grund kontrolliert.
-
-Die am Paket geprüften Standardmaße bleiben bei 1645 × 220 px, 1200 × 230 px und mobil mit Lauftext bei 390 × 360 px und 320 × 360 px. In den Prüfbildern bleiben Logos, Texte und Bedienelemente frei. Die bestehenden Play-, Lauflicht- und Größenregeln gelten weiter.
-
-Je fünf gezielte Edge-Fälle bestanden am Quellstand und am gebündelten Paket. 473 Node-Fälle und die Rhino-Engines 1.7.7.2 und 1.9.1 bestanden. Die fünf Manifeste stimmen mit allen 164 Dateien des lokalen Prüfpakets überein. Das Medienmanifest umfasst mit schmalerer Einrückung 8812 Zeichen. Die Freigabedatei im Releaseordner gehört zu Build 459.
-
-[Bildvergleich mit bisheriger und neuer Leiste bei 1645 px](oberflaeche/radio/xmas-lametta-1645.png)
-
-## Build 459
-
-## X-Mas in der Größe des Normalmodus
-
-Stand 26.11.2026. Im vorherigen Stand koppelte das Referenzraster die Höhe an die Fensterbreite. Bei 1645 px forderte X-Mas 292 px an und setzte den Titel mit 51 px. „MIDDLE OF THE NIGHT“ wurde abgeschnitten. Der Interpret stand rund 6 px vom unteren Rahmen entfernt.
-
-Normal und X-Mas verwenden jetzt dieselbe natürliche Höhenmessung am selben Markup. Bei identischen Inhalten fordert X-Mas im K3- und STAPP-Modell dieselbe Höhe an, auch bei Lauftext, ausgeblendeter Wunschbox und langen Texten. Die regulären Testdaten ergeben bei 1645 und 1920 px je 220 px, bei 1200 px 230 px. Bei 320 und 390 px sind es 316 px ohne und 360 px mit Lauftext. Geringere Hosthöhen begrenzen die tatsächliche Fläche weiterhin. Rahmen und Spalten nutzen die verfügbare Breite. Zugehörige PNGs behalten ihre Proportionen.
-
-„JETZT LÄUFT“, Titel und Interpret messen im breiten Raster wie in Normal 20, 30 und 19 px. Bei 1645 px passt der beanstandete Titel vollständig in eine Zeile. Bei 1200 px bleibt er auf zwei Zeilen vollständig lesbar. Sehr lange Texte sind im Lesedialog zugänglich. Die Lautstärkezeile misst bei 1645 px 192 statt 217 px. Die Anzeige für 100 % ist vollständig lesbar. Das Lautsprechersymbol misst 18 px, das Prozentfeld 24 px in der Höhe. Beide Eingabeziele behalten mindestens 44 px.
-
-Der Regressionsfall reproduzierte die zu große Schrift in Build 458. Neun gezielte Edge-Fälle bestanden am endgültigen Prüfpaket. Sie prüfen unter anderem identische Höhenanfragen, Textsichtbarkeit, kompakte Lautstärkeflächen, Mittelpunkt, stabilen Fokus und weiterlaufende Lampenanimation bei unveränderten Maßen. 473 Node-Fälle und beide Rhino-Engines bestanden. Build 459 liegt im konfigurierten lokalen Releaseordner. Dessen 163 Dateien stimmen mit den fünf Manifesten und Byte für Byte mit dem Edge-Prüfpaket überein. Die getrennte Freigabe `.freigaben/MischWerk.json` trägt Version 0.1.459 und Build 459. Dateiliste, Größen und SHA-256 wurden unabhängig geprüft. Beide Rhino-Engines bestanden am tatsächlichen Release. Die Protokolle `MischWerk-459-Freigabe.log` und `MischWerk-459-Freigabe-Abgleich.log` liegen im System-Tempverzeichnis. Eine native Knuddels-Abnahme steht aus.
-
-[Bildvergleich bei 1645 px mit Normalmodus, Korrektur und vorheriger Fassung](oberflaeche/radio/xmas-normalgroesse.png)
-
-## Build 458
-
-## X-Mas-Appleiste · freigegebene Gestaltung
-
-Stand 26.11.2026. Das freigegebene X-Mas-Raster ist in die echte Radioansicht eingebaut. Der breite Player übernimmt die unabhängige Aufteilung der Vorlage mit mittigem Play, kompakter Themen- und Lautstärkegruppe, eingerahmten Aktionen und freiem Radio-Logo. Lange Themen enden nach zwei Zeilen mit Auslassungspunkten und öffnen sich per Antippen oder Tastatur vollständig. Ein eigener Musikwunsch und der Lauftext bleiben bedienbar. Die gemeinsamen berechneten Werkhallenfarben und Verläufe entsprechen Normal. Die seitlichen Ornamente, Schatten und Rasterbilder passen sich der verfügbaren Höhe an. Mobile Ansichten ordnen die Inhalte neu und reduzieren die Dekoration.
-
-| Breite | Höhe des Referenzrasters | Zahnrad bis Thema | Thema bis Goldlinie | Goldlinie bis Buttons | Buttonhöhe |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 1200 px | 214 px | 15,7 px | 18,2 px | 16,8 px | 44 px |
-| 1645 px | 292 px | 21,5 px | 25 px | 23 px | 52 px |
-| 1920 px | 341 px | 25,1 px | 29,2 px | 26,9 px | 60,7 px |
-
-Die Messung umfasst den Lautstärkeregler bei 100 %. Bei reduzierter Desktop-Hosthöhe von 220 px skaliert das Referenzraster zusammen. Die kompakte Anordnung wurde bis zu 176 px mit Lauftext geprüft. Bei 390 und 320 px misst die Leiste mit Lauftext und langen Texten 476 px, mit 24 px Reserve zur Höchstgrenze. Browserprüfungen messen die Innen- und Außenmaße, Scrollfreiheit, Klicktreffer, Fokus und unverdeckte Bedienelemente. K3 und STAPP sind lokal modelliert. Die Scrollfreiheit im installierten Knuddels-Client ist offen.
-
-Im alten Build 457 forderte X-Mas bei 1645 px 286 px Höhe an, obwohl der Host 220 px gewährte. Der Leistenkasten war rund 285 px hoch, die Haloebene vergrößerte den Scrollbereich auf 1652 × 292 px. Nach isoliertem Ausblenden des Halos waren es 1645 × 285 px. Schnee, Kabel oder Lampen beeinflussten das maximale Maß einzeln nicht. Bei 390 px und langen Texten reichte der Scrollbereich bis 837 px. Heute misst die Appleiste die tatsächlich verfügbare Höhe und begrenzt den Lichtauslauf innerhalb seiner eigenen Ebene.
-
-Die Radioansicht verwendet 31 freigegebene transparente PNGs mit zusammen 5.086.142 Byte. Zwölf abgelöste Radio-PNGs wurden aus dem Quellbestand in den Papierkorb verschoben. Vier bereits referenzierte Overlays-PNGs bleiben für Sendeplan und Wunschbox im Paket. Die Deckgrafiken liegen unter `app/www/img/xmas-*.png`. Die Farben, Steuerelemente und Wiedergabesymbole werden im Browser dargestellt. Der Audioweg bleibt erhalten. Zahnrad, Ringe, Tastenfläche, Schmuck und Schneeecken wurden aus den freigegebenen Originalen mit höherer Auflösung neu exportiert. Das Zahnrad hat jetzt 808 × 806 px und wird im größten Raster rund 401 px breit dargestellt.
-
-Rahmen, Schneekanten, dezentes Kabel, Fassungen und Verzierungen verwenden Bildteile. Das Lauflicht blendet Kern und Schein pro Lampe synchron im Uhrzeigersinn über 3,6 Sekunden ein und aus. Die Tiefpunkte glimmen mit 34 Prozent Deckkraft. Die CSS-Animation startet ausschließlich bei bestätigter Wiedergabe und erlischt bei Startversuch, Nachladen, Fehler oder Stopp. Bei reduzierter Bewegung leuchten die Lampen während der Wiedergabe gleichmäßig. Die Bildfolgen dokumentieren sieben feste Zeitpunkte. Im Vergleich zur Fotovorlage sind Play mittig, der Metallhintergrund neutral und die Lichtgruppen bewegen sich. Der Lichtauslauf bleibt innerhalb des verfügbaren Rahmens und fällt an der Fensterkante sanft ab.
-
-- [Vorlage und eingebauter Player bei 1645 px](oberflaeche/radio/xmas-referenz-1645.png)
-- [Normal und X-Mas bei 1645 px im 220-px-Host](oberflaeche/radio/xmas-hintergrundvergleich-1645.png)
-- [1200 px](oberflaeche/radio/xmas-1200-an.png) und [1920 px an](oberflaeche/radio/xmas-an.png) und [aus](oberflaeche/radio/xmas-aus.png)
-- [390 px an](oberflaeche/radio/xmas-mobil-an.png) und [aus](oberflaeche/radio/xmas-mobil.png), [320 px](oberflaeche/radio/xmas-320-an.png) sowie [lange Texte und reduzierte Hosthöhen](oberflaeche/radio/xmas-lange-texte.png)
-- [Lauflicht bei 1645 px](oberflaeche/radio/xmas-lauflicht-1645.png) und [390 px](oberflaeche/radio/xmas-lauflicht-390.png) sowie [Lampenecke vierfach vergrößert](oberflaeche/radio/xmas-lampenvergleich-4x.png)
-
-Die fünf Manifeste stimmen mit 163 Dateien im lokalen Prüfpaket überein. Die 115 ausgelieferten Textdateien bleiben unter 9500 UTF-16-Zeichen. Der konfigurierte lokale Releaseordner enthält jetzt Build 458. Alle fünf Manifeste beziehen sich auf diesen Ordner. Die getrennte Freigabedatei `.freigaben/MischWerk.json` trägt Version 0.1.458 und Build 458. Dateiliste, Größen und SHA-256 aller 163 Dateien sind unabhängig mit der Freigabe abgeglichen. Beide Rhino-Engines bestanden auch am tatsächlichen Release. Die Protokolle `MischWerk-458-Freigabe.log` und `MischWerk-458-Freigabe-Abgleich.log` liegen im System-Tempverzeichnis. Am Quellstand und am Prüfpaket bestanden jeweils 473 Node-Fälle und je 250 Fälle mit Rhino 1.7.7.2 und 1.9.1. Der vollständige Edge-Quelllauf bestand mit 247 Fällen. Beim vollständigen Paketlauf bestanden 246 Fälle. Ein K3-Sendeplanfall lief ins Zeitlimit und bestand bei der Einzelwiederholung. Die abschließende Edge-Abnahme der hochauflösenden Fassung bestand am gebündelten Paket einschließlich 3840 px mit 500 px Hosthöhe.
 
 ## Sendeplan und Wunschbox · Freigabestand Build 457
 
@@ -138,18 +27,6 @@ Die gezielten Browserprüfungen schalten die Gestaltung über /mw admin bei bere
 In `app.config` wurde für `appleDeveloperId` der erste `DEVELOPMENT_TEAM`-Eintrag der übergebenen Datei „Apple Dev ID.json“ mit der Endung `RJLG` eingetragen und mit dem lokalen Paket abgeglichen. Gültigkeit der Mitgliedschaft und Öffnen in der iOS-App wurden nicht nativ geprüft.
 
 Der freigegebene lokale Releasebau mit `--approve` ist bestanden. Die Freigabedatei `.freigaben/MischWerk.json` neben dem Appordner trägt Appversion 0.1.457 und Build 457. Die 143 relativen Pfade, Dateigrößen und SHA-256-Prüfsummen wurden am Releaseordner unabhängig mit der Freigabedatei abgeglichen. Lokale Nachweise stehen in `MischWerk-457-Freigabe.log` und `MischWerk-457-Freigabe-Abgleich.log` im System-Tempverzeichnis.
-
-## Radio-Appleiste · Bildabnahme aus Build 456
-
-Stand 26.11.2026. Auf der mobilen X-Mas-Appleiste sind Schleife, Kugel und Tanne vollständig erkennbar. Die bedienbaren Flächen sind mindestens 44 px hoch. Der bisherige 390-px-Screenshot misst 499 px. Mit „Jump“, „Van Halen“, „MischWerk Radio Show“, „MischWerk am Pult“ und aktivem Weihnachtslauftext misst die Überarbeitung bei 390 und 320 px jeweils 470 px. Damit bleiben 30 px bis zur 500-px-Grenze.
-
-Mit langem Titel, mehrzeiligem Thema, langem eigenem Musikwunsch und Lauftext misst die natürliche Höhe bei 390 px 913 px und bei 320 px 1009 px. K3 und STAPP fordern jeweils höchstens 500 px beim Host an. Die Browserprüfung scrollt Titel, Thema, eigenen Wunsch, Wunschbox- und Lauftexttaste vollständig ins sichtbare Fenster. Play bleibt von 320 bis 3840 px horizontal mittig.
-
-Auf 1200 und 1920 px liegen Zapfen und Beeren frei unter dem Radio-Logo und seitlich der Wunschbox. Eine flachere Tannenkante schließt den oberen rechten Rahmen ab. Das dunkle Kabel folgt allen vier Rundungen und hängt zwischen den Fassungen leicht nach innen. Bei bestätigter Wiedergabe überstrahlt ein flächiger Kern um `#fffbe8` das Glas. Der separate gelb-orange Lichtauslauf liegt über Schnee und Zweigen und wärmt den dunklen Hintergrund. Sein Durchmesser beträgt etwa das Vierfache des Glases. Im An-Zustand sind Glasreflexe und Dunkelkontur ausgeblendet. Die äußere Pixelreihe bleibt im An-/Aus-Vergleich bei 1920 und 390 px identisch. Die Edge-Prüfungen messen die warmweiße Fläche und die Farbänderung jenseits des Glases direkt aus den Bildern. Im breiten Raster wachsen Lautsprecher und Symbol, Prozentfeld, Reglergriff und Musiknote mit. `100 %` passt bei 1200 und 1920 px einzeilig.
-
-Die damalige Bildabnahme zeigte einen deutlich sichtbaren Unterschied zwischen An und Aus. Die goldene 2-px-Markierung am Lautstärkeregler war der per Tab reproduzierte Tastaturfokus. Die aktuellen Prüfbilder im Abschnitt zu Build 458 dokumentieren jetzt die freigegebene Gestaltung.
-
-Der lokale Paketbau bestand mit 473 Node-Fällen und den Architektur-, API-, Bestands- und Längenprüfungen. Rhino 1.7.7.2 und 1.9.1 bestanden jeweils 250 Prüfungen am Quellstand und jeweils 250 am gebündelten Paket. Der vollständige Edge-Lauf vor der letzten Lichtkorrektur bestand mit 245 Fällen. Mit der endgültigen Lichtebene bestanden je sieben gezielte Edge-Prüfungen zu X-Mas, Lautstärke und Normal-Raster am Quellstand und am gebündelten Paket. Am Paket bestanden alle drei zentralen Emulatortests. Die fünf Manifeste stimmen mit den 142 Dateien im lokalen Upload überein. Die 113 Textdateien erreichen höchstens 9407 UTF-16-Zeichen. Die Weihnachtsstile und das Rahmenmodul werden bei Bedarf als Einzeldateien paketiert, damit alle Textdateien unter der Zeichengrenze bleiben.
 
 ## Dokumentationsabgleich auf X-Mas · 27.11.2026
 

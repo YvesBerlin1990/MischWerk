@@ -48,11 +48,6 @@ MischWerkUI.define('updates', function (dependencies) {
     var xmas = state.theme === 'xmas';
     document.documentElement.classList.toggle('theme-xmas',
       xmas && (model.view === 'radio' || model.view === 'wishes' || model.view === 'schedule'));
-    if (model.view === 'radio') {
-      var metadata = dom.el('radio-metadata');
-      if (xmas) { metadata.removeAttribute('tabindex'); }
-      else { metadata.tabIndex = 0; }
-    }
     layout.renderView();
     if (provider) { provider.selectStation(change.previousStation); }
     if (presentation) { presentation.renderTopic(); }

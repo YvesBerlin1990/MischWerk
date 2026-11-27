@@ -1,159 +1,53 @@
-/* Weihnachtsraster innerhalb der vom Host gewährten Höhe. */
-.theme-xmas .radio-bar {
-  --xmas-gap:clamp(3px,calc(var(--xmas-room,180px) * .025),9px);
-  --xmas-volume-height:clamp(44px,calc(var(--xmas-room,180px) * .24),56px);
-  --play-size:clamp(48px,calc(var(--xmas-room,180px) * .49),96px);
-  --play-symbol-size:calc(var(--play-size) * .44);
-  --vinyl-size:calc(var(--play-size) * 1.42);
-  --xmas-label:clamp(11px,calc(var(--xmas-room,180px) * .082),16px);
-  --xmas-title:clamp(17px,calc(var(--xmas-room,180px) * .15),31px);
-  --xmas-topic:clamp(15px,calc(var(--xmas-room,180px) * .112),22px);
-  --xmas-caption:clamp(12px,calc(var(--xmas-room,180px) * .075),16px);
-  min-height:0; height:100%; padding:var(--xmas-gap) 12px; gap:0;
-}
-.theme-xmas .radio-bar::after { display:none; }
-.theme-xmas .radio-bar .transport { grid-column:2; grid-row:1; margin:0; align-self:center; }
-.theme-xmas .radio-bar .radio-metadata {
-  min-height:0; height:100%; padding:0; gap:1px 0; overflow:visible;
-}
-.theme-xmas .radio-metadata .now-playing,
-.theme-xmas .radio-metadata .radio-context {
-  position:relative; min-height:44px; min-width:0; margin:0; padding:0 5px; border:0;
-  align-self:center; justify-content:center;
-}
-.theme-xmas .radio-context { display:flex; gap:1px; }
-.theme-xmas .track-copy,.theme-xmas .radio-context,.theme-xmas .radio-metadata .volume-control { transform:none; }
-.theme-xmas .track-copy { gap:0; }
-.theme-xmas .artist-copy { margin-top:1px; }
-.theme-xmas .radio-metadata :is(.track-eyebrow,.topic-label) {
-  font-size:var(--xmas-label); line-height:1.2; letter-spacing:.055em; margin:0 0 2px;
-}
-.theme-xmas .track-eyebrow::after,.theme-xmas .topic-label::after { margin:2px auto 1px; }
-.theme-xmas .track-eyebrow::before { width:42px; height:22px; bottom:1px; }
-.theme-xmas #track-title { font-size:var(--xmas-title); font-weight:700; line-height:1.06; }
-.theme-xmas .radio-bar #show-topic { font-size:var(--xmas-topic); font-weight:650; line-height:1.1; }
-.theme-xmas #track-artist,.theme-xmas .radio-bar .radio-context .presenter {
-  font-size:var(--xmas-caption); line-height:1.14;
-}
-.theme-xmas .radio-context .radio-status-row { padding:0; }
-.theme-xmas .radio-context .presenter { justify-content:center; flex-wrap:nowrap; gap:3px; min-width:0; }
-.theme-xmas .radio-context .presenter[data-mode=mix] .on-air-sign::before {
-  font-size:inherit; width:auto; height:auto; margin-right:3px;
-}
-.theme-xmas .radio-context #host-name { font-size:inherit; line-height:inherit; min-width:0; }
-.theme-xmas :is(#track-title,#show-topic,.own-wish-title):not([hidden]) {
-  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:var(--xmas-lines,2);
-  overflow:hidden; overflow-wrap:anywhere;
-}
-.theme-xmas :is(#track-artist,#host-name,.on-air-sign) {
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-.theme-xmas .radio-metadata .own-wish-position:not([hidden]) {
-  position:relative; display:grid !important; grid-template-columns:auto minmax(0,1fr);
-  align-content:center; align-items:center; justify-content:stretch;
-  min-height:44px; margin:0; padding:2px 6px; border:0; border-top:1px solid #725137;
-  column-gap:7px; row-gap:0;
-}
-.theme-xmas .own-wish-heading { grid-column:1/3; justify-content:center; gap:2px; }
-.theme-xmas .own-wish-label,.theme-xmas .own-wish-rank,.theme-xmas .own-wish-stage,.theme-xmas .own-wish-title {
-  font-size:clamp(11px,var(--xmas-caption),14px); line-height:1.15;
-}
-.theme-xmas .own-wish-title:not([hidden]) { --xmas-lines:1; }
-.theme-xmas .own-wish-stage { grid-column:1/3; }
-.theme-xmas .own-wish-label { white-space:nowrap; }
-.theme-xmas .radio-bar .radio-actions-panel {
-  width:auto; min-height:0; padding:0; margin:0; align-self:center; justify-self:stretch;
-}
-.theme-xmas .radio-bar .bar-actions { gap:4px; width:100%; }
-.theme-xmas .radio-bar .wish-button {
-  --action-font:clamp(12px,1.07vw,18px); --action-icon:clamp(17px,1.45vw,24px);
-  min-height:44px; padding:3px 5px; gap:4px;
-}
-.theme-xmas .radio-bar .radio-brand,.theme-xmas .radio-bar .radio-listener-brand {
-  min-width:0; height:100%; width:100%; position:relative; grid-row:1;
-}
-.theme-xmas .radio-brand .bar-logo,.theme-xmas .radio-listener-brand .radio-listener-logo {
-  top:51%; width:90%; height:calc(var(--xmas-room,180px) * .72); object-fit:contain;
-}
-.theme-xmas .radio-brand .bar-logo { left:25%; }
-.theme-xmas .radio-metadata .volume-control { min-height:44px; width:100%; max-width:192px; }
-.theme-xmas .radio-metadata .volume-control input { min-width:44px; }
-@media (min-width:1200px) {
-  .theme-xmas .radio-bar:not(.has-moderation),.theme-xmas .radio-bar {
-    --radio-player-column:calc(var(--vinyl-size) + 10px);
-    --xmas-wing:calc((100% - var(--radio-player-column)) * .5);
-    grid-template-columns:calc(var(--xmas-wing) * .45) minmax(0,1fr) var(--radio-player-column)
-      calc(var(--xmas-wing) * .48) calc(var(--xmas-wing) * .30) calc(var(--xmas-wing) * .22);
-    grid-template-rows:minmax(0,1fr);
+/* X-Mas breites Profil ab 1220 px: fünf Webspalten plus die gewohnte 128-px-Aktionsgruppe rechts
+   und eine gleich breite Leerspalte links, damit der Kranz exakt mittig bleibt. */
+@media (min-width:1220px) {
+  .theme-xmas .radio-deck { --xmas-hang:24px; }
+  .theme-xmas .radio-deck .radio-bar {
+    --xmas-g:clamp(150px,13vw,280px); --xmas-rim:clamp(18px,1.9vw,30px); --xmas-floor-inset:calc(var(--xmas-rim) * .2);
+    --xmas-wreath:clamp(118px,11.4vw,178px); max-width:none; min-height:clamp(176px,14vw,260px);
+    grid-template-columns:minmax(0,14fr) 128px minmax(0,26fr) minmax(0,20fr) minmax(0,26fr) 128px minmax(0,14fr);
+    grid-template-rows:1fr auto 1fr; gap:0 8px; padding:clamp(22px,2.6vw,36px) clamp(30px,3.6vw,52px);
   }
-  .theme-xmas .radio-bar .transport { grid-column:3; }
-  .theme-xmas .radio-bar .radio-listener-brand { grid-column:6; }
-  .theme-xmas .radio-bar .radio-actions-panel { grid-column:5; grid-row:1; padding-inline:6px; }
-  .theme-xmas .radio-bar .radio-metadata {
-    grid-column:2/5; grid-row:1; grid-template-columns:minmax(0,55fr) var(--radio-player-column) minmax(0,48fr);
-    grid-template-rows:minmax(0,1fr) var(--xmas-volume-height);
+  .theme-xmas .radio-deck .radio-bar .radio-brand,.theme-xmas .radio-deck .radio-bar .radio-listener-brand {
+    display:block; grid-row:1 / -1; align-self:center; justify-self:stretch; width:100%; height:auto; padding:0; aspect-ratio:auto;
   }
-  .theme-xmas .radio-metadata .now-playing { grid-area:1/1/3/2; text-align:center; }
-  .theme-xmas .radio-metadata .radio-context { grid-area:1/3; }
-  .theme-xmas .radio-metadata .volume-control { grid-area:2/3; align-self:center; }
-  .theme-xmas .radio-metadata .own-wish-position:not([hidden]) { grid-area:2/1; }
-  .theme-xmas .has-own-wish .radio-bar .radio-metadata .now-playing { grid-row:1; }
-  .theme-xmas .radio-brand::after {
-    content:""; position:absolute; pointer-events:none; inset:12px -20px 12px auto;
-    width:clamp(24px,3.5vw,58px);
-    clip-path:polygon(calc(100% - 2px) 0,100% 0,2px 100%,0 100%);
-    background:linear-gradient(0deg,#82512a25,#c3894a 43%,#a77748 55%,#82512a25);
+  .theme-xmas .radio-deck .radio-bar .radio-brand { grid-column:1; }
+  .theme-xmas .radio-deck .radio-bar .radio-listener-brand { grid-column:7; }
+  .theme-xmas .radio-deck .radio-bar .bar-logo,.theme-xmas .radio-deck .radio-bar .radio-listener-logo {
+    position:relative; z-index:1; left:auto; top:auto; transform:none; width:100%; height:clamp(100px,10.6vw,160px); object-fit:contain;
   }
-  .theme-xmas .playing .radio-brand::after { background:linear-gradient(0deg,#8f572720,#ffe3a2 44%,#f6b159 54%,#8f572720); }
-}
-@media (max-width:1199px) {
-  .theme-xmas .radio-bar:not(.has-moderation),.theme-xmas .radio-bar {
-    grid-template-columns:minmax(0,1fr) var(--vinyl-size) minmax(0,1fr);
-    grid-template-rows:minmax(0,1fr) 44px; row-gap:3px;
+  /* Die Logos rücken innerhalb ihrer Spalte von den Eckmotiven weg zur Mitte. */
+  /* Links das allgemein freigestellte Logo wie im Web; es braucht keine Lighten-Mischung. */
+  .theme-xmas .radio-deck .radio-bar .bar-logo { content:url(../../img/mischwerk-logo-freigestellt.png); object-position:85% 50%; mix-blend-mode:normal; }
+  .theme-xmas .radio-deck .radio-bar .radio-listener-logo { object-position:15% 50%; }
+  .theme-xmas .radio-deck .radio-bar .transport { grid-column:4; grid-row:2; }
+  /* Wie im Normalbetrieb ab 1200 px: senkrechte 128-px-Aktionsgruppe zwischen Informationsseite und Radio-Grafik;
+     die gleich breite leere Spalte links hält den Kranz exakt mittig. */
+  .theme-xmas .radio-deck .radio-bar .radio-actions-panel { display:flex; grid-column:6; grid-row:1 / -1; align-self:center; justify-self:stretch; width:128px; }
+  .theme-xmas .radio-deck .radio-bar .bar-actions { display:flex; flex-direction:column; gap:8px; }
+  .theme-xmas .radio-deck .radio-bar .wish-button { --action-font:15px; --action-icon:24px; min-height:52px; padding:8px 6px; gap:8px; border-radius:16px; }
+  .theme-xmas .radio-deck .radio-bar .radio-metadata {
+    grid-column:3 / 6; grid-row:1 / -1; grid-template-columns:minmax(0,26fr) minmax(0,20fr) minmax(0,26fr);
+    grid-template-rows:1fr auto auto auto 1fr; gap:0 8px; align-self:stretch;
   }
-  .theme-xmas .radio-bar .radio-brand { display:none; }
-  .theme-xmas .radio-bar .radio-metadata {
-    grid-area:1/1/2/4; grid-template-columns:minmax(0,1fr) var(--vinyl-size) minmax(0,1fr);
-    grid-template-rows:minmax(0,1fr) 44px;
+  .theme-xmas .radio-deck .radio-bar .radio-metadata .now-playing { grid-column:1; grid-row:1 / -1; align-self:center; padding:0 6px; }
+  .theme-xmas .radio-deck .radio-bar .radio-metadata .radio-context { grid-column:3; grid-row:2; padding:0 4px; }
+  .theme-xmas .radio-deck .radio-bar .radio-metadata .volume-control { grid-column:3; grid-row:3; width:min(100%,15rem); gap:2px; }
+  .has-own-wish.theme-xmas .radio-deck .radio-bar .radio-metadata .own-wish-position,
+  .theme-xmas .has-own-wish .radio-deck .radio-bar .radio-metadata .own-wish-position {
+    display:flex; grid-column:3; grid-row:4; min-height:0; margin:4px 0 0; padding:4px 0 0; border:0; border-top:1px solid #81613d99;
   }
-  .theme-xmas .radio-metadata .now-playing { grid-area:1/1; }
-  .theme-xmas .radio-metadata .radio-context { grid-area:1/3; }
-  .theme-xmas .radio-metadata .volume-control { grid-area:2/3; }
-  .theme-xmas .radio-metadata .own-wish-position:not([hidden]) { grid-area:2/1; }
-  .theme-xmas .radio-bar .transport { margin-top:-22px; }
-  .theme-xmas .radio-bar .radio-actions-panel { grid-area:2/1/3/4; }
-  .theme-xmas .radio-bar:not(.has-moderation) .bar-actions { flex-direction:row; }
-}
-@media (max-width:700px) {
-  .theme-xmas .radio-bar {
-    --xmas-gap:5px; --play-size:70px; --xmas-label:14px; --xmas-title:22px;
-    --xmas-topic:18px; --xmas-caption:14px;
-  }
-  .theme-xmas:not(.xmas-compact) .radio-bar:not(.has-moderation),.theme-xmas:not(.xmas-compact) .radio-bar {
-    grid-template-columns:minmax(0,1fr); grid-template-rows:var(--vinyl-size) minmax(0,1fr) 44px;
-  }
-  .theme-xmas:not(.xmas-compact) .radio-bar .transport { grid-area:1/1; margin:0; }
-  .theme-xmas:not(.xmas-compact) .radio-bar .radio-metadata {
-    grid-area:2/1; grid-template-columns:minmax(0,1fr);
-    grid-template-rows:minmax(0,1.25fr) minmax(0,1fr) 44px auto;
-  }
-  .theme-xmas:not(.xmas-compact) .radio-metadata .now-playing { grid-area:1/1; text-align:center; transform:translateY(-5px); }
-  .theme-xmas:not(.xmas-compact) .radio-metadata .radio-context { grid-area:2/1; }
-  .theme-xmas:not(.xmas-compact) .radio-metadata .volume-control { grid-area:3/1; }
-  .theme-xmas:not(.xmas-compact) .radio-metadata .own-wish-position:not([hidden]) { grid-area:4/1; }
-  .theme-xmas:not(.xmas-compact) .radio-bar .radio-actions-panel { grid-area:3/1; }
-  .theme-xmas.xmas-compact .radio-bar {
-    --play-size:clamp(44px,calc(var(--xmas-room,150px) * .40),64px);
-    --vinyl-size:calc(var(--play-size) * 1.15); --xmas-lines:1;
-    --xmas-gap:3px; --xmas-label:10px; --xmas-title:16px; --xmas-topic:15px; --xmas-caption:12px;
-    padding-inline:5px;
-  }
-  .theme-xmas.xmas-compact .radio-bar .radio-metadata { grid-template-columns:minmax(0,1fr) var(--vinyl-size) minmax(0,1fr); }
-  .theme-xmas.xmas-compact .radio-metadata .volume-control { grid-area:2/2/3/4; gap:2px; }
-  .theme-xmas.xmas-compact .radio-metadata .volume-control output { width:42px; min-width:42px; }
-  .theme-xmas.xmas-compact .radio-metadata .own-wish-position:not([hidden]) { column-gap:2px; padding-inline:0; }
-  .theme-xmas.xmas-compact body:not(.has-own-wish) .radio-metadata .volume-control { grid-column:1/4; }
-}
-.theme-xmas.xmas-short .radio-bar {
-  --xmas-lines:1; --xmas-label:11px; --xmas-title:17px; --xmas-topic:15px; --xmas-caption:12px; --xmas-volume-height:44px;
+  .theme-xmas .radio-deck .radio-bar .radio-metadata .own-wish-title { -webkit-line-clamp:2; }
+  /* Titel und Interpret mit festen Höchsthöhen; radio/xmas-frame verkleinert bis 18 px. */
+  .theme-xmas .radio-deck .radio-bar #track-title { box-sizing:border-box; max-height:3.8vw; padding:.06em 0; overflow:hidden; }
+  .theme-xmas .radio-deck .radio-bar #track-artist { max-height:max(1.7vw,20px); overflow:hidden; }
+  .theme-xmas .radio-deck .radio-bar #track-title[data-fit-overflow],.theme-xmas .radio-deck .radio-bar #track-artist[data-fit-overflow] { overflow-y:auto; scrollbar-width:none; }
+  .theme-xmas .radio-deck .radio-bar .radio-metadata .topic-label { font-size:clamp(.78rem,1.04vw,.875rem); line-height:1.05; margin-bottom:2px; }
+  .theme-xmas .radio-deck .radio-bar #show-topic { line-height:1.08; }
+  .theme-xmas .radio-deck .radio-bar .presenter { font-size:clamp(.8rem,1.11vw,.9375rem); line-height:1.09; }
+  .theme-xmas .radio-deck .radio-bar .radio-status-row { padding-top:2px; }
+  .theme-xmas .radio-deck .volume-control #mute-button::before { inset:10px; }
+  .theme-xmas .radio-deck .volume-control #mute-button svg { width:15px; height:15px; }
+  .theme-xmas .radio-deck .radio-metadata .volume-control input { padding:22px 0; }
+  .theme-xmas .radio-deck .radio-metadata .volume-control output { min-width:2.6em; padding:1px 4px; border-radius:5px; font-size:.75rem; }
 }

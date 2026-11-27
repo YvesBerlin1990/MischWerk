@@ -84,68 +84,33 @@ MischWerkUI.define('viewport', function (dependencies) {
     try { bridge.getHostFrame().setSize(0, height); }
     catch (ignored) { /* Die angezeigte Leiste nutzt die tatsächlich gewährte Höhe. */ }
   }
-  function fitXmas(preferred, normalWidth) {
-    var width = window.innerWidth;
+  function measureNormal() {
+    fitProportions();
     var ticker = dom.el('radio-ticker');
-    var footer = ticker && !ticker.hidden ? 44 : 0;
-    var wide = width >= 1200;
-    var granted = Math.min(preferred, window.innerHeight);
-    var available = Math.max(0, granted - footer);
-    var reference = wide && available >= 198;
-    var unit = reference ? Math.min(width / 1645, available / 292) : width > 700 ? .78 : .59;
-    var inset = reference ? 22 * unit : wide ? 16 : width > 700 ? 13 : 10;
-    var room = Math.max(0, available - 2 * inset);
-    var sizes = {height:granted, room:room, unit:unit, pad:inset};
-    Object.keys(sizes).forEach(function (name) {
-      root.style.setProperty('--xmas-' + name, sizes[name] + 'px');
-    });
-    root.classList.remove('radio-constrained');
-    root.classList.toggle('xmas-compact', width <= 700 && room < 355);
-    root.classList.toggle('xmas-mobile-grid', width <= 700 && room >= 260 && room < 355 &&
-      !document.body.classList.contains('has-own-wish'));
-    root.classList.toggle('xmas-short', room < (width <= 700 ? 170 : 157));
-    requestHeight(preferred);
-    if (xmasFrame) { xmasFrame.fitHost(width, normalWidth, available, inset, room, reference); }
-    if (workshop) { workshop.fit(); }
-  }
-  function measureNormal(xmas) {
-    // Die Rahmenebene bleibt beim Messen für das Lauflicht aktiv.
-    if (xmas) { root.classList.add('xmas-measure'); root.classList.remove('theme-xmas'); }
-    try {
-      fitProportions();
-      var ticker = dom.el('radio-ticker');
-      var tickerHeight = ticker && !ticker.hidden ? Math.ceil(ticker.getBoundingClientRect().height) : 0;
-      var style = getComputedStyle(dom.el('radio-deck'));
-      var top = parseFloat(style.marginTop) || 0;
-      var glow = parseFloat(style.getPropertyValue('--radio-glow-space')) || 0;
-      var panel = dom.el('radio-panel');
-      var height = Math.ceil(panel.getBoundingClientRect().height);
-      return {
-        height:top + Math.max(160, height) + tickerHeight + glow,
-        width:xmas ? panel.querySelector('.radio-panel-face').getBoundingClientRect().width : 0
-      };
-    } finally {
-      if (xmas) { root.classList.add('theme-xmas'); root.classList.remove('xmas-measure'); }
-    }
+    var tickerHeight = ticker && !ticker.hidden ? Math.ceil(ticker.getBoundingClientRect().height) : 0;
+    var style = getComputedStyle(dom.el('radio-deck'));
+    var top = parseFloat(style.marginTop) || 0;
+    var glow = parseFloat(style.getPropertyValue('--radio-glow-space')) || 0;
+    var height = Math.ceil(dom.el('radio-panel').getBoundingClientRect().height);
+    return { height:top + Math.max(160, height) + tickerHeight + glow };
   }
   function resize(initial) {
     if ((!root.classList.contains('mw-ready') && initial !== true) || model.view !== 'radio' || (document.readyState === 'loading' && initial !== true) ||
         !Array.from(document.querySelectorAll('link[rel=stylesheet]')).every(function (link) { return !!link.sheet; })) { return; }
     var small = window.innerWidth <= 1350;
     var focused = document.activeElement;
-    var xmas = root.classList.contains('theme-xmas');
     var constrained = small && window.innerHeight < 360;
     root.classList.toggle('radio-constrained', constrained);
     if (bridge && !bridge.isK3Client()) { root.classList.remove('radio-constrained'); }
-    var normal = measureNormal(xmas);
+    var normal = measureNormal();
     var height = Math.min(500, normal.height);
-    if (xmas) { fitXmas(height, normal.width); return; }
-    root.classList.remove('xmas-compact', 'xmas-mobile-grid', 'xmas-short', 'xmas-shared-wide', 'xmas-shared-compact');
     centerInformation();
     if (bridge && !bridge.isK3Client()) { constrained = small && window.innerHeight + 1 < normal.height; }
     requestHeight(height);
     root.classList.toggle('radio-constrained', constrained);
     if (workshop) { workshop.fit(); }
+    // X-Mas schmückt nur die gemessene Normalkontur und verändert keine Größe.
+    if (xmasFrame) { xmasFrame.fit(); }
     if (focused && focused !== document.body && !focused.getClientRects().length) {
       var target = dom.el('open-wishes').disabled ? dom.el('mute-button') : dom.el('open-wishes');
       target.focus({ preventScroll:true });
