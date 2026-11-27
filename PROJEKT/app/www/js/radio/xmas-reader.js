@@ -1,17 +1,13 @@
-/* Volltexte innerhalb der Radioansicht lesen, bei Bedarf auf mehreren sichtbaren Seiten. */
+/* Den eigenen Musikwunsch bei Bedarf auf mehreren sichtbaren Seiten lesen. */
 MischWerkUI.define('xmasReader', function (dependencies) {
   'use strict';
   var dom = dependencies.dom, signals = dependencies.signals;
   var dialog = dom.el('xmas-reader'), text = dom.el('xmas-reader-text');
-  var title = dom.el('xmas-reader-title'), pageLabel = dom.el('xmas-reader-page');
+  var trigger = dom.el('xmas-wish-read'), pageLabel = dom.el('xmas-reader-page');
   var previous = dom.el('xmas-reader-prev'), next = dom.el('xmas-reader-next');
   var closeButton = dom.el('xmas-reader-close');
-  var active, parts = [], pages = [], index = 0;
-  var fields = {
-    music:{ title:'Aktuelle Musik', ids:['track-title','track-artist'] },
-    topic:{ title:'Sendung', ids:['show-topic','on-air-sign','host-name'] },
-    wish:{ title:'Dein Musikwunsch', ids:['own-wish-label','own-wish-rank','own-wish-title','own-wish-stage'] }
-  };
+  var parts = [], pages = [], index = 0;
+  var fields = ['own-wish-label','own-wish-rank','own-wish-title','own-wish-stage'];
 
   function render() {
     text.textContent = pages[index] || '';
@@ -49,33 +45,29 @@ MischWerkUI.define('xmasReader', function (dependencies) {
   }
 
   function restoreFocus() {
-    if (active && !active.hidden && active.getClientRects().length) { active.focus({preventScroll:true}); }
-    active = null;
+    if (!trigger.hidden && trigger.getClientRects().length) { trigger.focus({preventScroll:true}); }
   }
   function close() {
     if (typeof dialog.close === 'function') { dialog.close(); }
     else { dialog.removeAttribute('open'); restoreFocus(); }
   }
-  function open(button) {
-    var group = fields[button.dataset.read];
-    var full = group.ids.map(function (id) {
+  function open() {
+    var full = fields.map(function (id) {
       var field = dom.el(id);
       return field.hidden || field.closest('[hidden]') ? '' : field.textContent;
     }).filter(Boolean).join('\n');
     if (!full) { return; }
-    active = button; parts = Array.from(full); index = 0; pages = [];
-    title.textContent = group.title;
+    parts = Array.from(full); index = 0; pages = [];
     if (typeof dialog.showModal === 'function') { dialog.showModal(); }
     else { dialog.setAttribute('open',''); closeButton.focus({preventScroll:true}); }
     paginate();
   }
   function start() {
-    var triggers = Array.from(document.querySelectorAll('.xmas-read-trigger'));
-    triggers.forEach(function (trigger) { trigger.addEventListener('click', function () { open(trigger); }); });
+    trigger.addEventListener('click', open);
     signals.on('snapshot', function () {
       var enabled = document.documentElement.classList.contains('theme-xmas');
       if (!enabled && dialog.hasAttribute('open')) { close(); }
-      triggers.forEach(function (trigger) { trigger.hidden = !enabled; });
+      trigger.hidden = !enabled;
     });
     previous.addEventListener('click', function () { index -= 1; render(); });
     next.addEventListener('click', function () { index += 1; render(); });

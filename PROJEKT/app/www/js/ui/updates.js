@@ -45,8 +45,14 @@ MischWerkUI.define('updates', function (dependencies) {
   }
   function receive(change) {
     var state = model.current();
+    var xmas = state.theme === 'xmas';
     document.documentElement.classList.toggle('theme-xmas',
-      state.theme === 'xmas' && (model.view === 'radio' || model.view === 'wishes' || model.view === 'schedule'));
+      xmas && (model.view === 'radio' || model.view === 'wishes' || model.view === 'schedule'));
+    if (model.view === 'radio') {
+      var metadata = dom.el('radio-metadata');
+      if (xmas) { metadata.removeAttribute('tabindex'); }
+      else { metadata.tabIndex = 0; }
+    }
     layout.renderView();
     if (provider) { provider.selectStation(change.previousStation); }
     if (presentation) { presentation.renderTopic(); }

@@ -1,6 +1,6 @@
 {
-  "version": "0.1.462",
-  "buildNumber": 462,
+  "version": "0.1.463",
+  "buildNumber": 463,
   "files": [
     {
       "path": "MischWerk/www/index.html",
@@ -24,8 +24,8 @@
     },
     {
       "path": "MischWerk/www/js/radio/markup.js",
-      "bytes": 7733,
-      "sha256": "3C409BCCBA53BAA75B9BCA846E897740E9705B7372028F1813175C325517B35E"
+      "bytes": 7386,
+      "sha256": "8BCDDE0B465E46373D035F59E2DFBCC88AD4E8F3C14932160E24D8952836A19B"
     },
     {
       "path": "MischWerk/www/js/radio/workshop.js",
@@ -39,8 +39,8 @@
     },
     {
       "path": "MischWerk/www/js/radio/xmas-reader.js",
-      "bytes": 3978,
-      "sha256": "D0CAC5080725338C737187AD0667B2AE03E0BAA0374E5BA8EDEE32E7C1C24C30"
+      "bytes": 3431,
+      "sha256": "D8070E8958C7880AD762E48F8D81BEBBE599738729CEEE77F95BEB5DF3C0D5E0"
     },
     {
       "path": "MischWerk/www/js/radio/viewport.js",
@@ -134,8 +134,8 @@
     },
     {
       "path": "MischWerk/www/js/ui/overlays.js",
-      "bytes": 9117,
-      "sha256": "F3CF034F096A229D673E5B23A7CC9159EF693818B6C3A3FBCF608A99B3A8DB20"
+      "bytes": 9321,
+      "sha256": "B2E44E897E4CAE9447705A1509BA177280B53F39F2038C8319A71340C50E4318"
     },
     {
       "path": "MischWerk/www/js/transport/lifecycle.js",
@@ -209,8 +209,8 @@
     },
     {
       "path": "MischWerk/www/css/radio/xmas.css",
-      "bytes": 6166,
-      "sha256": "5298F846C06EEB48842E49901D024B522CA067267E8DDB2B85E162F748B64701"
+      "bytes": 6135,
+      "sha256": "15CAEAAC9203DF5BAB816AB402017F2778EDDF3B20F62FE2B7E147534F6CDB70"
     },
     {
       "path": "MischWerk/www/css/radio/xmas-layout.css",
@@ -219,8 +219,8 @@
     },
     {
       "path": "MischWerk/www/css/radio/xmas-desktop.css",
-      "bytes": 8425,
-      "sha256": "3AB3BC76AD2B58A870121C2F2EDA28F366390E270BF3B20514A66EFB8DABB6EF"
+      "bytes": 8333,
+      "sha256": "8486D759FF68CED20E4C73556995B32ECBB517B5943736B6067AF173836689C5"
     },
     {
       "path": "MischWerk/www/css/schedule/day.css",

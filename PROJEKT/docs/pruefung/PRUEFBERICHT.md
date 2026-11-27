@@ -1,16 +1,24 @@
-# MischWerk – Prüfbericht 0.1.462 / Build 462
+# MischWerk – Prüfbericht 0.1.463 / Build 463
 
-## Hostbreite der Weihnachtsgirlande
+## Textanzeigen und Aktionsspalte in X-Mas
+
+Stand 27.11.2026. Die unsichtbaren Schaltflächen über Musik und Thema sind entfernt. Titel, Interpret, Thema und Moderation bleiben statische Textanzeigen mit vollständigen dynamischen Inhalten im DOM. Klicks öffnen keinen Dialog. Der Normalmodus behält seinen Tastaturzugang zum Informationsbereich. Den eigenen Musikwunsch kann man weiterhin über seinen Lesedialog vollständig lesen.
+
+Sendeplan und Wunschbox stehen bei regulärer Desktop-Höhe wie im Normalmodus rechts neben dem Thema. Der einzelne Sendeplan sitzt vertikal mittig. Bei sichtbarer Wunschbox stehen 44 px hohe Tasten mit 8 px Abstand übereinander. Die Lautstärke steht mittig unter Thema und Moderation. Im flachen Desktop- und Tabletprofil stehen beide Aktionen platzsparend nebeneinander rechts vom Thema. Mobil bleibt die eigene Aktionszeile. Die Höhenanfrage, die Girlandenbreite und mittiges Play bleiben erhalten.
+
+[Normal und X-Mas bei 1645 × 220 px mit und ohne Wunschbox](oberflaeche/radio/xmas-gemeinsam-breit.png) · [390 × 360 px mit Lauftext](oberflaeche/radio/xmas-gemeinsam-mobil.png)
+
+Die vier gezielten Edge-Fälle am Quellstand und sechs am gebündelten Prüfpaket bestanden, einschließlich der Sendeplan- und Wunschboxfenster. Der konfigurierte lokale Releaseordner enthält Appversion 0.1.463 und Build 463. Der Freigabebau bestätigte 473 Node-Prüfungen und beide Rhino-Versionen am Quellstand und am Release. Die separate Freigabe `.freigaben/MischWerk.json`, die fünf Manifeste und das browsergeprüfte Paket stimmen für alle 143 Dateien in Pfad, Größe und SHA-256 überein.
+
+## Hostbreite der Weihnachtsgirlande · Build 462
 
 Stand 27.11.2026. Build 461 begrenzte den Rahmen durch die maximale Skalierung der 1327 px breiten Referenz. Im Normalmodus auf `main` reicht die sichtbare Fläche auf dem Desktop bis auf 20 px an beide Hostränder. Build 462 misst diese Normalfläche und übernimmt ihre Breite für die breite Girlande und den Lauftext. Ein 1645 × 220 px großer Host zeigt damit 1605 × 187 px Rahmen statt 1327 × 187 px. Bei 1200, 1360, 1920 und 3840 px Hostbreite sind es 1160, 1320, 1880 und 3800 px Rahmenbreite.
 
-Die zusätzliche Breite entsteht durch proportionale, an der Schnittkante gespiegelte Ausschnitte desselben Fotos. Die Ecken und registrierten Lichtflächen bleiben proportional und die gemeinsamen Quelldateien sind bytegleich. Die Edge-Prüfung vergleicht Randposition, Rahmen- und Lauftextbreite mit Normal. Sie prüft auch die Stoßstellen, die Höhe, das mittige Play, die 44-px-Bedienflächen und scrollfreie Hosts. [Normal und X-Mas bei 1645 × 220 px, gestoppt und bei Wiedergabe](oberflaeche/radio/xmas-gemeinsam-breit.png)
+Die zusätzliche Breite entsteht durch proportionale, an der Schnittkante gespiegelte Ausschnitte desselben Fotos. Die Ecken und registrierten Lichtflächen bleiben proportional und die gemeinsamen Quelldateien sind bytegleich. Die Edge-Prüfung vergleicht Randposition, Rahmen- und Lauftextbreite mit Normal. Sie prüft auch die Stoßstellen, die Höhe, das mittige Play, die 44-px-Bedienflächen und scrollfreie Hosts.
 
-Je vier gezielte Edge-Fälle bestanden am Quellstand und am gebündelten Prüfpaket. Der lokale Paketbau bestätigte 473 Node-Fälle, beide Rhino-Versionen und 143 Dateien anhand der fünf Manifeste. Der freigegebene lokale Releaseordner enthält weiterhin Build 461.
+Je vier gezielte Edge-Fälle bestanden am Quellstand und am gebündelten Prüfpaket. Der lokale Paketbau bestätigte 473 Node-Fälle, beide Rhino-Versionen und 143 Dateien anhand der fünf Manifeste. Der gepushte Stand `3e0c104` wurde als Appversion 0.1.462 und Build 462 lokal freigegeben. Beide Rhino-Versionen und die vier gezielten Edge-Fälle bestanden erneut am damaligen Release. Die getrennte Freigabe `.freigaben/MischWerk.json` und die fünf Manifeste wurden unabhängig anhand von Pfaden, Größen und SHA-256 aller 143 Dateien abgeglichen.
 
 Die helleren gemeinsamen An-Grafiken aus dem Web-/Android-Stand `c06c7db` sind bytegleich übernommen. Die SHA-256-Nachweise stehen im Medienmanifest. Beide An-Grafiken stimmen in Abmessungen und Alphakanal mit ihren Aus-Grafiken überein. In Chrome zeigt der zentrale Emulator bei 1360 × 220 und 390 × 316 px die kräftigeren warmweißen Kerne ab bestätigter Wiedergabe. Bei Stopp ist die Lichtanimation aus. Die festen Aufnahmen bei 1200 ms zeigen 138 breite beziehungsweise 32 kompakte Lichtpositionen. Beide Hosts waren scrollfrei und Play blieb mittig. Die Fotos liegen unter `MischWerk-Licht-462` im System-Tempverzeichnis und wurden an den Web-/Android-Chat übergeben.
-
-[390 × 360 px mit Lauftext, gestoppt und bei Wiedergabe](oberflaeche/radio/xmas-gemeinsam-mobil.png)
 
 ## Gemeinsame Weihnachtsgirlande für Knuddels · Build 461
 
