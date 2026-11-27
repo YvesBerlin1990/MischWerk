@@ -1,4 +1,11 @@
-# MischWerk – Prüfbericht 0.1.463 / Build 463
+# MischWerk – Prüfbericht 0.1.464 / Build 464
+
+## Paketprüfung und FTP-Bereitstellung · 27.11.2026
+
+Für Build 464 bestanden 473 Node-Prüfungen sowie jeweils 250 Prüfungen mit Rhino 1.7.7.2 und Rhino 1.9.1 am Quellstand und am tatsächlichen Auslieferungspaket. Alle 143 Dateien einschließlich der vier korrigierten Rahmenbilder stimmen nach Pfad, Größe und SHA-256 mit dem separat geprüften Referenzpaket überein. Die fünf Manifeste wurden gegen die Freigabe abgeglichen.
+
+MyChannel Deploy übernahm die Freigabe `491a403b-8992-460b-b622-ed80b478eaeb` aus dem überwachten Releaseordner. Am 27.11.2026 um 13:16 Uhr bestätigte das Werkzeug die erfolgreiche FTP-Bereitstellung mit acht übertragenen Dateien. Die native Knuddels-Abnahme bleibt offen.
+
 
 ## Aufrechte Eckgruppen · Korrektur zu 2750699
 
