@@ -1,191 +1,102 @@
-/* Freigestellte Bildteile, Kabel und synchronisierte Lichtschichten der Weihnachtsleiste. */
-.radio-xmas-frame,.radio-xmas-ornaments { display:none; }
+/* Gemeinsame Fotoschichten liegen hinter Inhalt und Fokusflächen. */
+.radio-xmas-shared-frame { display:none; }
 .theme-xmas .radio-deck {
-  --xmas-corner:clamp(24px,calc(55 * var(--xmas-unit)),100px);
-  --xmas-snow-corner:max(54px,calc(99 * var(--xmas-unit)));
-  --deck-radius:calc(var(--xmas-corner) * .87);
+  --deck-radius:clamp(21px,calc(48 * var(--xmas-unit)),36px);
   --deck-top:0px; --deck-x:0px; --deck-tail:0px; --radio-glow-space:0px;
-  --xmas-spark:url(../../img/xmas-funkeln.png);
   display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr) auto;
-  height:var(--xmas-height,100%); margin-top:0;
-  padding:var(--xmas-pad,10px) var(--xmas-pad,10px);
+  height:var(--xmas-height,100%); margin-top:0; padding:var(--xmas-pad,10px);
 }
-.theme-xmas .radio-bar { --text:#fff0d6; --muted:#e5cdae; --gold:#ffc659; background:transparent; }
+.theme-xmas .radio-bar { --text:#fff0d6; --muted:#e5cdae; --gold:#ffd37f; background:transparent; }
 .theme-xmas .radio-program-face { inset:0; border:0; border-radius:var(--deck-radius); }
 .theme-xmas .playing .radio-program-face { animation:none; box-shadow:none; }
 .theme-xmas .radio-program-face::before,
 .theme-xmas .radio-program-face::after,
 .theme-xmas.radio-has-ticker .radio-deck::before,
 .theme-xmas.radio-has-ticker .radio-deck::after { display:none; }
-:is(.theme-xmas,.xmas-measure) .radio-xmas-frame {
-  --xmas-lamp-gap:var(--xmas-wide-lamp-gap,96px);
-  --xmas-lamp-size:clamp(8px,calc(12 * var(--xmas-unit)),22px);
-  --xmas-cable-inset:3px;
-  display:block; position:absolute;
-  inset:var(--xmas-pad) var(--xmas-pad) calc(var(--xmas-pad) + var(--xmas-footer)) var(--xmas-pad);
-  z-index:2; pointer-events:none; border-radius:var(--deck-radius);
+
+:is(.theme-xmas,.xmas-measure):is(.xmas-shared-wide,.xmas-shared-compact) .radio-xmas-shared-frame {
+  display:block; position:absolute; inset:0; z-index:-1; pointer-events:none;
 }
-.radio-xmas-metal,.radio-xmas-snow,.radio-xmas-cable,.radio-xmas-sparks {
-  position:absolute; inset:0; border-radius:inherit;
+.theme-xmas.xmas-shared-wide .radio-xmas-shared-frame {
+  background:url(../../img/xmas-player-knuddels-aus.png) center / 100% 100% no-repeat;
 }
-.radio-xmas-metal {
-  --rail:clamp(4px,calc(7 * var(--xmas-unit)),14px);
-  background:
-    url(../../img/xmas-rahmen-oben-links.png) left top / var(--xmas-corner) auto no-repeat,
-    url(../../img/xmas-rahmen-oben-rechts.png) right top / var(--xmas-corner) auto no-repeat,
-    url(../../img/xmas-rahmen-unten-links.png) left bottom / var(--xmas-corner) auto no-repeat,
-    url(../../img/xmas-rahmen-unten-rechts.png) right bottom / var(--xmas-corner) auto no-repeat;
+.radio-xmas-shared-art,.radio-xmas-shared-light { position:absolute; background-repeat:no-repeat; }
+.radio-xmas-shared-light { z-index:1; opacity:0; clip-path:ellipse(50% 50%); }
+.playing .radio-xmas-shared-light { animation:mw-xmas-fir 3.8s linear var(--xmas-phase) infinite; }
+@keyframes mw-xmas-fir {
+  0%,81%,100% { opacity:.13; }
+  12% { opacity:.24; }
+  23% { opacity:.66; }
+  33% { opacity:1; }
+  43% { opacity:.88; }
+  56% { opacity:.54; }
+  69% { opacity:.21; }
 }
-.playing .radio-xmas-metal {
-  filter:brightness(1.16) drop-shadow(0 0 3px #ffbc63a0) drop-shadow(0 0 7px #ff96194d);
-}
-.radio-xmas-metal i,.radio-xmas-cable i { position:absolute; }
-.radio-xmas-metal i:nth-child(-n+2),.radio-xmas-cable i:nth-child(-n+2) {
-  inset-inline:calc(var(--xmas-corner) - 4px);
-}
-.radio-xmas-metal i:nth-child(-n+2) {
-  height:var(--rail);
-  background:url(../../img/xmas-rahmen-waagerecht.png) center / auto 100% repeat-x;
-}
-.radio-xmas-metal i:nth-child(n+3) {
-  inset-block:calc(var(--xmas-corner) - 4px); width:var(--rail);
-  background:url(../../img/xmas-rahmen-senkrecht.png) center / 100% auto repeat-y;
-}
-.radio-xmas-metal i:first-child { top:0; }
-.radio-xmas-metal i:nth-child(2) { bottom:0; }
-.radio-xmas-metal i:nth-child(3) { left:0; }
-.radio-xmas-metal i:nth-child(4) { right:0; }
-.radio-xmas-snow {
-  background:
-    url(../../img/xmas-schnee-oben-links.png) left top / var(--xmas-snow-corner) auto no-repeat,
-    url(../../img/xmas-schnee-oben-rechts.png) right top / var(--xmas-snow-corner) auto no-repeat,
-    url(../../img/xmas-schnee-unten-links.png) left bottom / var(--xmas-snow-corner) auto no-repeat,
-    url(../../img/xmas-schnee-unten-rechts.png) right bottom / var(--xmas-snow-corner) auto no-repeat;
-}
-.radio-xmas-snow::before,.radio-xmas-snow::after {
-  content:""; position:absolute; inset-inline:calc(var(--xmas-corner) + 2px);
-  mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);
-}
-.radio-xmas-snow::before {
-  top:calc(-3 * var(--xmas-unit)); height:calc(11 * var(--xmas-unit));
-  background:url(../../img/xmas-schnee-mitte-oben.png) center / auto 100% repeat-x;
-}
-.radio-xmas-snow::after {
-  bottom:0; height:calc(13 * var(--xmas-unit));
-  background:url(../../img/xmas-schnee-mitte-unten.png) 32% center / auto 100% repeat-x;
-}
-.radio-xmas-cable { opacity:.42; }
-.radio-xmas-cable i:nth-child(-n+2) {
-  height:clamp(1px,calc(2 * var(--xmas-unit)),3px);
-  background:url(../../img/xmas-kabel-fein.png) center / auto 100% repeat-x;
-}
-.radio-xmas-cable i:first-child { top:var(--xmas-cable-inset); }
-.radio-xmas-cable i:nth-child(2) { bottom:var(--xmas-cable-inset); }
-.radio-xmas-cable i:nth-child(n+3) {
-  inset-block:var(--xmas-corner); width:calc(9 * var(--xmas-unit));
-  background:url(../../img/xmas-kabel-senkrecht.png) center / contain no-repeat;
-}
-.radio-xmas-cable i:nth-child(3) { left:1px; }
-.radio-xmas-cable i:nth-child(4) { right:1px; transform:rotate(180deg); }
-.radio-xmas-cable b {
-  position:absolute; width:var(--xmas-corner); height:var(--xmas-corner);
-  background:url(../../img/xmas-kabel-rundung.png) center / contain no-repeat;
-}
-.radio-xmas-cable b:nth-of-type(1) { left:1px; top:1px; transform:rotate(-90deg); }
-.radio-xmas-cable b:nth-of-type(2) { right:1px; top:1px; }
-.radio-xmas-cable b:nth-of-type(3) { left:1px; bottom:1px; transform:rotate(180deg); }
-.radio-xmas-cable b:nth-of-type(4) { right:1px; bottom:1px; transform:rotate(90deg); }
-.radio-xmas-sparks {
-  opacity:0;
-  background:var(--xmas-spark) 2% 7% / calc(41 * var(--xmas-unit)) auto no-repeat,
-    var(--xmas-spark) 77% 4% / calc(38 * var(--xmas-unit)) auto no-repeat,
-    var(--xmas-spark) 98% 12% / calc(37 * var(--xmas-unit)) auto no-repeat,
-    var(--xmas-spark) 84% 96% / calc(40 * var(--xmas-unit)) auto no-repeat;
-}
-.radio-xmas-lamp {
-  width:var(--xmas-lamp-size); height:calc(var(--xmas-lamp-size) * 1.244);
-  transform:translate(-50%,-50%) rotate(var(--xmas-angle));
-  background:url(../../img/xmas-lampe-aus.png) center / contain no-repeat;
-}
-.radio-xmas-lamp::before {
-  content:""; position:absolute; inset:0; z-index:-1;
-  background:url(../../img/xmas-fassung.png) center 94% / 53% auto no-repeat;
-}
-.radio-xmas-lamp,.radio-xmas-halo { position:absolute; left:var(--xmas-x); top:var(--xmas-y); }
-.radio-xmas-halos {
-  position:absolute; inset:calc(-1 * var(--xmas-pad)) max(calc(-1 * var(--xmas-pad)),-40px);
-  opacity:0; overflow:hidden; overflow:clip;
-  --fade-x:min(40px,var(--xmas-pad));
-  mask-image:linear-gradient(to right,transparent 1px,#000 var(--fade-x),#000 calc(100% - var(--fade-x)),transparent calc(100% - 1px)),
-    linear-gradient(to bottom,transparent 1px,#000 var(--xmas-pad),#000 calc(100% - var(--xmas-pad)),transparent calc(100% - 1px));
-  mask-composite:intersect;
-}
-.radio-xmas-halo {
-  transform:translate(min(40px,var(--xmas-pad)),var(--xmas-pad)) rotate(var(--xmas-angle));
-}
-.radio-xmas-halo::before {
-  content:""; position:absolute; top:calc(-.15 * var(--xmas-lamp-size));
-  width:calc(5.2 * var(--xmas-lamp-size)); aspect-ratio:273 / 270;
-  transform:translate(-50%,-50%);
-  background:url(../../img/xmas-schein.png) center / contain no-repeat;
-}
-.radio-xmas-lamp::after {
-  content:""; position:absolute; inset:0; opacity:0;
-  background:url(../../img/xmas-lampe-an.png) center / contain no-repeat;
-  filter:brightness(1.32) saturate(.85);
-}
-.playing .radio-xmas-lamp {
-  background-image:none;
-}
-.playing .radio-xmas-lamp::after,.playing .radio-xmas-halos,.playing .radio-xmas-sparks { opacity:1; }
-.playing .radio-xmas-lamp::after,.playing .radio-xmas-halo::before {
-  animation:mw-xmas-chain 3.6s ease-in-out var(--xmas-phase,0s) infinite;
-}
-@keyframes mw-xmas-chain {
-  0%,43%,100% { opacity:.34; }
-  64%,83% { opacity:1; }
+@media (prefers-reduced-motion:reduce) {
+  .playing .radio-xmas-shared-light { animation:none; opacity:.95; }
 }
 .theme-xmas.radio-has-ticker .radio-ticker {
   width:100%; margin:0; padding:0 12px; box-shadow:inset 0 1px #423522;
 }
-.theme-xmas .radio-xmas-ornaments {
-  display:block; position:absolute; inset:0; border-radius:inherit;
-  background:
-    url(../../img/xmas-schleife.png) 15% top / clamp(52px,9vw,100px) auto no-repeat,
-    url(../../img/xmas-kugel.png) 16% 20% / clamp(26px,4vw,48px) auto no-repeat,
-    url(../../img/xmas-tanne-links.png) left top / clamp(110px,23vw,260px) auto no-repeat;
-}
-.theme-xmas .radio-xmas-ornaments::before,.theme-xmas .radio-xmas-ornaments::after {
-  content:""; position:absolute; pointer-events:none;
-  background-position:center; background-size:contain; background-repeat:no-repeat;
-}
-.theme-xmas .radio-xmas-ornaments::before {
-  display:none; aspect-ratio:1250 / 174;
-  background-image:url(../../img/xmas-unterer-tannenschmuck.png);
-}
-.theme-xmas .radio-xmas-ornaments::after {
-  top:-2px; right:calc(2 * var(--xmas-unit)); width:clamp(108px,22vw,220px);
-  aspect-ratio:1240 / 437; background-image:url(../../img/xmas-tanne-rechts.png);
-}
-@media (max-width:1199px) {
-  :is(.theme-xmas,.xmas-measure) .radio-xmas-frame { --xmas-lamp-gap:84px; }
-}
-@media (max-width:700px) {
-  :is(.theme-xmas,.xmas-measure) .radio-xmas-frame { --xmas-lamp-gap:74px; --xmas-cable-inset:4px; }
-  .theme-xmas .radio-xmas-ornaments {
-    background-position:7px 2px,25px 41px,left top;
-  }
-  .theme-xmas .radio-xmas-ornaments::after {
-    right:4px; top:2px; width:clamp(80px,27vw,142px);
-  }
-  .theme-xmas:not(.xmas-short) .radio-xmas-ornaments::before {
-    display:block; left:-33px; top:65px; width:82px; transform:rotate(-90deg);
-  }
-  .theme-xmas.xmas-compact .radio-xmas-ornaments { opacity:.30; }
-  .theme-xmas .radio-xmas-sparks {
-    background-position:14px 9px,0 0,calc(100% - 14px) 7px,0 0;
-    background-size:22px auto,0,22px auto,0;
-  }
-}
 
-.playing .radio-xmas-halo::before { opacity:1; }
+.theme-xmas.xmas-shared-wide .radio-ticker { width:var(--xmas-shared-width); margin-inline:auto; }
+.theme-xmas.xmas-shared-compact .radio-ticker { width:var(--xmas-compact-width); margin-inline:auto; }
+
+/* Die kompakte Fotogirlande behält ihre Dicke, wenn der Host mehr Höhe gewährt. */
+.theme-xmas.xmas-shared-compact #radio-panel {
+  --shared-edge:calc(121px * var(--xmas-compact-scale));
+  --shared-top:calc(125px * var(--xmas-compact-scale));
+  --shared-bottom:calc(139px * var(--xmas-compact-scale));
+  --shared-primary-bottom:calc(var(--shared-bottom) + 138px);
+  --shared-field-width:calc((100% - 2 * var(--shared-edge) - var(--play-size)) / 2);
+  --play-size:48px; --play-symbol-size:17px; --xmas-label:10px; --xmas-title:14px;
+  --xmas-topic:14px; --xmas-caption:12px; --xmas-lines:2;
+  width:var(--xmas-compact-width); height:var(--xmas-compact-height);
+  align-self:center; justify-self:center; padding:0;
+}
+.theme-xmas.xmas-shared-compact .radio-panel-face {
+  inset:calc(58px * var(--xmas-compact-scale)); border-radius:calc(60px * var(--xmas-compact-scale)); z-index:-2;
+}
+.theme-xmas.xmas-shared-compact #radio-panel .radio-metadata {
+  position:absolute; inset:0; display:block; pointer-events:none;
+}
+.theme-xmas.xmas-shared-compact .radio-metadata :is(.now-playing,.radio-context,.volume-control,.own-wish-position) {
+  position:absolute; inset:auto; transform:none; margin:0; padding:0; pointer-events:auto;
+}
+.theme-xmas.xmas-shared-compact #radio-panel .transport {
+  position:absolute; left:50%; top:calc((100% + var(--shared-top) - var(--shared-primary-bottom)) / 2);
+  inset-inline-end:auto; bottom:auto; margin:0; transform:translate(-50%,-50%);
+}
+.theme-xmas.xmas-shared-compact .radio-metadata .now-playing {
+  left:var(--shared-edge); width:var(--shared-field-width);
+  top:var(--shared-top); bottom:var(--shared-primary-bottom);
+  overflow:hidden; text-align:center;
+}
+.theme-xmas.xmas-shared-compact .radio-metadata .track-eyebrow { letter-spacing:.015em; margin:0; }
+.theme-xmas.xmas-shared-compact .radio-metadata .radio-context {
+  left:var(--shared-edge); right:var(--shared-edge); bottom:calc(var(--shared-bottom) + 91px);
+  height:44px; justify-content:center; overflow:hidden; text-align:center; gap:0;
+}
+.theme-xmas.xmas-shared-compact .radio-context .topic-label { margin:0; line-height:1; }
+.theme-xmas.xmas-shared-compact .radio-context #show-topic { --xmas-lines:1; font-size:14px; }
+.theme-xmas.xmas-shared-compact .radio-context .presenter { font-size:11px; line-height:1; }
+.theme-xmas.xmas-shared-compact .radio-metadata .volume-control {
+  left:50%; bottom:calc(var(--shared-bottom) + 47px); width:146px; max-width:none;
+  transform:translateX(-50%); gap:2px;
+}
+.theme-xmas.xmas-shared-compact .radio-metadata .volume-control output { min-width:42px; width:42px; }
+.theme-xmas.xmas-shared-compact #radio-panel .radio-actions-panel {
+  position:absolute; left:var(--shared-edge); right:var(--shared-edge);
+  bottom:var(--shared-bottom); height:44px; width:auto; padding:0;
+}
+.theme-xmas.xmas-shared-compact #radio-panel .bar-actions { display:flex; flex-direction:row; gap:4px; }
+.theme-xmas.xmas-shared-compact #radio-panel .wish-button { --action-font:12px; --action-icon:15px; flex:1; height:44px; }
+.theme-xmas.xmas-shared-compact .track-eyebrow::after,.theme-xmas.xmas-shared-compact .topic-label::after { display:none; }
+.theme-xmas.xmas-shared-compact #radio-panel .radio-metadata .own-wish-position:not([hidden]) {
+  position:absolute; left:auto; right:var(--shared-edge); width:var(--shared-field-width); padding:0;
+  top:var(--shared-top); bottom:var(--shared-primary-bottom);
+  grid-template-columns:minmax(0,1fr); min-height:44px; border:0; text-align:center;
+}
+.theme-xmas.xmas-shared-compact .own-wish-position :is(.own-wish-heading,.own-wish-stage) { grid-column:auto; }
+.theme-xmas.xmas-shared-compact .own-wish-position :is(.own-wish-rank,.own-wish-more) { display:none; }
+.theme-xmas.xmas-shared-compact #radio-panel :is(.transport,.radio-metadata,.radio-actions-panel,.radio-brand,.radio-listener-brand) { grid-area:auto; }

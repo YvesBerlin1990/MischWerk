@@ -96,9 +96,8 @@ MischWerkUI.define('viewport', function (dependencies) {
     var unit = reference ? Math.min(width / 1645, available / 292) : width > 700 ? .78 : .59;
     var inset = reference ? 22 * unit : wide ? 16 : width > 700 ? 13 : 10;
     var room = Math.max(0, available - 2 * inset);
-    var span = (width - 2 * inset) / 1601;
-    var sizes = { height:granted, room:room, unit:unit, span:span, pad:inset,
-      footer:footer, 'wide-lamp-gap':96 * span };
+    var sizes = { height:granted, room:room, unit:unit, pad:inset,
+      footer:footer };
     Object.keys(sizes).forEach(function (name) {
       root.style.setProperty('--xmas-' + name, sizes[name] + 'px');
     });
@@ -109,7 +108,7 @@ MischWerkUI.define('viewport', function (dependencies) {
       !document.body.classList.contains('has-own-wish'));
     root.classList.toggle('xmas-short', room < (width <= 700 ? 170 : 157));
     requestHeight(preferred);
-    if (xmasFrame) { xmasFrame.fit(); }
+    if (xmasFrame) { xmasFrame.fitHost(width, available, inset, room, reference); }
     if (workshop) { workshop.fit(); }
   }
   function measureNormal(xmas) {
@@ -139,7 +138,7 @@ MischWerkUI.define('viewport', function (dependencies) {
     var contentHeight = measureNormal(xmas);
     var height = Math.min(500, contentHeight);
     if (xmas) { fitXmas(height); return; }
-    root.classList.remove('xmas-compact', 'xmas-mobile-grid', 'xmas-short', 'xmas-reference');
+    root.classList.remove('xmas-compact', 'xmas-mobile-grid', 'xmas-short', 'xmas-reference', 'xmas-shared-wide', 'xmas-shared-compact');
     centerInformation();
     if (bridge && !bridge.isK3Client()) { constrained = small && window.innerHeight + 1 < contentHeight; }
     requestHeight(height);

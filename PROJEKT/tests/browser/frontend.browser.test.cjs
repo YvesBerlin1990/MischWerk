@@ -68,17 +68,18 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
     });
   }
   function motion() {
-    return page.evaluate(()=>Array.from(document.querySelectorAll('.radio-xmas-lamp')).map((lamp,index)=>{
-      const halo=document.querySelector('.radio-xmas-halos').children[index];
-      const core=getComputedStyle(lamp,'::after'),shine=getComputedStyle(halo,'::before');
-      return {phase:core.animationDelay,haloPhase:shine.animationDelay,core:Number(core.opacity),halo:Number(shine.opacity),
-        name:core.animationName,haloName:shine.animationName};
-    }));
+    return page.evaluate(()=>Array.from(document.querySelectorAll('.radio-xmas-shared-frame'))
+      .filter(frame=>frame.getClientRects().length).flatMap(frame=>Array.from(frame.querySelectorAll('.radio-xmas-shared-light')))
+      .map(lamp=>{
+        const style=getComputedStyle(lamp);
+        return {phase:Number.parseFloat(style.animationDelay), opacity:Number(style.opacity), name:style.animationName,
+          duration:Number.parseFloat(style.animationDuration), image:style.backgroundImage};
+      }));
   }
   async function freeze(time) {
     await page.evaluate(time=>{
       for(const animation of document.getAnimations()){
-        if(animation.animationName!=='mw-xmas-chain')continue;
+        if(animation.animationName!=='mw-xmas-fir')continue;
         animation.pause();
         animation.currentTime=time;
       }
@@ -86,8 +87,7 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
   }
   async function checkClosed() {
     const phases=await motion();
-    assert.ok(phases.length>5 && phases.every(row=>row.name==='none' && row.haloName==='none' && row.core===0));
-    assert.equal(await page.locator('.radio-xmas-halos').evaluate(node=>getComputedStyle(node).opacity),'0');
+    assert.ok(phases.every(row=>row.name==='none'&&row.opacity===0));
   }
   function checkGeometry(measured) {
     assert.ok(measured.centered,JSON.stringify(measured));
@@ -97,20 +97,15 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
     assert.equal(measured.height,Math.min(measured.requested,measured.viewport[1]));
   }
   async function checkWave() {
-    await freeze(2160);
+    await freeze(1200);
     const rows=await motion();
-    assert.ok(rows.every(row=>row.name==='mw-xmas-chain'&&row.phase===row.haloPhase&&Math.abs(row.core-row.halo)<.002));
-    assert.ok(Math.min(...rows.map(row=>row.core))>=.33 && Math.min(...rows.map(row=>row.core))<=.35 &&
-      Math.max(...rows.map(row=>row.core))>=.94);
-    const cycle=3.6, phase=row=>Number.parseFloat(row.phase);
-    const step=(phase(rows[1])-phase(rows[0])+cycle)%cycle;
-    assert.ok(step>.25&&step<.9);
-    for(let i=0;i<rows.length;i++){
-      const next=rows[(i+1)%rows.length];
-      assert.ok(Math.abs((phase(next)-phase(rows[i])+cycle)%cycle-step)<.0001,'Gleiche Phasenabstände einschließlich Rahmenschluss');
-    }
+    assert.ok(rows.length>20);
+    assert.ok(rows.every(row=>row.name==='mw-xmas-fir'&&row.duration===3.8&&row.opacity>=.129));
+    assert.ok(Math.min(...rows.map(row=>row.opacity))<=.14&&Math.max(...rows.map(row=>row.opacity))>=.90);
+    assert.ok(rows.every((row,index)=>Math.abs(row.phase + 3.8*((8-index/rows.length*3+Math.sin(index*2.39996)*.049)%1))<.0001));
+    assert.ok(rows.every(row=>/xmas-player-(knuddels|kompakt)-an\.png/.test(row.image)));
   }
-  for (const width of [1645,1920,1200,390,320]) {
+  for (const width of [1360,1645,1920,1200,390,320]) {
     await resize(width,540);
     await snapshot('normal',true,false);
     const normalHeight=(await dimensions()).requested;
@@ -126,19 +121,16 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
       const geometry=await dimensions();
       checkGeometry(geometry);
       assert.equal(geometry.requested,normalRequest,'Normal und X-Mas fordern dieselbe Hosthöhe an');
-      const ornaments=await page.locator('.radio-xmas-ornaments').evaluate(node=>{
-        const top=getComputedStyle(node,'::after'), bottom=getComputedStyle(node,'::before');
-        return {top:top.backgroundImage,bottom:bottom.backgroundImage,bottomDisplay:bottom.display};
-      });
-      assert.match(ornaments.top,/xmas-tanne-rechts\.png/);
-      assert.match(ornaments.bottom,/xmas-unterer-tannenschmuck\.png/);
-      assert.equal(ornaments.bottomDisplay,'block');
+      const frame=page.locator('.radio-xmas-shared-frame[data-ready]:visible');
+      await frame.waitFor();
+      const art=await frame.boundingBox();
+      assert.ok(Math.abs(art.x+art.width/2-width/2)<.5);
+      assert.ok(Math.abs(art.width/art.height-(width>=1200?1327/187:700/713))<.01);
+      if(width===1360) assert.deepEqual([art.width,art.height],[1327,187]);
       if(width<=700) {
         const volume=await page.locator('.volume-control').boundingBox();
         assert.ok(Math.abs(volume.x+volume.width/2-width/2)<1,'Die kompakte Lautstärkezeile sitzt mittig');
       }
-      const cable = page.locator('.radio-xmas-cable i').first();
-      assert.match(await cable.evaluate(node=>getComputedStyle(node).backgroundImage),/xmas-kabel-fein\.png/);
       await checkClosed();
       if(k3) await page.screenshot({path:path.join(pictures,'xmas-'+suffix+'-aus.png')});
       await play.click();
@@ -149,11 +141,11 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
       checkGeometry(await dimensions());
       if(width===1645 && withWish){
         const stable=await page.evaluate(async()=>{
-          const lamp=document.querySelector('.radio-xmas-lamp');
-          const animation=document.getAnimations().find(item=>item.animationName==='mw-xmas-chain');
+          const lamp=document.querySelector('.radio-xmas-shared-light');
+          const animation=document.getAnimations().find(item=>item.animationName==='mw-xmas-fir');
           dispatchEvent(new Event('resize'));
           await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-          return lamp===document.querySelector('.radio-xmas-lamp')&&document.getAnimations().includes(animation);
+          return lamp===document.querySelector('.radio-xmas-shared-light')&&document.getAnimations().includes(animation);
         });
         assert.ok(stable,'Neuvermessung bei unveränderter Geometrie erhält die laufende Animation');
       }
@@ -188,18 +180,15 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
     assert.equal(await page.locator('#volume-value').textContent(),'100 %');
     const spacing=await page.evaluate(()=>{
       const box=selector=>document.querySelector(selector).getBoundingClientRect();
-      const gear=box('.transport');
-      const gearWidth=parseFloat(getComputedStyle(document.querySelector('.transport'),'::before').width);
-      const group=box('.radio-context'),volume=box('.volume-control');
-      const percent=box('#volume-value'),slider=box('#volume'),actions=box('.radio-actions-panel');
-      const divider=getComputedStyle(document.querySelector('.radio-actions-panel'),'::before');
-      const middle=actions.left+parseFloat(divider.left),halfWidth=parseFloat(divider.height)/2;
-      return {gaps:[Math.min(group.left,volume.left)-gear.x-(gear.width+gearWidth)/2,
-        middle-halfWidth-Math.max(group.right,volume.right),actions.left-middle-halfWidth],
-        slider:slider.width,percent:percent.right<=volume.right+.5,button:box('#open-wishes').height};
+      const label=box('.topic-label'), title=box('#show-topic'), host=box('.presenter'), volume=box('.volume-control');
+      const schedule=box('#open-schedule'), wish=box('#open-wishes');
+      const percent=document.getElementById('volume-value');
+      return {separateRows:label.bottom<=title.top+1&&title.bottom<=host.top+1&&host.bottom<=volume.top+1,
+        sameRow:Math.abs(schedule.top-volume.top)<.5&&Math.abs(wish.top-volume.top)<.5,
+        gaps:[schedule.left-volume.right,wish.left-schedule.right],
+        percent:percent.scrollWidth<=percent.clientWidth,slider:box('#volume').height,button:schedule.height};
     });
-    const scale=Math.min(width/1645,height/292);
-    assert.ok(spacing.gaps.every((gap,index)=>gap+.1>=[20,24,20][index]*scale),JSON.stringify(spacing));
+    assert.ok(spacing.separateRows&&spacing.sameRow&&spacing.gaps.every(gap=>gap>=6),JSON.stringify(spacing));
     assert.ok(spacing.percent&&spacing.slider>=44&&spacing.button>=44,JSON.stringify(spacing));
     checkGeometry(await dimensions());
     if(k3) await page.screenshot({path:path.join(pictures,'referenz-'+width+'-aus.png')});
@@ -216,6 +205,22 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
     await play.click();
     t.diagnostic('Referenzraster '+width+' px: '+JSON.stringify(spacing));
   }
+  for (const [width,height] of [[840,208],[1645,176]]) {
+    await resize(width,height);
+    await snapshot('xmas',true,false);
+    const portrait=page.locator('.radio-xmas-shared-frame[data-ready=wide]:visible');
+    await portrait.waitFor();
+    const art=await portrait.boundingBox();
+    assert.ok(Math.abs(art.width/art.height-1327/187)<.01);
+    checkGeometry(await dimensions());
+    const available=await page.evaluate(()=>{
+      const rect=selector=>document.querySelector(selector).getBoundingClientRect();
+      const volume=rect('.volume-control'), play=rect('#play-button'), schedule=rect('#open-schedule'), wish=rect('#open-wishes');
+      return volume.right<play.left&&play.right<schedule.left&&schedule.right<wish.left&&
+        Math.abs(volume.top-schedule.top)<.5&&Math.abs(schedule.top-wish.top)<.5;
+    });
+    assert.ok(available,'Breite Fotovorlage passt auch im Tablet- oder Flachhost');
+  }
   song.title='Sehr langer Titel mit weiteren Informationen '.repeat(6).trim();
   await page.waitForFunction(title=>document.getElementById('track-title').textContent===title,song.title);
   for(const [width,height,ticker] of [[1645,292,false],[390,500,true],[320,500,true],[390,220,true],[320,220,true],
@@ -227,8 +232,7 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
     const geometry=await dimensions();checkGeometry(geometry);
     assert.equal(geometry.requested,normalRequest,'Auch lange Texte verwenden die Hosthöhe des Normalmodus');
     if(width<=390 && height<=220){
-      const shortOrnament=await page.locator('.radio-xmas-ornaments').evaluate(node=>getComputedStyle(node,'::before').display);
-      assert.equal(shortOrnament,'none');
+      assert.equal(await page.locator('.radio-xmas-shared-frame').isVisible(),false);
     }
     t.diagnostic('Lange Texte '+width+' × '+height+' px: '+JSON.stringify(geometry));
     if(k3 && (width<=390 || height===292)){
@@ -242,7 +246,7 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
           input.dispatchEvent(new Event('input',{bubbles:true}));
         });
         assert.equal(await page.locator('#volume-value').textContent(),'100 %');
-        assert.equal(await page.locator('#show-topic').evaluate(node=>getComputedStyle(node).webkitLineClamp),'2');
+        assert.equal(await page.locator('#show-topic').evaluate(node=>getComputedStyle(node).webkitLineClamp),'1');
       }
       await page.screenshot({path:path.join(pictures,'xmas-lang-'+width+'-'+height+'-an.png')});
       await play.click();
@@ -268,16 +272,20 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
       checkGeometry(await dimensions());
     }
   }
+  await resize(1360,220);
+  await snapshot('xmas',true,false);
+  await page.locator('.radio-xmas-shared-frame[data-ready=wide]:visible').waitFor();
   await page.emulateMedia({reducedMotion:'reduce'});
   await play.click();
   await emitMedia('playing');
-  assert.ok((await motion()).every(row=>row.name==='none'&&row.haloName==='none'&&row.core===1&&row.halo===1));
+  const still=await motion();
+  assert.ok(still.length===138&&still.every(row=>row.name==='none'&&row.opacity===.95));
   await play.click();
   await checkClosed();
   assert.deepEqual(errors,[]);
 });
 
-test('X-Mas hält Titel, Überschrift und Regler in den Größen des Normalmodus lesbar', async t => {
+test('X-Mas hält Titel, Überschrift und Regler innerhalb der gemeinsamen Girlande lesbar', async t => {
   const song = {title:'MIDDLE OF THE NIGHT',artist:'Elley Duhé'};
   const {page,state,errors} = await setup(t, {station:true,k3:true,role:'listener',theme:'normal',
     parserIncludes:true,song,autoDj:true,viewport:{width:1645,height:292}});
@@ -324,11 +332,10 @@ test('X-Mas hält Titel, Überschrift und Regler in den Größen des Normalmodus
       clip:{x:0,y:0,width,height:xmas.requested}});
     const measured=JSON.stringify({width,normal,xmas});
     assert.equal(xmas.requested,normal.requested,measured);
-    assert.ok(xmas.artWidth>=normal.artWidth-1,measured);
-    assert.equal(xmas.title,normal.title,measured);
-    assert.equal(xmas.artist,normal.artist,measured);
-    assert.ok(xmas.label<=normal.label&&xmas.label>=20&&xmas.labelFits&&xmas.titleFits&&xmas.artistClearance>=18,measured);
-    assert.ok(xmas.volume<=192&&xmas.readout===normal.readout&&xmas.icon===normal.icon&&xmas.muteBorder===0&&xmas.percentFits,measured);
+    assert.ok(xmas.artWidth<normal.artWidth,measured);
+    assert.ok(xmas.title>=22&&xmas.artist>=15&&xmas.label>=11,measured);
+    assert.ok(xmas.labelFits&&xmas.titleFits&&xmas.artistClearance>=18,measured);
+    assert.ok(xmas.volume===144&&xmas.icon===normal.icon&&xmas.muteBorder===0&&xmas.percentFits,measured);
     assert.ok([...xmas.mute,...xmas.range].every(size=>size>=44),measured);
     if(width===1645) {
       const trigger=page.locator('[data-read=music]');
@@ -343,7 +350,7 @@ test('X-Mas hält Titel, Überschrift und Regler in den Größen des Normalmodus
 });
 
 test('X-Mas bleibt bei fehlender Weihnachtsgrafik bedienbar', async t => {
-  const {page, errors} = await setup(t, {station:true, theme:'xmas', missingDecoration:true, parserIncludes:true});
+  const {page, errors} = await setup(t, {station:true, theme:'xmas', missingDecoration:true, parserIncludes:true,viewport:{width:1360,height:220}});
   assert.match(await page.locator('html').getAttribute('class'), /theme-xmas/);
   assert.equal(await page.locator('#play-button').isEnabled(), true);
   assert.equal(await page.locator('#open-schedule').isEnabled(), true);

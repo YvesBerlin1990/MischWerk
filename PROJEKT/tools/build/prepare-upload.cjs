@@ -169,7 +169,11 @@ function build() {
     'server/radio/curtain.js','www/js/radio/curtain.js','www/js/radio/curtain-markup.js',
     'www/css/radio/curtain.css','www/img/curtain-velvet.png','www/audio/werbung.mp3','www/js/wishes/tracking.js'];
   const retiredXmas = ['bow','bulb','bulb-lit','corner-pinecone','fir','gear','pinecone',
-    'snow-bottom-left','snow-bottom-right','snow-top-left','snow-top-right','star']
+    'snow-bottom-left','snow-bottom-right','snow-top-left','snow-top-right','star',
+    'fassung','funkeln','goldring-an','goldring','kabel-fein','kabel-rundung','kabel-senkrecht','kugel','lampe-an','lampe-aus',
+    'rahmen-oben-links','rahmen-oben-rechts','rahmen-senkrecht','rahmen-unten-links','rahmen-unten-rechts','rahmen-waagerecht',
+    'schein','schleife','schnee-mitte-oben','schnee-mitte-unten','schnee-oben-links','schnee-oben-rechts',
+    'schnee-unten-links','schnee-unten-rechts','tanne-links','tanne-rechts','unterer-tannenschmuck','zahnrad','zapfen-garnitur']
     .map(name => 'www/img/xmas-' + name + '.png');
   for (const file of [...runtimeFiles.filter(file => !delivery.has(file)), ...retiredSchedule, ...retiredStudio, ...retiredRadio, ...retiredXmas]) {
     const target = path.resolve(upload, file);

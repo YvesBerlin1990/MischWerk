@@ -3,17 +3,10 @@ MischWerkUI.define('radioMarkup', function (dependencies) {
   'use strict';
   dependencies.dom.mount('radio-placeholder', `
     <div id="radio-deck" class="radio-deck">
-    <div id="radio-xmas-frame" class="radio-xmas-frame" aria-hidden="true">
-      <span class="radio-xmas-metal"><i></i><i></i><i></i><i></i></span>
-      <span class="radio-xmas-snow"></span>
-      <span class="radio-xmas-cable"><i></i><i></i><i></i><i></i><b></b><b></b><b></b><b></b></span>
-      <span class="radio-xmas-sparks"></span>
-      <span class="radio-xmas-halos"></span>
-    </div>
     <main id="radio-panel" class="radio-bar" aria-label="MischWerk Radio">
       <div class="radio-brand"><img class="bar-logo" src="img/mischwerk-logo.png" width="140" height="140" loading="lazy" decoding="async" alt="MischWerk"><span>MischWerk</span></div>
       <section class="radio-program" aria-label="Radioplayer und Informationen">
-      <div class="radio-panel-face radio-program-face" aria-hidden="true"></div><span class="radio-xmas-ornaments" aria-hidden="true"></span>
+      <div class="radio-panel-face radio-program-face" aria-hidden="true"></div><div id="radio-xmas-shared-frame" class="radio-xmas-shared-frame" aria-hidden="true"></div>
       <div class="transport">
         <button id="play-button" class="play-button" type="button" aria-label="Radio abspielen" aria-pressed="false" disabled><span id="play-icon" aria-hidden="true"><svg class="play-symbol" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path></svg><svg class="pause-symbol" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg></span></button>
       </div>

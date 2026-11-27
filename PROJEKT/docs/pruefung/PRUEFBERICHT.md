@@ -1,4 +1,32 @@
-# MischWerk – Prüfbericht 0.1.460 / Build 460
+# MischWerk – Prüfbericht 0.1.461 / Build 461
+
+## Gemeinsame Weihnachtsgirlande für Knuddels
+
+Stand 27.11.2026. Die Radioleiste verwendet die freigegebenen gemeinsamen PNGs und Positionsdaten für den breiten Knuddels-Rahmen, den Kompaktatlas und den Spielkranz. Sieben Dateien mit insgesamt 4.920.340 Byte stimmen per SHA-256 mit dem gemeinsamen Quellpaket überein. Der Satz liegt über dem Richtwert von rund 3 MB. Die 29 abgelösten Radio-PNGs wurden in den Papierkorb verschoben. Die Grafiken für Sendeplan und Wunschbox bleiben referenziert.
+
+| Host in CSS-px | Sichtbares Motiv in CSS-px | Befund |
+| --- | --- | --- |
+| 1360 × 220 | 1327 × 187 | Freigegebene breite Anordnung, Play 68 × 68 und mittig. Thema, Sendung, Moderation und Bedienung stehen in vier Zeilen. |
+| 1360 × 264 mit Lauftext | 1327 × 187 | Lauftext separat 44 px mit derselben Breite wie das Motiv. |
+| 1645 × 220 und 1920 × 220 | 1327 × 187 | Proportionales Motiv mittig innerhalb der gewährten Breite. |
+| 1200 × 230 | 1170,88 × 165 | Proportional, beide Aktionstasten und Regler mindestens 44 px. |
+| 840 × 208 | 819,61 × 115,50 | Dasselbe breite Motiv. Lautstärke links, Thema und Aktionen rechts vom mittigen Play. |
+| 390 × 316 sowie 390 und 320 × 360 mit Lauftext | 290,59 × 296 | Kompaktatlas, 48-px-Play und 44-px-Bedienziele. |
+| 1645 × 176 ohne Lauftext | 1061,59 × 149,59 | Proportionale breite Grafik bei kurzer, kombinierter Inhaltszeile. |
+| 390 oder 320 × 220 mit Lauftext | Spielkranz in der Kompaktleiste | Die verfügbare Rahmenhöhe von 156 px reicht für die gelieferten Proportionen und alle Bedienziele nicht aus. |
+
+Der 3,8-Sekunden-Zyklus zeigt 138 registrierte Lichtflächen im breiten und 32 im regulären kompakten Rahmen. Die CSS-Kurve verwendet drei versetzte Gruppen, 13 Prozent minimale Deckkraft und 95 Prozent bei reduzierter Bewegung. Stopp, Startversuch, Nachladen und Fehler lassen die Aus-Ebene sichtbar. Eine erneute Vermessung ohne Maßänderung erhält die Animation. In den Langtextfällen bleiben die vollständigen Angaben über die vorhandenen Lesedialoge erreichbar. Die App fordert weiterhin die Höhe des Normalmodus an, höchstens 500 px.
+
+- [Chrome bei 1360 × 220, gestoppt und laufend](oberflaeche/radio/xmas-gemeinsam-breit.png)
+- [Chrome bei 390 × 360 mit Lauftext, gestoppt und laufend](oberflaeche/radio/xmas-gemeinsam-mobil.png)
+
+Der zentrale Emulator lief in Chrome bei 1360 × 220 und 390 × 316 mit lokal abgefangener Test-WAV. Play blieb exakt mittig und die Leiste scrollfrei. Die Wunschbox-Geometrie wurde zusätzlich im Browsermodell mit freigegebenem Wunschzustand geprüft. Eine native Channel-Abnahme steht noch aus. Lokale Nachweise und Protokolle liegen im System-Tempverzeichnis im Ordner MischWerk-Gemeinsamer-XMas-Rahmen.
+
+Die Vergleichsbilder `Plattformvergleich-breit.png` und `Plattformvergleich-mobil.png` in diesem Ordner zeigen den eingebauten Stand in Knuddels, Web und Android jeweils gestoppt und bei Wiedergabe. Girlande, Lametta, Spielkranz und warme Lichtfarbe stimmen visuell überein. Der breite Knuddels-Rahmen misst 1327 × 187 CSS-Pixel und ist flacher als der Web-Rahmen mit 1361 × 260 CSS-Pixeln. Knuddels führt Lautstärke und Aktionen nebeneinander, Android zeigt den Sleeptimer. Mobil sitzt Play in Knuddels mittig, in Web und Android links neben dem Titel.
+
+Der isolierte Paketbau umfasste 473 bestandene Node-Fälle, die Architektur- und Integritätsprüfung sowie je 250 Fälle mit Rhino 1.7.7.2 und 1.9.1 am Quellstand und am Paket. Der vollständige Edge-Lauf am Quellstand bestand mit 248 Fällen. Die vier gezielten X-Mas-Fälle bestanden am abschließenden Quellstand und Prüfpaket. In Chrome blieb bei 1360 × 220 auch ein 2-px-Prüfabstand der Klickflächen zur blickdichten Girlande frei. Die SHA-256-Prüfung bestätigte alle 143 lokalen Paketdateien und die fünf Manifeste.
+
+Der konfigurierte lokale Releaseordner enthält Build 461. Beide Rhino-Engines bestanden dort erneut. Die getrennte Freigabe `.freigaben/MischWerk.json` enthält Appversion 0.1.461 und Build 461. Dateiliste, Größen und SHA-256 aller 143 Release-Dateien wurden unabhängig mit der Freigabe und den fünf Manifesten abgeglichen. Das Protokoll `MischWerk-461-Freigabe.log` liegt im temporären Prüfverzeichnis.
 
 ## Tannenschmuck mit bordeauxrotem Lametta
 

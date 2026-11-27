@@ -3,41 +3,41 @@
   "appId": "knuddelsDEV.30807196.MischWerk",
   "installId": "30807196.MischWerk",
   "channel": "MischWerk",
-  "version": "0.1.460",
-  "buildNumber": 460,
+  "version": "0.1.461",
+  "buildNumber": 461,
   "remotePath": "/ftp/MischWerk",
   "stationConfigured": true,
   "ftpHost": "appupload.knuddels.de",
   "ftpUser": "30807196",
   "delivery": "upload-directory",
   "bundled": true,
-  "localUploadRoot": "C:\\Users\\alexk\\AppData\\Local\\Temp\\MischWerk-460-Pruefpaket-hwbux0sf.pwn\\MischWerk",
-  "fileCount": 164,
+  "localUploadRoot": "C:\\Users\\alexk\\Documents\\Releases\\Knuddels User Apps\\MischWerk",
+  "fileCount": 143,
   "fileManifests": [
     {
       "path": "manifest-server.json",
       "fileCount": 45,
       "bytes": 7707,
-      "sha256": "D285082D3B05BC5472431208C690E835AFDF6F4AC7CC2E8D62C4FA19F898E41F"
+      "sha256": "DE279F182128C5D35F83534C798C9F9AB402478F75045B32DB82EE06ED1DDC49"
     },
     {
       "path": "manifest-www.json",
-      "fileCount": 46,
-      "bytes": 7899,
-      "sha256": "468CD6BAC70AC6E1A5E3AD5322067CA88BD05EB47462B043B3293AAEEF491252"
+      "fileCount": 49,
+      "bytes": 8425,
+      "sha256": "8AE99741B502CE8645673CA87DFC5CB85C96630D4D7CCBA86C6556180191C5C9"
     },
     {
       "path": "manifest-studio.json",
       "fileCount": 19,
       "bytes": 3327,
-      "sha256": "FD7A0DC5C14BC530FD5284158AC5C45D5863981FF9CFD13F02C8B75023CDCE6D"
+      "sha256": "BCB58D5B865C1DF47D1DD94B9CA3F5625E1D8C0112CE9085D522426CECE76ABA"
     },
     {
       "path": "manifest-media.json",
-      "fileCount": 54,
-      "bytes": 8812,
-      "sha256": "73DFE6E9ECF1C5F97C69B01FF1CB6EDDBA7A24AF94F43B646083909CE9C5FC7E"
+      "fileCount": 30,
+      "bytes": 4909,
+      "sha256": "FA6B2EC6117DB9140993D0BB152B394E37F9E1DF964938F7593FCFECAA41AF64"
     }
   ],
-  "localUploadDirectory": "C:\\Users\\alexk\\AppData\\Local\\Temp\\MischWerk-460-Pruefpaket-hwbux0sf.pwn\\MischWerk"
+  "localUploadDirectory": "C:\\Users\\alexk\\Documents\\Releases\\Knuddels User Apps\\MischWerk"
 }
