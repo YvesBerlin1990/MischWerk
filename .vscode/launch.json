@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "MischWerk: Emulator (Submodul)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/PROJEKT/tools/start-emulator.cjs",
+      "cwd": "${workspaceFolder}/PROJEKT",
+      "console": "internalConsole",
+      "autoAttachChildProcesses": true,
+      "serverReadyAction": {
+        "pattern": "Emulator-UI: http://127\\.0\\.0\\.1:(\\d+)",
+        "uriFormat": "http://localhost:%s",
+        "action": "debugWithChrome"
+      },
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    }
+  ]
+}
