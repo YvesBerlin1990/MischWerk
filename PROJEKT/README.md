@@ -1,6 +1,6 @@
 # MischWerk – technische Übersicht
 
-**App 0.1.449 · Build 449 · Website 0.2.13** · Stand: 18.11.2026.
+App- und Webstand stehen im [App-Paket](package.json) und [Website-Paket](website/package.json).
 
 MischWerk zeigt Radio, zentrale Sendungsdaten, eigene Musikwünsche, Lauftext und Sendeplan in Knuddels. Sendung und Wunschregie liegen im MischWerk Live Studio mit Firebase; die App verwendet den vorhandenen signierten Abgleich.
 
@@ -46,7 +46,7 @@ Befehle aus `PROJEKT/` ausführen; von der Repositorywurzel jeweils `pnpm --dir 
 | `pnpm run check` | Struktur, Syntax, API-Signaturen und Inventar |
 | `pnpm run check:rhino` | Rhino 1.7.7.2 und 1.9.1 |
 | `pnpm run check:lengths` | Textgrenzen der Laufzeitdateien |
-| `pnpm run prepare:upload` | Geprüftes Paket im Desktop-UPLOAD bauen |
+| `pnpm run prepare:upload` | Geprüftes Paket im konfigurierten UPLOAD bauen |
 | `pnpm run check:upload` | Paket, Quellen und fünf Manifeste vergleichen |
 | `pnpm run check:delivery --base-url URL/` | Gewählte öffentliche Auslieferung lesend per SHA-256 vergleichen |
 
@@ -54,23 +54,19 @@ Rhino-JARs einmalig mit `node tools/checks/rhino.cjs --download` beziehen. `MISC
 
 ## App im zentralen Emulator prüfen
 
-Nach `pnpm install --frozen-lockfile` startet `pnpm run emulator` aus `PROJEKT/` den lokalen Appbestand auf `127.0.0.1:3105`. Unter Windows initialisiert der Starter bei Bedarf das gebundene Submodul und ruft dessen zentrale Abgleichseinrichtung auf. Diese registriert die tatsächliche lokale Repositorykopie und beendet ihren ersten Abgleich einschließlich nötiger Emulatorabhängigkeiten vor dem Serverstart. `MISCHWERK_EMULATOR_PORT` wählt einen anderen Port, Strg+C beendet den Server.
+Mit `pnpm run emulator` starten. Unter Windows richtet der erste Start den Abgleich für diese Kopie ein. `pnpm run emulator:setup` erneuert die Einrichtung. `MISCHWERK_EMULATOR_PORT` wählt einen anderen Port, Strg+C beendet den lokalen Server.
 
-`pnpm run emulator:setup` richtet den automatischen Abgleich ausdrücklich ein oder erneuert ihn. Auf einem weiteren Windows-Rechner oder nach Verschieben genügt derselbe Befehl beziehungsweise der erste normale Emulatorstart. Mehrere Kopien an unterschiedlichen Pfaden können nebeneinander registriert sein; die zentrale Einrichtung verwaltet eine gemeinsame stille Windows-Aufgabe bei der Benutzeranmeldung. Der Abgleich verwendet die jeweilige vorhandene Git-Anmeldung mit Zugriff auf die privaten Repositories. Maschinenpfade und Zugangsdaten werden nicht im Repository verteilt. Die Installation auf anderen Rechnern erfolgt durch deren lokalen Aufruf.
-
-Die Laufzeit stammt aus [Windows-K-UserAppEmulator](https://github.com/PolaroidK/Windows-K-UserAppEmulator), Branch `emulator-submodule`. Der kleine lokale Starter baut das Backend und übergibt den absoluten Apppfad; Emulatoränderungen werden ausschließlich im zentralen Repository gepflegt. Testdaten und Berichte liegen im System-Tempordner. Der bisherige Emulator ist veraltet; seine Modelle bleiben unter `tests/support/native-lab/` für bestehende Regressionstests erhalten. Die Modelle ersetzen keine native Knuddels-Abnahme.
-
-[Zentrale Dokumentation](tools/userapp-emulator/laufzeit-und-submodul.md) · [Codex-Zugriff](../AGENTS.md#codex-zugriff-auf-den-zentralen-emulator)
+[Zentrale Dokumentation](tools/userapp-emulator/laufzeit-und-submodul.md) · [Emulatorregeln](../AGENTS.md#codex-zugriff-auf-den-zentralen-emulator)
 
 ## Website und Anbindungen
 
-Im Ordner `website/` zunächst `pnpm install --frozen-lockfile` ausführen. `pnpm start` startet den regulären Webserver, `pnpm test` prüft das eigene Projekt. Einrichtung und Appadapter sind in der [Website-Dokumentation](website/README.md) und im [Anbindungsvertrag](website/docs/ANBINDUNG.md) beschrieben.
+Im Ordner `website/` zunächst `pnpm install --frozen-lockfile` ausführen. `pnpm start` startet den regulären Webserver, `pnpm test` prüft das eigene Projekt. Einrichtung und Appadapter sind in der [Website-Dokumentation](website/README.md) und im [Anbindungsübersicht](website/docs/ANBINDUNG.md) beschrieben.
 
-[Senderdaten und Wünsche](docs/api/API-NACHWEIS.md) · [Homepage-/Teamvertrag](docs/api/HOMEPAGE-SENDEPLAN-RUECKANTWORT.md) · [Sendeplan](docs/betrieb/SENDEPLAN.md) · [Einrichtung und Betrieb](docs/betrieb/INBETRIEBNAHME.md)
+[Senderdaten und Wünsche](docs/api/API-NACHWEIS.md) · [Historischer Homepage-Sendeplanabgleich](docs/api/HOMEPAGE-SENDEPLAN-RUECKANTWORT.md) · [Sendeplan](docs/betrieb/SENDEPLAN.md) · [Einrichtung und Betrieb](docs/betrieb/INBETRIEBNAHME.md)
 
 ## Paketbau und Nachweise
 
-`prepare:upload` baut Backend und Auslieferungsbündel und führt Node-, Rhino- und Integritätsprüfungen aus. Beide Rhino-Engines prüfen auch das fertige Paket; die Browserrunde läuft separat. Die Auslieferung liegt unter `<Desktop des aktuellen Nutzers>/MischWerk/UPLOAD/MischWerk/`. Der Windows-Desktop wird automatisch ermittelt. Ablauf und Installation beschreibt die [Uploadanleitung](docs/betrieb/INBETRIEBNAHME.md#installation-und-upload).
+In der [Uploadanleitung](docs/betrieb/INBETRIEBNAHME.md#installation-und-upload) stehen der Einstieg zur Paketprüfung und der Installationsablauf. Standardziel, persönliches Direktziel und Freigabeverfahren beschreibt [Wartung und Bereitstellung](../AGENTS.md#wartung-und-bereitstellung).
 
 Aktuelle Ergebnisse, Bestandszahlen und offene Abnahmen stehen in den Prüfberichten:
 

@@ -1,6 +1,8 @@
-# MischWerk – API-Nachweis 0.1.452 · Build 452
+# MischWerk – API-Nachweise
 
-## Aktueller zentraler V2-Abgleich
+Die folgenden Prüfstände dokumentieren Schnittstellen- und Rhino-Befunde. Den geltenden Vertrag und die Projektregeln führt [AGENTS.md](../../../AGENTS.md#website-und-android-vorbereitung). Die Übergabedatei [ANDROID-RELAY-HANDOFF.json](ANDROID-RELAY-HANDOFF.json) hält den historischen V1-Nachweis aus Build 289 maschinenlesbar fest. Ihre Pfade und Betreiberhinweise beziehen sich auf den damaligen Stand.
+
+## Zentraler V2-Abgleich · Prüfstand Build 452, 22.11.2026
 
 Die App verwendet weiterhin den dokumentierten ExternalServerAccess.postURL-, RandomOperations-, User-Icon-, AppContent- und Sessionweg. Der innere gemeinsame Datenvertrag bleibt Version 2. Vier Stringfelder payload/ts/nonce/sig, HMAC-SHA256 über v1.ts.nonce.payload und das Hostingziel bleiben erhalten. Lokale Moderation und private Studio-Sitzungskennungen werden nicht übertragen. Native Anmeldung/PIN/Übergabe/Regie und zusätzliche Node-Anmeldung sind entfernt.
 
@@ -24,9 +26,13 @@ Der bestehende HTML-Audioweg erfasst `MediaError.code` vor dem Zurücksetzen dur
 
 Es werden weder Rohfehlermeldungen noch URLs, Schlüssel, Stacktraces oder erfundene HTTP-Statuscodes angezeigt. Der Browsercode ist eine Fehlerklasse und kein eindeutiger Nachweis der eigentlichen Netz-/TLS-/Codecursache. Im lokalen Android-Browserprofil liefern sowohl ein gescheiterter Abruf als auch eine HTML-Antwort statt Audio Medienfehler 4. Dieser Code beweist deshalb allein keine MP3-Unverträglichkeit des A54. Die Meldung bleibt über Wiederverbindungsversuche erhalten und wird bei Erfolg, Stop oder Quellenwechsel gelöscht. Native Knuddels-Schnittstellen, Streamadresse und der einzelne Verbindungs-/Beobachtungstimer bleiben erhalten.
 
+### Historischer Lautstärke-Grundlagenbefund · 0.1.62, 01.11.2026
+
+Die Prüfung ermittelte, dass der Regler den nativen `HTMLMediaElement.volume`-Wert von 0 bis 1 schrieb. Bei 100 % kam keine zusätzliche Verstärkung durch einen AudioContext oder GainNode zum Einsatz. Prozentwerte belegten weder einen Streampegel noch den physischen Schallpegel. [WHATWG HTML, Medienlautstärke](https://html.spec.whatwg.org/multipage/media.html#dom-media-volume-dev)
+
 ## Wunschfernregie ohne Umsortieren · 13.11.2026
 
-Der reduzierte Vertrag ist mit der Firebase-/Studio-Seite abgestimmt. Der Nutzer hat Umsortieren und gezieltes Einsortieren gestrichen. Der native Teil verwendet die bestehenden Wunschfachfunktionen; zusätzlich speichern wishes/control-state und der vorhandene Queueadapter technische Mutationsrevisionen, tatsächlich gesendete Snapshotbezüge und atomare Auftragsbelege. android/wish-control projiziert echte Moderationsbindung, Quittungen und jeweils den aktuellen Wunschstand. android/wish-commands prüft die Aufträge und ruft die vorhandenen Fachaktionen mit einem im selben Commit gespeicherten Ergebnis auf. Die verbindlichen Daten-/Rechte-/Statusregeln stehen zentral in [AGENTS.md](../../../AGENTS.md#wunschfernregie-ohne-umsortieren).
+Der reduzierte Vertrag ist mit der Firebase-/Studio-Seite abgestimmt. Der Nutzer hat Umsortieren und gezieltes Einsortieren gestrichen. Der native Teil verwendet die bestehenden Wunschfachfunktionen; zusätzlich speichern wishes/control-state und der vorhandene Queueadapter technische Mutationsrevisionen, tatsächlich gesendete Snapshotbezüge und atomare Auftragsbelege. android/wish-control projiziert echte Moderationsbindung, Quittungen und jeweils den aktuellen Wunschstand. android/wish-commands prüft die Aufträge und ruft die vorhandenen Fachaktionen mit einem im selben Commit gespeicherten Ergebnis auf. Der Abschnitt beschreibt die damalige V1-Fernregie. Die später eingeführte zentrale Wunschregie ist im Abschnitt [Wünsche und Thema](../../../AGENTS.md#wünsche-und-thema) beschrieben.
 
 Die offizielle [ExternalServerAccess-Referenz](https://developer.knuddels.de/docs/classes/ExternalServerAccess.html) ist erneut gelesen und mit den unveränderten Referenzstubs abgeglichen: postURL(url, parameters), data mit Stringwerten und onSuccess/onFailure(responseData, response). Weiterhin ausschließlich payload/ts/nonce/sig; kein zusätzlicher Header, Endpunkt, WebHook oder unbelegter physischer Abbruch. Die Referenz nennt weder einen festen 20-Sekunden-Mindestabstand noch ein zugesichertes Requestkontingent. Der ausdrücklich beauftragte lokale Zielgrundtakt beträgt bei tatsächlicher Moderation 5 Sekunden, sonst 20 Sekunden, mit genau einem Timer. Transport-/Antwortfehler einschließlich 429/5xx verwenden begrenzte Verzögerung bis 60 Sekunden. Erfolgs- und Fehlercallbacks starten keinen Folge-POST; auch weitere Wunschpakete und Quittungen warten auf einen regulären Takt. Der Port bleibt bis zum echten Callback belegt. Die synthetischen Messungen und die gesonderte offene native Abnahme stehen im [Prüfbericht](../pruefung/PRUEFBERICHT.md).
 

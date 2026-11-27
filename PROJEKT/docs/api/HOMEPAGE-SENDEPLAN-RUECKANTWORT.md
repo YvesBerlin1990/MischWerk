@@ -1,4 +1,6 @@
-# Rückantwort: Homepage-Sendeplan und Radioteam · Build 372
+# Historischer Nachweis zum Homepage-Sendeplan und Radioteam · bis Build 372
+
+Die Rückantwort dokumentiert den Stand vom 11.11.2026 und frühere Relay-Prüfungen. Für den heutigen Einstieg siehe [Sendeplan](../betrieb/SENDEPLAN.md) und für Regeln den [Sendeplanabschnitt in AGENTS.md](../../../AGENTS.md#sendeplan).
 
 ## Direkter öffentlicher Sendeplanabruf auf Nutzerauftrag · 11.11.2026
 
@@ -90,7 +92,7 @@ Grundlage ist die vom Betreiber nachgereichte `C:/Users/Yves/Desktop/Übergabe.z
 | [core/validation.js](../../src/backend/core/validation.js), Zeile 7 | `runtime.text` ersetzt Steuerzeichen, fasst Leerraum zusammen und entfernt äußere Leerzeichen. Beispiel: Empfang `topic: "  Web   Titel  "`, `nick: "otterchen"`; Speicherung und Tagespaket `Web Titel` / `Otterchen`. Zu lange Themen werden abgelehnt, nicht abgeschnitten. Normale bereits normalisierte Titel bleiben an dieser Stelle erhalten. |
 | [schedule/day.js](../../src/backend/schedule/day.js), Zeile 41 | Das Thema wird aus dem gespeicherten Eintrag übernommen; für AutoDJ wird der Name erneut durch `AutoDJ` ersetzt. |
 | [schedule/view.js](../../app/www/js/schedule/view.js), Zeilen 68–69 | Der Titel wird als Textknoten ausgegeben. Der Name wird bei AutoDJ unabhängig vom gelieferten Nick zu `AutoDJ`; Live-Namen erhalten den Zusatz `Mit `. Die CSS-Regeln umbrechen lange Titel und Namen, ohne eine eigene Textkürzung einzuführen. |
-| [schedule/broadcasts.js](../../src/backend/schedule/broadcasts.js), Zeilen 29–55 | Eine passende gebundene Planung kann durch den bestehenden Studioabgleich gefunden werden. `if (topic) { entry.topic = topic; }` überschreibt dann auch deren Webtitel. Reproduktion: `Web-Original` wird nach nativer Anmeldung, Themenänderung und Abmeldung zu `Natives Studiothema`, bei unveränderter aktiver Firebase-Zuordnung. |
+| [schedule/broadcasts.js](https://github.com/YvesBerlin1990/MischWerk/blob/6f664250929e6cbd873be2f3dd73a01364e7424e/PROJEKT/src/backend/schedule/broadcasts.js), Zeilen 29–55 | Eine passende gebundene Planung kann durch den bestehenden Studioabgleich gefunden werden. `if (topic) { entry.topic = topic; }` überschreibt dann auch deren Webtitel. Reproduktion: `Web-Original` wird nach nativer Anmeldung, Themenänderung und Abmeldung zu `Natives Studiothema`, bei unveränderter aktiver Firebase-Zuordnung. |
 
 Für einen übernommenen ganztägigen AutoDJ-Eintrag wurde die vollständige Kette lokal beobachtet: Empfang `MischWerk Radio Show` / `MischWerk am Pult` → Speicherung `MischWerk Radio Show` / `MischWerk` → Tagespaket und sichtbare Browseranzeige `MischWerk Radio Show` / `AutoDJ`. Die Anforderung unveränderter Titel und Namen ist somit im aktuellen Stand nicht durchgängig erfüllt.
 
@@ -135,9 +137,9 @@ Geprüfter lokaler Stand: **0.1.368 / Build 368**, Arbeitsordner **C:/Users/Yves
 | Gegenstand der Übergabe | Tatsächlich vorhandene Verarbeitung |
 | --- | --- |
 | Bestehender Statuskanal | [connection.js](../../src/backend/android/connection.js) sendet per nativem HTTP-POST an das konfigurierte feste Ziel. [publisher.js](../../src/backend/android/publisher.js) übernimmt Aufträge ausschließlich aus einer passenden, rechtzeitigen HTTP-200-Antwort mit `accepted === true`, plausibler `serverTime` und gültigem `wishes`-Array. |
-| `scheduleCommands` | [commands.js](../../src/backend/android/commands.js) prüft höchstens einen Auftrag mit exakt `commandId`, `operation`, `week`, `expectedRevision`, `id`, `entry`. `save` erwartet die sieben genannten Sendungsfelder; `delete` verlangt `entry: null`. Bestehende Vollstunden-, Nick-, Themen- und Überschneidungsprüfungen bleiben maßgeblich. |
+| `scheduleCommands` | [commands.js](https://github.com/YvesBerlin1990/MischWerk/blob/6f664250929e6cbd873be2f3dd73a01364e7424e/PROJEKT/src/backend/android/commands.js) prüft höchstens einen Auftrag mit exakt `commandId`, `operation`, `week`, `expectedRevision`, `id`, `entry`. `save` erwartet die sieben genannten Sendungsfelder; `delete` verlangt `entry: null`. Bestehende Vollstunden-, Nick-, Themen- und Überschneidungsprüfungen bleiben maßgeblich. |
 | Firebase-Eintrags-ID | [relay.js](../../src/backend/schedule/relay.js) ordnet die stabile String-ID dauerhaft einer nativen Woche und Eintrags-ID zu. Änderung, Zuordnung und Ergebnis werden zusammen gespeichert. Wiederholungen, Neustarts und Löschmarker verhindern doppelte oder neu zugeordnete Einträge. |
-| Ergebnisse und Revisionen | `pendingRelayResults()` liefert höchstens zehn `scheduleResults` im folgenden regulären POST. [projection.js](../../src/backend/android/projection.js) meldet die tatsächlich lesbaren `scheduleRevisions` für vorige, aktuelle und nächste Berliner ISO-Woche. Die öffentliche JSON-Revision wird dafür nicht übernommen. |
+| Ergebnisse und Revisionen | `pendingRelayResults()` liefert höchstens zehn `scheduleResults` im folgenden regulären POST. [projection.js](https://github.com/YvesBerlin1990/MischWerk/blob/6f664250929e6cbd873be2f3dd73a01364e7424e/PROJEKT/src/backend/android/projection.js) meldet die tatsächlich lesbaren `scheduleRevisions` für vorige, aktuelle und nächste Berliner ISO-Woche. Die öffentliche JSON-Revision wird dafür nicht übernommen. |
 | Öffentlicher Tagesplan | [day.js](../../src/backend/schedule/day.js) zeigt bestätigte aktive `relayBindings`. Ungebundene Alteinträge und automatische Studioaufzeichnungen bleiben außerhalb dieser Projektion. AutoDJ-Lücken werden nur abgeleitet. Die öffentliche JSON-Ansicht wird von Knuddels nicht als Auftragsliste eingelesen. |
 
 Die vorhandene native Tagesansicht und deren Gestaltung erfüllen den bisherigen freigegebenen Projektstand. Aus der Homepage-Ansicht ergibt sich kein zusätzlicher Gestaltungsauftrag.
