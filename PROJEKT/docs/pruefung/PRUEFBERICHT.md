@@ -1,5 +1,13 @@
 # MischWerk – Prüfbericht 0.1.463 / Build 463
 
+## Kugeln und Eckgruppen · lokale Vorschau auf Basis Build 463
+
+Die gemeinsame Kugelvorlage liegt im Web-/Android-Repository unter `project/android-radio/project/docs/screenshots/xmas-kugeln-a-b-c.png` (Git-Stand `174cb58`). Die [Freisteller-Vorlage](https://github.com/PolaroidK/Windows-Web-App-MischWerk/blob/e4a66ab5cc8b6d187699ee36fbb2710494632017/project/android-radio/project/assets/backgrounds/xmas-kugeln-freisteller.png) ist als gemeinsame Arbeitsquelle abgelegt. Für den Knuddels-Prüfkandidaten sind glänzende, satinierte und gerippte Kugeln sowie die vier Eckgruppen in den vorhandenen breiten und kompakten An-/Aus-PNGs montiert. Die unteren Eckgruppen folgen der gespiegelten Platzierung. Ihre Kugeln sind wegen der vorhandenen Lampenflächen kleiner, und das Ilexmotiv gibt die Mindestgröße vor. Im Host 1645 × 176 misst die Girlande 1605 × 149,59 CSS-Pixel. Die große Kugel oben misst je 24,8 CSS-Pixel in der Breite, unten misst das Ilexmotiv je 26,8 CSS-Pixel.
+
+Die Bildpaare behalten 2654 × 374 und 700 × 1017 Pixel sowie ihren Alphakanal. Ein Rohpixelvergleich bestätigte identische Daten an allen registrierten Lampenflächen und identische An-/Aus-Pixelbeziehungen. Die Lampenkarten, der Spielkranz, CSS und JavaScript sind bytegleich. 13 Chrome-Hostmessungen im Knuddels-Modell ergaben vor und nach dem Austausch dieselben Maße und Lampenzahlen. Fünf gezielte Browserfälle bestanden, darunter K3 und STAPP. Die 16 Detailaufnahmen decken alle vier Ecken bei 1645 × 176 und 1645 × 220 in beiden Lichtzuständen ab. Die Aufnahmen liegen im temporären Prüfverzeichnis.
+
+Die optische Freigabe für die neuen Grafiken steht aus. Das konfigurierte Build-463-Paket mit seinen 143 Dateien, fünf Manifesten und der separaten Freigabedatei blieb bytegleich.
+
 ## Textanzeigen und Aktionsspalte in X-Mas
 
 Stand 27.11.2026. Die unsichtbaren Schaltflächen über Musik und Thema sind entfernt. Titel, Interpret, Thema und Moderation bleiben statische Textanzeigen mit vollständigen dynamischen Inhalten im DOM. Klicks öffnen keinen Dialog. Der Normalmodus behält seinen Tastaturzugang zum Informationsbereich. Den eigenen Musikwunsch kann man weiterhin über seinen Lesedialog vollständig lesen.
