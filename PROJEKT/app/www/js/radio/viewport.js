@@ -45,7 +45,6 @@ MischWerkUI.define('viewport', function (dependencies) {
     }
     var wide=window.innerWidth>=1200,tight=wide&&window.innerWidth<1600&&!dom.el('radio-panel').classList.contains('has-moderation'),minimum=tight?144:wide?160:96;
     var maximum=tight?160:wide?Math.min(220,160+Math.max(0,window.innerWidth-1200)/2):128;
-    // Das absolut positionierte Bild bestimmt seine eigene Messhöhe nicht mit.
     // Größere Randspalten bleiben symmetrisch; Textumbruch höchstens viermal abgleichen.
     for(var pass=0;pass<4;pass+=1){
       var labelChanged=fitLabels();
@@ -85,7 +84,7 @@ MischWerkUI.define('viewport', function (dependencies) {
     try { bridge.getHostFrame().setSize(0, height); }
     catch (ignored) { /* Die angezeigte Leiste nutzt die tatsächlich gewährte Höhe. */ }
   }
-  function fitXmas(preferred) {
+  function fitXmas(preferred, normalWidth) {
     var width = window.innerWidth;
     var ticker = dom.el('radio-ticker');
     var footer = ticker && !ticker.hidden ? 44 : 0;
@@ -96,23 +95,21 @@ MischWerkUI.define('viewport', function (dependencies) {
     var unit = reference ? Math.min(width / 1645, available / 292) : width > 700 ? .78 : .59;
     var inset = reference ? 22 * unit : wide ? 16 : width > 700 ? 13 : 10;
     var room = Math.max(0, available - 2 * inset);
-    var sizes = { height:granted, room:room, unit:unit, pad:inset,
-      footer:footer };
+    var sizes = {height:granted, room:room, unit:unit, pad:inset};
     Object.keys(sizes).forEach(function (name) {
       root.style.setProperty('--xmas-' + name, sizes[name] + 'px');
     });
     root.classList.remove('radio-constrained');
-    root.classList.toggle('xmas-reference', reference);
     root.classList.toggle('xmas-compact', width <= 700 && room < 355);
     root.classList.toggle('xmas-mobile-grid', width <= 700 && room >= 260 && room < 355 &&
       !document.body.classList.contains('has-own-wish'));
     root.classList.toggle('xmas-short', room < (width <= 700 ? 170 : 157));
     requestHeight(preferred);
-    if (xmasFrame) { xmasFrame.fitHost(width, available, inset, room, reference); }
+    if (xmasFrame) { xmasFrame.fitHost(width, normalWidth, available, inset, room, reference); }
     if (workshop) { workshop.fit(); }
   }
   function measureNormal(xmas) {
-    // Im selben Layoutdurchlauf messen. Die Rahmenebene bleibt für das laufende Licht aktiv.
+    // Die Rahmenebene bleibt beim Messen für das Lauflicht aktiv.
     if (xmas) { root.classList.add('xmas-measure'); root.classList.remove('theme-xmas'); }
     try {
       fitProportions();
@@ -121,7 +118,12 @@ MischWerkUI.define('viewport', function (dependencies) {
       var style = getComputedStyle(dom.el('radio-deck'));
       var top = parseFloat(style.marginTop) || 0;
       var glow = parseFloat(style.getPropertyValue('--radio-glow-space')) || 0;
-      return top + Math.max(160, Math.ceil(dom.el('radio-panel').getBoundingClientRect().height)) + tickerHeight + glow;
+      var panel = dom.el('radio-panel');
+      var height = Math.ceil(panel.getBoundingClientRect().height);
+      return {
+        height:top + Math.max(160, height) + tickerHeight + glow,
+        width:xmas ? panel.querySelector('.radio-panel-face').getBoundingClientRect().width : 0
+      };
     } finally {
       if (xmas) { root.classList.add('theme-xmas'); root.classList.remove('xmas-measure'); }
     }
@@ -135,12 +137,12 @@ MischWerkUI.define('viewport', function (dependencies) {
     var constrained = small && window.innerHeight < 360;
     root.classList.toggle('radio-constrained', constrained);
     if (bridge && !bridge.isK3Client()) { root.classList.remove('radio-constrained'); }
-    var contentHeight = measureNormal(xmas);
-    var height = Math.min(500, contentHeight);
-    if (xmas) { fitXmas(height); return; }
-    root.classList.remove('xmas-compact', 'xmas-mobile-grid', 'xmas-short', 'xmas-reference', 'xmas-shared-wide', 'xmas-shared-compact');
+    var normal = measureNormal(xmas);
+    var height = Math.min(500, normal.height);
+    if (xmas) { fitXmas(height, normal.width); return; }
+    root.classList.remove('xmas-compact', 'xmas-mobile-grid', 'xmas-short', 'xmas-shared-wide', 'xmas-shared-compact');
     centerInformation();
-    if (bridge && !bridge.isK3Client()) { constrained = small && window.innerHeight + 1 < contentHeight; }
+    if (bridge && !bridge.isK3Client()) { constrained = small && window.innerHeight + 1 < normal.height; }
     requestHeight(height);
     root.classList.toggle('radio-constrained', constrained);
     if (workshop) { workshop.fit(); }

@@ -1,4 +1,3 @@
-/* Die gemeinsamen An- und Aus-Bilder teilen dieselbe Geometrie und Lichtkurve. */
 MischWerkUI.define('xmasFrame', function (dependencies) {
   'use strict';
   var host = dependencies.dom.el('radio-xmas-shared-frame');
@@ -54,9 +53,62 @@ MischWerkUI.define('xmasFrame', function (dependencies) {
     lamp.style.setProperty('--xmas-phase', -scene.period * phase + 'ms');
   }
 
-  function renderWide(points, scale) {
+  function trimLayers(tiles, points) {
+    Object.keys(layers).forEach(function (key) {
+      if ((key.indexOf('art') === 0 && +key.slice(3) >= tiles) ||
+          (key.indexOf('light') === 0 && +key.slice(5) >= points)) {
+        layers[key].remove(); delete layers[key];
+      }
+    });
+  }
+
+  function wideJoin(points, center, length) {
+    // Beide Spiegelachsen zwischen die Glaskerne legen. Der weiche Schein darf überlappen.
+    for (var offset = 0; offset <= 180; offset++) {
+      for (var side = -1; side <= 1; side += 2) {
+        var x = center + offset * side;
+        if (points.every(function (lamp) {
+          return Math.min(Math.abs(x - lamp.x), Math.abs(x + length - lamp.x)) >= 3.75;
+        })) { return x; }
+      }
+    }
+    return center;
+  }
+
+  function renderWide(points, scale, width) {
     var scene = {image:'xmas-player-knuddels-an', atlas:[1327,187], period:3800, groups:3};
-    points.forEach(function (point,index) { light('light' + index, point, index, points.length, scale, scene); });
+    var assets = scene.atlas.map(function (n) { return n * scale; });
+    var units = width / scale, extra = units - 1327;
+    var x = 0, tiles = 0, visible = [];
+    function add(start, length, flip) {
+      place('art' + tiles++, 'radio-xmas-shared-art',
+        [x * scale, 0, length * scale, assets[1]],
+        'xmas-player-knuddels-aus', assets, [-start * scale, 0], flip);
+      points.forEach(function (point) {
+        var localX = point.x - start;
+        if (localX < 0 || localX >= length) { return; }
+        visible.push({x:x + (flip ? length - localX : localX), y:point.y,
+          sourceX:point.x, rx:point.rx, ry:point.ry, flip:flip});
+      });
+      x += length;
+    }
+    if (extra > .05) {
+      var pairs = Math.ceil(extra / 440), length = extra / (2 * pairs);
+      var join = wideJoin(points, Math.round((1327 - length) / 2), length);
+      add(0, join, false);
+      // Am selben Fotoquerschnitt spiegeln, damit die Kanten aneinander anschließen.
+      for (var pair = 0; pair < pairs; pair++) {
+        add(join, length, false);
+        add(join, length, true);
+      }
+      add(join, 1327 - join, false);
+      visible.sort(function (a,b) { return angle(a) - angle(b); });
+    } else { add(0, 1327, false); }
+    visible.forEach(function (point,index) { light('light' + index, point, index, visible.length, scale, scene); });
+    trimLayers(tiles, visible.length);
+    function angle(point) {
+      return (Math.atan2(point.x / units - .5, .5 - point.y / 187) + 2 * Math.PI) % (2 * Math.PI);
+    }
   }
 
   function renderCompact(data, scale, height) {
@@ -110,13 +162,7 @@ MischWerkUI.define('xmasFrame', function (dependencies) {
     });
     var scene = {image:'xmas-player-kompakt-an', atlas:profile.atlas, period:data.light.periodMs, groups:data.light.groups};
     points.forEach(function (point,i) { light('light' + i,point,i,points.length,scale,scene); });
-    // Nur tatsächlich geänderte Geometrie ersetzt entfallene Seitenstücke.
-    Object.keys(layers).forEach(function (key) {
-      if ((key.indexOf('art') === 0 && +key.slice(3) >= tiles.length) ||
-          (key.indexOf('light') === 0 && +key.slice(5) >= points.length)) {
-        layers[key].remove(); delete layers[key];
-      }
-    });
+    trimLayers(tiles.length, points.length);
   }
 
   function fit() {
@@ -134,14 +180,14 @@ MischWerkUI.define('xmasFrame', function (dependencies) {
     if (!data) { return; }
     var size = [profile, box.width, box.height].join('/');
     if (stamp === size) { return; }
-    if (wide) { renderWide(data, box.width / 1327); }
+    if (wide) { renderWide(data, box.height / 187, box.width); }
     else { renderCompact(data, box.width / data.compact.width, box.height); }
     stamp = size;
     host.dataset.ready = profile;
   }
 
-  function fitHost(width, available, inset, room, reference) {
-    var sharedScale = Math.min(1, width / 1360, available / 220);
+  function fitHost(width, normalWidth, available, inset, room, reference) {
+    var sharedScale = Math.min(1, width / 1360, normalWidth / 1327, available / 220);
     var compactScale = Math.min((width - 2 * inset) / 700, room / 713);
     var sharedCompact = width <= 700 && room >= 285 && compactScale >= .40;
     var low = !reference && width >= 800 && sharedScale >= .58 &&
@@ -153,7 +199,7 @@ MischWerkUI.define('xmasFrame', function (dependencies) {
     root.style.setProperty('--xmas-compact-width', 700 * compactScale + 'px');
     root.style.setProperty('--xmas-compact-height', room + 'px');
     root.style.setProperty('--xmas-shared-scale', sharedScale);
-    root.style.setProperty('--xmas-shared-width', 1327 * sharedScale + 'px');
+    root.style.setProperty('--xmas-shared-width', normalWidth + 'px');
     root.style.setProperty('--xmas-shared-height', 187 * sharedScale + 'px');
     fit();
   }

@@ -1,6 +1,6 @@
 {
- "version": "0.1.461",
- "buildNumber": 461,
+ "version": "0.1.462",
+ "buildNumber": 462,
  "files": [
   {
    "path": "MischWerk/www/img/mischwerk-logo.png",
@@ -34,8 +34,8 @@
   },
   {
    "path": "MischWerk/www/img/xmas-player-knuddels-an.png",
-   "bytes": 1383597,
-   "sha256": "E73616B83D59C1C54E5050E1E7C3D79016EEA741A14979CC34819530C004338A"
+   "bytes": 1378060,
+   "sha256": "23F901BB95B395E93A03F13BAEC476EF4FB1961F21F4F1A538E24B068F56547C"
   },
   {
    "path": "MischWerk/www/img/xmas-player-kompakt-aus.png",
@@ -44,8 +44,8 @@
   },
   {
    "path": "MischWerk/www/img/xmas-player-kompakt-an.png",
-   "bytes": 938115,
-   "sha256": "29E4FB927C14C3840EFDDFF1254C98CC990D88911166C656CC3D86796198C974"
+   "bytes": 935180,
+   "sha256": "5832024D6878FC414B53246319BE29B0E6655137BFC74731C9711E830FEFB650"
   },
   {
    "path": "MischWerk/www/img/xmas-player-kranz.png",

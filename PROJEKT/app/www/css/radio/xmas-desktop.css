@@ -1,5 +1,5 @@
 /* Breite gemeinsame Girlande und ihre Inhaltsfläche im Knuddels-Host. */
-.theme-xmas.xmas-shared-wide .radio-deck { padding-block:0; }
+.theme-xmas.xmas-shared-wide .radio-deck { padding:0; }
 .theme-xmas.xmas-shared-wide #radio-panel {
   --shared-brand:calc(95px * var(--xmas-shared-scale));
   --shared-pad:calc(61px * var(--xmas-shared-scale));

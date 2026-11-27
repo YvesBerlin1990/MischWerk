@@ -76,6 +76,23 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
           duration:Number.parseFloat(style.animationDuration), image:style.backgroundImage};
       }));
   }
+  async function checkWideFrame(frame, normalFace) {
+    const art = await frame.boundingBox();
+    assert.ok(Math.abs(art.x-normalFace.x)<.05 && Math.abs(art.width-normalFace.width)<.05,
+      'Der X-Mas-Rahmen übernimmt die sichtbare Breite und Randposition des Normalmodus');
+    assert.ok(await frame.locator('.radio-xmas-shared-light').count()>=138,'Alle Originallampen bleiben erhalten');
+    const slices = await frame.locator('.radio-xmas-shared-art').evaluateAll(nodes=>nodes.map(node=>{
+      const rect=node.getBoundingClientRect(), style=getComputedStyle(node);
+      return {left:rect.left,right:rect.right,background:style.backgroundSize.split(' ').map(Number.parseFloat)};
+    }));
+    assert.ok(slices.length>0);
+    assert.ok(Math.abs(slices[0].left-art.x)<.05 && Math.abs(slices.at(-1).right-(art.x+art.width))<.05);
+    for(const [index,slice] of slices.entries()){
+      assert.ok(Math.abs(slice.background[0]/slice.background[1]-1327/187)<.01,'Das Foto bleibt proportional');
+      if(index) assert.ok(Math.abs(slice.left-slices[index-1].right)<.05,'Die Girlande hat keine Lücke');
+    }
+    return art;
+  }
   async function freeze(time) {
     await page.evaluate(time=>{
       for(const animation of document.getAnimations()){
@@ -116,6 +133,7 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
       const suffix = width+'-'+(withWish?'mit-wunschbox':'ohne-wunschbox');
       await snapshot('normal',withWish,width<1200);
       const normalRequest = (await dimensions()).requested;
+      const normalFace=await page.locator('.radio-panel-face').boundingBox();
       await snapshot('xmas',withWish,width<1200);
       assert.deepEqual(await colors(),normal);
       const geometry=await dimensions();
@@ -125,9 +143,9 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
       await frame.waitFor();
       const art=await frame.boundingBox();
       assert.ok(Math.abs(art.x+art.width/2-width/2)<.5);
-      assert.ok(Math.abs(art.width/art.height-(width>=1200?1327/187:700/713))<.01);
-      if(width===1360) assert.deepEqual([art.width,art.height],[1327,187]);
+      if(width>=1200) await checkWideFrame(frame,normalFace);
       if(width<=700) {
+        assert.ok(Math.abs(art.width/art.height-700/713)<.01);
         const volume=await page.locator('.volume-control').boundingBox();
         assert.ok(Math.abs(volume.x+volume.width/2-width/2)<1,'Die kompakte Lautstärkezeile sitzt mittig');
       }
@@ -172,7 +190,12 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
   }
   for (const [width,height] of [[1200,214],[1645,292],[1920,341],[3840,500]]) {
     await resize(width,height);
+    await snapshot('normal',true,false);
+    const normalFace=await page.locator('.radio-panel-face').boundingBox();
     await snapshot('xmas',true,false);
+    const frame=page.locator('.radio-xmas-shared-frame[data-ready=wide]:visible');
+    await frame.waitFor();
+    await checkWideFrame(frame,normalFace);
     await page.locator('#volume').evaluate(input=>{
       input.value='100';
       input.dispatchEvent(new Event('input',{bubbles:true}));
@@ -207,11 +230,12 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
   }
   for (const [width,height] of [[840,208],[1645,176]]) {
     await resize(width,height);
+    await snapshot('normal',true,false);
+    const normalFace=await page.locator('.radio-panel-face').boundingBox();
     await snapshot('xmas',true,false);
     const portrait=page.locator('.radio-xmas-shared-frame[data-ready=wide]:visible');
     await portrait.waitFor();
-    const art=await portrait.boundingBox();
-    assert.ok(Math.abs(art.width/art.height-1327/187)<.01);
+    await checkWideFrame(portrait,normalFace);
     checkGeometry(await dimensions());
     const available=await page.evaluate(()=>{
       const rect=selector=>document.querySelector(selector).getBoundingClientRect();
@@ -221,6 +245,15 @@ for (const k3 of [true, false]) test('X-Mas bleibt mit Lauflicht und Volltext in
     });
     assert.ok(available,'Breite Fotovorlage passt auch im Tablet- oder Flachhost');
   }
+  await resize(1645,264);
+  await snapshot('normal',true,true);
+  const normalTicker = await page.locator('#radio-ticker').boundingBox();
+  await snapshot('xmas',true,true);
+  const wideTicker = await page.locator('#radio-ticker').boundingBox();
+  const wideFrame = await page.locator('.radio-xmas-shared-frame[data-ready=wide]:visible').boundingBox();
+  assert.deepEqual([wideTicker.x,wideTicker.width],[normalTicker.x,normalTicker.width]);
+  assert.deepEqual([wideFrame.x,wideFrame.width],[wideTicker.x,wideTicker.width]);
+  checkGeometry(await dimensions());
   song.title='Sehr langer Titel mit weiteren Informationen '.repeat(6).trim();
   await page.waitForFunction(title=>document.getElementById('track-title').textContent===title,song.title);
   for(const [width,height,ticker] of [[1645,292,false],[390,500,true],[320,500,true],[390,220,true],[320,220,true],

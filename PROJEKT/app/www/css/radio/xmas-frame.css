@@ -17,9 +17,6 @@
 :is(.theme-xmas,.xmas-measure):is(.xmas-shared-wide,.xmas-shared-compact) .radio-xmas-shared-frame {
   display:block; position:absolute; inset:0; z-index:-1; pointer-events:none;
 }
-.theme-xmas.xmas-shared-wide .radio-xmas-shared-frame {
-  background:url(../../img/xmas-player-knuddels-aus.png) center / 100% 100% no-repeat;
-}
 .radio-xmas-shared-art,.radio-xmas-shared-light { position:absolute; background-repeat:no-repeat; }
 .radio-xmas-shared-light { z-index:1; opacity:0; clip-path:ellipse(50% 50%); }
 .playing .radio-xmas-shared-light { animation:mw-xmas-fir 3.8s linear var(--xmas-phase) infinite; }

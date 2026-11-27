@@ -1,6 +1,18 @@
-# MischWerk – Prüfbericht 0.1.461 / Build 461
+# MischWerk – Prüfbericht 0.1.462 / Build 462
 
-## Gemeinsame Weihnachtsgirlande für Knuddels
+## Hostbreite der Weihnachtsgirlande
+
+Stand 27.11.2026. Build 461 begrenzte den Rahmen durch die maximale Skalierung der 1327 px breiten Referenz. Im Normalmodus auf `main` reicht die sichtbare Fläche auf dem Desktop bis auf 20 px an beide Hostränder. Build 462 misst diese Normalfläche und übernimmt ihre Breite für die breite Girlande und den Lauftext. Ein 1645 × 220 px großer Host zeigt damit 1605 × 187 px Rahmen statt 1327 × 187 px. Bei 1200, 1360, 1920 und 3840 px Hostbreite sind es 1160, 1320, 1880 und 3800 px Rahmenbreite.
+
+Die zusätzliche Breite entsteht durch proportionale, an der Schnittkante gespiegelte Ausschnitte desselben Fotos. Die Ecken und registrierten Lichtflächen bleiben proportional und die gemeinsamen Quelldateien sind bytegleich. Die Edge-Prüfung vergleicht Randposition, Rahmen- und Lauftextbreite mit Normal. Sie prüft auch die Stoßstellen, die Höhe, das mittige Play, die 44-px-Bedienflächen und scrollfreie Hosts. [Normal und X-Mas bei 1645 × 220 px, gestoppt und bei Wiedergabe](oberflaeche/radio/xmas-gemeinsam-breit.png)
+
+Je vier gezielte Edge-Fälle bestanden am Quellstand und am gebündelten Prüfpaket. Der lokale Paketbau bestätigte 473 Node-Fälle, beide Rhino-Versionen und 143 Dateien anhand der fünf Manifeste. Der freigegebene lokale Releaseordner enthält weiterhin Build 461.
+
+Die helleren gemeinsamen An-Grafiken aus dem Web-/Android-Stand `c06c7db` sind bytegleich übernommen. Die SHA-256-Nachweise stehen im Medienmanifest. Beide An-Grafiken stimmen in Abmessungen und Alphakanal mit ihren Aus-Grafiken überein. In Chrome zeigt der zentrale Emulator bei 1360 × 220 und 390 × 316 px die kräftigeren warmweißen Kerne ab bestätigter Wiedergabe. Bei Stopp ist die Lichtanimation aus. Die festen Aufnahmen bei 1200 ms zeigen 138 breite beziehungsweise 32 kompakte Lichtpositionen. Beide Hosts waren scrollfrei und Play blieb mittig. Die Fotos liegen unter `MischWerk-Licht-462` im System-Tempverzeichnis und wurden an den Web-/Android-Chat übergeben.
+
+[390 × 360 px mit Lauftext, gestoppt und bei Wiedergabe](oberflaeche/radio/xmas-gemeinsam-mobil.png)
+
+## Gemeinsame Weihnachtsgirlande für Knuddels · Build 461
 
 Stand 27.11.2026. Die Radioleiste verwendet die freigegebenen gemeinsamen PNGs und Positionsdaten für den breiten Knuddels-Rahmen, den Kompaktatlas und den Spielkranz. Sieben Dateien mit insgesamt 4.920.340 Byte stimmen per SHA-256 mit dem gemeinsamen Quellpaket überein. Der Satz liegt über dem Richtwert von rund 3 MB. Die 29 abgelösten Radio-PNGs wurden in den Papierkorb verschoben. Die Grafiken für Sendeplan und Wunschbox bleiben referenziert.
 
@@ -17,9 +29,6 @@ Stand 27.11.2026. Die Radioleiste verwendet die freigegebenen gemeinsamen PNGs u
 
 Der 3,8-Sekunden-Zyklus zeigt 138 registrierte Lichtflächen im breiten und 32 im regulären kompakten Rahmen. Die CSS-Kurve verwendet drei versetzte Gruppen, 13 Prozent minimale Deckkraft und 95 Prozent bei reduzierter Bewegung. Stopp, Startversuch, Nachladen und Fehler lassen die Aus-Ebene sichtbar. Eine erneute Vermessung ohne Maßänderung erhält die Animation. In den Langtextfällen bleiben die vollständigen Angaben über die vorhandenen Lesedialoge erreichbar. Die App fordert weiterhin die Höhe des Normalmodus an, höchstens 500 px.
 
-- [Chrome bei 1360 × 220, gestoppt und laufend](oberflaeche/radio/xmas-gemeinsam-breit.png)
-- [Chrome bei 390 × 360 mit Lauftext, gestoppt und laufend](oberflaeche/radio/xmas-gemeinsam-mobil.png)
-
 Der zentrale Emulator lief in Chrome bei 1360 × 220 und 390 × 316 mit lokal abgefangener Test-WAV. Play blieb exakt mittig und die Leiste scrollfrei. Die Wunschbox-Geometrie wurde zusätzlich im Browsermodell mit freigegebenem Wunschzustand geprüft. Eine native Channel-Abnahme steht noch aus. Lokale Nachweise und Protokolle liegen im System-Tempverzeichnis im Ordner MischWerk-Gemeinsamer-XMas-Rahmen.
 
 Die Vergleichsbilder `Plattformvergleich-breit.png` und `Plattformvergleich-mobil.png` in diesem Ordner zeigen den eingebauten Stand in Knuddels, Web und Android jeweils gestoppt und bei Wiedergabe. Girlande, Lametta, Spielkranz und warme Lichtfarbe stimmen visuell überein. Der breite Knuddels-Rahmen misst 1327 × 187 CSS-Pixel und ist flacher als der Web-Rahmen mit 1361 × 260 CSS-Pixeln. Knuddels führt Lautstärke und Aktionen nebeneinander, Android zeigt den Sleeptimer. Mobil sitzt Play in Knuddels mittig, in Web und Android links neben dem Titel.
@@ -27,6 +36,8 @@ Die Vergleichsbilder `Plattformvergleich-breit.png` und `Plattformvergleich-mobi
 Der isolierte Paketbau umfasste 473 bestandene Node-Fälle, die Architektur- und Integritätsprüfung sowie je 250 Fälle mit Rhino 1.7.7.2 und 1.9.1 am Quellstand und am Paket. Der vollständige Edge-Lauf am Quellstand bestand mit 248 Fällen. Die vier gezielten X-Mas-Fälle bestanden am abschließenden Quellstand und Prüfpaket. In Chrome blieb bei 1360 × 220 auch ein 2-px-Prüfabstand der Klickflächen zur blickdichten Girlande frei. Die SHA-256-Prüfung bestätigte alle 143 lokalen Paketdateien und die fünf Manifeste.
 
 Der konfigurierte lokale Releaseordner enthält Build 461. Beide Rhino-Engines bestanden dort erneut. Die getrennte Freigabe `.freigaben/MischWerk.json` enthält Appversion 0.1.461 und Build 461. Dateiliste, Größen und SHA-256 aller 143 Release-Dateien wurden unabhängig mit der Freigabe und den fünf Manifesten abgeglichen. Das Protokoll `MischWerk-461-Freigabe.log` liegt im temporären Prüfverzeichnis.
+
+Bei der anschließenden Repositorypflege wurden 18 unreferenzierte Prüfbilder, eine veraltete Lautstärke-Dokumentation und ein stillgelegtes Kaltstartskript in den Papierkorb verschoben. Die aktuellen X-Mas-Prüfbilder und die weiterhin verlinkten Nachweise bleiben verfügbar.
 
 ## Tannenschmuck mit bordeauxrotem Lametta
 
