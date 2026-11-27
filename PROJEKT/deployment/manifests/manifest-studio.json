@@ -1,6 +1,6 @@
 {
-  "version": "0.1.468",
-  "buildNumber": 468,
+  "version": "0.1.469",
+  "buildNumber": 469,
   "files": [
     {
       "path": "MischWerk/server/android/signing.js",
@@ -59,8 +59,8 @@
     },
     {
       "path": "MischWerk/www/js/team/markup.js",
-      "bytes": 8997,
-      "sha256": "8D55C1FF09FD7B996795A0353929E2DEE561856C6AA45F0D818BC0A964CA0ADE"
+      "bytes": 9241,
+      "sha256": "001ECAE2332FA1BBB9C130F2252DB91133E2B3C03FF22A8012CED17359135EA2"
     },
     {
       "path": "MischWerk/www/js/team/layout.js",
@@ -69,8 +69,8 @@
     },
     {
       "path": "MischWerk/www/js/team/management.js",
-      "bytes": 9000,
-      "sha256": "583AE5DD57BC5821985A903480C0EF998AF15CA83189AC04FEC8F380D5146731"
+      "bytes": 9247,
+      "sha256": "1325366194C59B349F2E73F10E21503D4226FE429EF719C08D3F5EB098654FE7"
     },
     {
       "path": "MischWerk/www/js/team/channel-texts.js",

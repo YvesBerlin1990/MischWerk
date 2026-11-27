@@ -1,6 +1,6 @@
 {
-  "version": "0.1.468",
-  "buildNumber": 468,
+  "version": "0.1.469",
+  "buildNumber": 469,
   "files": [
     {
       "path": "MischWerk/www/index.html",
@@ -104,8 +104,8 @@
     },
     {
       "path": "MischWerk/www/js/radio/ticker.js",
-      "bytes": 4069,
-      "sha256": "FF4115CCE096D77DF28DCDAA8CF2B559B8A0BFA0DFEEF24A68D77687A1F533D4"
+      "bytes": 4725,
+      "sha256": "72711426BA51FAB056A5D71A480B1C96A2A56688E5838EC688EE97C926230481"
     },
     {
       "path": "MischWerk/www/js/wishes/wishbox.js",
@@ -149,8 +149,8 @@
     },
     {
       "path": "MischWerk/www/css/radio/ticker.css",
-      "bytes": 4314,
-      "sha256": "4CAF1FD603531FB6F7B71A4C3543C33CFE0069C4E7E0997829156BA61692EA8C"
+      "bytes": 5026,
+      "sha256": "FE99B85AC370F13D0B3C6150ED60CFE218FFCC4D367D9DD8C1B41DF44E07932E"
     },
     {
       "path": "MischWerk/www/css/shared/foundation.css",

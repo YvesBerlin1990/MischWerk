@@ -1,4 +1,10 @@
-# MischWerk – Prüfbericht 0.1.468 / Build 468
+# MischWerk – Prüfbericht 0.1.469 / Build 469
+
+## Wählbare Lauftextschrift · Build 469
+
+Stand 27.11.2026. Auf Nutzerauftrag bietet `/mw admin` unter Anzeige eine Schriftauswahl für den Lauftext: Petit Formal Script (400, Standard ohne gespeicherte Auswahl), Josefin Sans (600) und die bisherige Rajdhani Medium (500). Beide neuen Schriften liegen samt SIL-OFL-1.1-Lizenz lokal unter `app/www/fonts/` (Latin-Untermengen aus Fontsource 5.3.0) und laden erst bei Bedarf; danach misst der Lauftext seine echte Breite erneut. Die feste Beschriftung „Information:“ behält Outfit. Der vorhandene `radio/ticker`-Speicher erhält das optionale Feld `font`; unbekannte Werte werden abgewiesen bzw. beim Lesen auf den Standard gesetzt, ältere Anfragen ohne Feld behalten die aktuelle Schrift. Entwurf und Auswahl überstehen das Schließen der Verwaltung.
+
+Prüfungen am 27.11.2026: 480 Node-Fälle (neu: Standard, Speichern, Neustart, Wiederholungsschutz, Altanfragen, ungültige Werte), Projekt-, Architektur- und Längenprüfung, Rhino 1.7.7.2 und 1.9.1 am Quellstand sowie die Edge-Gesamtrunde mit 251 von 251 Fällen bestanden. Die Browserfälle prüfen alle drei Schriften bei verzögerter und fehlgeschlagener Schriftdatei, die Emulatorrunde Auswahl, Anzeige beim Hörer und Entwurfserhalt in `/mw admin`. Lokaler Paketbau und Freigabe stehen für diesen Stand noch aus; die native Schriftdarstellung ist separat abzunehmen.
 
 ## Lichterkette unter dem Lauftext · Build 468
 

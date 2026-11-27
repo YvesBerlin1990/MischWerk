@@ -378,22 +378,23 @@ for(const k3 of [true,false])test('Lauftext rahmt automatisch mit Pluszeichen un
   assert.deepEqual(errors,[]);
 });
 
-for(const fail of [false,true])test('Lauftext misst nach '+(fail?'fehlgeschlagener':'verzögerter')+' Rajdhani-Schrift und bleibt lesbar',async t=>{
+for(const [key,family,weight,file] of [[null,'Petit Formal Script','400','petit-formal-script-latin'],['josefin-sans','Josefin Sans','600','josefin-sans-semibold-latin'],['rajdhani','Rajdhani','500','rajdhani-medium-latin']])for(const fail of [false,true])test('Lauftext misst nach '+(fail?'fehlgeschlagener':'verzögerter')+' Schrift '+family+(key?'':' (Standard)')+' und bleibt lesbar',async t=>{
   const {page,state,errors}=await setup(t,{station:true,viewport:{width:1280,height:230}});
   let release;const fontGate=new Promise(resolve=>{release=resolve;});
-  await page.route('**/fonts/rajdhani-medium-latin.woff2*',async r=>{await fontGate;if(fail)await r.abort();else await r.fallback();});
+  await page.route('**/fonts/'+file+'.woff2*',async r=>{await fontGate;if(fail)await r.abort();else await r.fallback();});
   try{
     const text='+++ Grüße aus der Regie – Musik für alle! +++';
-    await page.evaluate(({s,text})=>__emit('mw:state',{...s,revision:2,ticker:{text,enabled:true,speed:48,direction:'left',revision:1}}),{s:state,text});
+    await page.evaluate(({s,text,key})=>__emit('mw:state',{...s,revision:2,ticker:{text,enabled:true,speed:48,direction:'left',revision:1,...(key?{font:key}:{})}}),{s:state,text,key});
     assert.equal(await page.locator('#radio-ticker').isVisible(),true);
     release();await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(100);
-    const font=await page.locator('#radio-ticker-track > span').first().evaluate(n=>({
+    const font=await page.locator('#radio-ticker-track > span').first().evaluate((n,family)=>({
       family:getComputedStyle(n).fontFamily,weight:getComputedStyle(n).fontWeight,
-      fonts:[...document.fonts].filter(f=>f.family==='Rajdhani').map(f=>f.status),
+      fonts:[...document.fonts].filter(f=>f.family.replace(/"/g,'')===family).map(f=>f.status),
       width:n.getBoundingClientRect().width,duration:parseFloat(getComputedStyle(n.parentElement).animationDuration),
       text:n.textContent,innerHeight
-    }));
-    assert.match(font.family,/Rajdhani/);assert.equal(font.weight,'500');
+    }),family);
+    assert.ok(font.family.includes(family),font.family);assert.equal(font.weight,weight);
+    assert.match(await page.locator('.radio-ticker-label').evaluate(n=>getComputedStyle(n).fontFamily),/Outfit/,'Die feste Beschriftung behält Outfit');
     assert.ok(font.fonts.includes(fail?'error':'loaded'),JSON.stringify(font));
     assert.ok(Math.abs(font.width/font.duration-48)<0.1,'Laufdauer folgt der tatsächlich geladenen Schrift: '+JSON.stringify(font));
     assert.equal(font.text,text);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);

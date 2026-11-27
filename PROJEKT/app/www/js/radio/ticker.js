@@ -18,6 +18,8 @@ MischWerkUI.define('radioTicker', function (dependencies) {
   var line = dom.el('radio-ticker'), track = dom.el('radio-ticker-track');
   var pause = dom.el('radio-ticker-pause'), copies = track.children;
   var paused = false, disposed = false, signature = '', speed = 48;
+  // Auswählbare Lauftextschriften; ohne gespeicherte Auswahl gilt Petit Formal Script.
+  var FONTS = {'petit-formal-script':'Petit Formal Script', 'josefin-sans':'Josefin Sans', 'rajdhani':'Rajdhani'};
   var motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   function measure() {
     if (line.hidden || disposed) { return; }
@@ -36,7 +38,8 @@ MischWerkUI.define('radioTicker', function (dependencies) {
     var text = value && typeof value.text === 'string' ? value.text.trim()
       .replace(/^(?:\+{3,}\s*)+/, '').replace(/(?:\s*\+{3,})+$/, '').trim() : '';
     var show = !!(value && value.enabled === true && text);
-    var key = JSON.stringify(show ? [text, value.speed, value.direction] : null);
+    var font = value && Object.prototype.hasOwnProperty.call(FONTS, value.font) ? value.font : 'petit-formal-script';
+    var key = JSON.stringify(show ? [text, value.speed, value.direction, font] : null);
     if (signature === key) { return; }
     signature = key; line.hidden = !show;
     document.documentElement.classList.toggle('radio-has-ticker', show);
@@ -45,7 +48,12 @@ MischWerkUI.define('radioTicker', function (dependencies) {
       dom.setText('radio-ticker-readable', text);
       speed = [32, 48, 72].indexOf(value.speed) !== -1 ? value.speed : 48;
       track.style.animationDirection = value.direction === 'right' ? 'reverse' : 'normal';
+      line.setAttribute('data-font', font);
       measure();
+      // Die gewählte Schrift lädt erst bei Bedarf; danach die echte Textbreite erneut messen.
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load('20px "' + FONTS[font] + '"').then(measure, function () { /* Rückfallschrift bleibt lesbar. */ });
+      }
     } else {
       Array.from(copies).forEach(function (copy) { copy.textContent = ''; });
       dom.setText('radio-ticker-readable', '');

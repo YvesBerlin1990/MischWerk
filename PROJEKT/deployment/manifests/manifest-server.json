@@ -1,21 +1,21 @@
 {
-  "version": "0.1.468",
-  "buildNumber": 468,
+  "version": "0.1.469",
+  "buildNumber": 469,
   "files": [
     {
       "path": "MischWerk/main.js",
       "bytes": 175,
-      "sha256": "36C20DAF28D4DA895BAF1E4F7077A90FFF36AD9C11A14A80206CDE54A7D0FB20"
+      "sha256": "881E754183C0EE9BD6A1A1E1530E348E64ED3E4AAB4B8B0F33B03AD4E9D3C1DE"
     },
     {
       "path": "MischWerk/app.config",
       "bytes": 511,
-      "sha256": "78A154CD74F8609D8561140A76B9D46B8403C8480E6E81A07DCA72C1EFDC10F5"
+      "sha256": "26639945CEF86EBB3011136D740F4A85EF6F1E9BEB5779E8DF9F494E69177557"
     },
     {
       "path": "MischWerk/server/config.js",
       "bytes": 1282,
-      "sha256": "539D94032D1BFED6B882791ADD756A00BBC10D857F362DF3FAA097CDB0276B85"
+      "sha256": "B3A4647F9765F77753659338951F2C5A40DF32DC19B9DCF5ADEFAFDA520702FC"
     },
     {
       "path": "MischWerk/server/core/runtime.js",
@@ -59,8 +59,8 @@
     },
     {
       "path": "MischWerk/server/radio/moderation.js",
-      "bytes": 6144,
-      "sha256": "6ED8819B7163D1F721CE8920CAADC827F728A96E20C2465EBBA4CE64B4238252"
+      "bytes": 6575,
+      "sha256": "8C841B423B4F6F46B92F7EC02D24B10DDA9AE5495B7B744AED7E6ABFCD03D350"
     },
     {
       "path": "MischWerk/server/radio/display-settings.js",
@@ -224,8 +224,8 @@
     },
     {
       "path": "MischWerk/server/app.js",
-      "bytes": 7288,
-      "sha256": "835D7DDB7C3EA0424D5C3CF4F194B2F6FE889F209F07730C353D7060C204AEF4"
+      "bytes": 7427,
+      "sha256": "E928EBB5D8AC1AFECCD9DF20B4F58C3DF73D28D467149DA0ABC25887F30592DD"
     }
   ]
 }

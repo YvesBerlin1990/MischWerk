@@ -10,7 +10,8 @@ const styles = [...read('index.html').match(/var styles = \[([\s\S]*?)\];/)[1].m
 assert.equal(scripts.length, 43, 'Frontend-Ladeplan unvollständig');
 assert.equal(styles.length, 22, 'CSS-Ladeplan unvollständig');
 const vinylFonts = ['fonts/outfit-latin.woff2','fonts/fraunces-latin.woff2','fonts/outfit-OFL.txt','fonts/fraunces-OFL.txt'];
-const tickerFonts = ['fonts/rajdhani-medium-latin.woff2','fonts/rajdhani-OFL.txt'];
+const tickerFonts = ['fonts/rajdhani-medium-latin.woff2','fonts/rajdhani-OFL.txt','fonts/petit-formal-script-latin.woff2','fonts/petit-formal-script-OFL.txt',
+  'fonts/josefin-sans-semibold-latin.woff2','fonts/josefin-sans-OFL.txt'];
 const nicklistIcons = ['team','listener','moderator'].map(kind => 'img/nicklist/' + kind + '.png');
 const welcomeImages = ['banner','lieblingschannel','mitmachen','channelinfo'].map(name => 'img/welcome/' + name + '.png');
 const xmasBulbs = ['warmweiss','rot','gruen','bernstein','eisblau'].flatMap(color => ['aus','an'].map(state => 'birne-' + color + '-' + state));

@@ -1,5 +1,7 @@
 /* Schmale Senderzeile direkt unter der bestehenden Appleiste; keine Audiobindung. */
 @font-face { font-family:Rajdhani; font-style:normal; font-weight:500; font-display:swap; src:url(../../fonts/rajdhani-medium-latin.woff2) format("woff2"); }
+@font-face { font-family:"Petit Formal Script"; font-style:normal; font-weight:400; font-display:swap; src:url(../../fonts/petit-formal-script-latin.woff2) format("woff2"); }
+@font-face { font-family:"Josefin Sans"; font-style:normal; font-weight:600; font-display:swap; src:url(../../fonts/josefin-sans-semibold-latin.woff2) format("woff2"); }
 .radio-deck { position:relative; isolation:isolate; display:flow-root; flex-shrink:0; --deck-top:18px; --deck-x:20px; --deck-radius:24px; --radio-glow-space:16px; --deck-tail:calc(var(--radio-glow-space) + var(--deck-top)); }
 .radio-has-ticker .radio-deck::before { content:""; position:absolute; inset:var(--deck-top) var(--deck-x) var(--deck-tail); z-index:-1; border:1px solid #3a3a3a; border-radius:var(--deck-radius); background:var(--bg); pointer-events:none; }
 .radio-has-ticker .radio-deck::after { content:""; position:absolute; inset:auto 0 0; height:16px; z-index:2; pointer-events:none; background:linear-gradient(to bottom,transparent,var(--canvas) calc(100% - 1px)); }
@@ -18,6 +20,9 @@
 .radio-ticker-window::after { right:0; background:linear-gradient(to left,var(--bg),transparent); }
 .radio-ticker-track { display:flex; width:max-content; font-family:Rajdhani,Outfit,"Segoe UI",sans-serif; font-weight:500; animation:radio-ticker-scroll var(--ticker-duration,20s) linear infinite; }
 .radio-ticker-track > span { flex:none; padding-right:64px; white-space:pre; }
+/* In /mw admin wählbare Laufschrift; die feste Beschriftung behält Outfit. */
+.radio-ticker[data-font=petit-formal-script] .radio-ticker-track { font-family:"Petit Formal Script",Outfit,"Segoe UI",sans-serif; font-weight:400; }
+.radio-ticker[data-font=josefin-sans] .radio-ticker-track { font-family:"Josefin Sans",Outfit,"Segoe UI",sans-serif; font-weight:600; }
 .radio-ticker-pause { flex:none; display:grid; place-items:center; width:44px; height:44px; padding:0; border:0; border-radius:6px; background:transparent; color:#e6c77b; font-size:16px; }
 .radio-ticker-pause:hover { background:#ffffff0a; }
 .radio-ticker-pause svg { width:24px; height:24px; fill:currentColor; stroke:none; }

@@ -5,7 +5,7 @@ MischWerkUI.define('team', function (dependencies) {
   var tickerRevision=null, displayRevision=null, tickerDirty=false, displayDirty=false, saved=null;
   function fillTicker(value) {
     dom.el('ticker-text').value=value.text;dom.el('ticker-enabled').checked=value.enabled;
-    dom.el('ticker-speed').value=String(value.speed);tickerRevision=value.revision;tickerDirty=false;
+    dom.el('ticker-speed').value=String(value.speed);dom.el('ticker-font').value=value.font||'petit-formal-script';tickerRevision=value.revision;tickerDirty=false;
   }
   function render() {
     var state=model.current(); if(!state){return;}
@@ -69,7 +69,7 @@ MischWerkUI.define('team', function (dependencies) {
     });
     dom.el('ticker-form').addEventListener('submit',function(event){event.preventDefault();if(dom.el('ticker-save').disabled){return;}
       commands.send('mw:setTicker',{text:dom.el('ticker-text').value,enabled:dom.el('ticker-enabled').checked,
-        speed:Number(dom.el('ticker-speed').value),direction:saved.ticker.direction,expectedTickerRevision:tickerRevision},true);
+        speed:Number(dom.el('ticker-speed').value),direction:saved.ticker.direction,font:dom.el('ticker-font').value,expectedTickerRevision:tickerRevision},true);
     });
     dom.el('display-form').addEventListener('submit',function(event){event.preventDefault();if(dom.el('display-save').disabled){return;}
       commands.send('mw:display.save',{teamSignsEnabled:dom.el('team-signs-enabled').checked,
@@ -87,11 +87,11 @@ MischWerkUI.define('team', function (dependencies) {
     });
     signals.on('ticker-error',function(message){dom.setText('ticker-feedback',message);});
     signals.on('overlay-capture',function(state){state.nativeSettings={tickerDirty:tickerDirty,tickerRevision:tickerRevision,
-      text:dom.el('ticker-text').value,enabled:dom.el('ticker-enabled').checked,speed:dom.el('ticker-speed').value,
+      text:dom.el('ticker-text').value,enabled:dom.el('ticker-enabled').checked,speed:dom.el('ticker-speed').value,font:dom.el('ticker-font').value,
       displayDirty:displayDirty,displayRevision:displayRevision,team:dom.el('team-signs-enabled').checked,microphone:dom.el('microphone-enabled').checked,headphones:dom.el('headphones-enabled').checked,announcements:dom.el('announcements-enabled').checked};});
     signals.on('overlay-restore',function(state){var draft=state.nativeSettings;if(!draft||!model.current().user.canAdminister){return;}
       if(draft.tickerDirty&&typeof draft.text==='string'&&draft.text.length<=300){tickerDirty=true;tickerRevision=draft.tickerRevision;
-        dom.el('ticker-text').value=draft.text;dom.el('ticker-enabled').checked=draft.enabled===true;dom.el('ticker-speed').value=draft.speed;}
+        dom.el('ticker-text').value=draft.text;dom.el('ticker-enabled').checked=draft.enabled===true;dom.el('ticker-speed').value=draft.speed;if(['petit-formal-script','josefin-sans','rajdhani'].indexOf(draft.font)!==-1){dom.el('ticker-font').value=draft.font;}}
       if(draft.displayDirty){displayDirty=true;displayRevision=draft.displayRevision;dom.el('team-signs-enabled').checked=draft.team===true;dom.el('microphone-enabled').checked=typeof draft.microphone==='boolean'?draft.microphone:model.current().displaySettings.microphoneEnabled!==false;dom.el('headphones-enabled').checked=typeof draft.headphones==='boolean'?draft.headphones:model.current().displaySettings.headphonesEnabled!==false;dom.el('announcements-enabled').checked=draft.announcements===true;}availability();
     });
   }

@@ -1,8 +1,8 @@
 if (typeof MischWerkUpdateProbe === 'function') {
     MischWerkUpdateProbe(/* update-files:start */ {
  "schema": 1,
- "version": "0.1.468",
- "buildNumber": 468,
+ "version": "0.1.469",
+ "buildNumber": 469,
  "directories": {
   "": [
    "main.js",
@@ -261,7 +261,11 @@ if (typeof MischWerkUpdateProbe === 'function') {
    "outfit-OFL.txt",
    "fraunces-OFL.txt",
    "rajdhani-medium-latin.woff2",
-   "rajdhani-OFL.txt"
+   "rajdhani-OFL.txt",
+   "petit-formal-script-latin.woff2",
+   "petit-formal-script-OFL.txt",
+   "josefin-sans-semibold-latin.woff2",
+   "josefin-sans-OFL.txt"
   ]
  }
 } /* update-files:end */);

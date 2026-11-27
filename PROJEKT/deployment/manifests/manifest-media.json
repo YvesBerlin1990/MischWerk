@@ -1,6 +1,6 @@
 {
- "version": "0.1.468",
- "buildNumber": 468,
+ "version": "0.1.469",
+ "buildNumber": 469,
  "files": [
   {
    "path": "MischWerk/www/img/mischwerk-logo.png",
@@ -236,6 +236,26 @@
    "path": "MischWerk/www/fonts/rajdhani-OFL.txt",
    "bytes": 4373,
    "sha256": "F62EF357D3A1C3D27EDD35A6E1BA350E8A8D13499797964EEADEFBF0B3B15D1F"
+  },
+  {
+   "path": "MischWerk/www/fonts/petit-formal-script-latin.woff2",
+   "bytes": 28124,
+   "sha256": "15ACA35EE16A8DE0130B4EC764488AF3D02EF7B90F5A3CD7407E2DC10E203D17"
+  },
+  {
+   "path": "MischWerk/www/fonts/petit-formal-script-OFL.txt",
+   "bytes": 4569,
+   "sha256": "380EE711461DC0E82F2D38C43CF8BBF9BCCD2A703D1B916C6354D67F35AE349F"
+  },
+  {
+   "path": "MischWerk/www/fonts/josefin-sans-semibold-latin.woff2",
+   "bytes": 12332,
+   "sha256": "56C4C27838DA388E0B669E99A58034DC17C42CA551D4AE97FE904D00A728C2E9"
+  },
+  {
+   "path": "MischWerk/www/fonts/josefin-sans-OFL.txt",
+   "bytes": 4624,
+   "sha256": "56A81DE42B758828ED453BF712867221F6D4C05078ED28FBA93DC4E06C6FA728"
   }
  ]
 }

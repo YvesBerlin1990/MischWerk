@@ -31,6 +31,8 @@ MischWerkUI.define('teamMarkup', function (dependencies) {
       <label class="channel-texts-toggle"><input id="ticker-enabled" type="checkbox">Lauftext einschalten</label>
       <label for="ticker-speed">Geschwindigkeit</label>
       <select id="ticker-speed"><option value="32">Langsam</option><option value="48">Normal</option><option value="72">Schnell</option></select>
+      <label for="ticker-font">Schrift</label>
+      <select id="ticker-font"><option value="petit-formal-script">Petit Formal Script</option><option value="josefin-sans">Josefin Sans</option><option value="rajdhani">Rajdhani</option></select>
       <button id="ticker-save" class="primary-button" type="submit">Lauftext speichern</button>
       <button id="ticker-reload" class="secondary-button" type="button">Gespeicherten Stand laden</button>
       <p id="ticker-feedback" class="form-hint" role="status"></p>
