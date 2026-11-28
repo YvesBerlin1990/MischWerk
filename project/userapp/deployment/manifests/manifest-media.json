@@ -1,0 +1,246 @@
+{
+ "version": "0.1.470",
+ "buildNumber": 470,
+ "files": [
+  {
+   "path": "MischWerk/www/img/mischwerk-logo.png",
+   "bytes": 1343064,
+   "sha256": "52460B961DBD63A6DAC985CC3D031019C2425878C6AC7962E19B6086BC050D0A"
+  },
+  {
+   "path": "MischWerk/www/img/mischwerk-radio.png",
+   "bytes": 846251,
+   "sha256": "989C3BF349FD6DDD433519DA960978D9758FC1FC5E4EA631B46AE662E416542B"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-tafel.png",
+   "bytes": 1023902,
+   "sha256": "7EB905D04F8FFD586C3F52B0FF88D11E01D6B955AF1BD3976D8DABFA2D8321BB"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-tafel-kompakt.png",
+   "bytes": 258056,
+   "sha256": "DD121618A32676330D62155999A5F54CBE4CFDB7B196C976325D8D65D6304428"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-eckgirlande.png",
+   "bytes": 442531,
+   "sha256": "89374846D86FCBFC5B370E9EBB331AD8CB69D635AA04CB04D0C4F9B34E32CD88"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-schleife.png",
+   "bytes": 287951,
+   "sha256": "C33E15930626416704EC8EE52466BC3E69CE1778131FFED921C7A11611C98DF8"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-zweig-unten-links.png",
+   "bytes": 224583,
+   "sha256": "D3ACEEDD3946AC35375D966BB4AAACB80E321688C7C8C44E970CB12C5E8D5B9F"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-zweig-unten-rechts.png",
+   "bytes": 222487,
+   "sha256": "EF1CFB8501DB9F8AAE49EF9C21765E7119BFCD8A57B66C5B27E199C58DABAF3B"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-kabel.png",
+   "bytes": 70172,
+   "sha256": "1AD5E3F9373D43B5D2A24494F22E9FEF5D7FA13ED2930A9FC4FB6AEE5A1B9917"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-birne-warmweiss-aus.png",
+   "bytes": 47049,
+   "sha256": "DD88469600169DFA4FE24119CE9C495E31D48DFF5E17DEFFB65910C8D154C99B"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-birne-warmweiss-an.png",
+   "bytes": 56303,
+   "sha256": "FBBC6A4871B514595C74A6DE3FBB37E8351AD0167E512247B2ED2AB347ECE115"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-birne-rot-aus.png",
+   "bytes": 46472,
+   "sha256": "B474505D898334C9580982B53DF08A61CA2D408E3EA8A6D646175C32B819E097"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-birne-rot-an.png",
+   "bytes": 56671,
+   "sha256": "A7379B6AEBD00930912A7EF844FE170A8CD22886B2E6CC74AD20CDB931E4F438"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-birne-gruen-aus.png",
+   "bytes": 49312,
+   "sha256": "4F27C3602FFB222395E1438879D1D70EAF9F1DC0D4AFCBEF76908946E7D715DB"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-birne-gruen-an.png",
+   "bytes": 58552,
+   "sha256": "65EEF2194B92309A0203076FF2F4E9B347B9B83BE884C2684B94B4E08ABF2140"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-birne-bernstein-aus.png",
+   "bytes": 52881,
+   "sha256": "820E6BD50E92FCF1D01C9272A8D9B88CF6834EDE98F8CA8686FB1D71856698E2"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-birne-bernstein-an.png",
+   "bytes": 61967,
+   "sha256": "20EB1BD3B3E9D57DF495FA968E80371893439D75A65854EB77ECB7C021826BE1"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-birne-eisblau-aus.png",
+   "bytes": 62556,
+   "sha256": "DFC11F07F4473E0CD24E46E75D4452047F3FB570EA76040E248B5B1237310071"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-birne-eisblau-an.png",
+   "bytes": 72652,
+   "sha256": "ABC308193CCB3E3709ECD0CF8323B912AF3DDA0C8C0B381A21BB63001D31197B"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-kranz-schmal.png",
+   "bytes": 302452,
+   "sha256": "38055C7C01F9779D36B9B127D6AA91C55570836EB44A3AFE8D0C6277F35B8783"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-snow.png",
+   "bytes": 247169,
+   "sha256": "2F551ED5BE8563DBB0DCB38853DF7D3D5BD2E9426AD67837C875A996770BC5DB"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-geschenk-schneeflocken.png",
+   "bytes": 64540,
+   "sha256": "CBCBD9587C87A1DD1AEE605F9CC9A59E95E367EE470D551AA70CA9A3D1069674"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-geschenk-sterne.png",
+   "bytes": 59954,
+   "sha256": "C3EBB6E105327842976553FE0EC218ECB98C161396D1A3A10E24C1E15B0CD3B3"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-geschenk-tannen.png",
+   "bytes": 65370,
+   "sha256": "46079363B6F24D56CA2CEE646C653717E77E2B7E944C7D8A07C0D2F64FFE5994"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-geschenk-goldstreifen.png",
+   "bytes": 61881,
+   "sha256": "ED56BC9A933F3A7C9ECF8668E07AA3E655380268AD24FBCE99C54865854ECFB3"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-geschenk-creme.png",
+   "bytes": 67216,
+   "sha256": "03B5F37E7B2DFA3311B4F66943709FAB680FBE5E0937EF1F3D6CDC0C85A21A29"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-reglergriff.png",
+   "bytes": 18524,
+   "sha256": "95D4E4C0ADFC8C93BFD41F6EB80C7D45D3C9DB3084431F5C62F5D9BC5AB76AE7"
+  },
+  {
+   "path": "MischWerk/www/img/mischwerk-logo-freigestellt.png",
+   "bytes": 926619,
+   "sha256": "AB97408CA1457256A772500C2D089D2A33E49BD013B8B3DE2444472D958514CD"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-surface.png",
+   "bytes": 446266,
+   "sha256": "6280168DB845AE2A372351777194D6946150CFAE2E7111D821CF7DFE2BFBE403"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-corner-bow.png",
+   "bytes": 340103,
+   "sha256": "8A9E43001758165BDD91527CAC8FE17508BB150AB5B828EB1CAF35E0BD2562E6"
+  },
+  {
+   "path": "MischWerk/www/img/xmas-corner-fir.png",
+   "bytes": 247780,
+   "sha256": "8AD81BCA09C79CCC50EF96BFD7A02AABC50501AC312CF0C1A19197D901943616"
+  },
+  {
+   "path": "MischWerk/www/img/nicklist/team.png",
+   "bytes": 2853,
+   "sha256": "704C413878D750DE5CC5E650B98A17664A2C981EF8BAF38326998AA4B5175927"
+  },
+  {
+   "path": "MischWerk/www/img/nicklist/listener.png",
+   "bytes": 1524,
+   "sha256": "116B5E6BCC0AA246F8D630499C4FC46E6E2FE0971CD663D392BF59F30CDE1709"
+  },
+  {
+   "path": "MischWerk/www/img/nicklist/moderator.png",
+   "bytes": 1390,
+   "sha256": "E3226D285D66BFA6CFD2C674EB48DC8A9E08F34D39EEC231CE2299191EBB7FA2"
+  },
+  {
+   "path": "MischWerk/www/img/welcome/banner.png",
+   "bytes": 1691177,
+   "sha256": "AA5725EE61B0CD0A5844EE00A9BB6C327B9009A2D5687B84AF4B6E91936355EE"
+  },
+  {
+   "path": "MischWerk/www/img/welcome/lieblingschannel.png",
+   "bytes": 2844,
+   "sha256": "6D6585793560024CF0BB8134AB50256AFFBA49732F657DFB79365A18210DEDA5"
+  },
+  {
+   "path": "MischWerk/www/img/welcome/mitmachen.png",
+   "bytes": 1711,
+   "sha256": "2EC412AF7CAFC21252F4BCA1CA2C36D6B1D15F6804098AD46BD61ED08086B025"
+  },
+  {
+   "path": "MischWerk/www/img/welcome/channelinfo.png",
+   "bytes": 1975,
+   "sha256": "05A479F744C01C720905ED8AB43E79CC4ABF683032213827E06ACD4434B800C2"
+  },
+  {
+   "path": "MischWerk/www/fonts/outfit-latin.woff2",
+   "bytes": 32292,
+   "sha256": "6C18D579FD87C3776BE068B762CBC83FDE3ACB543D49EABD3ADE842EB987E887"
+  },
+  {
+   "path": "MischWerk/www/fonts/fraunces-latin.woff2",
+   "bytes": 67304,
+   "sha256": "7234ED860A9CC83045413C4FAEE63C960A8F2D1917ADCF728119307D56E0D783"
+  },
+  {
+   "path": "MischWerk/www/fonts/outfit-OFL.txt",
+   "bytes": 4389,
+   "sha256": "C676351BF8576B9ABA743CD5EAA8C0E7EE0D51F805D720447B4DF4DDB6A2E416"
+  },
+  {
+   "path": "MischWerk/www/fonts/fraunces-OFL.txt",
+   "bytes": 4391,
+   "sha256": "BDF4C22802EAF804F998195871C6B8938AAC2AC14B2D78A8BD66A6F1ECED833B"
+  },
+  {
+   "path": "MischWerk/www/fonts/rajdhani-medium-latin.woff2",
+   "bytes": 15084,
+   "sha256": "23AFDB9B5B89B878FAB04D80CC30BF41BB4F3F7E8BE88E5F16A7CC7671CDB2DC"
+  },
+  {
+   "path": "MischWerk/www/fonts/rajdhani-OFL.txt",
+   "bytes": 4373,
+   "sha256": "F62EF357D3A1C3D27EDD35A6E1BA350E8A8D13499797964EEADEFBF0B3B15D1F"
+  },
+  {
+   "path": "MischWerk/www/fonts/petit-formal-script-latin.woff2",
+   "bytes": 28124,
+   "sha256": "15ACA35EE16A8DE0130B4EC764488AF3D02EF7B90F5A3CD7407E2DC10E203D17"
+  },
+  {
+   "path": "MischWerk/www/fonts/petit-formal-script-OFL.txt",
+   "bytes": 4569,
+   "sha256": "380EE711461DC0E82F2D38C43CF8BBF9BCCD2A703D1B916C6354D67F35AE349F"
+  },
+  {
+   "path": "MischWerk/www/fonts/josefin-sans-semibold-latin.woff2",
+   "bytes": 12332,
+   "sha256": "56C4C27838DA388E0B669E99A58034DC17C42CA551D4AE97FE904D00A728C2E9"
+  },
+  {
+   "path": "MischWerk/www/fonts/josefin-sans-OFL.txt",
+   "bytes": 4624,
+   "sha256": "56A81DE42B758828ED453BF712867221F6D4C05078ED28FBA93DC4E06C6FA728"
+  }
+ ]
+}

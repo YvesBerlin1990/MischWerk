@@ -1,0 +1,176 @@
+{
+  "version": "0.1.470",
+  "buildNumber": 470,
+  "files": [
+    {
+      "path": "MischWerk/main.js",
+      "bytes": 175,
+      "sha256": "4EDE27292180456460BBDEBDABBB1BF496A830C1CC1EC14F8A2B9F13F31C2BCA"
+    },
+    {
+      "path": "MischWerk/app.config",
+      "bytes": 511,
+      "sha256": "66C7AECEEC69EB95F55B7F080B5EB61F395815241F65FBA6922E557A860E1405"
+    },
+    {
+      "path": "MischWerk/server/config.js",
+      "bytes": 1282,
+      "sha256": "9F3EFCEA0DA2C2BBC9034ED7E014C963013B5B03E9174A2EFD9BA17FDD2A9640"
+    },
+    {
+      "path": "MischWerk/server/core/runtime.js",
+      "bytes": 5559,
+      "sha256": "BD90BDB6159053EFD9E2B0FA586ED2B14000819239CC45A0462B30DE29CE646C"
+    },
+    {
+      "path": "MischWerk/server/users/identity.js",
+      "bytes": 1263,
+      "sha256": "884748D164EA4A21C130FA1C72900EECDAEC1AF6B6101F756E0BEC45E8AFA3B7"
+    },
+    {
+      "path": "MischWerk/server/core/validation.js",
+      "bytes": 1653,
+      "sha256": "713619DB2058AC27FB715481A5C8D9A0862F186ACF30E394A28DB9F94280F23B"
+    },
+    {
+      "path": "MischWerk/server/state/persistence.js",
+      "bytes": 5053,
+      "sha256": "33B8D1F94C11094BB4733B1757239A9798D039031D8058FDEA464E2F4DCFC49A"
+    },
+    {
+      "path": "MischWerk/server/radio/station.js",
+      "bytes": 8138,
+      "sha256": "BC960DEA8C941DE22CAEA89D3B839F6CF77A7F24B820CB95D9275A0ECE94983B"
+    },
+    {
+      "path": "MischWerk/server/radio/ticker.js",
+      "bytes": 7237,
+      "sha256": "EE20ACBF3A3420D26599F95B8D23DB9CAF15353E28A9B2DBB143DB1279AD0905"
+    },
+    {
+      "path": "MischWerk/server/users/greetings.js",
+      "bytes": 5117,
+      "sha256": "38AA8E7C05B4074023A5E1BF3C3979BAD5480AFEFE36228A3403C1708372B611"
+    },
+    {
+      "path": "MischWerk/server/channel-texts/format.js",
+      "bytes": 6676,
+      "sha256": "2466756B7F15BC9D463285D5A30716E6D1D8BEADD2526C535F066061BE5C0571"
+    },
+    {
+      "path": "MischWerk/server/channel-texts/smileys.js",
+      "bytes": 8075,
+      "sha256": "7B5672E578A87AD95EB9EA7654271F4D51ED802ABA9E16B63507814ACE15751E"
+    },
+    {
+      "path": "MischWerk/server/state/initialization.js",
+      "bytes": 298,
+      "sha256": "C5E4969719BA814191110FB25239045E61718FAE1E9904A645104EE346F7D8F3"
+    },
+    {
+      "path": "MischWerk/server/wishes/export-state.js",
+      "bytes": 9341,
+      "sha256": "DD094380E9DA82BDEF2B44A2A6DD215513EF1E1510A6CFCFB45D1EB4C8DF4DBF"
+    },
+    {
+      "path": "MischWerk/server/wishes/storage.js",
+      "bytes": 8240,
+      "sha256": "FE25A245E85509F51A4167E3E89F33C81477D6C54926BBA0E9FD2DD993016400"
+    },
+    {
+      "path": "MischWerk/server/wishes/queue.js",
+      "bytes": 3013,
+      "sha256": "07F9E4B5D6067267487A8B88D14ADBB94E6E55A4D64D0326BC8EEB1541415593"
+    },
+    {
+      "path": "MischWerk/server/schedule/calendar.js",
+      "bytes": 6635,
+      "sha256": "7162140A297ADF3DEB5A15EA1A965B31CC3213F816B3BF4E082782ADE25D44B1"
+    },
+    {
+      "path": "MischWerk/server/schedule/public.js",
+      "bytes": 7917,
+      "sha256": "0038D2728184C8946FC92B8FEB3E6932B9BF4ECA3ACA2FA26A0307DAC1BC5BAF"
+    },
+    {
+      "path": "MischWerk/server/schedule/transport.js",
+      "bytes": 2684,
+      "sha256": "7D805048A6EFFF5457B08AC4AA9D99D00B35A1BD81B86CFA070E5F1408B32F31"
+    },
+    {
+      "path": "MischWerk/server/ui/snapshot.js",
+      "bytes": 2740,
+      "sha256": "0676625ED952EAE7473A4DA2E9D0804A87C96CB1F369A0824EF127EA1564F8A8"
+    },
+    {
+      "path": "MischWerk/server/transport/views.js",
+      "bytes": 3158,
+      "sha256": "0BB8D93E3B2842685DF71C8E96D6659F506F7A91196AFE958F0000D023109947"
+    },
+    {
+      "path": "MischWerk/server/ui/loading.js",
+      "bytes": 2048,
+      "sha256": "FA08BCB52DA746693920017B36439E607DBDBD33F1617B1A5ADF0BAE0BDE9752"
+    },
+    {
+      "path": "MischWerk/server/ui/sessions.js",
+      "bytes": 8478,
+      "sha256": "E78C0E325E477F8BD14C1F4D976E8F79F88A59841121D22CE3F724EDC1221F9B"
+    },
+    {
+      "path": "MischWerk/server/users/nicklist-storage.js",
+      "bytes": 4791,
+      "sha256": "A3E211A9BBDF8A1A87D3938C7512FF9888BB841728CB5DCCF1A191CDDDF66A75"
+    },
+    {
+      "path": "MischWerk/server/users/nicklist.js",
+      "bytes": 6381,
+      "sha256": "97AA076EEC901EF0D470361747B641EB00CA0586AC71DD62D28ED4E6E4594341"
+    },
+    {
+      "path": "MischWerk/server/ui/wish-surface.js",
+      "bytes": 3464,
+      "sha256": "EB850A3A20D9B86AABAE58BC69CDBE3CB4B28776A5539973C474C11513780238"
+    },
+    {
+      "path": "MischWerk/server/ui/overlays.js",
+      "bytes": 8377,
+      "sha256": "4AB8C9DED7F09F6A5C1CAFFE0C5D90FD451B4056941B54FF60A77F51EB7FBB8D"
+    },
+    {
+      "path": "MischWerk/server/ui/administration.js",
+      "bytes": 3522,
+      "sha256": "F5EA0261CB70707C00C328BAC3A4862C4183C692D0BA4386699D651258A38815"
+    },
+    {
+      "path": "MischWerk/server/maintenance.js",
+      "bytes": 7782,
+      "sha256": "61FC5D24B4A2F7B5741829ACF3CFD293E77990ACD562BEF5245F149AC1A366BA"
+    },
+    {
+      "path": "MischWerk/server/channel-texts/settings.js",
+      "bytes": 5771,
+      "sha256": "DC84AF4C197DE6DDEDBCFE6E34CBBA9B5036AC0E13D5B27F16235257A7497B32"
+    },
+    {
+      "path": "MischWerk/server/lifecycle.js",
+      "bytes": 4140,
+      "sha256": "EAF05CCE341E6396D1902E73B7FE11A8000CD2B00BE7184518F33AA685522A6E"
+    },
+    {
+      "path": "MischWerk/server/transport/events.js",
+      "bytes": 4177,
+      "sha256": "C972DAC4459B5F1955FEEEAC22B27E75FD4AF46FE12A98F052C2DD3105DEF1E1"
+    },
+    {
+      "path": "MischWerk/server/core/composition.js",
+      "bytes": 3916,
+      "sha256": "0E8D06637C236220BDCAF51686DA68A5E784EB5AE88AFF3257B3F992417D2BDF"
+    },
+    {
+      "path": "MischWerk/server/app.js",
+      "bytes": 6285,
+      "sha256": "ED495F4377E9C599471BFF6A5BCF7EE0AD5303774A1BD6E0236F2CCDCCB2FDC7"
+    }
+  ]
+}

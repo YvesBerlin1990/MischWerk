@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  EMULATOR_PATH: PROJEKT/tools/userapp-emulator
+  EMULATOR_PATH: project/userapp/tools/userapp-emulator
   UPDATE_BRANCH: ${{ github.ref_name }}
   PROPOSAL_SHA: ${{ github.sha }}
 
@@ -48,17 +48,17 @@ jobs:
         with:
           repository: PolaroidK/Windows-K-UserAppEmulator
           ref: ${{ steps.guard.outputs.emulator_sha }}
-          path: PROJEKT/tools/userapp-emulator
+          path: project/userapp/tools/userapp-emulator
           ssh-key: ${{ secrets.EMULATOR_READ_KEY }}
           persist-credentials: false
-      - run: pnpm --dir PROJEKT install --frozen-lockfile
-      - run: npm ci --ignore-scripts --prefix PROJEKT/tools/userapp-emulator
+      - run: pnpm --dir project/userapp install --frozen-lockfile
+      - run: npm ci --ignore-scripts --prefix project/userapp/tools/userapp-emulator
       - name: Emulator im App-Projekt prüfen
-        run: npm test --prefix PROJEKT/tools/userapp-emulator
-      - run: pnpm --dir PROJEKT run check
-      - run: pnpm --dir PROJEKT test
+        run: npm test --prefix project/userapp/tools/userapp-emulator
+      - run: pnpm --dir project/userapp run check
+      - run: pnpm --dir project/userapp test
       - name: Unveränderte App-Dateien bestätigen
-        run: git diff --exit-code -- . ':!PROJEKT/tools/userapp-emulator'
+        run: git diff --exit-code -- . ':!project/userapp/tools/userapp-emulator'
 
   finalize:
     needs: verify

@@ -1,0 +1,12 @@
+/* Rückmeldungen stehen im Dokumentfluss bei ihrer Bediengruppe. */
+.notice { position:absolute; bottom:8px; left:12px; right:12px; z-index:10; padding:10px 12px; border:1px solid var(--line); border-radius:13px; background:var(--surface); color:var(--text); font-size:14px; box-shadow:0 2px 8px #0003; }
+html[data-view=radio] .notice { left:auto; width:max-content; max-width:min(420px,calc(100% - 24px)); padding:8px 12px; overflow-wrap:anywhere; }
+.notice.error { background:#2a1613; border-color:#71423e; color:var(--error); }
+html:not([data-view=radio]) :where(.notice,.wish-feedback){ position:static; margin:10px 0 0; padding:9px 12px; border:1px solid #474e53; border-radius:13px; background:#202427; color:#b9bdc3; font-size:13px; line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap; box-shadow:none; }
+html:not([data-view=radio]) :is(.notice,.wish-feedback).error{ background:#2a1613; border-color:#71423e; color:var(--error); }
+html:not([data-view=radio]) #dialog-notice-slot .notice { margin:0 0 14px; }
+.eyebrow.refresh-error { color:var(--error); }
+.icon-button[aria-busy=true] { color:var(--gold-ink); border-color:var(--gold-ink); background:var(--raised); cursor:wait; }
+html:not([data-view=radio]) button[aria-busy=true] { border-color:#cfd2d6; color:var(--gold-ink); background:#282b2e; cursor:wait; }
+.demo-banner { font-size:12px; line-height:1.4; padding:4px 8px; background:var(--surface); color:var(--muted); text-align:center; }
+.demo-banner a { color:var(--gold); }

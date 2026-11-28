@@ -5,8 +5,8 @@
       "name": "MischWerk: Emulator (Submodul)",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/PROJEKT/tools/start-emulator.cjs",
-      "cwd": "${workspaceFolder}/PROJEKT",
+      "program": "${workspaceFolder}/project/userapp/tools/start-emulator.cjs",
+      "cwd": "${workspaceFolder}/project/userapp",
       "console": "internalConsole",
       "autoAttachChildProcesses": true,
       "serverReadyAction": {

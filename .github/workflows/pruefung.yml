@@ -1,0 +1,55 @@
+# Prüft Pushes und Pull Requests auf main. Regeln: agent-rules.json, Abschnitt „Prüfung und Pflege“.
+name: Prüfung
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pruefung-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EMULATOR_PATH: project/userapp/tools/userapp-emulator
+
+jobs:
+  pruefung:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Reproduzierbare Zeilenenden auf dem Testrechner verwenden
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Eingetragenen Emulator-Gitlink ermitteln
+        id: emulator
+        shell: bash
+        run: echo "sha=$(git rev-parse "HEAD:${EMULATOR_PATH}")" >> "$GITHUB_OUTPUT"
+      - name: Emulator-Submodul exakt am Gitlink laden
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: PolaroidK/Windows-K-UserAppEmulator
+          ref: ${{ steps.emulator.outputs.sha }}
+          path: project/userapp/tools/userapp-emulator
+          ssh-key: ${{ secrets.EMULATOR_READ_KEY }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - name: Festgelegtes pnpm installieren
+        run: npm install --global pnpm@11.25.0
+      - run: pnpm --dir project/userapp install --frozen-lockfile
+      - run: npm ci --ignore-scripts --prefix project/userapp/tools/userapp-emulator
+      - name: Struktur, Syntax, API-Signaturen und Inventar
+        run: pnpm --dir project/userapp run check
+      - name: Node-Suite
+        run: pnpm --dir project/userapp test
+      - name: Keine unbeabsichtigten Dateiänderungen
+        run: git diff --exit-code -- . ':!project/userapp/tools/userapp-emulator'

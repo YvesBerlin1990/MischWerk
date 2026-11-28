@@ -1,4 +1,4 @@
 [submodule "PROJEKT/tools/userapp-emulator"]
-    path = PROJEKT/tools/userapp-emulator
+    path = project/userapp/tools/userapp-emulator
     url = https://github.com/PolaroidK/Windows-K-UserAppEmulator.git
     branch = emulator-submodule
