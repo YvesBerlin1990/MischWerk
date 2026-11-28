@@ -14,13 +14,13 @@ Dieser Bericht hält den aktuellen lokalen Prüfstand fest. Frühere Stände ste
 | Paketbau | `pnpm run prepare:upload` | 145 Dateien, fünf Manifeste auf Build 470 |
 | Paketvergleich | `pnpm run check:upload` | bestanden, 102 Textdateien, höchstens 9343 Zeichen |
 | Browser und Emulator am gebündelten Paket | `MISCHWERK_TEST_UPLOAD` | 251 von 251 |
+| GitHub-Prüfung | `pruefung.yml` | bestanden am Versionscommit v0.1.470 |
 
 Rhino läuft mit Java 21 über `MISCHWERK_JAVA`. Die Suiten starten über `tests/rhino/run.js` mit dem gemeinsamen Plattformmodell `tests/rhino/harness.js`.
 
 ## Nicht lokal belegt
 
 - FTP-Upload und Freigabe von Build 470.
-- Der erste GitHub-Lauf des Prüfworkflows `pruefung.yml`.
 - Native Darstellung, echte Audioausgabe und produktive Synchronisation: siehe [Live-Abnahme](../betrieb/LIVE-ABNAHME.md).
 
 ## Prüfbilder
